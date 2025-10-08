@@ -11,15 +11,12 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 from functools import wraps
 
 
-SECRET_TOKEN = "arina_secret_123"
-DEV_TOKEN = "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx"
+with open("config.json", "r", encoding="utf-8") as f:
+    CONFIG = json.load(f)
 
 app = Flask(__name__)
-app.secret_key = "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m"  # можно хранить в config.json
-USERS = {
-    "arina": "89068993567fA1!",
-    "irishka": "1122334455fA!"
-}
+app.secret_key = CONFIG["secret_key"]
+USERS = CONFIG["users"]
 toy_info = {}
 vibration_queue = queue.Queue()
 
@@ -72,16 +69,22 @@ def vibration_worker():
         save_queue_snapshot()
 
 # ---------------- LOVENSE ----------------
-def get_qr_code(dev_token, uid="arina", username="Arina"):
+def get_qr_code(user):
+    profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/getQrCode"
-    params = {"token": dev_token, "uid": uid, "username": username}
+    params = {
+        "token": profile["DEVELOPER_TOKEN"],
+        "uid": profile["UID"],
+        "username": profile["UNAME"]
+    }
     r = requests.post(url, data=params)
     data = r.json()
     if data.get("code") == 0:
-        return data["message"]   # 👉 просто возвращаем ссылку
+        return data["message"]
     else:
         print("Ошибка API:", data)
         return None
+
 
 def login_required(f):
     @wraps(f)
@@ -96,7 +99,7 @@ def login_required(f):
 def lovense_callback():
     global toy_info
     token = request.args.get("token")
-    if token != SECRET_TOKEN:
+    if token != CONFIG["secret_token"]:
         return jsonify({"status": "error", "message": "unauthorized"}), 403
     toy_info = request.json
     print("🔗 Игрушка подключена:")
@@ -261,7 +264,8 @@ def logout():
 @app.route("/")
 @login_required
 def index():
-    return render_template("index.html", user=session.get("user"))
+    profile = CONFIG["profiles"][session["user"]]
+    return render_template("index.html", user=session.get("user"), profile=profile)
 
 
 # ---------------- ЗАПУСК ----------------

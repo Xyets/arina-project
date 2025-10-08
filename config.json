@@ -1,7 +1,21 @@
 {
-    "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkJkmgDDIvrgoLwIOZr-Dko",
-    "UID": "arina123",
-    "UNAME": "Arina",
-    "UTOKEN": "secret123",
-    "app.secret_key": "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m" 
+  "secret_key": "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m",
+  "users": {
+    "arina": "89068993567fA1!",
+    "irishka": "1122334455fA!"
+  },
+  "profiles": {
+    "arina": {
+      "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx",
+      "UID": "arina123",
+      "UNAME": "Arina",
+      "UTOKEN": "secret123"
+    },
+    "podruzhka": {
+      "DEVELOPER_TOKEN": "токен_подруги",
+      "UID": "iriska456",
+      "UNAME": "Iriska",
+      "UTOKEN": "secret456"
+    }
+  }
 }
