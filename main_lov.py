@@ -211,6 +211,7 @@ async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
     async for message in websocket:
         print(f"📥 Получено сообщение: {message}")
+        await websocket.send("✅ Сервер получил сообщение")
         try:
             data = json.loads(message)
             text = data.get("text", "")
@@ -256,10 +257,17 @@ async def ws_handler(websocket):
 
 
 async def ws_server():
-    async with websockets.serve(ws_handler, "0.0.0.0", 8765):
+    async with websockets.serve(
+        ws_handler,
+        "0.0.0.0",
+        8765,
+        origins=None,       # отключаем проверку Origin
+        ping_interval=None  # отключаем авто-пинг
+    ):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765")
         await asyncio.Future()
 
+asyncio.run(ws_server())
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
