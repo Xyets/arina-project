@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>QR‑код подключения</title>
+</head>
+<body>
+    <h1>🔗 Подключение игрушки для {{ user }}</h1>
+    <p>Отсканируй этот QR‑код в приложении Lovense Remote:</p>
+    <img src="{{ qr_url }}" alt="QR‑код">
+    <p><a href="{{ url_for('index') }}">⬅ Назад</a></p>
+</body>
+</html>

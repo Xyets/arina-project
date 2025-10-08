@@ -17,62 +17,42 @@ with open("config.json", "r", encoding="utf-8") as f:
 app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
-toy_info = {}
-vibration_queue = queue.Queue()
+vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
+toys = {}
 
-
-# ---------------- ВИБРАЦИЯ ----------------
-def save_queue_snapshot():
+def vibrate_for(user, strength, duration):
+    toy_info = toys.get(user)
+    if not toy_info:
+        print(f"❌ Игрушка {user} не подключена")
+        return
+    domain = toy_info["domain"]
+    port = toy_info["httpPort"]
+    toy_id = list(toy_info["toys"].keys())[0]
+    url = f"http://{domain}:{port}/Vibrate"
+    params = {"t": toy_id, "v": strength, "sec": duration}
     try:
-        with open("vibration_queue.json", "w", encoding="utf-8") as f:
-            snapshot = list(vibration_queue.queue)
-            json.dump([{"strength": s, "duration": d} for s, d in snapshot], f)
+        requests.get(url, params=params, timeout=5)
     except Exception as e:
-        print("⚠️ Ошибка сохранения очереди:", e)
+        print(f"⚠️ [{user}] Ошибка отправки вибрации:", e)
 
-
-def vibrate_now(strength):
-    if not toy_info:
-        print("❌ Игрушка не подключена")
-        return
-    domain = toy_info["domain"]
-    port = toy_info["httpPort"]
-    toy_id = list(toy_info["toys"].keys())[0]
-    url = f"http://{domain}:{port}/Vibrate"
-    params = {"t": toy_id, "v": strength, "sec": 0}
-    requests.get(url, params=params)
-
-
-def vibrate(strength, duration):
-    vibration_queue.put((strength, duration))
-
-
-def stop():
-    if not toy_info:
-        return
-    domain = toy_info["domain"]
-    port = toy_info["httpPort"]
-    toy_id = list(toy_info["toys"].keys())[0]
-    url = f"http://{domain}:{port}/Vibrate"
-    params = {"t": toy_id, "v": 0}
-    requests.get(url, params=params)
-
-
-def vibration_worker():
+def vibration_worker(user):
+    q = vibration_queues[user]
     while True:
-        save_queue_snapshot()
-        strength, duration = vibration_queue.get()
-        print(f"🚀 Вибрация: сила {strength}, длительность {duration} сек")
-        vibrate_now(strength)
+        strength, duration = q.get()
+        print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
+        vibrate_for(user, strength, duration)
         elapsed = 0
         while elapsed < duration:
             time.sleep(0.5)
             elapsed += 0.5
-            print(f"⏳ Осталось: {max(0, duration - elapsed):.1f} сек")
-        stop()
-        vibration_queue.task_done()
-        save_queue_snapshot()
+            print(f"⏳ [{user}] Осталось: {max(0, duration - elapsed):.1f} сек")
+        # стоп после выполнения
+        vibrate_for(user, 0, 0)
+        q.task_done()
 
+# Запуск воркеров для каждого профиля
+for user in CONFIG["profiles"].keys():
+    threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
 
 # ---------------- LOVENSE ----------------
 def get_qr_code(user):
@@ -101,65 +81,81 @@ def login_required(f):
 
     return wrapper
 
-
 @app.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
-    global toy_info
     token = request.args.get("token")
+    user = request.args.get("user")  # 👉 ?user=arina или ?user=podruzhka
+
     if token != CONFIG["secret_token"]:
         return jsonify({"status": "error", "message": "unauthorized"}), 403
-    toy_info = request.json
-    print("🔗 Игрушка подключена:")
-    print(json.dumps(toy_info, indent=2, ensure_ascii=False))
-    with open("toy_status.json", "w", encoding="utf-8") as f:
+
+    if user not in CONFIG["profiles"]:
+        return jsonify({"status": "error", "message": "unknown user"}), 400
+
+    data = request.json
+    if not data or "toys" not in data or not data["toys"]:
+        return jsonify({"status": "error", "message": "no toys in payload"}), 400
+    if "domain" not in data or "httpPort" not in data:
+        return jsonify({"status": "error", "message": "missing domain/httpPort"}), 400
+
+    toys[user] = data
+    print(f"🔗 Игрушка подключена для {user}:")
+    print(json.dumps(toys[user], indent=2, ensure_ascii=False))
+
+    # сохраняем статус отдельно для каждой
+    status_file = f"toy_status_{user}.json"
+    with open(status_file, "w", encoding="utf-8") as f:
         json.dump(
             {
-                "toy_id": list(toy_info["toys"].keys())[0],
-                "domain": toy_info["domain"],
-                "port": toy_info["httpPort"],
+                "toy_id": list(toys[user]["toys"].keys())[0],
+                "domain": toys[user]["domain"],
+                "port": toys[user]["httpPort"],
             },
             f,
+            ensure_ascii=False,
+            indent=2
         )
+
     return jsonify({"status": "ok"})
 
 
+
+
 # ---------------- ПРАВИЛА ----------------
-def load_rules():
+def load_rules(user):
+    profile = CONFIG["profiles"][user]
+    rules_file = profile["rules_file"]
     try:
-        with open("rules.json", "r", encoding="utf-8") as f:
+        with open(rules_file, "r", encoding="utf-8") as f:
             return json.load(f)
     except:
         return {"default": [1, 5], "rules": []}
 
-
-def apply_rule(amount, text):
-    rules = load_rules()
+def apply_rule(user, amount, text):
+    rules = load_rules(user)
     for rule in rules["rules"]:
         if rule["min"] <= amount <= rule["max"]:
             if rule.get("action"):
-                # 👉 Если у правила есть действие — пишем его в лог
                 ts = time.strftime("%Y-%m-%d %H:%M:%S")
                 with open("donations.log", "a", encoding="utf-8") as f:
-                    f.write(f"{ts} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
-                print(f"🎬 Действие для доната {amount}: {rule['action']}")
+                    f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
+                print(f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
                 return
-            else:
-                # 👉 Если действия нет — запускаем вибрацию
-                strength = rule.get("strength", 1)
-                duration = rule.get("duration", 5)
-                vibrate(strength, duration)
+            strength = rule.get("strength", 1)
+            duration = rule.get("duration", 5)
+            vibration_queues[user].put((strength, duration))
+            return
 
-                return
-
-    # 👉 Если ни одно правило не подошло — берём дефолт
     strength, duration = rules["default"]
-    vibrate(strength, duration)
-
+    vibration_queues[user].put((strength, duration))
 
 # ---------------- VIP ----------------
-def update_vip_list(user_id, name, amount):
+def update_vip_list(user, user_id, name, amount):
+    profile = CONFIG["profiles"][user]
+    vip_file = profile["vip_file"]
+
     try:
-        with open("vip_donaters.json", "r", encoding="utf-8") as f:
+        with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
     except:
         vip_data = {}
@@ -171,7 +167,7 @@ def update_vip_list(user_id, name, amount):
     if name:
         vip_data[user_id]["name"] = name
 
-    with open("vip_donaters.json", "w", encoding="utf-8") as f:
+    with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
 
@@ -223,6 +219,13 @@ async def ws_handler(websocket):
             amount = fallback_amount(text, data.get("amount"))
             donation_id = data.get("donation_id")
 
+            # --- определяем профиль ---
+            user = data.get("user")
+            if not user or user not in CONFIG["profiles"]:
+                await websocket.send("❌ Неизвестный профиль")
+                continue
+
+
             # --- проверка на повторы ---
             if donation_id:
                 if donation_id in processed_donations:
@@ -231,14 +234,14 @@ async def ws_handler(websocket):
                     continue
                 processed_donations.add(donation_id)
 
-            if amount:
-                log_donation(text, amount)  # без donation_id
-                print(f"✅ Донат | {name} → {amount}")
-                apply_rule(amount, text)
+            if amount and amount > 0:
+                log_donation(text, amount)
+                print(f"✅ [{user}] Донат | {name} → {amount}")
+                apply_rule(user, amount, text)
 
                 if user_id:
-                    print(f"👤 Обновление VIP: {user_id} | {name} → {amount}")
-                    update_vip_list(user_id, name, amount)
+                    print(f"👤 [{user}] Обновление VIP: {user_id} | {name} → {amount}")
+                    update_vip_list(user, user_id, name, amount)
 
                 await websocket.send("✅ Донат принят")
             else:
@@ -253,8 +256,8 @@ async def ws_handler(websocket):
 
 
 async def ws_server():
-    async with websockets.serve(ws_handler, "localhost", 8765):
-        print("🚀 WebSocket‑сервер запущен на ws://localhost:8765")
+    async with websockets.serve(ws_handler, "0.0.0.0", 8765):
+        print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765")
         await asyncio.Future()
 
 
@@ -294,8 +297,16 @@ def hook():
         data = request.get_json(silent=True)
         print("📩 Пришёл webhook:", data)
 
-        os.system("cd /root/arina-project && git pull && systemctl restart arina")
-        print("✅ Обновление прошло успешно")
+        import subprocess
+        result = subprocess.run(
+            ["bash", "-lc", "cd /root/arina-project && git pull && systemctl restart arina"],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print("🔥 Ошибка обновления:", result.stderr)
+            return "Internal Server Error", 500
+        print("✅ Обновление прошло успешно:", result.stdout)
+
         return "OK", 200
 
     except Exception as e:
@@ -319,13 +330,19 @@ def rules():
     if request.method == "POST":
         # Добавление нового правила
         if "add_rule" in request.form:
+            def to_int(name, default=0):
+                try:
+                    return int(request.form.get(name, default))
+                except:
+                    return default
             new_rule = {
-                "min": int(request.form["min"]),
-                "max": int(request.form["max"]),
-                "strength": int(request.form["strength"]),
-                "duration": int(request.form["duration"]),
-                "action": request.form["action"] or None
+                "min": to_int("min", 1),
+                "max": to_int("max", 5),
+                "strength": to_int("strength", 1),
+                "duration": to_int("duration", 5),
+                "action": request.form.get("action") or None
             }
+
             rules_data["rules"].append(new_rule)
 
         # Удаление правила
@@ -361,6 +378,14 @@ def index():
     profile = CONFIG["profiles"][session["user"]]
     return render_template("index.html", user=session.get("user"), profile=profile)
 
+@app.route("/qrcode")
+@login_required
+def qrcode_page():
+    user = session["user"]
+    qr_url = get_qr_code(user)
+    if not qr_url:
+        return "❌ Не удалось получить QR‑код", 500
+    return render_template("qrcode.html", user=user, qr_url=qr_url)
 
 # ---------------- ЗАПУСК ----------------
 if __name__ == "__main__":
@@ -368,7 +393,6 @@ if __name__ == "__main__":
     threading.Thread(
         target=lambda: app.run(host="0.0.0.0", port=5000), daemon=True
     ).start()
-    threading.Thread(target=vibration_worker, daemon=True).start()
 
     def run_ws_server():
         loop = asyncio.new_event_loop()
