@@ -266,8 +266,17 @@ async def ws_server():
     ):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765")
         await asyncio.Future()
+import threading
 
+# Запускаем Flask в отдельном потоке
+def run_flask():
+    app.run(host="0.0.0.0", port=5000)
+
+threading.Thread(target=run_flask, daemon=True).start()
+
+# Запускаем WebSocket в основном потоке
 asyncio.run(ws_server())
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
