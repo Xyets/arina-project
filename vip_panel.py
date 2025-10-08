@@ -213,5 +213,3 @@ class VIPPanel(tk.Frame):
             if user_id in persistent:
                 del persistent[user_id]
                 save_persistent(persistent)
-
-            self.load_vip_data()

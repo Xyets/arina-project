@@ -8,6 +8,7 @@ import asyncio
 import websockets
 from flask import Flask, request, jsonify
 import os
+from flask import Flask, request, jsonify, render_template
 
 
 SECRET_TOKEN = "arina_secret_123"
@@ -229,7 +230,8 @@ async def ws_server():
 
 @app.route("/")
 def index():
-    return "✅ Сервер работает! Добро пожаловать, Арина 💜"
+    return render_template("index.html")
+
 
 # ---------------- ЗАПУСК ----------------
 if __name__ == "__main__":
