@@ -230,7 +230,7 @@ async def ws_server():
 # ---------------- ЗАПУСК ----------------
 if __name__ == "__main__":
 
-    threading.Thread(target=lambda: app.run(host="127.0.0.1", port=5000), daemon=True).start()
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5000), daemon=True).start()
     threading.Thread(target=vibration_worker, daemon=True).start()
 
     def run_ws_server():
