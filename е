@@ -1,0 +1,32 @@
+let socket;
+let lastEventKey = "";
+ // вместо lastMessage 
+function connectWS() 
+    { socket = new WebSocket("ws://localhost:8765"); 
+    socket.addEventListener("open", () => console.log("🔌 WebSocket открыт")); 
+    socket.addEventListener("close", () => setTimeout(connectWS, 2000)); 
+    socket.addEventListener("error", (err) => console.error("❌ Ошибка WS:", err)); 
+    }
+    connectWS();
+    setInterval(() => { 
+        const donations = document.querySelectorAll("li.js-systemCommentLine"); 
+        if (donations.length > 0) { 
+        const last = donations[donations.length - 1].innerText.trim(); // проверяем только на слово "подарил" if (/подарил/i.test(last)) { // формируем уникальный ключ события: user_id + текст const idMatch = last.match(/\b([0-9a-f]{32})\b/i); const userId = idMatch ? idMatch[1] : null; const eventKey = (userId || "") + "|" + last; if (eventKey !== lastEventKey) { lastEventKey = eventKey; let name = null; let amount = null; const nameMatch = last.match(/^(.+?)\s+подарил/i); if (nameMatch) name = nameMatch[1].trim(); const amountMatch = last.match(/подарил\s+(\d+)/i); if (amountMatch) amount = parseInt(amountMatch[1], 10); const gifts = { "Конфета":10, "Сердце":10, "Поцелуй":100, "Фейерверк":1000, "Шампанское":10000 }; for (let gift in gifts) { if (last.toLowerCase().includes(gift.toLowerCase())) amount = gifts[gift]; } // fallback: если подарок неизвестный → amount = 1 if (amount === null) amount = 1; if (socket && socket.readyState === WebSocket.OPEN) { socket.send(JSON.stringify({ text: last, name: name, user_id: userId, amount: amount })); console.log("📤 Отправка в WebSocket:", { name, userId, amount, text: last }); } } } } }, 3000);
+        ?? 上級レベル
+1500ポイント → 特別に名前を呼んであげる♡ 
+2000ポイント → 「秘密の言葉」プレゼント ??
+
+?? VIPレベル (VIP‑уровень)
+
+3000+ポイント → VIPありがとうメッセージ + トップドネーターリストに掲載
+
+5000+ポイント → 体にあなたの名前を書いちゃう…??
+
+
+мне кажется что моя программа достаточно хорошая.
+ я бы хотела поделится ей с моей подругой которая тоже стримит на fc2 live.
+  но у нее нет возможности воспользоваться негроком 
+  да и я уже подзабыла что нужно устанавливать чтоб 
+  програма работала правильно. можно ли купить сервер 
+  для нас двоих вместо использования ngrok. и можно ли
+   сделать мою программа приложением и отправить ей

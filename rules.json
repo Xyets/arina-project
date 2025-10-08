@@ -1,0 +1,71 @@
+{
+  "default": [
+    1,
+    5
+  ],
+  "rules": [
+    {
+      "min": 2,
+      "max": 49,
+      "strength": 1,
+      "duration": 1,
+      "action": "танцуй"
+    },
+    {
+      "min": 50,
+      "max": 99,
+      "strength": 3,
+      "duration": 1,
+      "action": null
+    },
+    {
+      "min": 100,
+      "max": 199,
+      "strength": 1,
+      "duration": 30,
+      "action": null
+    },
+    {
+      "min": 200,
+      "max": 299,
+      "strength": 5,
+      "duration": 30,
+      "action": null
+    },
+    {
+      "min": 300,
+      "max": 499,
+      "strength": 7,
+      "duration": 30,
+      "action": null
+    },
+    {
+      "min": 500,
+      "max": 699,
+      "strength": 3,
+      "duration": 50,
+      "action": null
+    },
+    {
+      "min": 700,
+      "max": 999,
+      "strength": 7,
+      "duration": 60,
+      "action": null
+    },
+    {
+      "min": 1000,
+      "max": 1499,
+      "strength": 12,
+      "duration": 80,
+      "action": null
+    },
+    {
+      "min": 1500,
+      "max": 20000,
+      "strength": 10,
+      "duration": 3,
+      "action": null
+    }
+  ]
+}
