@@ -260,6 +260,33 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+import hmac, hashlib, os
+from flask import request
+
+@app.route("/hook", methods=["POST"])
+def hook():
+    try:
+        # Проверка секрета
+        signature = request.headers.get("X-Hub-Signature-256")
+        secret = CONFIG["webhook_secret"].encode()
+        body = request.data
+        expected = "sha256=" + hmac.new(secret, body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature or "", expected):
+            print("❌ Неверный секрет")
+            return "Forbidden", 403
+
+        # Пробуем разобрать JSON
+        data = request.get_json(silent=True)
+        print("📩 Пришёл webhook:", data)
+
+        # Обновляем проект
+        os.system("cd /root/arina-project && git pull && systemctl restart arina")
+        return "OK", 200
+
+    except Exception as e:
+        print("🔥 Ошибка в webhook:", e)
+        return "Internal Server Error", 500
+
 import hmac
 import hashlib
 
