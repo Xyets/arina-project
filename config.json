@@ -2,5 +2,6 @@
     "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkJkmgDDIvrgoLwIOZr-Dko",
     "UID": "arina123",
     "UNAME": "Arina",
-    "UTOKEN": "secret123"
+    "UTOKEN": "secret123",
+    "app.secret_key": "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m" 
 }

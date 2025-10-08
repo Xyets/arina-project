@@ -6,15 +6,20 @@ import requests
 import queue
 import asyncio
 import websockets
-from flask import Flask, request, jsonify
 import os
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from functools import wraps
 
 
 SECRET_TOKEN = "arina_secret_123"
 DEV_TOKEN = "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx"
 
 app = Flask(__name__)
+app.secret_key = "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m"  # можно хранить в config.json
+USERS = {
+    "arina": "89068993567fA1!",
+    "irishka": "1122334455fA!"
+}
 toy_info = {}
 vibration_queue = queue.Queue()
 
@@ -77,6 +82,14 @@ def get_qr_code(dev_token, uid="arina", username="Arina"):
     else:
         print("Ошибка API:", data)
         return None
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
 
 
 @app.route("/lovense/callback", methods=["POST"])
@@ -228,9 +241,27 @@ async def ws_server():
         print("🚀 WebSocket‑сервер запущен на ws://localhost:8765")
         await asyncio.Future()
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        user = request.form.get("username")
+        pwd = request.form.get("password")
+        if user in USERS and USERS[user] == pwd:
+            session["user"] = user
+            return redirect(url_for("index"))
+        return render_template("login.html", error="Неверный логин или пароль")
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@login_required
 def index():
-    return render_template("index.html")
+    return render_template("index.html", user=session.get("user"))
 
 
 # ---------------- ЗАПУСК ----------------
