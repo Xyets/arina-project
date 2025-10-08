@@ -316,32 +316,43 @@ def rules():
     except:
         rules_data = {"default": [1, 5], "rules": []}
 
-    # Добавление нового правила
-    if request.method == "POST" and "add_rule" in request.form:
-        new_rule = request.form.get("rule")
-        if new_rule:
+    if request.method == "POST":
+        # Добавление нового правила
+        if "add_rule" in request.form:
+            new_rule = {
+                "min": int(request.form["min"]),
+                "max": int(request.form["max"]),
+                "strength": int(request.form["strength"]),
+                "duration": int(request.form["duration"]),
+                "action": request.form["action"] or None
+            }
             rules_data["rules"].append(new_rule)
-            with open(rules_file, "w", encoding="utf-8") as f:
-                json.dump(rules_data, f, indent=2, ensure_ascii=False)
 
-    # Удаление правила
-    if request.method == "POST" and "delete_rule" in request.form:
-        idx = int(request.form.get("delete_rule"))
-        if 0 <= idx < len(rules_data["rules"]):
-            rules_data["rules"].pop(idx)
-            with open(rules_file, "w", encoding="utf-8") as f:
-                json.dump(rules_data, f, indent=2, ensure_ascii=False)
+        # Удаление правила
+        elif "delete_rule" in request.form:
+            idx = int(request.form["delete_rule"])
+            if 0 <= idx < len(rules_data["rules"]):
+                rules_data["rules"].pop(idx)
 
-    # Редактирование правила
-    if request.method == "POST" and "edit_rule" in request.form:
-        idx = int(request.form.get("edit_rule"))
-        new_text = request.form.get("new_text")
-        if 0 <= idx < len(rules_data["rules"]) and new_text:
-            rules_data["rules"][idx] = new_text
-            with open(rules_file, "w", encoding="utf-8") as f:
-                json.dump(rules_data, f, indent=2, ensure_ascii=False)
+        # Редактирование правила
+        elif "edit_rule" in request.form:
+            idx = int(request.form["edit_rule"])
+            if 0 <= idx < len(rules_data["rules"]):
+                rules_data["rules"][idx] = {
+                    "min": int(request.form["min"]),
+                    "max": int(request.form["max"]),
+                    "strength": int(request.form["strength"]),
+                    "duration": int(request.form["duration"]),
+                    "action": request.form["action"] or None
+                }
 
-    return render_template("rules.html", rules=rules_data["rules"])
+        # Сохраняем изменения
+        with open(rules_file, "w", encoding="utf-8") as f:
+            json.dump(rules_data, f, indent=2, ensure_ascii=False)
+
+        return redirect("/rules")
+
+    return render_template("rules.html", rules=rules_data["rules"], default=rules_data["default"])
 
 
 @app.route("/")

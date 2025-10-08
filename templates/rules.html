@@ -7,26 +7,44 @@
 <body>
     <h2>📜 Правила для {{ session["user"] }}</h2>
 
-    <ul>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Мин</th><th>Макс</th><th>Сила</th><th>Время</th><th>Действие</th><th>Управление</th>
+        </tr>
         {% for rule in rules %}
-            <li>
-                {{ rule }}
-                <!-- Кнопка удалить -->
+        <tr>
+            <td>{{ rule.min }}</td>
+            <td>{{ rule.max }}</td>
+            <td>{{ rule.strength }}</td>
+            <td>{{ rule.duration }}</td>
+            <td>{{ rule.action }}</td>
+            <td>
+                <!-- Удалить -->
                 <form method="POST" style="display:inline;">
                     <button type="submit" name="delete_rule" value="{{ loop.index0 }}">❌</button>
                 </form>
-                <!-- Кнопка редактировать -->
+                <!-- Редактировать -->
                 <form method="POST" style="display:inline;">
-                    <input type="text" name="new_text" placeholder="Новое значение" required>
-                    <button type="submit" name="edit_rule" value="{{ loop.index0 }}">✏️</button>
+                    <input type="hidden" name="edit_rule" value="{{ loop.index0 }}">
+                    Мин: <input type="number" name="min" value="{{ rule.min }}" required>
+                    Макс: <input type="number" name="max" value="{{ rule.max }}" required>
+                    Сила: <input type="number" name="strength" value="{{ rule.strength }}">
+                    Время: <input type="number" name="duration" value="{{ rule.duration }}">
+                    Действие: <input type="text" name="action" value="{{ rule.action }}">
+                    <button type="submit">✏️</button>
                 </form>
-            </li>
+            </td>
+        </tr>
         {% endfor %}
-    </ul>
+    </table>
 
     <h3>➕ Добавить новое правило</h3>
     <form method="POST">
-        <input type="text" name="rule" placeholder="Новое правило" required>
+        Мин: <input type="number" name="min" required>
+        Макс: <input type="number" name="max" required>
+        Сила: <input type="number" name="strength">
+        Время: <input type="number" name="duration">
+        Действие: <input type="text" name="action">
         <button type="submit" name="add_rule">Добавить</button>
     </form>
 
