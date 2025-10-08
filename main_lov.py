@@ -20,6 +20,7 @@ USERS = CONFIG["users"]
 toy_info = {}
 vibration_queue = queue.Queue()
 
+
 # ---------------- ВИБРАЦИЯ ----------------
 def save_queue_snapshot():
     try:
@@ -28,6 +29,7 @@ def save_queue_snapshot():
             json.dump([{"strength": s, "duration": d} for s, d in snapshot], f)
     except Exception as e:
         print("⚠️ Ошибка сохранения очереди:", e)
+
 
 def vibrate_now(strength):
     if not toy_info:
@@ -40,8 +42,10 @@ def vibrate_now(strength):
     params = {"t": toy_id, "v": strength, "sec": 0}
     requests.get(url, params=params)
 
+
 def vibrate(strength, duration):
     vibration_queue.put((strength, duration))
+
 
 def stop():
     if not toy_info:
@@ -52,6 +56,7 @@ def stop():
     url = f"http://{domain}:{port}/Vibrate"
     params = {"t": toy_id, "v": 0}
     requests.get(url, params=params)
+
 
 def vibration_worker():
     while True:
@@ -68,6 +73,7 @@ def vibration_worker():
         vibration_queue.task_done()
         save_queue_snapshot()
 
+
 # ---------------- LOVENSE ----------------
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
@@ -75,7 +81,7 @@ def get_qr_code(user):
     params = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": profile["UID"],
-        "username": profile["UNAME"]
+        "username": profile["UNAME"],
     }
     r = requests.post(url, data=params)
     data = r.json()
@@ -92,6 +98,7 @@ def login_required(f):
         if not session.get("user"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
+
     return wrapper
 
 
@@ -105,12 +112,16 @@ def lovense_callback():
     print("🔗 Игрушка подключена:")
     print(json.dumps(toy_info, indent=2, ensure_ascii=False))
     with open("toy_status.json", "w", encoding="utf-8") as f:
-        json.dump({
-            "toy_id": list(toy_info["toys"].keys())[0],
-            "domain": toy_info["domain"],
-            "port": toy_info["httpPort"]
-        }, f)
+        json.dump(
+            {
+                "toy_id": list(toy_info["toys"].keys())[0],
+                "domain": toy_info["domain"],
+                "port": toy_info["httpPort"],
+            },
+            f,
+        )
     return jsonify({"status": "ok"})
+
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules():
@@ -120,13 +131,14 @@ def load_rules():
     except:
         return {"default": [1, 5], "rules": []}
 
+
 def apply_rule(amount, text):
     rules = load_rules()
     for rule in rules["rules"]:
         if rule["min"] <= amount <= rule["max"]:
-            if rule.get("action"):  
+            if rule.get("action"):
                 # 👉 Если у правила есть действие — пишем его в лог
-                ts = time.strftime('%Y-%m-%d %H:%M:%S')
+                ts = time.strftime("%Y-%m-%d %H:%M:%S")
                 with open("donations.log", "a", encoding="utf-8") as f:
                     f.write(f"{ts} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
                 print(f"🎬 Действие для доната {amount}: {rule['action']}")
@@ -143,6 +155,7 @@ def apply_rule(amount, text):
     strength, duration = rules["default"]
     vibrate(strength, duration)
 
+
 # ---------------- VIP ----------------
 def update_vip_list(user_id, name, amount):
     try:
@@ -152,11 +165,7 @@ def update_vip_list(user_id, name, amount):
         vip_data = {}
 
     if user_id not in vip_data:
-        vip_data[user_id] = {
-            "name": name,
-            "alias": "",
-            "total": 0
-        }
+        vip_data[user_id] = {"name": name, "alias": "", "total": 0}
 
     vip_data[user_id]["total"] += amount
     if name:
@@ -165,9 +174,11 @@ def update_vip_list(user_id, name, amount):
     with open("vip_donaters.json", "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
+
 def log_donation(text, amount):
     with open("donations.log", "a", encoding="utf-8") as f:
         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {amount} | {text}\n")
+
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
 def fallback_amount(text, amount):
@@ -179,6 +190,7 @@ def fallback_amount(text, amount):
             return 1
     return amount
 
+
 def try_extract_user_id_from_text(text):
     m_hex = re.search(r"\b([0-9a-f]{32})\b", text, re.IGNORECASE)
     if m_hex:
@@ -188,14 +200,15 @@ def try_extract_user_id_from_text(text):
         return m_nonopan.group(1)
     return None
 
+
 # --- список уже обработанных донатов ---
 processed_donations = set()
+
 
 def clear_processed_donations():
     global processed_donations
     processed_donations.clear()
     print("🧹 Список обработанных донатов очищен")
-
 
 
 async def ws_handler(websocket):
@@ -244,6 +257,7 @@ async def ws_server():
         print("🚀 WebSocket‑сервер запущен на ws://localhost:8765")
         await asyncio.Future()
 
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -255,18 +269,20 @@ def login():
         return render_template("login.html", error="Неверный логин или пароль")
     return render_template("login.html")
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
+
 import hmac, hashlib, os
 from flask import request
+
 
 @app.route("/hook", methods=["POST"])
 def hook():
     try:
-        # Проверка секрета
         signature = request.headers.get("X-Hub-Signature-256")
         secret = CONFIG["webhook_secret"].encode()
         body = request.data
@@ -275,34 +291,16 @@ def hook():
             print("❌ Неверный секрет")
             return "Forbidden", 403
 
-        # Пробуем разобрать JSON
         data = request.get_json(silent=True)
         print("📩 Пришёл webhook:", data)
 
-        # Обновляем проект
         os.system("cd /root/arina-project && git pull && systemctl restart arina")
+        print("✅ Обновление прошло успешно")
         return "OK", 200
 
     except Exception as e:
         print("🔥 Ошибка в webhook:", e)
         return "Internal Server Error", 500
-
-import hmac
-import hashlib
-
-@app.route("/hook", methods=["POST"])
-def hook():
-    # Проверка секрета
-    signature = request.headers.get("X-Hub-Signature-256")
-    secret = CONFIG["webhook_secret"].encode()
-    body = request.data
-    expected = "sha256=" + hmac.new(secret, body, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature, expected):
-        return "Forbidden", 403
-
-    # Обновление кода
-    os.system("cd /root/arina-project && git pull && systemctl restart arina")
-    return "OK"
 
 
 @app.route("/rules", methods=["GET", "POST"])
@@ -356,7 +354,9 @@ def index():
 # ---------------- ЗАПУСК ----------------
 if __name__ == "__main__":
 
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5000), daemon=True).start()
+    threading.Thread(
+        target=lambda: app.run(host="0.0.0.0", port=5000), daemon=True
+    ).start()
     threading.Thread(target=vibration_worker, daemon=True).start()
 
     def run_ws_server():
