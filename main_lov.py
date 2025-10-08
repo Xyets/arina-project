@@ -260,6 +260,22 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+import hmac
+import hashlib
+
+@app.route("/hook", methods=["POST"])
+def hook():
+    # Проверка секрета
+    signature = request.headers.get("X-Hub-Signature-256")
+    secret = CONFIG["webhook_secret"].encode()
+    body = request.data
+    expected = "sha256=" + hmac.new(secret, body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        return "Forbidden", 403
+
+    # Обновление кода
+    os.system("cd /root/arina-project && git pull && systemctl restart arina")
+    return "OK"
 
 @app.route("/")
 @login_required

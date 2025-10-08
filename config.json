@@ -1,5 +1,6 @@
 {
   "secret_key": "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m",
+  "webhook_secret": "arina_webhook_secret",
   "users": {
     "arina": "89068993567fA1!",
     "irishka": "1122334455fA!"
