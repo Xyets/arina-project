@@ -81,19 +81,37 @@ for user in CONFIG["profiles"].keys():
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/getQrCode"
+
+    # твой уникальный ID и имя пользователя (можешь придумать сама)
+    uid = f"{user}_001"
+    uname = user
+
+    # опционально: utoken для верификации (uid + твой секрет)
+    salt = "arina_secret123"
+    utoken = hashlib.md5((uid + salt).encode()).hexdigest()
+
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
-        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
+        "uid": uid,
+        "uname": uname,
+        "utoken": utoken,
+        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
+        "v": 2
     }
-    r = requests.post(url, json=payload, timeout=10)
-    data = r.json()
-    if data.get("code") == 0:
-        return data["message"]
-    else:
-        print("Ошибка API:", data)
+
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        data = r.json()
+        if data.get("code") == 0:
+            # API возвращает ссылку на QR‑код (URL картинки)
+            return data["message"]
+        else:
+            print("Ошибка API:", data)
+            return None
+    except Exception as e:
+        print("Ошибка при запросе QR‑кода:", e)
         return None
-
-
+    
 def send_vibration_via_api(user, strength, duration):
     profile = CONFIG["profiles"][user]
     token = profile["DEVELOPER_TOKEN"]

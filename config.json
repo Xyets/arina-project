@@ -7,6 +7,8 @@
   "profiles": {
     "arina": {
       "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx",
+      "uid": "arina_001",
+      "uname": "Arina",
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json",
       "use_telegram_bridge": true,
@@ -14,6 +16,8 @@
       "telegram_chat_id": "8443786727"
     },
     "podruzhka": {
+      "uid": "irina_001",
+      "uname": "irina",
       "rules_file": "rules_podruzhka.json",
       "vip_file": "vip_podruzhka.json",
       "use_telegram_bridge": false,
