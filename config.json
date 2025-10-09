@@ -12,12 +12,12 @@
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json"
     },
-    "podruzhka": {
-      "DEVELOPER_TOKEN": "ВАШ_DEV_TOKEN_ДЛЯ_IRINA",
+    "irishka": {
+      "DEVELOPER_TOKEN": "ТОКЕН_ДЛЯ_IRISHKA", 
       "uid": "irina_001",
       "uname": "Irina",
-      "rules_file": "rules_podruzhka.json",
-      "vip_file": "vip_podruzhka.json"
+      "rules_file": "rules_irishka.json",
+      "vip_file": "vip_irishka.json"
     }
   },
   "webhook_secret": "arina_webhook_secret"

@@ -7,21 +7,19 @@ import queue
 import asyncio
 import websockets
 import os
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-from functools import wraps
-import subprocess
 import hmac
 import hashlib
+import subprocess
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from functools import wraps
 
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
-
 app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
-
 
 vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
 CONNECTED_USERS = {}
@@ -32,15 +30,12 @@ def get_qr_code(user):
     url = "https://api.lovense.com/api/lan/getQrCode"
 
     uid = f"{user}_001"
-    uname = user
-    salt = "arina_secret123"
-    utoken = hashlib.md5((uid + salt).encode()).hexdigest()
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
-        "uname": uname,
-        "utoken": utoken,
+        "uname": user,
+        "utoken": "arina_test_token",  # временный, настоящий придёт в callback
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
         "v": 2
     }
@@ -48,8 +43,8 @@ def get_qr_code(user):
     try:
         r = requests.post(url, json=payload, timeout=10)
         data = r.json()
-        if data.get("code") == 0:
-            return data["data"]["qr"]  # правильное поле
+        if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
+            return data["data"]["qr"]
         else:
             print("Ошибка API:", data)
             return None
@@ -66,17 +61,13 @@ def lovense_callback():
     if uid:
         CONNECTED_USERS[uid] = {
             "utoken": data.get("utoken"),
-            "toys": data.get("toys", {}),
-            "domain": data.get("domain"),
-            "httpsPort": data.get("httpsPort"),
-            "httpPort": data.get("httpPort")
+            "toys": data.get("toys", {})
         }
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
 
-
-def send_vibration_lan(user, strength, duration):
-    """Отправка вибрации через LAN API"""
+def send_vibration_cloud(user, strength, duration):
+    """Отправка вибрации через Cloud API"""
     uid = f"{user}_001"
     user_data = CONNECTED_USERS.get(uid)
 
@@ -84,47 +75,38 @@ def send_vibration_lan(user, strength, duration):
         print(f"❌ [{user}] Нет данных из callback — игрушка не подключена")
         return
 
-    toy_id = list(user_data["toys"].keys())[0]
-    domain = user_data.get("domain")
-    port = user_data.get("httpsPort") or user_data.get("httpPort")
-
-    if not domain or not port:
-        print(f"❌ [{user}] Нет domain/port в callback")
-        return
-
-    url = f"https://{domain}:{port}/command"
+    profile = CONFIG["profiles"][user]
+    url = "https://api.lovense.com/api/lan/v2/command"
     payload = {
-        "token": CONFIG["profiles"][user]["DEVELOPER_TOKEN"],
+        "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
+        "utoken": user_data.get("utoken"),
         "command": "Function",
         "action": f"Vibrate:{strength}",
         "timeSec": duration,
-        "toy": toy_id,
         "apiVer": 1
     }
 
     try:
-        r = requests.post(url, json=payload, timeout=10, verify=False)
+        r = requests.post(url, json=payload, timeout=10)
         data = r.json()
-        print(f"📤 [{user}] LAN‑вибрация → {data}")
+        print(f"📤 [{user}] Cloud‑вибрация → {data}")
         return data
     except Exception as e:
-        print(f"❌ [{user}] Ошибка LAN‑вибрации:", e)
+        print(f"❌ [{user}] Ошибка Cloud‑вибрации:", e)
         return None
-
 
 def vibration_worker(user):
     q = vibration_queues[user]
     while True:
         strength, duration = q.get()
         print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
-        send_vibration_lan(user, strength, duration)
+        send_vibration_cloud(user, strength, duration)  # ⚡️ заменили LAN на Cloud
         q.task_done()
 
 # Запуск воркеров для каждого профиля
 for user in CONFIG["profiles"].keys():
     threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
-
 
 
 def login_required(f):
@@ -135,14 +117,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-
-def vibration_worker(user):
-    q = vibration_queues[user]
-    while True:
-        strength, duration = q.get()
-        print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
-        send_vibration_lan(user, strength, duration)
-        q.task_done()
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules(user):
@@ -312,8 +286,8 @@ def logout():
 def test_vibration():
     user = session["user"]
     # сила 5, длительность 5 секунд
-    send_vibration_lan(user, strength=5, duration=5)
-    return "✅ LAN‑вибрация отправлена"
+    send_vibration_cloud(user, strength=5, duration=5)
+    return "✅ Cloud‑вибрация отправлена"
 
 
 @app.route("/hook", methods=["POST"])
