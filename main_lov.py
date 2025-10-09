@@ -53,27 +53,6 @@ def send_command(user, command):
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
-def discover_toy_info():
-    try:
-        url = "http://192.168.1.177:34567/GetToys"
-        response = requests.get(url, timeout=5)
-        data = response.json()
-        print("🔍 Обнаружены игрушки:", data)
-        return {
-            "domain": "192.168.1.177",
-            "httpPort": 34567,
-            "toys": data.get("toys", {})
-        }
-    except Exception as e:
-        print("❌ Не удалось обнаружить игрушку:", e)
-        return None
-
-# Автоматически вставляем toy_info в каждый профиль
-for user in CONFIG["profiles"].keys():
-    toy_info = discover_toy_info()
-    if toy_info:
-        CONFIG["profiles"][user]["toy_info"] = toy_info
-
 
 app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
@@ -81,40 +60,18 @@ USERS = CONFIG["users"]
 vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
 
 
-def vibrate_for(user, strength, duration):
-    profile = CONFIG["profiles"][user]
-    toy_info = profile.get("toy_info")
-    if not toy_info:
-        print(f"❌ [{user}] Игрушка не подключена")
-        return
-
-    domain = toy_info["domain"]
-    port = toy_info["httpPort"]
-    toy_id = list(toy_info["toys"].keys())[0]
-    url = f"http://{domain}:{port}/Vibrate"
-    params = {"t": toy_id, "v": strength, "sec": duration}
-
-    print(f"📤 [{user}] LAN‑вибрация: сила {strength}, время {duration}")
-    try:
-        response = requests.get(url, params=params, timeout=5)
-        print(f"📶 [{user}] Ответ от игрушки: {response.text}")
-    except Exception as e:
-        print(f"❌ [{user}] Ошибка LAN‑подключения:", e)
-
-
 def vibration_worker(user):
     q = vibration_queues[user]
     while True:
         strength, duration = q.get()
         print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
-        vibrate_for(user, strength, duration)
+        send_vibration_via_api
         elapsed = 0
         while elapsed < duration:
             time.sleep(0.5)
             elapsed += 0.5
             print(f"⏳ [{user}] Осталось: {max(0, duration - elapsed):.1f} сек")
         # стоп после выполнения
-        vibrate_for(user, 0, 0)
         q.task_done()
 
 # Запуск воркеров для каждого профиля
@@ -125,7 +82,7 @@ for user in CONFIG["profiles"].keys():
 
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
-    url = "https://api.lovense.com/api/lan/getQrCode"  # или endpoint/getQrCode
+    url = "https://api.lovense.com/api/lan/getQrCode"   # ← вот сюда
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
@@ -144,31 +101,29 @@ def get_qr_code(user):
 
 
 
+
 def send_vibration_via_api(user, strength, duration):
     profile = CONFIG["profiles"][user]
     token = profile["DEVELOPER_TOKEN"]
-    uid = profile["UID"]
 
-    command_url = "https://api.lovense.com/api/lan/sendCommand"
+    url = "https://api.lovense.com/api/lan/sendCommand"   # ← вот сюда
     headers = {"Content-Type": "application/json"}
 
     vibrate_payload = {
         "token": token,
-        "uid": uid,
         "command": f"Vibrate:{strength}"
     }
 
     stop_payload = {
         "token": token,
-        "uid": uid,
         "command": "Vibrate:0"
     }
 
     try:
         print(f"📤 [{user}] API‑вибрация: сила {strength}, длительность {duration}")
-        requests.post(command_url, json=vibrate_payload, headers=headers, timeout=5)
+        requests.post(url, json=vibrate_payload, headers=headers, timeout=5)
         time.sleep(duration)
-        requests.post(command_url, json=stop_payload, headers=headers, timeout=5)
+        requests.post(url, json=stop_payload, headers=headers, timeout=5)
         print(f"⏹ [{user}] Вибрация остановлена")
     except Exception as e:
         print(f"❌ [{user}] Ошибка API:", e)
