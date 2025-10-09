@@ -125,19 +125,24 @@ for user in CONFIG["profiles"].keys():
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/endpoint/getQrCode"
-    params = {
-        "token": profile["DEVELOPER_TOKEN"],  # твой dev token
-        "uid": profile["UID"],                # уникальный ID пользователя
-        "uname": profile["UNAME"],            # имя пользователя
+    payload = {
+        "token": profile["DEVELOPER_TOKEN"],
+        "uid": profile["UID"],
+        "uname": profile["UNAME"],
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
     }
-    r = requests.post(url, data=params)
-    data = r.json()
-    if data.get("code") == 0:
-        return data["message"]  # здесь будет ссылка на QR‑код
-    else:
-        print("Ошибка API:", data)
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        data = r.json()
+        if data.get("code") == 0:
+            return data["message"]  # ссылка на QR-код
+        else:
+            print("Ошибка API:", data)
+            return None
+    except Exception as e:
+        print("Ошибка при запросе QR-кода:", e)
         return None
+
 
 def send_vibration_via_api(user, strength, duration):
     profile = CONFIG["profiles"][user]
