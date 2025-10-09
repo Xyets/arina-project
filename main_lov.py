@@ -27,14 +27,17 @@ def vibrate_for(user, strength, duration):
     url = "https://api.lovense.com/api/command"
 
     def send(strength, duration):
+        command = f"Vibrate:{strength};Duration:{duration}"
         params = {
             "token": profile["DEVELOPER_TOKEN"],
             "uid": profile["UID"],
-            "command": f"Vibrate:{strength};Duration:{duration}"
+            "command": command
         }
+        print(f"📤 [{user}] Отправка команды: {command}")
         try:
             response = requests.get(url, params=params, timeout=5)
             data = response.json()
+            print(f"📶 [{user}] Ответ от Lovense: {data}")
             if data.get("code") == 0:
                 print(f"✅ [{user}] Вибрация: сила {strength}, время {duration}")
             else:
@@ -45,6 +48,7 @@ def vibrate_for(user, strength, duration):
     send(strength, duration)
     time.sleep(duration)
     send(0, 0)  # остановка
+
 
 def vibration_worker(user):
     q = vibration_queues[user]
