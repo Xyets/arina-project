@@ -7,9 +7,12 @@ import queue
 import asyncio
 import websockets
 import os
+from flask import request
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from functools import wraps
-
+import subprocess
+import hmac
+import hashlib
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -346,7 +349,7 @@ def hook():
         signature = request.headers.get("X-Hub-Signature-256")
         secret = CONFIG["webhook_secret"].encode()
         body = request.data
-        expected = "sha256=" +  .new(secret, body, hashlib.sha256).hexdigest()
+        expected = "sha256=" + hmac.new(secret, body, hashlib.sha256).hexdigest()
 
         if not hmac.compare_digest(signature or "", expected):
             print("❌ Неверный секрет")
@@ -356,10 +359,11 @@ def hook():
         print("📩 Пришёл webhook:", data)
 
         result = subprocess.run(
-            ["bash", "-lc", "cd /root/arina-project && git pull && systemctl restart arina"],
+            ["bash", "-lc", "cd /root/arina-project && git pull && poetry install"],
             capture_output=True,
             text=True
         )
+
 
         if result.returncode != 0:
             print("🔥 Ошибка обновления:", result.stderr)
