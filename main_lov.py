@@ -122,14 +122,6 @@ for user in CONFIG["profiles"].keys():
     threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
 
 # ---------------- LOVENSE ----------------
-@app.route("/lovense/callback", methods=["GET", "POST"])
-def lovense_callback():
-    if request.method == "POST":
-        data = request.json or request.form
-        print("📩 Callback от Lovense:", data)
-        return "OK", 200
-    else:
-        return "Callback работает (GET)", 200
 
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
@@ -191,19 +183,14 @@ def login_required(f):
 
     return wrapper
 
-@app.route("/lovense/callback", methods=["POST"])
+@app.route("/lovense/callback", methods=["GET", "POST"])
 def lovense_callback():
-    token = request.args.get("token")
-    if token != "arina_secret_123":
-        return "❌ Неверный токен", 403
-
-    data = request.json
-    print("📥 Callback от Lovense:", data)
-
-    with open("lovense_callback.log", "a", encoding="utf-8") as f:
-        f.write(json.dumps(data, ensure_ascii=False) + "\n")
-
-    return "✅ Получено", 200
+    if request.method == "POST":
+        data = request.json or request.form
+        print("📩 Callback от Lovense:", data)
+        return "OK", 200
+    else:
+        return "Callback работает (GET)", 200
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules(user):
