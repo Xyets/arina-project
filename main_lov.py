@@ -7,45 +7,11 @@ import queue
 import asyncio
 import websockets
 import os
-from flask import request
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from functools import wraps
 import subprocess
 import hmac
 import hashlib
-import telegram
-
-def send_vibration_to_user(user, strength, duration):
-    profile = CONFIG["profiles"][user]
-    token = profile["telegram_bot_token"]
-    chat_id = profile["telegram_chat_id"]
-    bot = telegram.Bot(token=token)
-    message = f"VIBRATE:{strength};DURATION:{duration}"
-    bot.send_message(chat_id=chat_id, text=message)
-
-def send_command(user, command):
-    """
-    Универсальная отправка команды в Lovense Cloud API
-    command может быть строкой: "Vibrate:3", "Vibrate:0", "Rotate:2", "Stop"
-    """
-    profile = CONFIG["profiles"][user]
-    token = profile["DEVELOPER_TOKEN"]
-
-    url = "https://api.lovense.com/api/lan/sendCommand"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "token": token,
-        "command": command
-    }
-
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
-        data = response.json()
-        print(f"📤 [{user}] Команда {command} → {data}")
-        return data
-    except Exception as e:
-        print(f"❌ [{user}] Ошибка при отправке команды {command}:", e)
-        return None
 
 
 with open("config.json", "r", encoding="utf-8") as f:
@@ -55,38 +21,18 @@ with open("config.json", "r", encoding="utf-8") as f:
 app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
+
+
 vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
-
-
-def vibration_worker(user):
-    q = vibration_queues[user]
-    while True:
-        strength, duration = q.get()
-        print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
-        send_vibration_via_api
-        elapsed = 0
-        while elapsed < duration:
-            time.sleep(0.5)
-            elapsed += 0.5
-            print(f"⏳ [{user}] Осталось: {max(0, duration - elapsed):.1f} сек")
-        # стоп после выполнения
-        q.task_done()
-
-# Запуск воркеров для каждого профиля
-for user in CONFIG["profiles"].keys():
-    threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
+CONNECTED_USERS = {}
 
 # ---------------- LOVENSE ----------------
-
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/getQrCode"
 
-    # твой уникальный ID и имя пользователя (можешь придумать сама)
     uid = f"{user}_001"
     uname = user
-
-    # опционально: utoken для верификации (uid + твой секрет)
     salt = "arina_secret123"
     utoken = hashlib.md5((uid + salt).encode()).hexdigest()
 
@@ -103,39 +49,82 @@ def get_qr_code(user):
         r = requests.post(url, json=payload, timeout=10)
         data = r.json()
         if data.get("code") == 0:
-            # API возвращает ссылку на QR‑код (URL картинки)
-            return data["message"]
+            return data["data"]["qr"]  # правильное поле
         else:
             print("Ошибка API:", data)
             return None
     except Exception as e:
         print("Ошибка при запросе QR‑кода:", e)
         return None
-    
-def send_vibration_via_api(user, strength, duration):
-    profile = CONFIG["profiles"][user]
-    token = profile["DEVELOPER_TOKEN"]
 
-    url = "https://api.lovense.com/api/lan/sendCommand"
-    headers = {"Content-Type": "application/json"}
+@app.route("/lovense/callback", methods=["POST"])
+def lovense_callback():
+    data = request.json or request.form
+    print("📩 Callback от Lovense:", data)
 
-    vibrate_payload = {
-        "token": token,
-        "command": f"Vibrate:{strength}"
-    }
-    stop_payload = {
-        "token": token,
-        "command": "Vibrate:0"
+    uid = data.get("uid")
+    if uid:
+        CONNECTED_USERS[uid] = {
+            "utoken": data.get("utoken"),
+            "toys": data.get("toys", {}),
+            "domain": data.get("domain"),
+            "httpsPort": data.get("httpsPort"),
+            "httpPort": data.get("httpPort")
+        }
+        return "✅ Callback принят", 200
+    return "❌ Нет uid", 400
+
+
+def send_vibration_lan(user, strength, duration):
+    """Отправка вибрации через LAN API"""
+    uid = f"{user}_001"
+    user_data = CONNECTED_USERS.get(uid)
+
+    if not user_data:
+        print(f"❌ [{user}] Нет данных из callback — игрушка не подключена")
+        return
+
+    toy_id = list(user_data["toys"].keys())[0]
+    domain = user_data.get("domain")
+    port = user_data.get("httpsPort") or user_data.get("httpPort")
+
+    if not domain or not port:
+        print(f"❌ [{user}] Нет domain/port в callback")
+        return
+
+    url = f"https://{domain}:{port}/command"
+    payload = {
+        "token": CONFIG["profiles"][user]["DEVELOPER_TOKEN"],
+        "uid": uid,
+        "command": "Function",
+        "action": f"Vibrate:{strength}",
+        "timeSec": duration,
+        "toy": toy_id,
+        "apiVer": 1
     }
 
     try:
-        print(f"📤 [{user}] API‑вибрация: сила {strength}, длительность {duration}")
-        requests.post(url, json=vibrate_payload, headers=headers, timeout=5)
-        time.sleep(duration)
-        requests.post(url, json=stop_payload, headers=headers, timeout=5)
-        print(f"⏹ [{user}] Вибрация остановлена")
+        r = requests.post(url, json=payload, timeout=10, verify=False)
+        data = r.json()
+        print(f"📤 [{user}] LAN‑вибрация → {data}")
+        return data
     except Exception as e:
-        print(f"❌ [{user}] Ошибка API:", e)
+        print(f"❌ [{user}] Ошибка LAN‑вибрации:", e)
+        return None
+
+
+def vibration_worker(user):
+    q = vibration_queues[user]
+    while True:
+        strength, duration = q.get()
+        print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
+        send_vibration_lan(user, strength, duration)
+        q.task_done()
+
+# Запуск воркеров для каждого профиля
+for user in CONFIG["profiles"].keys():
+    threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
+
 
 
 def login_required(f):
@@ -144,17 +133,16 @@ def login_required(f):
         if not session.get("user"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
-
     return wrapper
 
-@app.route("/lovense/callback", methods=["GET", "POST"])
-def lovense_callback():
-    if request.method == "POST":
-        data = request.json or request.form
-        print("📩 Callback от Lovense:", data)
-        return "OK", 200
-    else:
-        return "Callback работает (GET)", 200
+
+def vibration_worker(user):
+    q = vibration_queues[user]
+    while True:
+        strength, duration = q.get()
+        print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
+        send_vibration_lan(user, strength, duration)
+        q.task_done()
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules(user):
@@ -168,7 +156,6 @@ def load_rules(user):
 
 def apply_rule(user, amount, text):
     rules = load_rules(user)
-    profile = CONFIG["profiles"][user]
 
     for rule in rules["rules"]:
         if rule["min"] <= amount <= rule["max"]:
@@ -182,22 +169,13 @@ def apply_rule(user, amount, text):
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
 
-            # 🔁 Выбор способа вибрации
-            if profile.get("use_telegram_bridge"):
-                send_vibration_to_user(user, strength, duration)
-            elif profile.get("use_api_bridge"):
-                send_vibration_via_api(user, strength, duration)
-            else:
-                vibration_queues[user].put((strength, duration))
-
+            # Добавляем задачу в очередь вибраций
+            vibration_queues[user].put((strength, duration))
             return
 
-    # 🔁 Если ни одно правило не подошло — применяем default
+    # Если ни одно правило не подошло — применяем default
     strength, duration = rules["default"]
-    if profile.get("use_telegram_bridge"):
-        send_vibration_to_user(user, strength, duration)
-    else:
-        vibration_queues[user].put((strength, duration))
+    vibration_queues[user].put((strength, duration))
 
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
@@ -248,66 +226,7 @@ def try_extract_user_id_from_text(text):
 
 
 # --- список уже обработанных донатов ---
-
-
-def clear_processed_donations():
-    global processed_donations
-    processed_donations.clear()
-    print("🧹 Список обработанных донатов очищен")
-
-
-async def ws_handler(websocket):
-    print("🔌 WebSocket подключён")
-
-    async for message in websocket:
-        print(f"📥 Получено сообщение: {message}")
-        await websocket.send("✅ Сервер получил сообщение")
-
-        try:
-            data = json.loads(message)
-            text = data.get("text", "")
-            name = (data.get("name") or "Аноним").strip()
-            user_id = data.get("user_id") or try_extract_user_id_from_text(text)
-            amount = fallback_amount(text, data.get("amount"))
-            donation_id = data.get("donation_id")
-            user = data.get("user")
-
-            # --- определяем профиль ---
-            if not user or user not in CONFIG["profiles"]:
-                await websocket.send("❌ Неизвестный профиль")
-                continue
-
-            # --- проверка на повторы ---
-            if donation_id:
-                if donation_id in processed_donations:
-                    print(f"⏩ Донат {donation_id} уже обработан — пропускаем")
-                    await websocket.send("ℹ️ Донат уже был учтён")
-                    continue
-                processed_donations.add(donation_id)
-
-            # --- обработка доната ---
-            if amount and amount > 0:
-                log_donation(text, amount)
-                print(f"✅ [{user}] Донат | {name} → {amount}")
-                apply_rule(user, amount, text)
-
-                if user_id:
-                    print(f"👤 [{user}] Обновление VIP: {user_id} | {name} → {amount}")
-                    update_vip_list(user, user_id, name, amount)
-
-                await websocket.send("✅ Донат принят")
-            else:
-                await websocket.send("ℹ️ Сообщение не содержит донат/подарок")
-
-        except Exception as e:
-            print("⚠️ Ошибка обработки:", e)
-            try:
-                await websocket.send("❌ Ошибка обработки сообщения")
-            except:
-                pass
-
-# ---------------- WebSocket ----------------
-
+# --- список уже обработанных донатов ---
 processed_donations = set()
 
 def clear_processed_donations():
@@ -318,14 +237,12 @@ def clear_processed_donations():
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
     async for message in websocket:
-        print(f"📥 Получено сообщение: {message}")
-        await websocket.send("✅ Сервер получил сообщение")
         try:
             data = json.loads(message)
             text = data.get("text", "")
             name = (data.get("name") or "Аноним").strip()
-            user_id = data.get("user_id") or try_extract_user_id_from_text(text)
-            amount = fallback_amount(text, data.get("amount"))
+            user_id = data.get("user_id")
+            amount = data.get("amount")
             donation_id = data.get("donation_id")
             user = data.get("user")
 
@@ -333,46 +250,46 @@ async def ws_handler(websocket):
                 await websocket.send("❌ Неизвестный профиль")
                 continue
 
-            if donation_id:
-                if donation_id in processed_donations:
-                    print(f"⏩ Донат {donation_id} уже обработан — пропускаем")
-                    await websocket.send("ℹ️ Донат уже был учтён")
-                    continue
-                processed_donations.add(donation_id)
+            if donation_id and donation_id in processed_donations:
+                await websocket.send("ℹ️ Донат уже был учтён")
+                continue
+            processed_donations.add(donation_id)
 
             if amount and amount > 0:
-                log_donation(text, amount)
                 print(f"✅ [{user}] Донат | {name} → {amount}")
                 apply_rule(user, amount, text)
-
                 if user_id:
-                    print(f"👤 [{user}] Обновление VIP: {user_id} | {name} → {amount}")
                     update_vip_list(user, user_id, name, amount)
-
                 await websocket.send("✅ Донат принят")
             else:
-                await websocket.send("ℹ️ Сообщение не содержит донат/подарок")
+                await websocket.send("ℹ️ Сообщение не содержит донат")
 
         except Exception as e:
             print("⚠️ Ошибка обработки:", e)
-            try:
-                await websocket.send("❌ Ошибка обработки сообщения")
-            except:
-                pass
+            await websocket.send("❌ Ошибка обработки")
 
 async def ws_server():
-    async with websockets.serve(
-        ws_handler,
-        "0.0.0.0",
-        8765,
-        origins=None,
-        ping_interval=None
-    ):
+    async with websockets.serve(ws_handler, "0.0.0.0", 8765, origins=None, ping_interval=None):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765")
         await asyncio.Future()
 
 
 # ---------------- Flask Routes ----------------
+@app.route("/")
+@login_required
+def index():
+    profile = CONFIG["profiles"][session["user"]]
+    return render_template("index.html", user=session.get("user"), profile=profile)
+
+@app.route("/qrcode")
+@login_required
+def qrcode_page():
+    user = session["user"]
+    qr_url = get_qr_code(user)
+    if not qr_url:
+        return "❌ Не удалось получить QR‑код", 500
+    return render_template("qrcode.html", user=user, qr_url=qr_url)
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -431,7 +348,6 @@ def success_page():
 def error_page():
     return "❌ Ошибка подключения!", 200
 
-
 @app.route("/rules", methods=["GET", "POST"])
 @login_required
 def rules():
@@ -484,29 +400,6 @@ def rules():
 
     return render_template("rules.html", rules=rules_data["rules"], default=rules_data["default"])
 
-@app.route("/")
-@login_required
-def index():
-    profile = CONFIG["profiles"][session["user"]]
-    return render_template("index.html", user=session.get("user"), profile=profile)
-
-@app.route("/qrcode")
-@login_required
-def qrcode_page():
-    user = session["user"]
-    qr_url = get_qr_code(user)
-    if not qr_url:
-        return "❌ Не удалось получить QR‑код", 500
-    return render_template("qrcode.html", user=user, qr_url=qr_url)
-
-@app.route("/test_vibration")
-@login_required
-def test_vibration():
-    user = session["user"]
-    send_vibration_to_user(user, strength=3, duration=5)
-    return "✅ Тест‑вибрация отправлена"
-
-
 # ---------------- ЗАПУСК ----------------
 
 def run_flask():
@@ -533,4 +426,3 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     threading.Thread(target=run_websocket, daemon=True).start()
     monitor_flag()
-
