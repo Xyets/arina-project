@@ -7,6 +7,11 @@
 <body>
     <h2>📜 Правила для {{ session["user"] }}</h2>
 
+    <!-- 🔊 Кнопка теста вибрации -->
+    <form method="POST" action="/test_vibration">
+        <button type="submit" style="margin-bottom: 15px;">🔊 Тест вибрации</button>
+    </form>
+
     <table border="1" cellpadding="5">
         <tr>
             <th>Мин</th><th>Макс</th><th>Сила</th><th>Время</th><th>Действие</th><th>Управление</th>
@@ -51,3 +56,4 @@
     <p><a href="/">⬅ Назад</a></p>
 </body>
 </html>
+

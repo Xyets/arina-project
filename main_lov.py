@@ -416,6 +416,13 @@ def qrcode_page():
         return "❌ Не удалось получить QR‑код", 500
     return render_template("qrcode.html", user=user, qr_url=qr_url)
 
+@app.route("/test_vibration", methods=["POST"])
+@login_required
+def test_vibration():
+    user = session["user"]
+    vibrate_for(user, strength=3, duration=3)
+    return jsonify({"status": "ok", "message": "Вибрация отправлена"})
+
 
 # ---------------- ЗАПУСК ----------------
 
