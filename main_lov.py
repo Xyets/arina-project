@@ -87,32 +87,35 @@ def login_required(f):
 @app.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
     token = request.args.get("token")
-    user = request.args.get("user")  # 👉 ?user=arina или ?user=podruzhka
+    matched_user = None
 
-    if token != CONFIG["secret_token"]:
+    # Ищем, чей это токен
+    for user, profile in CONFIG["profiles"].items():
+        if token == profile.get("secret_token"):
+            matched_user = user
+            break
+
+    if not matched_user:
         return jsonify({"status": "error", "message": "unauthorized"}), 403
 
-    if user not in CONFIG["profiles"]:
-        return jsonify({"status": "error", "message": "unknown user"}), 400
-
+    
     data = request.json
     if not data or "toys" not in data or not data["toys"]:
         return jsonify({"status": "error", "message": "no toys in payload"}), 400
     if "domain" not in data or "httpPort" not in data:
         return jsonify({"status": "error", "message": "missing domain/httpPort"}), 400
 
-    toys[user] = data
-    print(f"🔗 Игрушка подключена для {user}:")
-    print(json.dumps(toys[user], indent=2, ensure_ascii=False))
+    toys[matched_user] = data
+    print(f"🔗 Игрушка подключена для {matched_user}:")
+    print(json.dumps(toys[matched_user], indent=2, ensure_ascii=False))
 
-    # сохраняем статус отдельно для каждой
-    status_file = f"toy_status_{user}.json"
+    status_file = f"toy_status_{matched_user}.json"
     with open(status_file, "w", encoding="utf-8") as f:
         json.dump(
             {
-                "toy_id": list(toys[user]["toys"].keys())[0],
-                "domain": toys[user]["domain"],
-                "port": toys[user]["httpPort"],
+                "toy_id": list(toys[matched_user]["toys"].keys())[0],
+                "domain": toys[matched_user]["domain"],
+                "port": toys[matched_user]["httpPort"],
             },
             f,
             ensure_ascii=False,

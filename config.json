@@ -10,6 +10,7 @@
       "UID": "arina123",
       "UNAME": "Arina",
       "UTOKEN": "secret123",
+      "secret_token": "arina_secret_123",
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json"
     },
@@ -18,10 +19,11 @@
       "UID": "iriska456",
       "UNAME": "Iriska",
       "UTOKEN": "secret456",
+      "secret_token": "irina_secret_456",
       "rules_file": "rules_podruzhka.json",
       "vip_file": "vip_podruzhka.json"
     }
   },
-  "secret_token": "arina_secret_123",
+  
   "webhook_secret": "arina_webhook_secret"
 }
