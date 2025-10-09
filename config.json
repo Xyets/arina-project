@@ -6,24 +6,15 @@
   },
   "profiles": {
     "arina": {
-      "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx",
-      "UID": "arina123",
       "UNAME": "Arina",
-      "UTOKEN": "secret123",
-      "secret_token": "arina_secret_123",
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json"
     },
     "podruzhka": {
-      "DEVELOPER_TOKEN": "токен_подруги",
-      "UID": "iriska456",
       "UNAME": "Iriska",
-      "UTOKEN": "secret456",
-      "secret_token": "irina_secret_456",
       "rules_file": "rules_podruzhka.json",
       "vip_file": "vip_podruzhka.json"
     }
   },
-  
   "webhook_secret": "arina_webhook_secret"
 }

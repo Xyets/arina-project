@@ -17,37 +17,53 @@ import hashlib
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
+def discover_toy_info():
+    try:
+        url = "http://192.168.1.177:34567/GetToys"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        print("🔍 Обнаружены игрушки:", data)
+        return {
+            "domain": "192.168.1.177",
+            "httpPort": 34567,
+            "toys": data.get("toys", {})
+        }
+    except Exception as e:
+        print("❌ Не удалось обнаружить игрушку:", e)
+        return None
+
+# Автоматически вставляем toy_info в каждый профиль
+for user in CONFIG["profiles"].keys():
+    toy_info = discover_toy_info()
+    if toy_info:
+        CONFIG["profiles"][user]["toy_info"] = toy_info
+
+
 app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
 vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
 
+
 def vibrate_for(user, strength, duration):
     profile = CONFIG["profiles"][user]
-    url = "https://api.lovense.com/api/command"
+    toy_info = profile.get("toy_info")
+    if not toy_info:
+        print(f"❌ [{user}] Игрушка не подключена")
+        return
 
-    def send(strength, duration):
-        command = f"Vibrate:{strength};Duration:{duration}"
-        params = {
-            "token": profile["DEVELOPER_TOKEN"],
-            "uid": profile["UID"],
-            "command": command
-        }
-        print(f"📤 [{user}] Отправка команды: {command}")
-        try:
-            response = requests.get(url, params=params, timeout=5)
-            data = response.json()
-            print(f"📶 [{user}] Ответ от Lovense: {data}")
-            if data.get("code") == 0:
-                print(f"✅ [{user}] Вибрация: сила {strength}, время {duration}")
-            else:
-                print(f"⚠️ [{user}] Ошибка API: {data}")
-        except Exception as e:
-            print(f"❌ [{user}] Ошибка подключения:", e)
+    domain = toy_info["domain"]
+    port = toy_info["httpPort"]
+    toy_id = list(toy_info["toys"].keys())[0]
+    url = f"http://{domain}:{port}/Vibrate"
+    params = {"t": toy_id, "v": strength, "sec": duration}
 
-    send(strength, duration)
-    time.sleep(duration)
-    send(0, 0)  # остановка
+    print(f"📤 [{user}] LAN‑вибрация: сила {strength}, время {duration}")
+    try:
+        response = requests.get(url, params=params, timeout=5)
+        print(f"📶 [{user}] Ответ от игрушки: {response.text}")
+    except Exception as e:
+        print(f"❌ [{user}] Ошибка LAN‑подключения:", e)
 
 
 def vibration_worker(user):
