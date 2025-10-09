@@ -25,18 +25,16 @@ def send_vibration_to_user(user, strength, duration):
 
 def send_command(user, command):
     """
-    Универсальная отправка команды в Lovense API
+    Универсальная отправка команды в Lovense Cloud API
     command может быть строкой: "Vibrate:3", "Vibrate:0", "Rotate:2", "Stop"
     """
     profile = CONFIG["profiles"][user]
     token = profile["DEVELOPER_TOKEN"]
-    uid = profile["UID"]
 
     url = "https://api.lovense.com/api/lan/sendCommand"
     headers = {"Content-Type": "application/json"}
     payload = {
         "token": token,
-        "uid": uid,
         "command": command
     }
 
@@ -82,38 +80,31 @@ for user in CONFIG["profiles"].keys():
 
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
-    url = "https://api.lovense.com/api/lan/getQrCode"   # ← вот сюда
+    url = "https://api.lovense.com/api/lan/getQrCode"
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
     }
-    try:
-        r = requests.post(url, json=payload, timeout=10)
-        data = r.json()
-        if data.get("code") == 0:
-            return data["message"]  # ссылка на QR‑код
-        else:
-            print("Ошибка API:", data)
-            return None
-    except Exception as e:
-        print("Ошибка при запросе QR‑кода:", e)
+    r = requests.post(url, json=payload, timeout=10)
+    data = r.json()
+    if data.get("code") == 0:
+        return data["message"]
+    else:
+        print("Ошибка API:", data)
         return None
-
-
 
 
 def send_vibration_via_api(user, strength, duration):
     profile = CONFIG["profiles"][user]
     token = profile["DEVELOPER_TOKEN"]
 
-    url = "https://api.lovense.com/api/lan/sendCommand"   # ← вот сюда
+    url = "https://api.lovense.com/api/lan/sendCommand"
     headers = {"Content-Type": "application/json"}
 
     vibrate_payload = {
         "token": token,
         "command": f"Vibrate:{strength}"
     }
-
     stop_payload = {
         "token": token,
         "command": "Vibrate:0"
