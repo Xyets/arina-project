@@ -13,6 +13,16 @@ from functools import wraps
 import subprocess
 import hmac
 import hashlib
+import telegram
+
+def send_vibration_to_user(user, strength, duration):
+    profile = CONFIG["profiles"][user]
+    token = profile["telegram_bot_token"]
+    chat_id = profile["telegram_chat_id"]
+    bot = telegram.Bot(token=token)
+    message = f"VIBRATE:{strength};DURATION:{duration}"
+    bot.send_message(chat_id=chat_id, text=message)
+
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -125,6 +135,8 @@ def load_rules(user):
 
 def apply_rule(user, amount, text):
     rules = load_rules(user)
+    profile = CONFIG["profiles"][user]
+
     for rule in rules["rules"]:
         if rule["min"] <= amount <= rule["max"]:
             if rule.get("action"):
@@ -133,13 +145,23 @@ def apply_rule(user, amount, text):
                     f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
                 print(f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
                 return
+
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
-            vibration_queues[user].put((strength, duration))
+
+            # 🔁 Выбор способа вибрации
+            if profile.get("use_telegram_bridge"):
+                send_vibration_to_user(user, strength, duration)
+            else:
+                vibration_queues[user].put((strength, duration))
             return
 
+    # 🔁 Если ни одно правило не подошло — применяем default
     strength, duration = rules["default"]
-    vibration_queues[user].put((strength, duration))
+    if profile.get("use_telegram_bridge"):
+        send_vibration_to_user(user, strength, duration)
+    else:
+        vibration_queues[user].put((strength, duration))
 
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
@@ -190,7 +212,7 @@ def try_extract_user_id_from_text(text):
 
 
 # --- список уже обработанных донатов ---
-processed_donations = set()
+
 
 def clear_processed_donations():
     global processed_donations

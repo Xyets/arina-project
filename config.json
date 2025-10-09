@@ -8,12 +8,18 @@
     "arina": {
       "UNAME": "Arina",
       "rules_file": "rules_arina.json",
-      "vip_file": "vip_arina.json"
+      "vip_file": "vip_arina.json",
+      "use_telegram_bridge": true,
+      "telegram_bot_token": "AAFo_G3gDyv_G1RDwVAzLc6CW6S9yWpvo3A",
+      "telegram_chat_id": "8443786727"
     },
     "podruzhka": {
       "UNAME": "Iriska",
       "rules_file": "rules_podruzhka.json",
-      "vip_file": "vip_podruzhka.json"
+      "vip_file": "vip_podruzhka.json",
+      "use_telegram_bridge": false,
+      "telegram_bot_token": "987654:XYZabc...",
+      "telegram_chat_id": "987654321"
     }
   },
   "webhook_secret": "arina_webhook_secret"
