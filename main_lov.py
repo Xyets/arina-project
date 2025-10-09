@@ -423,6 +423,15 @@ def hook():
         print("🔥 Ошибка в webhook:", e)
         return "Internal Server Error", 500
 
+@app.route("/Success", methods=["GET"])
+def success_page():
+    return "✅ Игрушка успешно подключена!", 200
+
+@app.route("/Error", methods=["GET"])
+def error_page():
+    return "❌ Ошибка подключения!", 200
+
+
 @app.route("/rules", methods=["GET", "POST"])
 @login_required
 def rules():
