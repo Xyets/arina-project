@@ -307,6 +307,15 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+@app.route("/test_vibration", methods=["POST"])
+@login_required
+def test_vibration():
+    user = session["user"]
+    # сила 5, длительность 5 секунд
+    send_vibration_lan(user, strength=5, duration=5)
+    return "✅ LAN‑вибрация отправлена"
+
+
 @app.route("/hook", methods=["POST"])
 def hook():
     try:

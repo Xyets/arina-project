@@ -3,18 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <title>Правила</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #f0f0f0; }
+        form { margin: 0; }
+        button { cursor: pointer; }
+    </style>
 </head>
 <body>
     <h2>📜 Правила для {{ session["user"] }}</h2>
 
     <!-- 🔊 Кнопка теста вибрации -->
     <form method="POST" action="/test_vibration">
-        <button type="submit" style="margin-bottom: 15px;">🔊 Тест вибрации</button>
+        <button type="submit" style="margin-bottom: 15px;">🔊 Проверить вибрацию</button>
     </form>
 
-    <table border="1" cellpadding="5">
+    <table>
         <tr>
-            <th>Мин</th><th>Макс</th><th>Сила</th><th>Время</th><th>Действие</th><th>Управление</th>
+            <th>Мин</th>
+            <th>Макс</th>
+            <th>Сила</th>
+            <th>Время</th>
+            <th>Действие</th>
+            <th>Управление</th>
         </tr>
         {% for rule in rules %}
         <tr>
@@ -26,8 +39,9 @@
             <td>
                 <!-- Удалить -->
                 <form method="POST" style="display:inline;">
-                    <button type="submit" name="delete_rule" value="{{ loop.index0 }}">❌</button>
+                    <button type="submit" name="delete_rule" value="{{ loop.index0 }}">❌ Удалить</button>
                 </form>
+
                 <!-- Редактировать -->
                 <form method="POST" style="display:inline;">
                     <input type="hidden" name="edit_rule" value="{{ loop.index0 }}">
@@ -36,7 +50,7 @@
                     Сила: <input type="number" name="strength" value="{{ rule.strength }}">
                     Время: <input type="number" name="duration" value="{{ rule.duration }}">
                     Действие: <input type="text" name="action" value="{{ rule.action }}">
-                    <button type="submit">✏️</button>
+                    <button type="submit">✏️ Сохранить</button>
                 </form>
             </td>
         </tr>
@@ -56,4 +70,3 @@
     <p><a href="/">⬅ Назад</a></p>
 </body>
 </html>
-
