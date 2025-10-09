@@ -21,22 +21,30 @@ app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
 vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
-toys = {}
 
 def vibrate_for(user, strength, duration):
-    toy_info = toys.get(user)
-    if not toy_info:
-        print(f"❌ Игрушка {user} не подключена")
-        return
-    domain = toy_info["domain"]
-    port = toy_info["httpPort"]
-    toy_id = list(toy_info["toys"].keys())[0]
-    url = f"http://{domain}:{port}/Vibrate"
-    params = {"t": toy_id, "v": strength, "sec": duration}
-    try:
-        requests.get(url, params=params, timeout=5)
-    except Exception as e:
-        print(f"⚠️ [{user}] Ошибка отправки вибрации:", e)
+    profile = CONFIG["profiles"][user]
+    url = "https://api.lovense.com/api/command"
+
+    def send(strength, duration):
+        params = {
+            "token": profile["DEVELOPER_TOKEN"],
+            "uid": profile["UID"],
+            "command": f"Vibrate:{strength};Duration:{duration}"
+        }
+        try:
+            response = requests.get(url, params=params, timeout=5)
+            data = response.json()
+            if data.get("code") == 0:
+                print(f"✅ [{user}] Вибрация: сила {strength}, время {duration}")
+            else:
+                print(f"⚠️ [{user}] Ошибка API: {data}")
+        except Exception as e:
+            print(f"❌ [{user}] Ошибка подключения:", e)
+
+    send(strength, duration)
+    time.sleep(duration)
+    send(0, 0)  # остановка
 
 def vibration_worker(user):
     q = vibration_queues[user]
@@ -83,48 +91,6 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return wrapper
-
-@app.route("/lovense/callback", methods=["POST"])
-def lovense_callback():
-    token = request.args.get("token")
-    matched_user = None
-
-    # Ищем, чей это токен
-    for user, profile in CONFIG["profiles"].items():
-        if token == profile.get("secret_token"):
-            matched_user = user
-            break
-
-    if not matched_user:
-        return jsonify({"status": "error", "message": "unauthorized"}), 403
-
-    
-    data = request.json
-    if not data or "toys" not in data or not data["toys"]:
-        return jsonify({"status": "error", "message": "no toys in payload"}), 400
-    if "domain" not in data or "httpPort" not in data:
-        return jsonify({"status": "error", "message": "missing domain/httpPort"}), 400
-
-    toys[matched_user] = data
-    print(f"🔗 Игрушка подключена для {matched_user}:")
-    print(json.dumps(toys[matched_user], indent=2, ensure_ascii=False))
-
-    status_file = f"toy_status_{matched_user}.json"
-    with open(status_file, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "toy_id": list(toys[matched_user]["toys"].keys())[0],
-                "domain": toys[matched_user]["domain"],
-                "port": toys[matched_user]["httpPort"],
-            },
-            f,
-            ensure_ascii=False,
-            indent=2
-        )
-
-    return jsonify({"status": "ok"})
-
-
 
 
 # ---------------- ПРАВИЛА ----------------
