@@ -23,6 +23,32 @@ def send_vibration_to_user(user, strength, duration):
     message = f"VIBRATE:{strength};DURATION:{duration}"
     bot.send_message(chat_id=chat_id, text=message)
 
+def send_command(user, command):
+    """
+    Универсальная отправка команды в Lovense API
+    command может быть строкой: "Vibrate:3", "Vibrate:0", "Rotate:2", "Stop"
+    """
+    profile = CONFIG["profiles"][user]
+    token = profile["DEVELOPER_TOKEN"]
+    uid = profile["UID"]
+
+    url = "https://api.lovense.com/api/lan/sendCommand"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "token": token,
+        "uid": uid,
+        "command": command
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        data = response.json()
+        print(f"📤 [{user}] Команда {command} → {data}")
+        return data
+    except Exception as e:
+        print(f"❌ [{user}] Ошибка при отправке команды {command}:", e)
+        return None
+
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -98,19 +124,49 @@ for user in CONFIG["profiles"].keys():
 # ---------------- LOVENSE ----------------
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
-    url = "https://api.lovense.com/api/lan/getQrCode"
+    url = "https://api.lovense.com/api/endpoint/getQrCode"
     params = {
-        "token": profile["DEVELOPER_TOKEN"],
-        "uid": profile["UID"],
-        "username": profile["UNAME"],
+        "token": profile["DEVELOPER_TOKEN"],  # твой dev token
+        "uid": profile["UID"],                # уникальный ID пользователя
+        "uname": profile["UNAME"],            # имя пользователя
+        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
     }
     r = requests.post(url, data=params)
     data = r.json()
     if data.get("code") == 0:
-        return data["message"]
+        return data["message"]  # здесь будет ссылка на QR‑код
     else:
         print("Ошибка API:", data)
         return None
+
+def send_vibration_via_api(user, strength, duration):
+    profile = CONFIG["profiles"][user]
+    token = profile["DEVELOPER_TOKEN"]
+    uid = profile["UID"]
+
+    command_url = "https://api.lovense.com/api/lan/sendCommand"
+    headers = {"Content-Type": "application/json"}
+
+    vibrate_payload = {
+        "token": token,
+        "uid": uid,
+        "command": f"Vibrate:{strength}"
+    }
+
+    stop_payload = {
+        "token": token,
+        "uid": uid,
+        "command": "Vibrate:0"
+    }
+
+    try:
+        print(f"📤 [{user}] API‑вибрация: сила {strength}, длительность {duration}")
+        requests.post(command_url, json=vibrate_payload, headers=headers, timeout=5)
+        time.sleep(duration)
+        requests.post(command_url, json=stop_payload, headers=headers, timeout=5)
+        print(f"⏹ [{user}] Вибрация остановлена")
+    except Exception as e:
+        print(f"❌ [{user}] Ошибка API:", e)
 
 
 def login_required(f):
@@ -122,6 +178,19 @@ def login_required(f):
 
     return wrapper
 
+@app.route("/lovense/callback", methods=["POST"])
+def lovense_callback():
+    token = request.args.get("token")
+    if token != "arina_secret_123":
+        return "❌ Неверный токен", 403
+
+    data = request.json
+    print("📥 Callback от Lovense:", data)
+
+    with open("lovense_callback.log", "a", encoding="utf-8") as f:
+        f.write(json.dumps(data, ensure_ascii=False) + "\n")
+
+    return "✅ Получено", 200
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules(user):
@@ -152,8 +221,11 @@ def apply_rule(user, amount, text):
             # 🔁 Выбор способа вибрации
             if profile.get("use_telegram_bridge"):
                 send_vibration_to_user(user, strength, duration)
+            elif profile.get("use_api_bridge"):
+                send_vibration_via_api(user, strength, duration)
             else:
                 vibration_queues[user].put((strength, duration))
+
             return
 
     # 🔁 Если ни одно правило не подошло — применяем default

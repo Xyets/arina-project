@@ -7,6 +7,8 @@
   "profiles": {
     "arina": {
       "UNAME": "Arina",
+      "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx",
+      "UID": "arina123",
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json",
       "use_telegram_bridge": true,
