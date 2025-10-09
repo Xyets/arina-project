@@ -122,6 +122,15 @@ for user in CONFIG["profiles"].keys():
     threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
 
 # ---------------- LOVENSE ----------------
+@app.route("/lovense/callback", methods=["GET", "POST"])
+def lovense_callback():
+    if request.method == "POST":
+        data = request.json or request.form
+        print("📩 Callback от Lovense:", data)
+        return "OK", 200
+    else:
+        return "Callback работает (GET)", 200
+
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/getQrCode"  # или endpoint/getQrCode
