@@ -14,8 +14,7 @@
     <p><a href="{{ url_for('rules') }}">📜 Управление правилами</a></p>
     
     <h3>📜 Логи донатов</h3>
-    <div id="logbox" style="border:1px solid #444; padding:10px; height:300px; overflow-y:scroll; background:#000; color:#0f0; font-family:monospace;"></div>
-
+    <div id="logbox" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; background:#fff; color:#000; font-family:monospace;"></div>
     <form method="POST" action="/clear_logs">
       <button type="submit">🧹 Очистить лог</button>
     </form>
@@ -25,7 +24,13 @@
         const res = await fetch("/logs_data");
         const data = await res.json();
         const box = document.getElementById("logbox");
-        box.innerHTML = data.logs.map(l => `<div>${l}</div>`).join("");
+        box.innerHTML = data.logs.map(l => {
+          if (l.includes("🎬")) {
+            return `<div style="color: goldenrod; font-weight: bold;">${l}</div>`;
+          }
+          return `<div>${l}</div>`;
+        }).join("");
+        
         box.scrollTop = box.scrollHeight;
       }
       setInterval(loadLogs, 2000);
