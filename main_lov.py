@@ -29,6 +29,16 @@ CONNECTED_USERS = {}
 # ---------------- LOVENSE ----------------
 import hashlib
 
+donation_logs = {user: [] for user in CONFIG["profiles"].keys()}
+
+def add_log(user, message):
+    ts = time.strftime("%H:%M:%S")
+    entry = f"[{ts}] {message}"
+    donation_logs[user].append(entry)
+    if len(donation_logs[user]) > 200:
+        donation_logs[user].pop(0)
+    print(entry)
+
 def generate_utoken(uid, secret="arina_secret_123"):
     raw = uid + secret
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
@@ -115,7 +125,7 @@ async def vibration_worker(user):
     q = vibration_queues[user]
     while True:
         strength, duration = await q.get()
-        print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
+        add_log(user,f"📥 [{user}] Запущена вибрация: сила={strength}, время={duration}")
         send_vibration_cloud(user, strength, duration)
         await asyncio.sleep(duration)
         q.task_done()
@@ -152,7 +162,7 @@ def apply_rule(user, amount, text):
                     ts = time.strftime("%Y-%m-%d %H:%M:%S")
                     with open("donations.log", "a", encoding="utf-8") as f:
                         f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
-                    print(f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
+                    add_log(user, f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
                     return
 
 
@@ -165,6 +175,7 @@ def apply_rule(user, amount, text):
     # Если ни одно правило не подошло — применяем default
     strength, duration = rules["default"]
     vibration_queues[user].put_nowait((strength, duration))
+    print(f"🎵 [{user}] Default‑правило: сила={strength}, время={duration}")
 
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
@@ -261,7 +272,7 @@ async def ws_handler(websocket):
                 continue
 
             # ✅ Всё ок — применяем правило
-            print(f"✅ [{user}] Донат | {name} → {amount}")
+            add_log(user, f"✅ [{user}] Донат | {name} → {amount}")
             print(f"⚙️ [{user}] Перед apply_rule: amount={amount}, text={text}")
             apply_rule(user, amount, text)
 
@@ -436,6 +447,19 @@ def rules():
         return redirect("/rules")
 
     return render_template("rules.html", rules=rules_data["rules"], default=rules_data["default"])
+
+@app.route("/logs")
+@login_required
+def logs_page():
+    user = session["user"]
+    return render_template("logs.html", logs=donation_logs.get(user, []))
+
+@app.route("/logs_data")
+@login_required
+def logs_data():
+    user = session["user"]
+    return {"logs": donation_logs.get(user, [])}
+
 
 # ---------------- ЗАПУСК ----------------
 def run_flask():
