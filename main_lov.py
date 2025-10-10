@@ -29,23 +29,20 @@ CONNECTED_USERS = {}
 # ---------------- LOVENSE ----------------
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
-    url = "https://api.lovense.com/api/lan/getQrCode"
-
-    uid = f"{user}_001"
+    # ⚠️ Используем Cloud API, а не LAN
+    url = "https://api.lovense.com/api/generateQrCode"
 
     payload = {
-        "token": profile["DEVELOPER_TOKEN"],
-        "uid": uid,
-        "uname": user,
-        # utoken не указываем — его вернёт Lovense Remote
-        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
-        "v": 2
+        "token": profile["DEVELOPER_TOKEN"],   # твой Cloud Developer Token
+        "uid": f"{user}_001",                  # уникальный ID профиля
+        "uname": user,                         # имя профиля
+        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
     }
 
     try:
         r = requests.post(url, json=payload, timeout=10)
         data = r.json()
-        print("Ответ от Lovense API:", data)  # 🔍 добавь для отладки
+        print("Ответ от Lovense Cloud:", data)  # 🔍 для отладки
         if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
             return data["data"]["qr"]
         else:
