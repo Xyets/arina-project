@@ -326,6 +326,23 @@ def test_vibration():
     send_vibration_cloud(user, strength=5, duration=5)
     return "✅ Cloud‑вибрация отправлена"
 
+@app.route("/test_rule/<int:rule_index>", methods=["POST"])
+@login_required
+def test_rule(rule_index):
+    user = session["user"]
+    rules = load_rules(user)
+
+    if 0 <= rule_index < len(rules["rules"]):
+        rule = rules["rules"][rule_index]
+        strength = rule.get("strength", 1)
+        duration = rule.get("duration", 5)
+
+        print(f"🧪 [{user}] Тест правила {rule_index}: сила={strength}, время={duration}")
+        send_vibration_cloud(user, strength, duration)
+        return redirect("/rules")
+
+    return "❌ Правило не найдено", 404
+
 
 @app.route("/hook", methods=["POST"])
 def hook():

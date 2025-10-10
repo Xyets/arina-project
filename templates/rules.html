@@ -8,16 +8,16 @@
         table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
         th { background: #f0f0f0; }
-        form { margin: 0; }
+        form { margin: 0; display:inline; }
         button { cursor: pointer; }
     </style>
 </head>
 <body>
     <h2>📜 Правила для {{ session["user"] }}</h2>
 
-    <!-- 🔊 Кнопка теста вибрации -->
+    <!-- 🔊 Общая кнопка теста вибрации -->
     <form method="POST" action="/test_vibration">
-        <button type="submit" style="margin-bottom: 15px;">🔊 Проверить вибрацию</button>
+        <button type="submit" style="margin-bottom: 15px;">🔊 Проверить вибрацию (default)</button>
     </form>
 
     <table>
@@ -37,13 +37,18 @@
             <td>{{ rule.duration }}</td>
             <td>{{ rule.action }}</td>
             <td>
+                <!-- Тестировать правило -->
+                <form method="POST" action="/test_rule/{{ loop.index0 }}">
+                    <button type="submit">🔊 Проверить</button>
+                </form>
+
                 <!-- Удалить -->
-                <form method="POST" style="display:inline;">
+                <form method="POST">
                     <button type="submit" name="delete_rule" value="{{ loop.index0 }}">❌ Удалить</button>
                 </form>
 
                 <!-- Редактировать -->
-                <form method="POST" style="display:inline;">
+                <form method="POST">
                     <input type="hidden" name="edit_rule" value="{{ loop.index0 }}">
                     Мин: <input type="number" name="min" value="{{ rule.min }}" required>
                     Макс: <input type="number" name="max" value="{{ rule.max }}" required>
