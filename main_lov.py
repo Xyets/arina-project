@@ -37,7 +37,7 @@ def get_qr_code(user):
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
         "uname": user,
-        # ⚠️ utoken НЕ указываем — его вернёт Lovense Remote в callback
+        # utoken не указываем — его вернёт Lovense Remote
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
         "v": 2
     }
@@ -45,6 +45,7 @@ def get_qr_code(user):
     try:
         r = requests.post(url, json=payload, timeout=10)
         data = r.json()
+        print("Ответ от Lovense API:", data)  # 🔍 добавь для отладки
         if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
             return data["data"]["qr"]
         else:
