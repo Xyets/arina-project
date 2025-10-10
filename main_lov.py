@@ -210,8 +210,11 @@ def clear_processed_donations():
 
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
+
     async for message in websocket:
         try:
+            print("📩 Получено сообщение от WebSocket:", message)
+
             data = json.loads(message)
             text = data.get("text", "")
             name = (data.get("name") or "Аноним").strip()
@@ -220,23 +223,37 @@ async def ws_handler(websocket):
             donation_id = data.get("donation_id")
             user = data.get("user")
 
-            if not user or user not in CONFIG["profiles"]:
-                await websocket.send("❌ Неизвестный профиль")
+            # 🔐 Проверка профиля
+            if not user:
+                await websocket.send("❌ Не указан профиль")
+                continue
+            if user not in CONFIG.get("profiles", {}):
+                await websocket.send(f"❌ Профиль '{user}' не найден")
                 continue
 
-            if donation_id and donation_id in processed_donations:
-                await websocket.send("ℹ️ Донат уже был учтён")
-                continue
-            processed_donations.add(donation_id)
-
-            if amount and amount > 0:
-                print(f"✅ [{user}] Донат | {name} → {amount}")
-                apply_rule(user, amount, text)
-                if user_id:
-                    update_vip_list(user, user_id, name, amount)
-                await websocket.send("✅ Донат принят")
+            # 🔁 Проверка уникальности доната
+            if donation_id:
+                if donation_id in processed_donations:
+                    await websocket.send(f"ℹ️ Донат {donation_id} уже учтён")
+                    continue
+                processed_donations.add(donation_id)
             else:
+                print("⚠️ Нет donation_id — может быть тест или ошибка")
+
+            # 💸 Проверка суммы
+            if not amount or amount <= 0:
                 await websocket.send("ℹ️ Сообщение не содержит донат")
+                continue
+
+            # ✅ Всё ок — применяем правило
+            print(f"✅ [{user}] Донат | {name} → {amount}")
+            apply_rule(user, amount, text)
+
+            # 👑 Обновление VIP‑листа
+            if user_id:
+                update_vip_list(user, user_id, name, amount)
+
+            await websocket.send("✅ Донат принят")
 
         except Exception as e:
             print("⚠️ Ошибка обработки:", e)
