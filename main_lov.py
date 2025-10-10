@@ -291,10 +291,16 @@ async def ws_server():
     for user in CONFIG["profiles"]:
         asyncio.create_task(vibration_worker(user))
 
-    async with websockets.serve(ws_handler, "0.0.0.0", 8765, origins=None, ping_interval=None):
-        print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765")
+    # включаем пинг каждые 30 секунд
+    async with websockets.serve(
+        ws_handler,
+        "0.0.0.0",
+        8765,
+        origins=None,
+        ping_interval=30
+    ):
+        print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765 (ping каждые 30 сек)")
         await asyncio.Future()  # держим сервер живым
-
 
 # ---------------- Flask Routes ----------------
 @app.route("/")
