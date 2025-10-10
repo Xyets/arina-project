@@ -12,13 +12,14 @@
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json"
     },
-    "irishka": {
-      "DEVELOPER_TOKEN": "h5LnHdaxMQN5sKy1pNNwaJP6cmicpvYo3COz4PLgbbZiMZ1novWyyEYfQq0isxeo", 
+    "Irina": {
+      "DEVELOPER_TOKEN": "h5LnHdaxMQN5sKy1pNNwaJP6cmicpvYo3COz4PLgbbZiMZ1novWyyEYfQq0isxeo",
       "uid": "irina_001",
       "uname": "Irina",
-      "rules_file": "rules_irishka.json",
-      "vip_file": "vip_irishka.json"
+      "rules_file": "rules_irina.json",
+      "vip_file": "vip_irina.json"
     }
   },
+
   "webhook_secret": "arina_webhook_secret"
 }
