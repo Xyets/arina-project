@@ -65,8 +65,11 @@ def lovense_callback():
             "utoken": data.get("utoken"),
             "toys": data.get("toys", {})
         }
+        # 🔍 Отладка: выводим текущее состояние CONNECTED_USERS
+        print("🔐 CONNECTED_USERS сейчас:", json.dumps(CONNECTED_USERS, indent=2, ensure_ascii=False))
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
+
 
 def send_vibration_cloud(user, strength, duration):
     """Отправка вибрации через Cloud API"""
