@@ -29,25 +29,32 @@ CONNECTED_USERS = {}
 # ---------------- LOVENSE ----------------
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
-    # ⚠️ Используем Cloud API, а не LAN
+    # ⚠️ Используем Cloud API эндпоинт
     url = "https://api.lovense.com/api/lan/getQrCode"
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],   # твой Cloud Developer Token
         "uid": f"{user}_001",                  # уникальный ID профиля
         "uname": user,                         # имя профиля
-        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123"
+        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
+        "v": 2
     }
 
     try:
         r = requests.post(url, json=payload, timeout=10)
         data = r.json()
-        print("Ответ от Lovense Cloud:", data)  # 🔍 для отладки
-        if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
-            return data["data"]["qr"]
-        else:
-            print("Ошибка API:", data)
-            return None
+        print("Ответ от Lovense API:", data)  # 🔍 для отладки
+
+        if data.get("code") == 0:
+            # Cloud API иногда кладёт QR в "data.qr", иногда в "message"
+            if "data" in data and "qr" in data["data"]:
+                return data["data"]["qr"]
+            if "message" in data and str(data["message"]).startswith("http"):
+                return data["message"]
+
+        print("Ошибка API:", data)
+        return None
+
     except Exception as e:
         print("Ошибка при запросе QR‑кода:", e)
         return None
