@@ -21,7 +21,9 @@ app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
 
-vibration_queues = {user: queue.Queue() for user in CONFIG["profiles"].keys()}
+import asyncio
+
+vibration_queues = {user: asyncio.Queue() for user in CONFIG["profiles"].keys()}
 CONNECTED_USERS = {}
 
 # ---------------- LOVENSE ----------------
@@ -96,12 +98,13 @@ def send_vibration_cloud(user, strength, duration):
         print(f"❌ [{user}] Ошибка Cloud‑вибрации:", e)
         return None
 
-def vibration_worker(user):
+async def vibration_worker(user):
     q = vibration_queues[user]
     while True:
-        strength, duration = q.get()
+        strength, duration = await q.get()
         print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
-        send_vibration_cloud(user, strength, duration)  # ⚡️ заменили LAN на Cloud
+        send_vibration_cloud(user, strength, duration)  # без await
+        await asyncio.sleep(duration)
         q.task_done()
 
 # Запуск воркеров для каждого профиля
@@ -142,15 +145,13 @@ def apply_rule(user, amount, text):
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
-
-            # Добавляем задачу в очередь вибраций
-            vibration_queues[user].put((strength, duration))
+            vibration_queues[user].put_nowait((strength, duration))  # put_nowait
             return
 
     # Если ни одно правило не подошло — применяем default
     strength, duration = rules["default"]
-    vibration_queues[user].put((strength, duration))
-
+    vibration_queues[user].put_nowait((strength, duration))
+    
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
     profile = CONFIG["profiles"][user]
@@ -260,9 +261,13 @@ async def ws_handler(websocket):
             await websocket.send("❌ Ошибка обработки")
 
 async def ws_server():
+    # запускаем воркеры для всех профилей
+    for user in CONFIG["profiles"]:
+        asyncio.create_task(vibration_worker(user))
+
     async with websockets.serve(ws_handler, "0.0.0.0", 8765, origins=None, ping_interval=None):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765")
-        await asyncio.Future()
+        await asyncio.Future()  # держим сервер живым
 
 
 # ---------------- Flask Routes ----------------
