@@ -30,7 +30,7 @@ CONNECTED_USERS = {}
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     # ⚠️ Используем Cloud API, а не LAN
-    url = "https://api.lovense.com/api/generateQrCode"
+    url = "https://api.lovense.com/api/lan/getQrCode"
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],   # твой Cloud Developer Token
