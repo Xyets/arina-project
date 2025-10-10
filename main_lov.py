@@ -141,9 +141,11 @@ def load_rules(user):
         return {"default": [1, 5], "rules": []}
 
 def apply_rule(user, amount, text):
+    print(f"⚙️ [{user}] apply_rule: ищем правило для amount={amount}, text={text}")
     rules = load_rules(user)
 
     for rule in rules["rules"]:
+        print(f"⚙️ [{user}] Проверяем правило: {rule}")
         if rule["min"] <= amount <= rule["max"]:
             if rule.get("action"):
                 if rule["action"].strip():   # только если реально есть текст действия
@@ -156,6 +158,7 @@ def apply_rule(user, amount, text):
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
+            print(f"⚙️ [{user}] Добавляем в очередь: сила={strength}, время={duration}")
             vibration_queues[user].put_nowait((strength, duration))  # put_nowait
             return
 
@@ -259,6 +262,7 @@ async def ws_handler(websocket):
 
             # ✅ Всё ок — применяем правило
             print(f"✅ [{user}] Донат | {name} → {amount}")
+            print(f"⚙️ [{user}] Перед apply_rule: amount={amount}, text={text}")
             apply_rule(user, amount, text)
 
             # 👑 Обновление VIP‑листа
