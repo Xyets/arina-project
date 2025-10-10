@@ -116,13 +116,9 @@ async def vibration_worker(user):
     while True:
         strength, duration = await q.get()
         print(f"📥 [{user}] Новый донат в очереди: сила {strength}, время {duration}")
-        send_vibration_cloud(user, strength, duration)  # без await
+        send_vibration_cloud(user, strength, duration)
         await asyncio.sleep(duration)
         q.task_done()
-
-# Запуск воркеров для каждого профиля
-for user in CONFIG["profiles"].keys():
-    threading.Thread(target=vibration_worker, args=(user,), daemon=True).start()
 
 
 def login_required(f):
@@ -419,7 +415,6 @@ def rules():
     return render_template("rules.html", rules=rules_data["rules"], default=rules_data["default"])
 
 # ---------------- ЗАПУСК ----------------
-
 def run_flask():
     app.run(host="0.0.0.0", port=5000, debug=False)
 
@@ -444,3 +439,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     threading.Thread(target=run_websocket, daemon=True).start()
     monitor_flag()
+
