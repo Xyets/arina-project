@@ -146,11 +146,13 @@ def apply_rule(user, amount, text):
     for rule in rules["rules"]:
         if rule["min"] <= amount <= rule["max"]:
             if rule.get("action"):
-                ts = time.strftime("%Y-%m-%d %H:%M:%S")
-                with open("donations.log", "a", encoding="utf-8") as f:
-                    f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
-                print(f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
-                return
+                if rule["action"].strip():   # только если реально есть текст действия
+                    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                    with open("donations.log", "a", encoding="utf-8") as f:
+                        f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
+                    print(f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
+                    return
+
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
