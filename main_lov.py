@@ -460,6 +460,13 @@ def logs_data():
     user = session["user"]
     return {"logs": donation_logs.get(user, [])}
 
+@app.route("/clear_logs", methods=["POST"])
+@login_required
+def clear_logs():
+    user = session["user"]
+    donation_logs[user] = []  # очищаем только логи текущего пользователя
+    return redirect("/logs")
+
 
 # ---------------- ЗАПУСК ----------------
 def run_flask():

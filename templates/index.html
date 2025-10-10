@@ -12,6 +12,25 @@
 
     <p><a href="{{ url_for('qrcode_page') }}">📱 Получить QR‑код для подключения</a></p>
     <p><a href="{{ url_for('rules') }}">📜 Управление правилами</a></p>
+    
+    <h3>📜 Логи донатов</h3>
+    <div id="logbox" style="border:1px solid #444; padding:10px; height:300px; overflow-y:scroll; background:#000; color:#0f0; font-family:monospace;"></div>
+
+    <form method="POST" action="/clear_logs">
+      <button type="submit">🧹 Очистить лог</button>
+    </form>
+
+    <script>
+      async function loadLogs() {
+        const res = await fetch("/logs_data");
+        const data = await res.json();
+        const box = document.getElementById("logbox");
+        box.innerHTML = data.logs.map(l => `<div>${l}</div>`).join("");
+        box.scrollTop = box.scrollHeight;
+      }
+      setInterval(loadLogs, 2000);
+      loadLogs();
+    </script>
 
     <p><a href="{{ url_for('logout') }}">🚪 Выйти</a></p>
 </body>
