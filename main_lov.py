@@ -37,7 +37,7 @@ def get_qr_code(user):
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
         "uname": user,
-        "utoken": "arina_test_token",  # временный, настоящий придёт в callback
+        # ⚠️ utoken НЕ указываем — его вернёт Lovense Remote в callback
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
         "v": 2
     }
@@ -151,7 +151,7 @@ def apply_rule(user, amount, text):
     # Если ни одно правило не подошло — применяем default
     strength, duration = rules["default"]
     vibration_queues[user].put_nowait((strength, duration))
-    
+
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
     profile = CONFIG["profiles"][user]
