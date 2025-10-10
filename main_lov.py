@@ -76,30 +76,36 @@ def lovense_callback():
 
 
 def send_vibration_cloud(user, strength, duration):
-    """Отправка вибрации через Cloud API"""
+    """Отправка вибрации через Lovense Cloud API"""
     uid = f"{user}_001"
     user_data = CONNECTED_USERS.get(uid)
 
     if not user_data:
         print(f"❌ [{user}] Нет данных из callback — игрушка не подключена")
-        return
+        return None
+
+    utoken = user_data.get("utoken")
+    if not utoken:
+        print(f"❌ [{user}] utoken пустой — пересканируй QR‑код")
+        return None
 
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/v2/command"
+
     payload = {
-        "token": profile["DEVELOPER_TOKEN"],
+        "token": profile["DEVELOPER_TOKEN"],  # Cloud Developer Token
         "uid": uid,
-        "utoken": user_data.get("utoken"),
+        "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": duration,
-        "apiVer": 1
+        "timeSec": duration
     }
 
     try:
+        print(f"📤 [{user}] Отправка вибрации → {payload}")  # 🔍 лог перед запросом
         r = requests.post(url, json=payload, timeout=10)
+        print(f"📥 [{user}] Ответ Cloud API: {r.text}")      # 🔍 лог ответа
         data = r.json()
-        print(f"📤 [{user}] Cloud‑вибрация → {data}")
         return data
     except Exception as e:
         print(f"❌ [{user}] Ошибка Cloud‑вибрации:", e)
