@@ -256,14 +256,9 @@ async def ws_handler(websocket):
             if user not in CONFIG.get("profiles", {}):
                 await websocket.send(f"❌ Профиль '{user}' не найден")
                 continue
-
-            # 🔁 Проверка уникальности доната
-            if donation_id:
-                if donation_id in processed_donations:
-                    await websocket.send(f"ℹ️ Донат {donation_id} уже учтён")
-                    continue
-                processed_donations.add(donation_id)
-            else:
+            
+            # ⚠️ donation_id можно логировать, но не блокировать
+            if not donation_id:
                 print("⚠️ Нет donation_id — может быть тест или ошибка")
 
             # 💸 Проверка суммы
