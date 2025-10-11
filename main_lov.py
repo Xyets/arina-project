@@ -124,11 +124,16 @@ def send_vibration_cloud(user, strength, duration):
 async def vibration_worker(user):
     q = vibration_queues[user]
     while True:
-        strength, duration = await q.get()
-        add_log(user,f"📥 [{user}] Запущена вибрация: сила={strength}, время={duration}")
-        send_vibration_cloud(user, strength, duration)
-        await asyncio.sleep(duration)
-        q.task_done()
+        try:
+            strength, duration = await q.get()
+            add_log(user, f"📥 [{user}] Вибрация: сила={strength}, время={duration}")
+            send_vibration_cloud(user, strength, duration)
+            await asyncio.sleep(duration)
+        except Exception as e:
+            print(f"⚠️ [{user}] Ошибка в vibration_worker:", e)
+        finally:
+            q.task_done()
+
 
 
 def login_required(f):
@@ -151,31 +156,29 @@ def load_rules(user):
         return {"default": [1, 5], "rules": []}
 
 def apply_rule(user, amount, text):
-    print(f"⚙️ [{user}] apply_rule: ищем правило для amount={amount}, text={text}")
+    print(f"⚙️ [{user}] apply_rule: сумма={amount}, текст={text}")
     rules = load_rules(user)
 
-    for rule in rules["rules"]:
-        print(f"⚙️ [{user}] Проверяем правило: {rule}")
+    for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
-            if rule.get("action"):
-                if rule["action"].strip():   # только если реально есть текст действия
-                    ts = time.strftime("%Y-%m-%d %H:%M:%S")
-                    with open("donations.log", "a", encoding="utf-8") as f:
-                        f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {rule['action']}\n")
-                    add_log(user, f"🎬 [{user}] Действие для доната {amount}: {rule['action']}")
-                    return
-
+            action = rule.get("action")
+            if action and action.strip():
+                ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                with open("donations.log", "a", encoding="utf-8") as f:
+                    f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {action}\n")
+                add_log(user, f"🎬 [{user}] Действие: {action}")
+                return
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
-            print(f"⚙️ [{user}] Добавляем в очередь: сила={strength}, время={duration}")
-            vibration_queues[user].put_nowait((strength, duration))  # put_nowait
+            vibration_queues[user].put_nowait((strength, duration))
+            print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
             return
 
-    # Если ни одно правило не подошло — применяем default
-    strength, duration = rules["default"]
+    # Default‑вибрация
+    strength, duration = rules.get("default", [1, 5])
     vibration_queues[user].put_nowait((strength, duration))
-    print(f"🎵 [{user}] Default‑правило: сила={strength}, время={duration}")
+    print(f"🎵 [{user}] Default: сила={strength}, время={duration}")
 
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
@@ -416,32 +419,46 @@ def rules():
             except:
                 return default
 
+        # ➕ Добавление нового правила
         if "add_rule" in request.form:
+            action_type = request.form.get("action_type")
+            action = request.form.get("action") or None
+            if action_type == "vibration":
+                action = None  # игнорируем поле, если выбрана вибрация
+
             new_rule = {
                 "min": to_int("min", 1),
                 "max": to_int("max", 5),
                 "strength": to_int("strength", 1),
                 "duration": to_int("duration", 5),
-                "action": request.form.get("action") or None
+                "action": action
             }
             rules_data["rules"].append(new_rule)
 
+        # ❌ Удаление правила
         elif "delete_rule" in request.form:
             idx = int(request.form["delete_rule"])
             if 0 <= idx < len(rules_data["rules"]):
                 rules_data["rules"].pop(idx)
 
+        # ✏️ Редактирование правила
         elif "edit_rule" in request.form:
             idx = int(request.form["edit_rule"])
             if 0 <= idx < len(rules_data["rules"]):
+                action_type = request.form.get("action_type")
+                action = request.form.get("action") or None
+                if action_type == "vibration":
+                    action = None
+
                 rules_data["rules"][idx] = {
                     "min": int(request.form["min"]),
                     "max": int(request.form["max"]),
                     "strength": int(request.form["strength"]),
                     "duration": int(request.form["duration"]),
-                    "action": request.form["action"] or None
+                    "action": action
                 }
 
+        # 💾 Сохраняем обновлённые правила
         with open(rules_file, "w", encoding="utf-8") as f:
             json.dump(rules_data, f, indent=2, ensure_ascii=False)
 
@@ -494,4 +511,3 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     threading.Thread(target=run_websocket, daemon=True).start()
     monitor_flag()
-

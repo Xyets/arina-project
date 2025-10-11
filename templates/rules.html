@@ -35,7 +35,14 @@
             <td>{{ rule.max }}</td>
             <td>{{ rule.strength }}</td>
             <td>{{ rule.duration }}</td>
-            <td>{{ rule.action }}</td>
+            <td>
+                {% if rule.action %}
+                    🎬 {{ rule.action }}
+                {% else %}
+                    🔊 Вибрация
+                {% endif %}
+            </td>
+
             <td>
                 <!-- Тестировать правило -->
                 <form method="POST" action="/test_rule/{{ loop.index0 }}">
@@ -54,7 +61,15 @@
                     Макс: <input type="number" name="max" value="{{ rule.max }}" required>
                     Сила: <input type="number" name="strength" value="{{ rule.strength }}">
                     Время: <input type="number" name="duration" value="{{ rule.duration }}">
-                    Действие: <input type="text" name="action" value="{{ rule.action }}">
+                    Тип:
+                    <select name="action_type">
+                        <option value="vibration" {% if not rule.action %}selected{% endif %}>Вибрация</option>
+                        <option value="custom" {% if rule.action %}selected{% endif %}>Действие</option>
+                    </select>
+
+                    Действие:
+                    <input type="text" name="action" value="{{ rule.action }}">
+
                     <button type="submit">✏️ Сохранить</button>
                 </form>
             </td>
@@ -68,10 +83,20 @@
         Макс: <input type="number" name="max" required>
         Сила: <input type="number" name="strength">
         Время: <input type="number" name="duration">
-        Действие: <input type="text" name="action">
+
+        Тип:
+        <select name="action_type">
+            <option value="vibration">Вибрация</option>
+            <option value="custom">Действие</option>
+        </select>
+
+        Действие:
+        <input type="text" name="action">
+
         <button type="submit" name="add_rule">Добавить</button>
     </form>
 
     <p><a href="/">⬅ Назад</a></p>
 </body>
 </html>
+<select name="action_type"></select>
