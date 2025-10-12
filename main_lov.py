@@ -392,20 +392,11 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-from time import monotonic
-
-last_test_at = {}
-
 @app.route("/test_vibration", methods=["POST"])
 @login_required
 def test_vibration():
     user = session["user"]
-    t = monotonic()
-    if user in last_test_at and (t - last_test_at[user]) < 0.5:  # 500 мс кулдаун
-        return {"status": "ok", "message": "Запрос уже выполняется ⏳"}
-
-    last_test_at[user] = t
-    send_vibration_cloud(user, 5, 2)  # сразу отправляем на устройство
+    threading.Thread(target=send_vibration_cloud, args=(user, 1, 5)).start()
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 @app.route("/stats")
