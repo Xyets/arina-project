@@ -6,48 +6,55 @@
 </head>
 <body>
     <h1>👋 Привет, {{ user }}</h1>
+
     <p>🔗 Адрес WebSocket для расширения: 
-   <code>wss://arinairina.duckdns.org/ws/</code>
+        <code>wss://arinairina.duckdns.org/ws/</code>
     </p>
 
     <p><a href="{{ url_for('qrcode_page') }}">📱 Получить QR‑код для подключения</a></p>
     <p><a href="{{ url_for('rules') }}">📜 Управление правилами</a></p>
-    
+
     <h3>📜 Логи донатов</h3>
     <div id="logbox" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; background:#fff; color:#000; font-family:monospace;"></div>
     <form method="POST" action="/clear_logs">
-      <button type="submit">🧹 Очистить лог</button>
+        <button type="submit">🧹 Очистить лог</button>
     </form>
+
     <h3>🔁 Очередь вибраций</h3>
     <div id="queuebox" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:scroll; background:#f9f9f9; color:#000; font-family:monospace;"></div>
 
     <script>
-      async function loadLogs() {
-        const res = await fetch("/logs_data");
-        const data = await res.json();
-        const box = document.getElementById("logbox");
-        box.innerHTML = data.logs.map(l => {
-          if (l.includes("🎬")) {
-            return `<div style="color: goldenrod; font-weight: bold;">${l}</div>`;
-          }
-          return `<div>${l}</div>`;
-        }).join("");
-        
-        box.scrollTop = box.scrollHeight;
-      }
-      setInterval(loadLogs, 2000);
-      loadLogs();
+        async function loadLogs() {
+            const res = await fetch("/logs_data");
+            const data = await res.json();
+            const box = document.getElementById("logbox");
+            box.innerHTML = data.logs.map(l => {
+                if (l.includes("🎬")) {
+                    return `<div style="color: goldenrod; font-weight: bold;">${l}</div>`;
+                }
+                return `<div>${l}</div>`;
+            }).join("");
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function loadQueue() {
+            const res = await fetch("/queue_data");
+            const data = await res.json();
+            const box = document.getElementById("queuebox");
+            if (data.queue.length === 0) {
+                box.innerHTML = "<div>Очередь пуста ✅</div>";
+            } else {
+                box.innerHTML = data.queue.map(([strength, duration], i) => {
+                    return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
+                }).join("");
+            }
+        }
+
+        setInterval(loadLogs, 2000);
+        setInterval(loadQueue, 2000);
+        loadLogs();
+        loadQueue();
     </script>
-    async function loadQueue() {
-      const res = await fetch("/queue_data");
-      const data = await res.json();
-      const box = document.getElementById("queuebox");
-      box.innerHTML = data.queue.map(([strength, duration], i) => {
-        return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
-      }).join("");
-    }
-    setInterval(loadQueue, 2000);
-    loadQueue();
 
     <p><a href="{{ url_for('logout') }}">🚪 Выйти</a></p>
 </body>
