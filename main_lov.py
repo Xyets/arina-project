@@ -405,7 +405,7 @@ def test_vibration():
         return {"status": "ok", "message": "Запрос уже выполняется ⏳"}
 
     last_test_at[user] = t
-    vibration_queues[user].put_nowait((1, 5))
+    send_vibration_cloud(user, 5, 2)  # сразу отправляем на устройство
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 @app.route("/stats")
