@@ -176,7 +176,7 @@ def apply_rule(user, amount, text):
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
-            add_log(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
+            print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
             # ✅ обновляем статистику как вибрацию
             update_stats(user, "vibrations")
             return
@@ -311,7 +311,7 @@ async def ws_handler(websocket):
             matched = False
             for rule in rules["rules"]:
                 if rule["min"] <= amount <= rule["max"]:
-                    apply_rule(user, rule)   # внутри apply_rule считаем vibrations/actions
+                    apply_rule(user, amount, text)   # ✅ исправлено
                     matched = True
                     break
 
