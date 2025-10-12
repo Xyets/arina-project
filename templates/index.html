@@ -3,29 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <title>Панель управления</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+
+    <!-- Шрифт и иконки -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/your-kit-id.js" crossorigin="anonymous"></script>
+
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        color: white;
+        padding: 40px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+      header img {
+        height: 50px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+      .menu a button {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        padding: 15px 25px;
+        border-radius: 12px;
+        font-size: 18px;
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .menu a button:hover {
+        background: rgba(255,255,255,0.3);
+      }
+      .box {
+        border:1px solid rgba(255,255,255,0.3);
+        padding:10px;
+        border-radius: 8px;
+        background: rgba(0,0,0,0.3);
+        color:#fff;
+        font-family:monospace;
+        margin-bottom: 20px;
+      }
+    </style>
 </head>
 <body>
-    <h1>👋 Привет, {{ user }}</h1>
+    <!-- Шапка -->
+    <header>
+      <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
+      <h1>Панель управления</h1>
+    </header>
 
-    <p>🔗 Адрес WebSocket для расширения: 
-        <code>wss://arinairina.duckdns.org/ws/</code>
-    </p>
+    <!-- Приветствие -->
+    <h2>👋 Привет, {{ user }}</h2>
+    <p>🔗 Адрес WebSocket: <code>wss://arinairina.duckdns.org/ws/</code></p>
 
-    <p><a href="{{ url_for('qrcode_page') }}">📱 Получить QR‑код для подключения</a></p>
-    <a href="{{ url_for('stats_page') }}">
-      <button>📊 Статистика</button>
-    </a>
-    <p><a href="{{ url_for('rules') }}">📜 Управление правилами</a></p>
+    <!-- Меню -->
+    <div class="menu">
+      <a href="{{ url_for('qrcode_page') }}"><button><i class="fas fa-qrcode"></i> QR‑код</button></a>
+      <a href="{{ url_for('stats_page') }}"><button><i class="fas fa-chart-line"></i> Статистика</button></a>
+      <a href="{{ url_for('rules') }}"><button><i class="fas fa-cogs"></i> Правила</button></a>
+      <a href="{{ url_for('logout') }}"><button><i class="fas fa-sign-out-alt"></i> Выйти</button></a>
+    </div>
 
+    <!-- Логи -->
     <h3>📜 Логи донатов</h3>
-    <div id="logbox" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; background:#fff; color:#000; font-family:monospace;"></div>
+    <div id="logbox" class="box" style="height:300px; overflow-y:scroll;"></div>
     <form method="POST" action="/clear_logs">
         <button type="submit">🧹 Очистить лог</button>
     </form>
 
+    <!-- Очередь -->
     <h3>🔁 Очередь вибраций</h3>
-    <div id="queuebox" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:scroll; background:#f9f9f9; color:#000; font-family:monospace;"></div>
+    <div id="queuebox" class="box" style="height:200px; overflow-y:scroll;"></div>
 
+    <!-- JS -->
     <script>
       async function loadLogs() {
         const res = await fetch("/logs_data");
@@ -58,7 +125,6 @@
       loadLogs();
       loadQueue();
     </script>
-
-    <p><a href="{{ url_for('logout') }}">🚪 Выйти</a></p>
+    
 </body>
 </html>
