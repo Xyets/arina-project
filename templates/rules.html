@@ -179,7 +179,7 @@
       <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
       <div class="rule-actions">
         <!-- Тестировать правило -->
-        <button type="button" class="testRuleBtn" data-id="{{ rule.id }}">🔊</button>
+        <button type="button" class="testRuleBtn" data-index="{{ loop.index0 }}">🔊</button>
 
         <!-- Удалить -->
         <form method="POST" style="display:inline;">
@@ -252,17 +252,32 @@
   </script>
 
   <script>
+    // Общая проверка
+    document.getElementById("testVibrationBtn").addEventListener("click", () => {
+      fetch("/test_vibration", { method: "POST" })
+        .then(r => r.json())
+        .then(data => showToast(data.message || "Вибрация отправлена ✅"))
+        .catch(() => showToast("Ошибка при проверке ❌"));
+    });
+
+    // Проверка правил
     document.querySelectorAll(".testRuleBtn").forEach(btn => {
       btn.addEventListener("click", () => {
-        const ruleId = btn.getAttribute("data-id");
-        fetch(`/test_rule/${ruleId}`, { method: "POST" })
+        const ruleIndex = btn.getAttribute("data-index");
+        fetch(`/test_rule/${ruleIndex}`, { method: "POST" })
           .then(r => r.json())
-          .then(data => {
-            showToast(data.message || `Правило ${ruleId} проверено ✅`);
-          })
+          .then(data => showToast(data.message || `Правило ${ruleIndex} проверено ✅`))
           .catch(() => showToast("Ошибка при проверке ❌"));
       });
     });
+
+    // Toast
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.className = "toast show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
   </script>
 </body>
 </html>

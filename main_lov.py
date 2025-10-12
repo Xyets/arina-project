@@ -399,7 +399,6 @@ def test_vibration():
     vibration_queues[user].put_nowait((1, 5))  # тестовая вибрация
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
-
 @app.route("/stats")
 @login_required
 def stats_page():
@@ -433,7 +432,6 @@ def test_rule(rule_index):
         }
 
     return {"status": "error", "message": "❌ Правило не найдено"}, 404
-
 
 
 @app.route("/hook", methods=["POST"])
