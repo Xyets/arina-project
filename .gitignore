@@ -1,0 +1,11 @@
+# Рабочие данные
+stats.json
+donations.log
+vip_config.json
+vip_donaters.json
+vip_persistent.json
+vibration_queue.json
+
+# Кэш Python
+__pycache__/
+*.pyc
