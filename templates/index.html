@@ -24,36 +24,36 @@
     <div id="queuebox" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:scroll; background:#f9f9f9; color:#000; font-family:monospace;"></div>
 
     <script>
-        async function loadLogs() {
-            const res = await fetch("/logs_data");
-            const data = await res.json();
-            const box = document.getElementById("logbox");
-            box.innerHTML = data.logs.map(l => {
-                if (l.includes("🎬")) {
-                    return `<div style="color: goldenrod; font-weight: bold;">${l}</div>`;
-                }
-                return `<div>${l}</div>`;
-            }).join("");
-            box.scrollTop = box.scrollHeight;
-        }
+      async function loadLogs() {
+        const res = await fetch("/logs_data");
+        const data = await res.json();
+        const box = document.getElementById("logbox");
+        box.innerHTML = data.logs.map(l => {
+          if (l.includes("🎬")) {
+            return `<div style="color: goldenrod; font-weight: bold;">${l}</div>`;
+          }
+          return `<div>${l}</div>`;
+        }).join("");
+        box.scrollTop = box.scrollHeight;
+      }
 
-        async function loadQueue() {
-            const res = await fetch("/queue_data");
-            const data = await res.json();
-            const box = document.getElementById("queuebox");
-            if (data.queue.length === 0) {
-                box.innerHTML = "<div>Очередь пуста ✅</div>";
-            } else {
-                box.innerHTML = data.queue.map(([strength, duration], i) => {
-                    return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
-                }).join("");
-            }
+      async function loadQueue() {
+        const res = await fetch("/queue_data");
+        const data = await res.json();
+        const box = document.getElementById("queuebox");
+        if (data.queue.length === 0) {
+          box.innerHTML = "<div>Очередь пуста ✅</div>";
+        } else {
+          box.innerHTML = data.queue.map(([strength, duration], i) => {
+            return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
+          }).join("");
         }
+      }
 
-        setInterval(loadLogs, 2000);
-        setInterval(loadQueue, 2000);
-        loadLogs();
-        loadQueue();
+      setInterval(loadLogs, 2000);
+      setInterval(loadQueue, 2000);
+      loadLogs();
+      loadQueue();
     </script>
 
     <p><a href="{{ url_for('logout') }}">🚪 Выйти</a></p>
