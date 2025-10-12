@@ -316,7 +316,7 @@ def index():
     logs = donation_logs.get(user, [])
     return render_template("index.html", user=user, profile=profile, queue=queue, logs=logs)
 
-app.route("/qrcode")
+@app.route("/qrcode")
 @login_required
 def qrcode_page():
     user = session["user"]
