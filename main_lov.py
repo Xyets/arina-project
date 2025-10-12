@@ -168,13 +168,16 @@ def apply_rule(user, amount, text):
                 with open("donations.log", "a", encoding="utf-8") as f:
                     f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {action}\n")
                 add_log(user, f"🎬 [{user}] Действие: {action}")
-                update_stats(user, "vibrations")
+                # ✅ обновляем статистику как действие
+                update_stats(user, "actions")
                 return
 
+            # если нет действия, значит это вибрация
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
-            print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
+            add_log(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
+            # ✅ обновляем статистику как вибрацию
             update_stats(user, "vibrations")
             return
 
