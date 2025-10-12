@@ -45,15 +45,10 @@
       font-size: 14px;
       transition: 0.3s;
     }
-    .rule-actions button:hover {
-      background: #74c0e3;
-    }
-    .rule-actions .delete {
-      background: #f7a8b8;
-    }
-    .rule-actions .delete:hover {
-      background: #f28497;
-    }
+    .rule-actions button:hover { background: #74c0e3; }
+    .rule-actions .delete { background: #f7a8b8; }
+    .rule-actions .delete:hover { background: #f28497; }
+
     .add-rule {
       background: #fff;
       border-radius: 12px;
@@ -76,26 +71,106 @@
       cursor: pointer;
       transition: 0.3s;
     }
-    .add-rule button:hover {
-      background: #74c0e3;
-    }
+    .add-rule button:hover { background: #74c0e3; }
     a {
       display: inline-block;
       margin-top: 20px;
       text-decoration: none;
       color: #74c0e3;
     }
+
+    /* --- Модальное окно --- */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      animation: fadeIn 0.3s;
+    }
+    .modal-content {
+      background: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 12px;
+      width: 320px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+      animation: slideDown 0.4s;
+    }
+    .modal-content h3 { margin-top: 0; }
+    .close {
+      float: right;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* Анимации */
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+    @keyframes slideDown {
+      from {transform: translateY(-50px); opacity: 0;}
+      to {transform: translateY(0); opacity: 1;}
+    }
+    .toast {
+      visibility: hidden;
+      min-width: 220px;
+      margin-left: -110px;
+      background-color: #74c0e3;
+      color: white;
+      text-align: center;
+      border-radius: 8px;
+      padding: 12px;
+      position: fixed;
+      z-index: 2000;
+      left: 50%;
+      bottom: 30px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.5s, bottom 0.5s;
+    }
+    .toast.show {
+      visibility: visible;
+      opacity: 1;
+      bottom: 50px;
+    }
+  
   </style>
 </head>
 <body>
   <h2>📜 Правила для {{ session["user"] }}</h2>
 
-  <!-- Общая кнопка теста -->
-  <form method="POST" action="/test_vibration" style="text-align:center; margin-bottom:20px;">
-    <button type="submit" style="background:#a3d8f4; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
+  <!-- Кнопка проверки -->
+  <div style="text-align:center; margin-bottom:20px;">
+    <button type="button" id="testVibrationBtn"
+      style="background:#a3d8f4; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
       🔊 Проверить вибрацию (default)
     </button>
-  </form>
+  </div>
+
+  <!-- Toast уведомление -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+  document.getElementById("testVibrationBtn").addEventListener("click", () => {
+    fetch("/test_vibration", { method: "POST" })
+      .then(r => r.json())
+      .then(data => {
+        showToast(data.message || "Вибрация отправлена ✅");
+      })
+      .catch(() => showToast("Ошибка при отправке ❌"));
+  });
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.className = "toast show";
+    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+  }
+  </script>
+
 
   <!-- Список правил -->
   {% for rule in rules %}
@@ -103,18 +178,42 @@
     <div class="rule-header">
       <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
       <div class="rule-actions">
-        <!-- Тестировать правило -->
+        <!-- Тестировать -->
         <form method="POST" action="/test_rule/{{ rule.id }}" style="display:inline;">
           <button type="submit">🔊</button>
         </form>
-        <!-- Удалить правило -->
+        <!-- Удалить -->
         <form method="POST" style="display:inline;">
           <button type="submit" name="delete_rule" value="{{ rule.id }}" class="delete">❌</button>
         </form>
+        <!-- Редактировать -->
+        <button type="button" onclick="openModal('{{ rule.id }}')">✏️</button>
       </div>
     </div>
     <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
     <p>Действие: {% if rule.action %}🎬 {{ rule.action }}{% else %}🔊 Вибрация{% endif %}</p>
+  </div>
+
+  <!-- Модальное окно редактирования -->
+  <div id="modal-{{ rule.id }}" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('{{ rule.id }}')">&times;</span>
+      <h3>✏️ Редактировать правило</h3>
+      <form method="POST">
+        <input type="hidden" name="edit_rule" value="{{ rule.id }}">
+        Мин: <input type="number" name="min" value="{{ rule.min }}" required><br>
+        Макс: <input type="number" name="max" value="{{ rule.max }}" required><br>
+        Сила: <input type="number" name="strength" value="{{ rule.strength }}"><br>
+        Время: <input type="number" name="duration" value="{{ rule.duration }}"><br>
+        Тип:
+        <select name="action_type">
+          <option value="vibration" {% if not rule.action %}selected{% endif %}>Вибрация</option>
+          <option value="custom" {% if rule.action %}selected{% endif %}>Действие</option>
+        </select><br>
+        Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
+        <button type="submit">💾 Сохранить</button>
+      </form>
+    </div>
   </div>
   {% endfor %}
 
@@ -137,5 +236,20 @@
   </div>
 
   <p style="text-align:center;"><a href="/">⬅ Назад</a></p>
+
+  <script>
+    function openModal(id) {
+      document.getElementById("modal-" + id).style.display = "block";
+    }
+    function closeModal(id) {
+      document.getElementById("modal-" + id).style.display = "none";
+    }
+    // Закрытие по клику вне окна
+    window.onclick = function(event) {
+      document.querySelectorAll('.modal').forEach(m => {
+        if (event.target === m) m.style.display = "none";
+      });
+    }
+  </script>
 </body>
 </html>

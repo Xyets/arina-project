@@ -396,9 +396,9 @@ def logout():
 @login_required
 def test_vibration():
     user = session["user"]
-    # сила 5, длительность 5 секунд
-    send_vibration_cloud(user, strength=5, duration=5)
-    return "✅ Cloud‑вибрация отправлена"
+    vibration_queues[user].put_nowait((1, 5))  # тестовая вибрация
+    return {"status": "ok", "message": "Вибрация отправлена ✅"}
+
 
 @app.route("/stats")
 @login_required
