@@ -95,15 +95,6 @@ def lovense_callback():
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
 
-@app.route("/")
-@login_required
-def dashboard():
-    user = session["user"]
-    queue = get_vibration_queue(user)
-    logs = donation_logs.get(user, [])
-    return render_template("dashboard.html", queue=queue, logs=logs)
-
-
 def send_vibration_cloud(user, strength, duration):
     """Отправка вибрации через Lovense Cloud API"""
     uid = f"{user}_001"
@@ -319,10 +310,13 @@ async def ws_server():
 @app.route("/")
 @login_required
 def index():
-    profile = CONFIG["profiles"][session["user"]]
-    return render_template("index.html", user=session.get("user"), profile=profile)
+    user = session["user"]
+    profile = CONFIG["profiles"][user]
+    queue = get_vibration_queue(user)
+    logs = donation_logs.get(user, [])
+    return render_template("index.html", user=user, profile=profile, queue=queue, logs=logs)
 
-@app.route("/qrcode")
+app.route("/qrcode")
 @login_required
 def qrcode_page():
     user = session["user"]
