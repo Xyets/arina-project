@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Статистика</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>📊 Статистика для {{ user }}</h2>
+
+  <table border="1" cellpadding="5">
+    <tr>
+      <th>Дата</th>
+      <th>Вибрации</th>
+      <th>Действия</th>
+      <th>Иное</th>
+      <th>Всего</th>
+    </tr>
+    {% for day, data in stats.items() %}
+    <tr>
+      <td>{{ day }}</td>
+      <td>{{ data.vibrations }}</td>
+      <td>{{ data.actions }}</td>
+      <td>{{ data.other }}</td>
+      <td><b>{{ data.total }}</b></td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h3>📈 График по дням</h3>
+  <canvas id="statsChart" width="600" height="300"></canvas>
+
+  <!-- 📦 Вставляем JSON-данные -->
+  <script id="stats-data" type="application/json">
+    {{ stats|tojson|safe }}
+  </script>
+
+  <script>
+    // Читаем JSON из скрытого блока
+    const stats = JSON.parse(document.getElementById("stats-data").textContent);
+
+    const labels = Object.keys(stats);
+    const vibrations = Object.values(stats).map(d => d.vibrations);
+    const actions = Object.values(stats).map(d => d.actions);
+    const other = Object.values(stats).map(d => d.other);
+    const total = Object.values(stats).map(d => d.total);
+
+    const data = {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Вибрации',
+          data: vibrations,
+          borderColor: 'blue',
+          backgroundColor: 'rgba(0,0,255,0.3)',
+        },
+        {
+          label: 'Действия',
+          data: actions,
+          borderColor: 'green',
+          backgroundColor: 'rgba(0,255,0,0.3)',
+        },
+        {
+          label: 'Иное',
+          data: other,
+          borderColor: 'orange',
+          backgroundColor: 'rgba(255,165,0,0.3)',
+        },
+        {
+          label: 'Всего',
+          data: total,
+          borderColor: 'red',
+          backgroundColor: 'rgba(255,0,0,0.3)',
+        }
+      ]
+    };
+
+    new Chart(document.getElementById('statsChart'), {
+      type: 'line',
+      data: data,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: 'Динамика донатов по дням' }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

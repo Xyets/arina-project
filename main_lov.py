@@ -168,12 +168,14 @@ def apply_rule(user, amount, text):
                 with open("donations.log", "a", encoding="utf-8") as f:
                     f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {action}\n")
                 add_log(user, f"🎬 [{user}] Действие: {action}")
+                update_stats(user, "vibrations")
                 return
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
             print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
+            update_stats(user, "vibrations")
             return
 
     # ❌ Ничего не делаем, если правило не найдено
@@ -235,7 +237,29 @@ def try_extract_user_id_from_text(text):
 
 
 # --- список уже обработанных донатов ---
-# --- список уже обработанных донатов ---
+
+def update_stats(user, category):
+    today = time.strftime("%Y-%m-%d")
+    stats_file = "stats.json"
+
+    try:
+        with open(stats_file, "r", encoding="utf-8") as f:
+            stats = json.load(f)
+    except:
+        stats = {}
+
+    if user not in stats:
+        stats[user] = {}
+
+    if today not in stats[user]:
+        stats[user][today] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
+
+    stats[user][today][category] += 1
+    stats[user][today]["total"] += 1
+
+    with open(stats_file, "w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
+
 processed_donations = set()
 
 def clear_processed_donations():
@@ -265,7 +289,7 @@ async def ws_handler(websocket):
             if user not in CONFIG.get("profiles", {}):
                 await websocket.send(f"❌ Профиль '{user}' не найден")
                 continue
-            
+
             # ⚠️ donation_id можно логировать, но не блокировать
             if not donation_id:
                 print("⚠️ Нет donation_id — может быть тест или ошибка")
@@ -275,10 +299,23 @@ async def ws_handler(websocket):
                 await websocket.send("ℹ️ Сообщение не содержит донат")
                 continue
 
-            # ✅ Всё ок — применяем правило
+            # ✅ Логируем донат
             add_log(user, f"✅ [{user}] Донат | {name} → {amount}")
             print(f"⚙️ [{user}] Перед apply_rule: amount={amount}, text={text}")
-            apply_rule(user, amount, text)
+
+            # ⚙️ Проверяем правила
+            rules = load_rules(user)
+            matched = False
+            for rule in rules["rules"]:
+                if rule["min"] <= amount <= rule["max"]:
+                    apply_rule(user, rule)   # внутри apply_rule считаем vibrations/actions
+                    matched = True
+                    break
+
+            # ❌ Если ни одно правило не подошло → считаем как "иное"
+            if not matched:
+                add_log(user, f"ℹ️ [{user}] Донат без действия: {amount}")
+                update_stats(user, "other")
 
             # 👑 Обновление VIP‑листа
             if user_id:
@@ -359,6 +396,19 @@ def test_vibration():
     # сила 5, длительность 5 секунд
     send_vibration_cloud(user, strength=5, duration=5)
     return "✅ Cloud‑вибрация отправлена"
+
+@app.route("/stats")
+@login_required
+def stats_page():
+    user = session["user"]
+    try:
+        with open("stats.json", "r", encoding="utf-8") as f:
+            stats = json.load(f)
+    except:
+        stats = {}
+
+    user_stats = stats.get(user, {})
+    return render_template("stats.html", stats=user_stats, user=user)
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required
