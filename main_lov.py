@@ -536,7 +536,10 @@ def rules():
 
         return redirect("/rules")
 
-    return render_template("rules.html", rules=rules_data["rules"], default=rules_data["default"])
+    # ✅ Сортировка перед отдачей в шаблон
+    sorted_rules = sorted(rules_data["rules"], key=lambda r: r["min"])
+
+    return render_template("rules.html", rules=sorted_rules, default=rules_data["default"])
 
 @app.route("/logs")
 @login_required

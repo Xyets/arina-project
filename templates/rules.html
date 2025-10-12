@@ -1,102 +1,139 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Правила</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        th { background: #f0f0f0; }
-        form { margin: 0; display:inline; }
-        button { cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Правила</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      color: #333;
+      margin: 0;
+      padding: 40px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #444;
+    }
+    .rule-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .rule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .rule-header strong {
+      font-size: 16px;
+      color: #444;
+    }
+    .rule-actions button {
+      background: #a3d8f4;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-left: 5px;
+      cursor: pointer;
+      color: white;
+      font-size: 14px;
+      transition: 0.3s;
+    }
+    .rule-actions button:hover {
+      background: #74c0e3;
+    }
+    .rule-actions .delete {
+      background: #f7a8b8;
+    }
+    .rule-actions .delete:hover {
+      background: #f28497;
+    }
+    .add-rule {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      margin-top: 30px;
+    }
+    input, select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 5px;
+    }
+    .add-rule button {
+      background: #a3d8f4;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .add-rule button:hover {
+      background: #74c0e3;
+    }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #74c0e3;
+    }
+  </style>
 </head>
 <body>
-    <h2>📜 Правила для {{ session["user"] }}</h2>
+  <h2>📜 Правила для {{ session["user"] }}</h2>
 
-    <!-- 🔊 Общая кнопка теста вибрации -->
-    <form method="POST" action="/test_vibration">
-        <button type="submit" style="margin-bottom: 15px;">🔊 Проверить вибрацию (default)</button>
-    </form>
+  <!-- Общая кнопка теста -->
+  <form method="POST" action="/test_vibration" style="text-align:center; margin-bottom:20px;">
+    <button type="submit" style="background:#a3d8f4; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
+      🔊 Проверить вибрацию (default)
+    </button>
+  </form>
 
-    <table>
-        <tr>
-            <th>Мин</th>
-            <th>Макс</th>
-            <th>Сила</th>
-            <th>Время</th>
-            <th>Действие</th>
-            <th>Управление</th>
-        </tr>
-        {% for rule in rules %}
-        <tr>
-            <td>{{ rule.min }}</td>
-            <td>{{ rule.max }}</td>
-            <td>{{ rule.strength }}</td>
-            <td>{{ rule.duration }}</td>
-            <td>
-                {% if rule.action %}
-                    🎬 {{ rule.action }}
-                {% else %}
-                    🔊 Вибрация
-                {% endif %}
-            </td>
+  <!-- Список правил -->
+  {% for rule in rules %}
+  <div class="rule-card">
+    <div class="rule-header">
+      <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
+      <div class="rule-actions">
+        <form method="POST" action="/test_rule/{{ loop.index0 }}" style="display:inline;">
+          <button type="submit">🔊</button>
+        </form>
+        <form method="POST" style="display:inline;">
+          <button type="submit" name="delete_rule" value="{{ loop.index0 }}" class="delete">❌</button>
+        </form>
+      </div>
+    </div>
+    <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
+    <p>Действие: {% if rule.action %}🎬 {{ rule.action }}{% else %}🔊 Вибрация{% endif %}</p>
+  </div>
+  {% endfor %}
 
-            <td>
-                <!-- Тестировать правило -->
-                <form method="POST" action="/test_rule/{{ loop.index0 }}">
-                    <button type="submit">🔊 Проверить</button>
-                </form>
-
-                <!-- Удалить -->
-                <form method="POST">
-                    <button type="submit" name="delete_rule" value="{{ loop.index0 }}">❌ Удалить</button>
-                </form>
-
-                <!-- Редактировать -->
-                <form method="POST">
-                    <input type="hidden" name="edit_rule" value="{{ loop.index0 }}">
-                    Мин: <input type="number" name="min" value="{{ rule.min }}" required>
-                    Макс: <input type="number" name="max" value="{{ rule.max }}" required>
-                    Сила: <input type="number" name="strength" value="{{ rule.strength }}">
-                    Время: <input type="number" name="duration" value="{{ rule.duration }}">
-                    Тип:
-                    <select name="action_type">
-                        <option value="vibration" {% if not rule.action %}selected{% endif %}>Вибрация</option>
-                        <option value="custom" {% if rule.action %}selected{% endif %}>Действие</option>
-                    </select>
-
-                    Действие:
-                    <input type="text" name="action" value="{{ rule.action }}">
-
-                    <button type="submit">✏️ Сохранить</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-
+  <!-- Добавить новое правило -->
+  <div class="add-rule">
     <h3>➕ Добавить новое правило</h3>
     <form method="POST">
-        Мин: <input type="number" name="min" required>
-        Макс: <input type="number" name="max" required>
-        Сила: <input type="number" name="strength">
-        Время: <input type="number" name="duration">
-
-        Тип:
-        <select name="action_type">
-            <option value="vibration">Вибрация</option>
-            <option value="custom">Действие</option>
-        </select>
-
-        Действие:
-        <input type="text" name="action">
-
-        <button type="submit" name="add_rule">Добавить</button>
+      Мин: <input type="number" name="min" required>
+      Макс: <input type="number" name="max" required>
+      Сила: <input type="number" name="strength">
+      Время: <input type="number" name="duration">
+      Тип:
+      <select name="action_type">
+        <option value="vibration">Вибрация</option>
+        <option value="custom">Действие</option>
+      </select>
+      Действие: <input type="text" name="action">
+      <button type="submit" name="add_rule">Добавить</button>
     </form>
+  </div>
 
-    <p><a href="/">⬅ Назад</a></p>
+  <p style="text-align:center;"><a href="/">⬅ Назад</a></p>
 </body>
 </html>
-<select name="action_type"></select>

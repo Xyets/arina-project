@@ -1,13 +1,65 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>QR‑код подключения</title>
+  <meta charset="UTF-8">
+  <title>QR‑код подключения</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .qr-box {
+      background: #fff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 400px;
+    }
+    .qr-box h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #444;
+    }
+    .qr-box p {
+      margin-bottom: 20px;
+      color: #555;
+    }
+    .qr-box img {
+      width: 220px;
+      height: 220px;
+      margin-bottom: 20px;
+    }
+    .qr-box a {
+      display: inline-block;
+      background: #a3d8f4;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.3s;
+    }
+    .qr-box a:hover {
+      background: #74c0e3;
+    }
+  </style>
 </head>
 <body>
+  <div class="qr-box">
     <h1>🔗 Подключение игрушки для {{ user }}</h1>
-    <p>Отсканируй этот QR‑код в приложении Lovense Remote:</p>
+    <p>Отсканируй этот QR‑код в приложении <b>Lovense Remote</b>:</p>
     <img src="{{ qr_url }}" alt="QR‑код">
-    <p><a href="{{ url_for('index') }}">⬅ Назад</a></p>
+    <br>
+    <a href="{{ url_for('index') }}">⬅ Назад</a>
+  </div>
 </body>
 </html>
