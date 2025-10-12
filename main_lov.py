@@ -175,10 +175,8 @@ def apply_rule(user, amount, text):
             print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
             return
 
-    # Default‑вибрация
-    strength, duration = rules.get("default", [1, 5])
-    vibration_queues[user].put_nowait((strength, duration))
-    print(f"🎵 [{user}] Default: сила={strength}, время={duration}")
+    # ❌ Ничего не делаем, если правило не найдено
+    print(f"🚫 [{user}] Донат {amount} не попадает ни под одно правило — игнорируем")
 
 # ---------------- VIP ----------------
 def update_vip_list(user, user_id, name, amount):
