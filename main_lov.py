@@ -426,9 +426,14 @@ def test_rule(rule_index):
 
         print(f"🧪 [{user}] Тест правила {rule_index}: сила={strength}, время={duration}")
         send_vibration_cloud(user, strength, duration)
-        return redirect("/rules")
 
-    return "❌ Правило не найдено", 404
+        return {
+            "status": "ok",
+            "message": f"Правило {rule_index} проверено ✅ (сила={strength}, время={duration}s)"
+        }
+
+    return {"status": "error", "message": "❌ Правило не найдено"}, 404
+
 
 
 @app.route("/hook", methods=["POST"])

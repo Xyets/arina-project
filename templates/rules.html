@@ -178,10 +178,9 @@
     <div class="rule-header">
       <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
       <div class="rule-actions">
-        <!-- Тестировать -->
-        <form method="POST" action="/test_rule/{{ rule.id }}" style="display:inline;">
-          <button type="submit">🔊</button>
-        </form>
+        <!-- Тестировать правило -->
+        <button type="button" class="testRuleBtn" data-id="{{ rule.id }}">🔊</button>
+
         <!-- Удалить -->
         <form method="POST" style="display:inline;">
           <button type="submit" name="delete_rule" value="{{ rule.id }}" class="delete">❌</button>
@@ -250,6 +249,20 @@
         if (event.target === m) m.style.display = "none";
       });
     }
+  </script>
+
+  <script>
+    document.querySelectorAll(".testRuleBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const ruleId = btn.getAttribute("data-id");
+        fetch(`/test_rule/${ruleId}`, { method: "POST" })
+          .then(r => r.json())
+          .then(data => {
+            showToast(data.message || `Правило ${ruleId} проверено ✅`);
+          })
+          .catch(() => showToast("Ошибка при проверке ❌"));
+      });
+    });
   </script>
 </body>
 </html>
