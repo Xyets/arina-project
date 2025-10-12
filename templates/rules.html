@@ -103,11 +103,13 @@
     <div class="rule-header">
       <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
       <div class="rule-actions">
-        <form method="POST" action="/test_rule/{{ loop.index0 }}" style="display:inline;">
+        <!-- Тестировать правило -->
+        <form method="POST" action="/test_rule/{{ rule.id }}" style="display:inline;">
           <button type="submit">🔊</button>
         </form>
+        <!-- Удалить правило -->
         <form method="POST" style="display:inline;">
-          <button type="submit" name="delete_rule" value="{{ loop.index0 }}" class="delete">❌</button>
+          <button type="submit" name="delete_rule" value="{{ rule.id }}" class="delete">❌</button>
         </form>
       </div>
     </div>

@@ -12,7 +12,7 @@ import hashlib
 import subprocess
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from functools import wraps
-
+import uuid
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -484,6 +484,11 @@ def rules():
     except:
         rules_data = {"default": [1, 5], "rules": []}
 
+    # ✅ гарантируем, что у всех правил есть id
+    for r in rules_data["rules"]:
+        if "id" not in r:
+            r["id"] = str(uuid.uuid4())
+
     if request.method == "POST":
         def to_int(name, default=0):
             try:
@@ -496,9 +501,10 @@ def rules():
             action_type = request.form.get("action_type")
             action = request.form.get("action") or None
             if action_type == "vibration":
-                action = None  # игнорируем поле, если выбрана вибрация
+                action = None
 
             new_rule = {
+                "id": str(uuid.uuid4()),  # уникальный идентификатор
                 "min": to_int("min", 1),
                 "max": to_int("max", 5),
                 "strength": to_int("strength", 1),
@@ -509,26 +515,26 @@ def rules():
 
         # ❌ Удаление правила
         elif "delete_rule" in request.form:
-            idx = int(request.form["delete_rule"])
-            if 0 <= idx < len(rules_data["rules"]):
-                rules_data["rules"].pop(idx)
+            rule_id = request.form["delete_rule"]
+            rules_data["rules"] = [r for r in rules_data["rules"] if r["id"] != rule_id]
 
         # ✏️ Редактирование правила
         elif "edit_rule" in request.form:
-            idx = int(request.form["edit_rule"])
-            if 0 <= idx < len(rules_data["rules"]):
-                action_type = request.form.get("action_type")
-                action = request.form.get("action") or None
-                if action_type == "vibration":
-                    action = None
-
-                rules_data["rules"][idx] = {
-                    "min": int(request.form["min"]),
-                    "max": int(request.form["max"]),
-                    "strength": int(request.form["strength"]),
-                    "duration": int(request.form["duration"]),
-                    "action": action
-                }
+            rule_id = request.form["edit_rule"]
+            for r in rules_data["rules"]:
+                if r["id"] == rule_id:
+                    action_type = request.form.get("action_type")
+                    action = request.form.get("action") or None
+                    if action_type == "vibration":
+                        action = None
+                    r.update({
+                        "min": int(request.form["min"]),
+                        "max": int(request.form["max"]),
+                        "strength": int(request.form["strength"]),
+                        "duration": int(request.form["duration"]),
+                        "action": action
+                    })
+                    break
 
         # 💾 Сохраняем обновлённые правила
         with open(rules_file, "w", encoding="utf-8") as f:
