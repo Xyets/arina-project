@@ -31,6 +31,17 @@ import hashlib
 
 donation_logs = {user: [] for user in CONFIG["profiles"].keys()}
 
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+
 def add_log(user, message):
     ts = time.strftime("%H:%M:%S")
     entry = f"[{ts}] {message}"
@@ -84,6 +95,14 @@ def lovense_callback():
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
 
+@app.route("/")
+@login_required
+def dashboard():
+    user = session["user"]
+    queue = get_vibration_queue(user)
+    logs = donation_logs.get(user, [])
+    return render_template("dashboard.html", queue=queue, logs=logs)
+
 
 def send_vibration_cloud(user, strength, duration):
     """Отправка вибрации через Lovense Cloud API"""
@@ -134,15 +153,6 @@ async def vibration_worker(user):
         finally:
             q.task_done()
 
-
-
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return wrapper
 
 
 # ---------------- ПРАВИЛА ----------------
@@ -206,6 +216,13 @@ def log_donation(text, amount):
 
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
+def get_vibration_queue(user):
+    q = vibration_queues.get(user)
+    if not q:
+        return []
+    return list(q._queue)  # доступ к внутреннему списку очереди
+
+
 def fallback_amount(text, amount):
     if amount is None:
         m = re.search(r"(\d+)", text)
@@ -325,6 +342,16 @@ def login():
             return redirect(url_for("index"))
         return render_template("login.html", error="Неверный логин или пароль")
     return render_template("login.html")
+
+@app.route("/queue_data")
+@login_required
+def queue_data():
+    user = session["user"]
+    q = vibration_queues.get(user)
+    if not q:
+        return {"queue": []}
+    return {"queue": list(q._queue)}
+
 
 @app.route("/logout")
 def logout():

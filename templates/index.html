@@ -18,6 +18,8 @@
     <form method="POST" action="/clear_logs">
       <button type="submit">🧹 Очистить лог</button>
     </form>
+    <h3>🔁 Очередь вибраций</h3>
+    <div id="queuebox" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:scroll; background:#f9f9f9; color:#000; font-family:monospace;"></div>
 
     <script>
       async function loadLogs() {
@@ -36,6 +38,16 @@
       setInterval(loadLogs, 2000);
       loadLogs();
     </script>
+    async function loadQueue() {
+      const res = await fetch("/queue_data");
+      const data = await res.json();
+      const box = document.getElementById("queuebox");
+      box.innerHTML = data.queue.map(([strength, duration], i) => {
+        return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
+      }).join("");
+    }
+    setInterval(loadQueue, 2000);
+    loadQueue();
 
     <p><a href="{{ url_for('logout') }}">🚪 Выйти</a></p>
 </body>
