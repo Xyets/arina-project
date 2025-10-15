@@ -169,7 +169,7 @@ def apply_rule(user, amount, text):
                     f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {action}\n")
                 add_log(user, f"🎬 [{user}] Действие: {action}")
                 # ✅ обновляем статистику как действие
-                update_stats(user, "actions")
+                update_stats(user, "actions", amount)
                 return
 
             # если нет действия, значит это вибрация
@@ -178,7 +178,7 @@ def apply_rule(user, amount, text):
             vibration_queues[user].put_nowait((strength, duration))
             print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
             # ✅ обновляем статистику как вибрацию
-            update_stats(user, "vibrations")
+            update_stats(user, "vibrations", amount)
             return
 
     # ❌ Ничего не делаем, если правило не найдено
@@ -241,7 +241,7 @@ def try_extract_user_id_from_text(text):
 
 # --- список уже обработанных донатов ---
 
-def update_stats(user, category):
+def update_stats(user, category, points):
     today = time.strftime("%Y-%m-%d")
     stats_file = "stats.json"
 
@@ -257,8 +257,8 @@ def update_stats(user, category):
     if today not in stats[user]:
         stats[user][today] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
 
-    stats[user][today][category] += 1
-    stats[user][today]["total"] += 1
+    stats[user][today][category] += points
+    stats[user][today]["total"] += points
 
     with open(stats_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
@@ -318,7 +318,7 @@ async def ws_handler(websocket):
             # ❌ Если ни одно правило не подошло → считаем как "иное"
             if not matched:
                 add_log(user, f"ℹ️ [{user}] Донат без действия: {amount}")
-                update_stats(user, "other")
+                update_stats(user, "other", amount)
 
             # 👑 Обновление VIP‑листа
             if user_id:
