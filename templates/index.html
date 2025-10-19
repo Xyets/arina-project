@@ -89,6 +89,31 @@
       form button:hover {
         background: #f28497;
       }
+
+      .toast {
+        visibility: hidden;
+        min-width: 220px;
+        margin-left: -110px;
+        background-color: #74c0e3;
+        color: white;
+        text-align: center;
+        border-radius: 8px;
+        padding: 12px;
+        position: fixed;
+        z-index: 2000;
+        left: 50%;
+        bottom: 30px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.5s, bottom 0.5s;
+      }
+      .toast.show {
+        visibility: visible;
+        opacity: 1;
+        bottom: 50px;
+      }
+
+      
     </style>
 </head>
 <body>
@@ -120,7 +145,12 @@
     <!-- Очередь -->
     <h3>🔁 Очередь вибраций</h3>
     <div id="queuebox" class="box" style="height:200px; overflow-y:scroll;"></div>
-
+    <div style="text-align:center;">
+      <button id="clearQueueBtn"
+        style="margin-top:10px; background:#f7a8b8; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
+        🧹 Очистить очередь
+      </button>
+    </div>
     <!-- JS -->
     <script>
       async function loadLogs() {
@@ -149,10 +179,32 @@
         }
       }
 
+      document.getElementById("clearQueueBtn").addEventListener("click", () => {
+        fetch("/clear_queue", { method: "POST" })
+          .then(r => r.json())
+          .then(data => {
+            showToast(data.message || "Очередь очищена ✅");
+            loadQueue();
+          })
+          .catch(() => showToast("❌ Ошибка при очистке очереди"));
+      });
+
+      
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "toast show";
+        setTimeout(() => {
+          toast.className = toast.className.replace("show", "");
+        }, 3000);
+      }
+
       setInterval(loadLogs, 2000);
       setInterval(loadQueue, 2000);
       loadLogs();
       loadQueue();
     </script>
+    <div id="toast" class="toast"></div>
+
 </body>
 </html>

@@ -569,6 +569,17 @@ def clear_logs():
     donation_logs[user] = []  # очищаем только логи текущего пользователя
     return redirect("/logs")
 
+@app.route("/clear_queue", methods=["POST"])
+@login_required
+def clear_queue():
+    user = session["user"]
+    q = vibration_queues.get(user)
+    if q:
+        while not q.empty():
+            q.get_nowait()
+            q.task_done()
+    return {"status": "ok", "message": "Очередь очищена ✅"}
+
 
 # ---------------- ЗАПУСК ----------------
 def run_flask():
