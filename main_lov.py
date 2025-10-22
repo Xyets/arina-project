@@ -380,9 +380,7 @@ async def ws_handler(websocket):
                 text = data.get("text", "")
 
                 update_vip(user, user_id, name=name, event=event)
-                add_log(
-                    user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}"
-                )
+                
                 await websocket.send(f"✅ Событие {event} обработано")
                 continue
             # 💸 Проверка суммы
