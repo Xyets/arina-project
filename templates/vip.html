@@ -106,7 +106,7 @@
     <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
     <h1>VIP‑лист для {{ user }}</h1>
   </header>
-  
+
   <form method="POST" action="/clear_vip" style="margin-top: 20px;">
     <button>🧹 Очистить весь VIP‑лист</button>
   </form>
@@ -146,7 +146,7 @@
       <td>
         <form method="POST" action="/remove_member" class="inline">
           <input type="hidden" name="user_id" value="{{ user_id }}">
-          <button>🗑️</button>
+          <button onclick="removeMember('{{ user_id }}')">🗑️</button>
         </form>
         <form method="POST" action="/block_member" class="inline">
           <input type="hidden" name="user_id" value="{{ user_id }}">
@@ -156,5 +156,33 @@
     </tr>
     {% endfor %}
   </table>
+  <script>
+    function removeMember(userId) {
+      fetch("/remove_member", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "user_id=" + encodeURIComponent(userId)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") {
+          showToast("🗑️ Мембер удалён");
+          document.getElementById("row_" + userId)?.remove();
+        } else {
+          showToast("❌ Ошибка: " + data.message);
+        }
+      })
+      .catch(() => showToast("❌ Ошибка удаления"));
+    }
+
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast show";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+
 </body>
 </html>
