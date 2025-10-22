@@ -38,8 +38,8 @@ def login_required(f):
         if not session.get("user"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
-    return wrapper
 
+    return wrapper
 
 
 def add_log(user, message):
@@ -50,9 +50,11 @@ def add_log(user, message):
         donation_logs[user].pop(0)
     print(entry)
 
+
 def generate_utoken(uid, secret="arina_secret_123"):
     raw = uid + secret
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
 
 def get_qr_code(user):
     profile = CONFIG["profiles"][user]
@@ -67,7 +69,7 @@ def get_qr_code(user):
         "uname": user,
         "utoken": utoken,  # ⚠️ теперь мы сами его задаём
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
-        "v": 2
+        "v": 2,
     }
 
     r = requests.post(url, json=payload, timeout=10)
@@ -79,6 +81,7 @@ def get_qr_code(user):
         return data["message"]
     return None
 
+
 @app.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
     data = request.json or request.form
@@ -88,12 +91,16 @@ def lovense_callback():
     if uid:
         CONNECTED_USERS[uid] = {
             "utoken": data.get("utoken"),
-            "toys": data.get("toys", {})
+            "toys": data.get("toys", {}),
         }
         # 🔍 Отладка: выводим текущее состояние CONNECTED_USERS
-        print("🔐 CONNECTED_USERS сейчас:", json.dumps(CONNECTED_USERS, indent=2, ensure_ascii=False))
+        print(
+            "🔐 CONNECTED_USERS сейчас:",
+            json.dumps(CONNECTED_USERS, indent=2, ensure_ascii=False),
+        )
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
+
 
 def send_vibration_cloud(user, strength, duration):
     """Отправка вибрации через Lovense Cloud API"""
@@ -118,18 +125,19 @@ def send_vibration_cloud(user, strength, duration):
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": duration
+        "timeSec": duration,
     }
 
     try:
         print(f"📤 [{user}] Отправка вибрации → {payload}")  # 🔍 лог перед запросом
         r = requests.post(url, json=payload, timeout=10)
-        print(f"📥 [{user}] Ответ Cloud API: {r.text}")      # 🔍 лог ответа
+        print(f"📥 [{user}] Ответ Cloud API: {r.text}")  # 🔍 лог ответа
         data = r.json()
         return data
     except Exception as e:
         print(f"❌ [{user}] Ошибка Cloud‑вибрации:", e)
         return None
+
 
 async def vibration_worker(user):
     q = vibration_queues[user]
@@ -145,7 +153,6 @@ async def vibration_worker(user):
             q.task_done()
 
 
-
 # ---------------- ПРАВИЛА ----------------
 def load_rules(user):
     profile = CONFIG["profiles"][user]
@@ -155,6 +162,7 @@ def load_rules(user):
             return json.load(f)
     except:
         return {"default": [1, 5], "rules": []}
+
 
 def apply_rule(user, amount, text):
     print(f"⚙️ [{user}] apply_rule: сумма={amount}, текст={text}")
@@ -167,24 +175,25 @@ def apply_rule(user, amount, text):
                 ts = time.strftime("%Y-%m-%d %H:%M:%S")
                 with open("donations.log", "a", encoding="utf-8") as f:
                     f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {action}\n")
-                add_log(user, f"🎬 [{user}] Действие: {action}")
-                # ✅ обновляем статистику как действие
                 update_stats(user, "actions", amount)
-                return
+                return f"🎬 Действие: {action}"  # ✅ возвращаем текст
 
             # если нет действия, значит это вибрация
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
             print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
-            # ✅ обновляем статистику как вибрацию
             update_stats(user, "vibrations", amount)
-            return
+            return (
+                f"🏰 Вибрация: сила={strength}, время={duration}"  # ✅ возвращаем текст
+            )
 
-    # ❌ Ничего не делаем, если правило не найдено
     print(f"🚫 [{user}] Донат {amount} не попадает ни под одно правило — игнорируем")
+    return None  # ❌ ничего не подошло
+
 
 # ---------------- VIP ----------------
+
 
 def update_vip(user, user_id, name=None, amount=0, event=None):
     profile = CONFIG["profiles"][user]
@@ -212,7 +221,7 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
             "login_count": 0,
             "last_login": "",
             "blocked": False,
-            "_just_logged_in": False
+            "_just_logged_in": False,
         }
 
     # обновляем имя — только если оно ещё не задано вручную
@@ -220,7 +229,6 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
         current_name = vip_data[user_id].get("name", "")
         if not current_name or current_name == "Аноним":
             vip_data[user_id]["name"] = name
-
 
     # обновляем сумму
     if amount > 0:
@@ -234,6 +242,7 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
 
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
+
 
 def log_donation(text, amount):
     with open("donations.log", "a", encoding="utf-8") as f:
@@ -266,6 +275,7 @@ def try_extract_user_id_from_text(text):
     if m_nonopan:
         return m_nonopan.group(1)
     return None
+
 
 def log_donation(text, amount):
     with open("donations.log", "a", encoding="utf-8") as f:
@@ -302,6 +312,7 @@ def try_extract_user_id_from_text(text):
 
 # --- список уже обработанных донатов ---
 
+
 def update_stats(user, category, points):
     today = time.strftime("%Y-%m-%d")
     stats_file = "stats.json"
@@ -324,12 +335,15 @@ def update_stats(user, category, points):
     with open(stats_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
 
+
 processed_donations = set()
+
 
 def clear_processed_donations():
     global processed_donations
     processed_donations.clear()
     print("🧹 Список обработанных донатов очищен")
+
 
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
@@ -357,7 +371,7 @@ async def ws_handler(websocket):
             # ⚠️ donation_id можно логировать, но не блокировать
             if not donation_id:
                 print("⚠️ Нет donation_id — может быть тест или ошибка")
-            
+
             # 🧠 Обработка входа/выхода
             if "event" in data:
                 event = data["event"]
@@ -366,7 +380,9 @@ async def ws_handler(websocket):
                 text = data.get("text", "")
 
                 update_vip(user, user_id, name=name, event=event)
-                add_log(user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+                add_log(
+                    user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}"
+                )
                 await websocket.send(f"✅ Событие {event} обработано")
                 continue
             # 💸 Проверка суммы
@@ -375,22 +391,14 @@ async def ws_handler(websocket):
                 continue
 
             # ✅ Логируем донат
-            add_log(user, f"✅ [{user}] Донат | {name} → {amount}")
-            print(f"⚙️ [{user}] Перед apply_rule: amount={amount}, text={text}")
+            action_text = apply_rule(user, amount, text)
 
-            # ⚙️ Проверяем правила
-            rules = load_rules(user)
-            matched = False
-            for rule in rules["rules"]:
-                if rule["min"] <= amount <= rule["max"]:
-                    apply_rule(user, amount, text)   # ✅ исправлено
-                    matched = True
-                    break
-
-            # ❌ Если ни одно правило не подошло → считаем как "иное"
-            if not matched:
-                add_log(user, f"ℹ️ [{user}] Донат без действия: {amount}")
+            if action_text:
+                add_log(user, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
+            else:
+                add_log(user, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
                 update_stats(user, "other", amount)
+
 
             # 👑 Обновление VIP‑листа
             if user_id:
@@ -402,6 +410,7 @@ async def ws_handler(websocket):
             print("⚠️ Ошибка обработки:", e)
             await websocket.send("❌ Ошибка обработки")
 
+
 async def ws_server():
     # запускаем воркеры для всех профилей
     for user in CONFIG["profiles"]:
@@ -409,14 +418,11 @@ async def ws_server():
 
     # включаем пинг каждые 30 секунд
     async with websockets.serve(
-        ws_handler,
-        "0.0.0.0",
-        8765,
-        origins=None,
-        ping_interval=30
+        ws_handler, "0.0.0.0", 8765, origins=None, ping_interval=30
     ):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765 (ping каждые 30 сек)")
         await asyncio.Future()  # держим сервер живым
+
 
 # ---------------- Flask Routes ----------------
 @app.route("/")
@@ -426,7 +432,10 @@ def index():
     profile = CONFIG["profiles"][user]
     queue = get_vibration_queue(user)
     logs = donation_logs.get(user, [])
-    return render_template("index.html", user=user, profile=profile, queue=queue, logs=logs)
+    return render_template(
+        "index.html", user=user, profile=profile, queue=queue, logs=logs
+    )
+
 
 @app.route("/qrcode")
 @login_required
@@ -449,6 +458,7 @@ def login():
         return render_template("login.html", error="Неверный логин или пароль")
     return render_template("login.html")
 
+
 @app.route("/queue_data")
 @login_required
 def queue_data():
@@ -464,12 +474,14 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+
 @app.route("/test_vibration", methods=["POST"])
 @login_required
 def test_vibration():
     user = session["user"]
     threading.Thread(target=send_vibration_cloud, args=(user, 1, 5)).start()
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
+
 
 @app.route("/stats")
 @login_required
@@ -484,6 +496,7 @@ def stats_page():
     user_stats = stats.get(user, {})
     return render_template("stats.html", stats=user_stats, user=user)
 
+
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required
 def test_rule(rule_index):
@@ -495,12 +508,14 @@ def test_rule(rule_index):
         strength = rule.get("strength", 1)
         duration = rule.get("duration", 5)
 
-        print(f"🧪 [{user}] Тест правила {rule_index}: сила={strength}, время={duration}")
+        print(
+            f"🧪 [{user}] Тест правила {rule_index}: сила={strength}, время={duration}"
+        )
         send_vibration_cloud(user, strength, duration)
 
         return {
             "status": "ok",
-            "message": f"Правило {rule_index} проверено ✅ (сила={strength}, время={duration}s)"
+            "message": f"Правило {rule_index} проверено ✅ (сила={strength}, время={duration}s)",
         }
 
     return {"status": "error", "message": "❌ Правило не найдено"}, 404
@@ -524,9 +539,8 @@ def hook():
         result = subprocess.run(
             ["bash", "-lc", "cd /root/arina-project && git pull && poetry install"],
             capture_output=True,
-            text=True
+            text=True,
         )
-
 
         if result.returncode != 0:
             print("🔥 Ошибка обновления:", result.stderr)
@@ -539,13 +553,16 @@ def hook():
         print("🔥 Ошибка в webhook:", e)
         return "Internal Server Error", 500
 
+
 @app.route("/Success", methods=["GET"])
 def success_page():
     return "✅ Игрушка успешно подключена!", 200
 
+
 @app.route("/Error", methods=["GET"])
 def error_page():
     return "❌ Ошибка подключения!", 200
+
 
 @app.route("/clear_vip", methods=["POST"])
 @login_required
@@ -555,6 +572,7 @@ def clear_vip():
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump({}, f, indent=2, ensure_ascii=False)
     return redirect("/vip")
+
 
 @app.route("/remove_member", methods=["POST"])
 @login_required
@@ -601,6 +619,7 @@ def block_member():
         return {"status": "ok", "message": "Мембер заблокирован"}
     return {"status": "error", "message": "Мембер не найден"}, 404
 
+
 @app.route("/vip", methods=["GET", "POST"])
 @login_required
 def vip_page():
@@ -625,17 +644,25 @@ def vip_page():
 
     # 🔍 Поиск
     query = request.args.get("q", "").strip().lower()
-    filtered = {
-        uid: info for uid, info in vip_data.items()
-        if query in uid.lower()
-        or query in info.get("name", "").lower()
-        or query in info.get("notes", "").lower()
-    } if query else vip_data
+    filtered = (
+        {
+            uid: info
+            for uid, info in vip_data.items()
+            if query in uid.lower()
+            or query in info.get("name", "").lower()
+            or query in info.get("notes", "").lower()
+        }
+        if query
+        else vip_data
+    )
 
     # 📋 Сортировка по сумме
-    sorted_members = sorted(filtered.items(), key=lambda x: x[1].get("total", 0), reverse=True)
+    sorted_members = sorted(
+        filtered.items(), key=lambda x: x[1].get("total", 0), reverse=True
+    )
 
     return render_template("vip.html", user=user, members=sorted_members, query=query)
+
 
 @app.route("/update_name", methods=["POST"])
 @login_required
@@ -683,6 +710,7 @@ def rules():
             r["id"] = str(uuid.uuid4())
 
     if request.method == "POST":
+
         def to_int(name, default=0):
             try:
                 return int(request.form.get(name, default))
@@ -702,7 +730,7 @@ def rules():
                 "max": to_int("max", 5),
                 "strength": to_int("strength", 1),
                 "duration": to_int("duration", 5),
-                "action": action
+                "action": action,
             }
             rules_data["rules"].append(new_rule)
 
@@ -720,13 +748,15 @@ def rules():
                     action = request.form.get("action") or None
                     if action_type == "vibration":
                         action = None
-                    r.update({
-                        "min": int(request.form["min"]),
-                        "max": int(request.form["max"]),
-                        "strength": int(request.form["strength"]),
-                        "duration": int(request.form["duration"]),
-                        "action": action
-                    })
+                    r.update(
+                        {
+                            "min": int(request.form["min"]),
+                            "max": int(request.form["max"]),
+                            "strength": int(request.form["strength"]),
+                            "duration": int(request.form["duration"]),
+                            "action": action,
+                        }
+                    )
                     break
 
         # 💾 Сохраняем обновлённые правила
@@ -738,13 +768,17 @@ def rules():
     # ✅ Сортировка перед отдачей в шаблон
     sorted_rules = sorted(rules_data["rules"], key=lambda r: r["min"])
 
-    return render_template("rules.html", rules=sorted_rules, default=rules_data["default"])
+    return render_template(
+        "rules.html", rules=sorted_rules, default=rules_data["default"]
+    )
+
 
 @app.route("/logs")
 @login_required
 def logs_page():
     user = session["user"]
     return render_template("logs.html", logs=donation_logs.get(user, []))
+
 
 def get_recent_logins(user):
     vip_file = CONFIG["profiles"][user]["vip_file"]
@@ -757,12 +791,14 @@ def get_recent_logins(user):
     entries = []
     for uid, info in vip_data.items():
         if info.get("_just_logged_in"):
-            entries.append({
-                "user_id": uid,
-                "name": info.get("name", "Аноним"),
-                "notes": info.get("notes", ""),
-                "is_new": False
-            })
+            entries.append(
+                {
+                    "user_id": uid,
+                    "name": info.get("name", "Аноним"),
+                    "notes": info.get("notes", ""),
+                    "is_new": False,
+                }
+            )
             info["_just_logged_in"] = False  # сбрасываем флаг
 
     # сохраняем сброшенный флаг
@@ -771,14 +807,13 @@ def get_recent_logins(user):
 
     return entries
 
+
 @app.route("/logs_data")
 @login_required
 def logs_data():
     user = session["user"]
-    return {
-        "logs": donation_logs.get(user, []),
-        "entries": get_recent_logins(user)
-    }
+    return {"logs": donation_logs.get(user, []), "entries": get_recent_logins(user)}
+
 
 @app.route("/clear_logs", methods=["POST"])
 @login_required
@@ -786,6 +821,7 @@ def clear_logs():
     user = session["user"]
     donation_logs[user] = []  # очищаем только логи текущего пользователя
     return redirect("/logs")
+
 
 @app.route("/clear_queue", methods=["POST"])
 @login_required
@@ -803,11 +839,13 @@ def clear_queue():
 def run_flask():
     app.run(host="0.0.0.0", port=5000, debug=False)
 
+
 def run_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(ws_server())
     loop.run_forever()
+
 
 def monitor_flag():
     print("🚀 Программа запущена. Ожидание донатов через WebSocket...")
@@ -819,6 +857,7 @@ def monitor_flag():
             time.sleep(60)
     except KeyboardInterrupt:
         print("⏹ Остановка программы")
+
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()

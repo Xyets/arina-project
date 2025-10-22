@@ -171,7 +171,11 @@
         to { opacity: 1; transform: translateY(0); }
       }
 
-      
+      .log-vibration {
+        background: #fff4cc; /* мягкий жёлтый */
+        color: #333;
+      }
+
     </style>
 </head>
 <body>
@@ -212,26 +216,34 @@
     </div>
     <!-- JS -->
     <script>
+      let shownLogs = new Set();
+
       async function loadLogs() {
         const res = await fetch("/logs_data");
         const data = await res.json();
         const box = document.getElementById("logbox");
-        box.innerHTML = data.logs.map(l => {
-          let cssClass = "log-entry";
 
-          if (l.includes("💗") || l.includes("пт")) {
+        data.logs.forEach(log => {
+          if (shownLogs.has(log)) return; // уже показано — пропускаем
+
+          shownLogs.add(log);
+
+          let cssClass = "log-entry";
+          if (log.includes("💗") || log.includes("пт")) {
             cssClass += " log-donation";
-          } else if (l.includes("вошёл") || l.includes("👤")) {
+          } else if (log.includes("вошёл") || log.includes("👤")) {
             cssClass += " log-login";
-          } else if (l.includes("🎬") || l.includes("активировал")) {
-            cssClass += " log-action";
+          } else if (log.includes("🎬") || log.includes("активировал") || log.includes("вибрация")) {
+            cssClass += " log-action log-vibration";
           }
 
-          return `<div class="${cssClass}">${l}</div>`;
-        }).join("");
-        box.scrollTop = box.scrollHeight;
+          const div = document.createElement("div");
+          div.className = cssClass;
+          div.textContent = log;
+          box.appendChild(div);
+          box.scrollTop = box.scrollHeight;
+        });
       }
-
       async function loadQueue() {
         const res = await fetch("/queue_data");
         const data = await res.json();
