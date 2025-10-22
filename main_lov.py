@@ -144,7 +144,6 @@ async def vibration_worker(user):
     while True:
         try:
             strength, duration = await q.get()
-            add_log(user, f"📥 [{user}] Вибрация: сила={strength}, время={duration}")
             send_vibration_cloud(user, strength, duration)
             await asyncio.sleep(duration)
         except Exception as e:
@@ -380,7 +379,7 @@ async def ws_handler(websocket):
                 text = data.get("text", "")
 
                 update_vip(user, user_id, name=name, event=event)
-                
+                add_log( user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}" )
                 await websocket.send(f"✅ Событие {event} обработано")
                 continue
             # 💸 Проверка суммы
