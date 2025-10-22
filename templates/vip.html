@@ -106,6 +106,10 @@
     <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
     <h1>VIP‑лист для {{ user }}</h1>
   </header>
+  
+  <form method="POST" action="/clear_vip" style="margin-top: 20px;">
+    <button>🧹 Очистить весь VIP‑лист</button>
+  </form>
 
   <form method="GET" action="/vip" class="search-bar">
     <input type="text" name="q" placeholder="🔍 Поиск по имени, alias, заметке..." value="{{ query }}">
