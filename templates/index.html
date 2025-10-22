@@ -162,7 +162,7 @@
       }
 
       .log-action {
-        background: #e8ecff;
+        background: #e7d0ec;
         color: #333;
       }
 
@@ -175,6 +175,12 @@
         background: #fff4cc; /* мягкий жёлтый */
         color: #333;
       }
+
+      .log-entryevent {
+        background: #dceeff; /* мягкий голубой */
+        color: #333;
+      }
+
 
     </style>
 </head>
@@ -229,13 +235,20 @@
           shownLogs.add(log);
 
           let cssClass = "log-entry";
-          if (log.includes("💗") || log.includes("пт")) {
+
+          if (log.includes("💗") || log.includes("пт") || log.includes("Донат")) {
             cssClass += " log-donation";
-          } else if (log.includes("вошёл") || log.includes("👤")) {
-            cssClass += " log-login";
-          } else if (log.includes("🎬") || log.includes("активировал") || log.includes("вибрация")) {
-            cssClass += " log-action log-vibration";
           }
+          if (log.includes("вибрация") || log.includes("🏰") || log.includes("🎂")) {
+            cssClass += " log-vibration";
+          }
+          if (log.includes("🎬") || log.includes("Действие") || log.includes("активировал")) {
+            cssClass += " log-action";
+          }
+          if (log.includes("📥") || log.includes("СОБЫТИЕ") || log.includes("вошёл")) {
+            cssClass += " log-entryevent";
+          }
+
 
           const div = document.createElement("div");
           div.className = cssClass;
