@@ -112,6 +112,34 @@
         opacity: 1;
         bottom: 50px;
       }
+      #entryPopup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        z-index: 9999;
+        text-align: center;
+        font-size: 18px;
+        color: #333;
+        max-width: 400px;
+      }
+      #entryPopup button {
+        margin-top: 20px;
+        background: #a3d8f4;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 20px;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #entryPopup button:hover {
+        background: #74c0e3;
+      }
 
       
     </style>
@@ -132,6 +160,7 @@
       <a href="{{ url_for('qrcode_page') }}"><button>📱 QR‑код</button></a>
       <a href="{{ url_for('stats_page') }}"><button>📊 Статистика</button></a>
       <a href="{{ url_for('rules') }}"><button>⚙️ Правила</button></a>
+      <a href="{{ url_for('vip_page') }}"><button>👑 VIP‑лист</button></a>
       <a href="{{ url_for('logout') }}"><button>🚪 Выйти</button></a>
     </div>
 
@@ -198,13 +227,48 @@
           toast.className = toast.className.replace("show", "");
         }, 3000);
       }
+      let shownEntries = new Set();
 
+      async function checkNewEntries() {
+      const res = await fetch("/logs_data");
+      const data = await res.json();
+      const entries = data.entries || [];
+
+      entries.forEach(entry => {
+        const key = entry.user_id;
+        if (shownEntries.has(key)) return;
+
+        shownEntries.add(key);
+
+        let message = entry.is_new
+          ? "🆕 Новый мембер!"
+          : `👤 <strong>${entry.name}</strong><br><small>${entry.notes || "Без описания"}</small>`;
+
+        showEntryPopup(message);
+      });
+    }
+
+    function showEntryPopup(message) {
+      const popup = document.getElementById("entryPopup");
+      popup.innerHTML = `
+        <div>${message}</div>
+        <button onclick="hideEntryPopup()">ОК</button>
+      `;
+      popup.style.display = "block";
+    }
+
+    function hideEntryPopup() {
+      const popup = document.getElementById("entryPopup");
+      popup.style.display = "none";
+    }
+
+      setInterval(checkNewEntries, 3000);
       setInterval(loadLogs, 2000);
       setInterval(loadQueue, 2000);
       loadLogs();
       loadQueue();
     </script>
     <div id="toast" class="toast"></div>
-
+    <div id="entryPopup" style="display:none;"></div>
 </body>
 </html>

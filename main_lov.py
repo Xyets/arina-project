@@ -185,7 +185,8 @@ def apply_rule(user, amount, text):
     print(f"🚫 [{user}] Донат {amount} не попадает ни под одно правило — игнорируем")
 
 # ---------------- VIP ----------------
-def update_vip_list(user, user_id, name, amount):
+
+def update_vip(user, user_id, name=None, amount=0, event=None):
     profile = CONFIG["profiles"][user]
     vip_file = profile["vip_file"]
 
@@ -195,16 +196,73 @@ def update_vip_list(user, user_id, name, amount):
     except:
         vip_data = {}
 
-    if user_id not in vip_data:
-        vip_data[user_id] = {"name": name, "alias": "", "total": 0}
+    # если заблокирован — не обновляем
+    if user_id in vip_data and vip_data[user_id].get("blocked"):
+        print(f"🚫 [{user}] Мембер {user_id} заблокирован — пропускаем")
+        return
 
-    vip_data[user_id]["total"] += amount
+    # если новый — создаём
+    is_new = user_id not in vip_data
+    if is_new:
+        vip_data[user_id] = {
+            "name": name or "Аноним",
+            "alias": "",
+            "total": 0,
+            "notes": "",
+            "login_count": 0,
+            "last_login": "",
+            "blocked": False,
+            "_just_logged_in": False
+        }
+
+    # обновляем имя
     if name:
         vip_data[user_id]["name"] = name
+
+    # обновляем сумму
+    if amount > 0:
+        vip_data[user_id]["total"] += amount
+
+    # обновляем вход
+    if event == "login":
+        vip_data[user_id]["login_count"] += 1
+        vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        vip_data[user_id]["_just_logged_in"] = True
 
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
+def log_donation(text, amount):
+    with open("donations.log", "a", encoding="utf-8") as f:
+        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {amount} | {text}\n")
+
+
+# ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
+def get_vibration_queue(user):
+    q = vibration_queues.get(user)
+    if not q:
+        return []
+    return list(q._queue)  # доступ к внутреннему списку очереди
+
+
+def fallback_amount(text, amount):
+    if amount is None:
+        m = re.search(r"(\d+)", text)
+        if m:
+            return int(m.group(1))
+        if "подарил" in text.lower():
+            return 1
+    return amount
+
+
+def try_extract_user_id_from_text(text):
+    m_hex = re.search(r"\b([0-9a-f]{32})\b", text, re.IGNORECASE)
+    if m_hex:
+        return m_hex.group(1)
+    m_nonopan = re.search(r"nonopan(\d{1,7})", text, re.IGNORECASE)
+    if m_nonopan:
+        return m_nonopan.group(1)
+    return None
 
 def log_donation(text, amount):
     with open("donations.log", "a", encoding="utf-8") as f:
@@ -296,7 +354,18 @@ async def ws_handler(websocket):
             # ⚠️ donation_id можно логировать, но не блокировать
             if not donation_id:
                 print("⚠️ Нет donation_id — может быть тест или ошибка")
+            
+            # 🧠 Обработка входа/выхода
+            if "event" in data:
+                event = data["event"]
+                user_id = data.get("user_id")
+                name = data.get("name", "Аноним")
+                text = data.get("text", "")
 
+                update_vip(user, user_id, name=name, event=event)
+                add_log(user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+                await websocket.send(f"✅ Событие {event} обработано")
+                continue
             # 💸 Проверка суммы
             if not amount or amount <= 0:
                 await websocket.send("ℹ️ Сообщение не содержит донат")
@@ -322,7 +391,7 @@ async def ws_handler(websocket):
 
             # 👑 Обновление VIP‑листа
             if user_id:
-                update_vip_list(user, user_id, name, amount)
+                update_vip(user, user_id, name=name, amount=amount)
 
             await websocket.send("✅ Донат принят")
 
@@ -475,6 +544,89 @@ def success_page():
 def error_page():
     return "❌ Ошибка подключения!", 200
 
+@app.route("/remove_member", methods=["POST"])
+@login_required
+def remove_member():
+    user = session["user"]
+    user_id = request.form.get("user_id")
+    if not user_id:
+        return {"status": "error", "message": "Нет user_id"}, 400
+
+    vip_file = CONFIG["profiles"][user]["vip_file"]
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except:
+        vip_data = {}
+
+    if user_id in vip_data:
+        del vip_data[user_id]
+        with open(vip_file, "w", encoding="utf-8") as f:
+            json.dump(vip_data, f, indent=2, ensure_ascii=False)
+        return {"status": "ok", "message": "Мембер удалён"}
+    return {"status": "error", "message": "Мембер не найден"}, 404
+
+
+@app.route("/block_member", methods=["POST"])
+@login_required
+def block_member():
+    user = session["user"]
+    user_id = request.form.get("user_id")
+    if not user_id:
+        return {"status": "error", "message": "Нет user_id"}, 400
+
+    vip_file = CONFIG["profiles"][user]["vip_file"]
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except:
+        vip_data = {}
+
+    if user_id in vip_data:
+        vip_data[user_id]["blocked"] = True
+        with open(vip_file, "w", encoding="utf-8") as f:
+            json.dump(vip_data, f, indent=2, ensure_ascii=False)
+        return {"status": "ok", "message": "Мембер заблокирован"}
+    return {"status": "error", "message": "Мембер не найден"}, 404
+
+@app.route("/vip", methods=["GET", "POST"])
+@login_required
+def vip_page():
+    user = session["user"]
+    vip_file = CONFIG["profiles"][user]["vip_file"]
+
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except:
+        vip_data = {}
+
+    # ✏️ Обработка редактирования alias и заметок
+    if request.method == "POST" and "user_id" in request.form:
+        user_id = request.form.get("user_id")
+        if user_id in vip_data:
+            vip_data[user_id]["alias"] = request.form.get("alias", "").strip()
+            vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
+            with open(vip_file, "w", encoding="utf-8") as f:
+                json.dump(vip_data, f, indent=2, ensure_ascii=False)
+        return redirect("/vip")
+
+    # 🔍 Поиск
+    query = request.args.get("q", "").strip().lower()
+    filtered = {
+        uid: info for uid, info in vip_data.items()
+        if query in uid.lower()
+        or query in info.get("name", "").lower()
+        or query in info.get("alias", "").lower()
+        or query in info.get("notes", "").lower()
+    } if query else vip_data
+
+    # 📋 Сортировка по сумме
+    sorted_members = sorted(filtered.items(), key=lambda x: x[1].get("total", 0), reverse=True)
+
+    return render_template("vip.html", user=user, members=sorted_members, query=query)
+
+
 @app.route("/rules", methods=["GET", "POST"])
 @login_required
 def rules():
@@ -556,11 +708,39 @@ def logs_page():
     user = session["user"]
     return render_template("logs.html", logs=donation_logs.get(user, []))
 
+def get_recent_logins(user):
+    vip_file = CONFIG["profiles"][user]["vip_file"]
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except:
+        vip_data = {}
+
+    entries = []
+    for uid, info in vip_data.items():
+        if info.get("_just_logged_in"):
+            entries.append({
+                "user_id": uid,
+                "name": info.get("name", "Аноним"),
+                "notes": info.get("notes", ""),
+                "is_new": False
+            })
+            info["_just_logged_in"] = False  # сбрасываем флаг
+
+    # сохраняем сброшенный флаг
+    with open(vip_file, "w", encoding="utf-8") as f:
+        json.dump(vip_data, f, indent=2, ensure_ascii=False)
+
+    return entries
+
 @app.route("/logs_data")
 @login_required
 def logs_data():
     user = session["user"]
-    return {"logs": donation_logs.get(user, [])}
+    return {
+        "logs": donation_logs.get(user, []),
+        "entries": get_recent_logins(user)
+    }
 
 @app.route("/clear_logs", methods=["POST"])
 @login_required
