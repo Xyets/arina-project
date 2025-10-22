@@ -69,6 +69,34 @@
       color: #888;
       text-decoration: none;
     }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .back-button {
+      background: #ccc;
+      color: #333;
+      padding: 8px 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-button:hover {
+      background: #bbb;
+    }
+
     table {
       border-collapse: collapse;
       width: 100%;
@@ -121,17 +149,23 @@
     <h1>VIP‑лист для {{ user }}</h1>
   </header>
 
-  <form method="POST" action="/clear_vip" style="margin-top: 20px;">
-    <button>🧹 Очистить весь VIP‑лист</button>
-  </form>
+  <div class="top-bar">
+    <div class="button-row">
+      <a href="/dashboard" class="back-button">← Назад</a>
+      <form method="POST" action="/clear_vip" class="inline">
+        <button>🧹 Очистить VIP‑лист</button>
+      </form>
+    </div>
 
-  <form method="GET" action="/vip" class="search-bar">
-    <input type="text" name="q" placeholder="🔍 Поиск по имени или заметке..." value="{{ query }}">
-    <button type="submit">Найти</button>
-    {% if query %}
-      <a href="/vip">Сбросить</a>
-    {% endif %}
-  </form>
+    <form method="GET" action="/vip" class="search-bar">
+      <input type="text" name="q" placeholder="🔍 Поиск по имени или заметке..." value="{{ query }}">
+      <button type="submit">Найти</button>
+      {% if query %}
+        <a href="/vip">Сбросить</a>
+      {% endif %}
+    </form>
+  </div>
+
 
   <table>
     <tr>
