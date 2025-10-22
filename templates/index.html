@@ -140,6 +140,36 @@
       #entryPopup button:hover {
         background: #74c0e3;
       }
+      
+      .log-entry {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        animation: fadeIn 0.3s ease;
+      }
+
+      /* Типы событий */
+      .log-donation {
+        background: #ffe0f0;
+        color: #333;
+      }
+
+      .log-login {
+        background: #e0f7f1;
+        color: #333;
+      }
+
+      .log-action {
+        background: #e8ecff;
+        color: #333;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
 
       
     </style>
@@ -187,10 +217,17 @@
         const data = await res.json();
         const box = document.getElementById("logbox");
         box.innerHTML = data.logs.map(l => {
-          if (l.includes("🎬")) {
-            return `<div style="color: #f28497; font-weight: bold;">${l}</div>`;
+          let cssClass = "log-entry";
+
+          if (l.includes("💗") || l.includes("пт")) {
+            cssClass += " log-donation";
+          } else if (l.includes("вошёл") || l.includes("👤")) {
+            cssClass += " log-login";
+          } else if (l.includes("🎬") || l.includes("активировал")) {
+            cssClass += " log-action";
           }
-          return `<div>${l}</div>`;
+
+          return `<div class="${cssClass}">${l}</div>`;
         }).join("");
         box.scrollTop = box.scrollHeight;
       }
