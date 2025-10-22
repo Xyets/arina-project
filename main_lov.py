@@ -215,9 +215,12 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
             "_just_logged_in": False
         }
 
-    # обновляем имя
+    # обновляем имя — только если оно ещё не задано вручную
     if name:
-        vip_data[user_id]["name"] = name
+        current_name = vip_data[user_id].get("name", "")
+        if not current_name or current_name == "Аноним":
+            vip_data[user_id]["name"] = name
+
 
     # обновляем сумму
     if amount > 0:
