@@ -70,12 +70,18 @@
       text-decoration: none;
     }
     .top-bar {
+      position: sticky;
+      top: 0;
+      background: #fdfbfb;
+      z-index: 1000;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 40px;
+      padding: 20px 40px;
+      border-bottom: 1px solid #ddd;
       flex-wrap: wrap;
       gap: 20px;
+      transition: box-shadow 0.3s ease;
     }
 
     .button-row {
@@ -140,6 +146,9 @@
     }
     form.inline {
       display: inline;
+    }
+    body.scrolled .top-bar {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
   </style>
 </head>
@@ -228,6 +237,10 @@
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     }
+
+  window.addEventListener("scroll", () => {
+    document.body.classList.toggle("scrolled", window.scrollY > 10);
+  });
   </script>
 
 </body>
