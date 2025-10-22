@@ -30,6 +30,20 @@
       font-weight: 600;
       color: #444;
     }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #444;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      opacity: 0.9;
+      z-index: 9999;
+    }
+
     .search-bar {
       margin-bottom: 30px;
     }
@@ -112,7 +126,7 @@
   </form>
 
   <form method="GET" action="/vip" class="search-bar">
-    <input type="text" name="q" placeholder="🔍 Поиск по имени, alias, заметке..." value="{{ query }}">
+    <input type="text" name="q" placeholder="🔍 Поиск по имени или заметке..." value="{{ query }}">
     <button type="submit">Найти</button>
     {% if query %}
       <a href="/vip">Сбросить</a>
@@ -122,7 +136,6 @@
   <table>
     <tr>
       <th>Имя</th>
-      <th>Alias</th>
       <th>Заметки</th>
       <th>Сумма</th>
       <th>Входов</th>
@@ -130,11 +143,10 @@
       <th>Действия</th>
     </tr>
     {% for user_id, info in members %}
-    <tr class="{{ 'blocked' if info.blocked }}">
+    <tr id="row_{{ user_id }}" class="{{ 'blocked' if info.blocked }}">
       <form method="POST">
         <input type="hidden" name="user_id" value="{{ user_id }}">
-        <td>{{ info.name }}</td>
-        <td><input type="text" name="alias" value="{{ info.alias }}"></td>
+        <td><input type="text" name="name" value="{{ info.name }}"></td>
         <td><input type="text" name="notes" value="{{ info.notes }}"></td>
         <td>{{ info.total }}</td>
         <td>{{ info.login_count }}</td>

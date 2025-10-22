@@ -614,7 +614,7 @@ def vip_page():
     if request.method == "POST" and "user_id" in request.form:
         user_id = request.form.get("user_id")
         if user_id in vip_data:
-            vip_data[user_id]["alias"] = request.form.get("alias", "").strip()
+            vip_data[user_id]["name"] = request.form.get("name", "").strip()
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
             with open(vip_file, "w", encoding="utf-8") as f:
                 json.dump(vip_data, f, indent=2, ensure_ascii=False)
@@ -626,7 +626,6 @@ def vip_page():
         uid: info for uid, info in vip_data.items()
         if query in uid.lower()
         or query in info.get("name", "").lower()
-        or query in info.get("alias", "").lower()
         or query in info.get("notes", "").lower()
     } if query else vip_data
 
@@ -634,6 +633,33 @@ def vip_page():
     sorted_members = sorted(filtered.items(), key=lambda x: x[1].get("total", 0), reverse=True)
 
     return render_template("vip.html", user=user, members=sorted_members, query=query)
+
+@app.route("/update_name", methods=["POST"])
+@login_required
+def update_name():
+    user = session["user"]
+    user_id = request.form.get("user_id")
+    new_name = request.form.get("name")
+
+    if not user_id or not new_name:
+        return {"status": "error", "message": "Недостаточно данных"}, 400
+
+    vip_file = CONFIG["profiles"][user]["vip_file"]
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except:
+        vip_data = {}
+
+    if user_id not in vip_data:
+        return {"status": "error", "message": "Мембер не найден"}, 404
+
+    vip_data[user_id]["name"] = new_name
+
+    with open(vip_file, "w", encoding="utf-8") as f:
+        json.dump(vip_data, f, indent=2, ensure_ascii=False)
+
+    return {"status": "ok"}
 
 
 @app.route("/rules", methods=["GET", "POST"])
