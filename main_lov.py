@@ -569,6 +569,22 @@ def stats():
     stats_data = load_stats(user)  # Если используешь profile_key — передай его сюда
     return render_template("stats.html", user=user, stats=stats_data)
 
+@app.route("/stats_history")
+@login_required
+def stats_history():
+    user = session.get("user")
+    profile_key = f"{user}_{CURRENT_MODE['value']}"
+
+    # Загружаем историю из файла (например, stats_history.json)
+    history_file = f"stats_history_{profile_key}.json"
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            history = json.load(f)
+    except FileNotFoundError:
+        history = []
+
+    return render_template("stats_history.html", user=user, history=history)
+
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required
