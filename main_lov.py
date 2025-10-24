@@ -3,7 +3,6 @@ import time
 import json
 import threading
 import requests
-import queue
 import asyncio
 import websockets
 import os
@@ -14,6 +13,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 from functools import wraps
 import uuid
 from datetime import datetime
+import shutil
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -46,9 +46,28 @@ def login_required(f):
     return wrapper
 
 
+def load_logs_from_file(user):
+    log_file = f"donations_{user}.log"
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            return [line.strip() for line in f.readlines()]
+    except FileNotFoundError:
+        return []
+
+# при старте заполняем donation_logs из файлов каждого профиля
+donation_logs = {}
+for profile_key in CONFIG["profiles"]:
+    donation_logs[profile_key] = load_logs_from_file(profile_key)
+
+
 def add_log(user, message):
-    ts = time.strftime("%H:%M:%S")
-    entry = f"[{ts}] {message}"
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    entry = f"{ts} | {user} | {message}"
+    # пишем в отдельный файл для каждого профиля
+    log_file = f"donations_{user}.log"
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(entry + "\n")
+    # добавляем в память
     donation_logs[user].append(entry)
     if len(donation_logs[user]) > 200:
         donation_logs[user].pop(0)
@@ -64,7 +83,7 @@ def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/getQrCode"
 
-    uid = profile["uid"]   # ✅ вместо f"{user}_001"
+    uid = profile["uid"]  # ✅ вместо f"{user}_001"
     utoken = generate_utoken(uid)
 
     payload = {
@@ -108,7 +127,7 @@ def lovense_callback():
 
 def send_vibration_cloud(user, strength, duration):
     profile = CONFIG["profiles"][user]
-    uid = profile["uid"]   # ✅ берём из конфига
+    uid = profile["uid"]  # ✅ берём из конфига
     user_data = CONNECTED_USERS.get(uid)
 
     if not user_data:
@@ -174,24 +193,20 @@ def apply_rule(user, amount, text):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
             if action and action.strip():
-                ts = time.strftime("%Y-%m-%d %H:%M:%S")
-                with open("donations.log", "a", encoding="utf-8") as f:
-                    f.write(f"{ts} | {user} | {amount} | ДЕЙСТВИЕ: {action}\n")
+                add_log(user, f"{amount} | ДЕЙСТВИЕ: {action}")
                 update_stats(user, "actions", amount)
-                return f"🎬 Действие: {action}"  # ✅ возвращаем текст
+                return f"🎬 Действие: {action}"
 
             # если нет действия, значит это вибрация
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
-            print(f"⚙️ [{user}] Вибрация: сила={strength}, время={duration}")
+            add_log(user, f"{amount} | ВИБРАЦИЯ: сила={strength}, время={duration}")
             update_stats(user, "vibrations", amount)
-            return (
-                f"🏰 Вибрация: сила={strength}, время={duration}"  # ✅ возвращаем текст
-            )
+            return f"🏰 Вибрация: сила={strength}, время={duration}"
 
     print(f"🚫 [{user}] Донат {amount} не попадает ни под одно правило — игнорируем")
-    return None  # ❌ ничего не подошло
+    return None
 
 
 # ---------------- VIP ----------------
@@ -244,12 +259,11 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
-    return vip_data[user_id]   # ✅ теперь возвращаем профиль
+    return vip_data[user_id]  # ✅ теперь возвращаем профиль
 
 
-def log_donation(text, amount):
-    with open("donations.log", "a", encoding="utf-8") as f:
-        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {amount} | {text}\n")
+def log_donation(user, text, amount):
+    add_log(user, f"{amount} | {text}")
 
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
@@ -278,11 +292,6 @@ def try_extract_user_id_from_text(text):
     if m_nonopan:
         return m_nonopan.group(1)
     return None
-
-
-def log_donation(text, amount):
-    with open("donations.log", "a", encoding="utf-8") as f:
-        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {amount} | {text}\n")
 
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
@@ -315,29 +324,40 @@ def try_extract_user_id_from_text(text):
 
 # --- список уже обработанных донатов ---
 
+def load_stats(user):
+    """Загрузка статистики конкретного профиля"""
+    stats_file = f"stats_{user}.json"
+    try:
+        with open(stats_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        # если файл повреждён — начинаем с пустого
+        return {}
 
 def update_stats(user, category, points):
     today = time.strftime("%Y-%m-%d")
-    stats_file = "stats.json"
+    stats_file = f"stats_{user}.json"   # отдельный файл для каждого профиля
 
-    try:
-        with open(stats_file, "r", encoding="utf-8") as f:
-            stats = json.load(f)
-    except:
-        stats = {}
+    stats = load_stats(user)
 
-    if user not in stats:
-        stats[user] = {}
+    if today not in stats:
+        stats[today] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
 
-    if today not in stats[user]:
-        stats[user][today] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
+    stats[today][category] += points
+    stats[today]["total"] += points
 
-    stats[user][today][category] += points
-    stats[user][today]["total"] += points
+    # 📂 делаем резервную копию перед записью
+    if os.path.exists(stats_file):
+        backup_name = f"{stats_file}.{today}.bak"
+        shutil.copy(stats_file, backup_name)
 
-    with open(stats_file, "w", encoding="utf-8") as f:
+    # безопасная запись через временный файл
+    tmp_file = stats_file + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
-
+    os.replace(tmp_file, stats_file)
 
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
@@ -379,20 +399,27 @@ async def ws_handler(websocket):
 
                 profile = update_vip(profile_key, user_id, name=name, event=event)
 
-                add_log(profile_key, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+                add_log(
+                    profile_key,
+                    f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
+                )
 
                 # если это вход и профиль обновился → отправляем карточку на фронт
                 if profile and profile.get("_just_logged_in"):
-                    await websocket.send(json.dumps({
-                        "entry": {
-                            "user_id": user_id,
-                            "name": profile["name"],
-                            "visits": profile["login_count"],
-                            "last_login": profile["last_login"],
-                            "total_tips": profile["total"],
-                            "notes": profile["notes"]
-                        }
-                    }))
+                    await websocket.send(
+                        json.dumps(
+                            {
+                                "entry": {
+                                    "user_id": user_id,
+                                    "name": profile["name"],
+                                    "visits": profile["login_count"],
+                                    "last_login": profile["last_login"],
+                                    "total_tips": profile["total"],
+                                    "notes": profile["notes"],
+                                }
+                            }
+                        )
+                    )
                     profile["_just_logged_in"] = False  # сбрасываем флаг
 
                 await websocket.send(f"✅ Событие {event} обработано")
@@ -407,9 +434,13 @@ async def ws_handler(websocket):
             action_text = apply_rule(profile_key, amount, text)
 
             if action_text:
-                add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
+                add_log(
+                    profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
+                )
             else:
-                add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
+                add_log(
+                    profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
+                )
                 update_stats(profile_key, "other", amount)
 
             # 👑 Обновление VIP‑листа
@@ -452,7 +483,7 @@ def index():
         profile=profile,
         queue=queue,
         logs=logs,
-        current_mode=mode   # 👈 передаём в шаблон
+        current_mode=mode,  # 👈 передаём в шаблон
     )
 
 
@@ -805,11 +836,10 @@ def rules():
 
         return redirect("/rules")
 
-
     sorted_rules = sorted(rules_data["rules"], key=lambda r: r["min"])
-    return render_template("rules.html", rules=sorted_rules, default=rules_data["default"])
-
-
+    return render_template(
+        "rules.html", rules=sorted_rules, default=rules_data["default"]
+    )
 
 
 @app.route("/logs")
@@ -871,8 +901,9 @@ def logs_data():
     profile_key = f"{user}_{mode}"
     return {
         "logs": donation_logs.get(profile_key, []),
-        "entries": get_recent_logins(user)
+        "entries": get_recent_logins(user),
     }
+
 
 @app.route("/clear_logs", methods=["POST"])
 @login_required
@@ -897,15 +928,18 @@ def clear_queue():
             q.task_done()
     return {"status": "ok", "message": "Очередь очищена ✅"}
 
+
 # ---------------- ЗАПУСК ----------------
 def run_flask():
     app.run(host="0.0.0.0", port=5000, debug=False)
+
 
 def run_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(ws_server())
     loop.run_forever()
+
 
 def monitor_flag():
     print("🚀 Программа запущена. Ожидание донатов через WebSocket...")
@@ -915,6 +949,7 @@ def monitor_flag():
             time.sleep(60)
     except KeyboardInterrupt:
         print("⏹ Остановка программы")
+
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
