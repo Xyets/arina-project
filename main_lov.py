@@ -56,23 +56,29 @@ def load_logs_from_file(user):
 
 # при старте заполняем donation_logs из файлов каждого профиля
 donation_logs = {}
+
 for profile_key in CONFIG["profiles"]:
     donation_logs[profile_key] = load_logs_from_file(profile_key)
 
 
 def add_log(user, message):
-    ts = time.strftime("%Y-%m-%d %H:%M:%S")
-    entry = f"{ts} | {user} | {message}"
+    # формат даты: 24-10-25 22:10
+    ts = datetime.now().strftime("%d-%m-%y %H:%M")
+    entry = f"{ts} | {message}"
+
     # пишем в отдельный файл для каждого профиля
     log_file = f"donations_{user}.log"
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(entry + "\n")
+
     # добавляем в память
+    if user not in donation_logs:
+        donation_logs[user] = []
     donation_logs[user].append(entry)
     if len(donation_logs[user]) > 200:
         donation_logs[user].pop(0)
-    print(entry)
 
+    print(entry)
 
 def generate_utoken(uid, secret="arina_secret_123"):
     raw = uid + secret
@@ -201,7 +207,6 @@ def apply_rule(user, amount, text):
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
-            add_log(user, f"{amount} | ВИБРАЦИЯ: сила={strength}, время={duration}")
             update_stats(user, "vibrations", amount)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
 
