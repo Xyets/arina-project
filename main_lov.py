@@ -35,6 +35,10 @@ import hashlib
 
 donation_logs = {user: [] for user in CONFIG["profiles"].keys()}
 
+def handle_donation(user, sender, amount, text):
+    sender_name = sender or "Анонимно"
+    result = apply_rule(user, amount, text) or ""
+    add_log(user, f"{sender_name} → {amount} {result}")
 
 def login_required(f):
     @wraps(f)
@@ -61,17 +65,15 @@ for profile_key in CONFIG["profiles"]:
     donation_logs[profile_key] = load_logs_from_file(profile_key)
 
 
+
 def add_log(user, message):
-    # формат даты: 24-10-25 22:10
-    ts = datetime.now().strftime("%d-%m-%y %H:%M")
+    ts = datetime.now().strftime("%d-%m-%y %H:%M")  # формат 24-10-25 22:10
     entry = f"{ts} | {message}"
 
-    # пишем в отдельный файл для каждого профиля
     log_file = f"donations_{user}.log"
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(entry + "\n")
 
-    # добавляем в память
     if user not in donation_logs:
         donation_logs[user] = []
     donation_logs[user].append(entry)
@@ -192,7 +194,6 @@ def load_rules(user):
 
 
 def apply_rule(user, amount, text):
-    print(f"⚙️ [{user}] apply_rule: сумма={amount}, текст={text}")
     rules = load_rules(user)
 
     for rule in rules.get("rules", []):
@@ -202,14 +203,12 @@ def apply_rule(user, amount, text):
                 update_stats(user, "actions", amount)
                 return f"🎬 Действие: {action}"
 
-            # если нет действия, значит это вибрация
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[user].put_nowait((strength, duration))
             update_stats(user, "vibrations", amount)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
 
-    print(f"🚫 [{user}] Донат {amount} не попадает ни под одно правило — игнорируем")
     return None
 
 

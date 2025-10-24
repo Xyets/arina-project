@@ -297,10 +297,19 @@
           shownLogs.add(log);
 
           let cssClass = "log-entry";
-          if (log.includes("💗") || log.includes("Донат")) cssClass += " log-donation";
-          if (log.includes("вибрация") || log.includes("🏰")) cssClass += " log-vibration";
-          if (log.includes("🎬") || log.includes("Действие")) cssClass += " log-action";
-          if (log.includes("📥") || log.includes("СОБЫТИЕ") || log.includes("вошёл")) cssClass += " log-entryevent";
+
+          // 💗 Донаты (любая строка с "→")
+          if (log.includes("→")) cssClass += " log-donation";
+
+          // 🏰 Вибрации
+          if (log.includes("🏰")) cssClass += " log-vibration";
+
+          // 🎬 Действия
+          if (log.includes("🎬")) cssClass += " log-action";
+
+          // 📥 События входа/выхода
+          if (log.includes("📥") || log.toLowerCase().includes("вошёл")) 
+              cssClass += " log-entryevent";
 
           const div = document.createElement("div");
           div.className = cssClass;
