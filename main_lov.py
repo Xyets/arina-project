@@ -25,20 +25,16 @@ app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
 
-import asyncio
-
-vibration_queues = {user: asyncio.Queue() for user in CONFIG["profiles"].keys()}
+vibration_queues = {profile_key: asyncio.Queue() for profile_key in CONFIG["profiles"].keys()}
 CONNECTED_USERS = {}
 
 # ---------------- LOVENSE ----------------
-import hashlib
 
-donation_logs = {user: [] for user in CONFIG["profiles"].keys()}
-
-def handle_donation(user, sender, amount, text):
+def handle_donation(profile_key, sender, amount, text):
     sender_name = sender or "Анонимно"
-    result = apply_rule(user, amount, text) or ""
-    add_log(user, f"{sender_name} → {amount} {result}")
+    result = apply_rule(profile_key, amount, text) or ""
+    add_log(profile_key, f"{sender_name} → {amount} {result}")
+
 
 def login_required(f):
     @wraps(f)
@@ -50,35 +46,33 @@ def login_required(f):
     return wrapper
 
 
-def load_logs_from_file(user):
-    log_file = f"donations_{user}.log"
+def load_logs_from_file(profile_key):
+    log_file = f"donations_{profile_key}.log"
     try:
         with open(log_file, "r", encoding="utf-8") as f:
             return [line.strip() for line in f.readlines()]
     except FileNotFoundError:
         return []
-
 # при старте заполняем donation_logs из файлов каждого профиля
 donation_logs = {}
 
-for profile_key in CONFIG["profiles"]:
+for profile_key in CONFIG["profiles"].keys():
     donation_logs[profile_key] = load_logs_from_file(profile_key)
 
 
-
-def add_log(user, message):
-    ts = datetime.now().strftime("%d-%m-%y %H:%M")  # формат 24-10-25 22:10
+def add_log(profile_key, message):
+    ts = datetime.now().strftime("%d-%m-%y %H:%M")
     entry = f"{ts} | {message}"
 
-    log_file = f"donations_{user}.log"
+    log_file = f"donations_{profile_key}.log"
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(entry + "\n")
 
-    if user not in donation_logs:
-        donation_logs[user] = []
-    donation_logs[user].append(entry)
-    if len(donation_logs[user]) > 200:
-        donation_logs[user].pop(0)
+    if profile_key not in donation_logs:
+        donation_logs[profile_key] = []
+    donation_logs[profile_key].append(entry)
+    if len(donation_logs[profile_key]) > 200:
+        donation_logs[profile_key].pop(0)
 
     print(entry)
 
@@ -87,13 +81,12 @@ def generate_utoken(uid, secret="arina_secret_123"):
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
 
 
-def get_qr_code(user):
-    profile = CONFIG["profiles"][user]
+def get_qr_code(profile_key):
+    profile = CONFIG["profiles"][profile_key]
     url = "https://api.lovense.com/api/lan/getQrCode"
 
-    uid = profile["uid"]  # ✅ вместо f"{user}_001"
+    uid = profile["uid"]
     utoken = generate_utoken(uid)
-
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
@@ -102,7 +95,6 @@ def get_qr_code(user):
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
         "v": 2,
     }
-
     r = requests.post(url, json=payload, timeout=10)
     data = r.json()
     print("Ответ от Lovense API:", data)
@@ -112,6 +104,35 @@ def get_qr_code(user):
         return data["message"]
     return None
 
+def send_vibration_cloud(profile_key, strength, duration):
+    profile = CONFIG["profiles"][profile_key]
+    uid = profile["uid"]
+    user_data = CONNECTED_USERS.get(uid)
+    if not user_data:
+        print(f"❌ [{profile_key}] Нет данных из callback — игрушка не подключена")
+        return None
+    utoken = user_data.get("utoken")
+    if not utoken:
+        print(f"❌ [{profile_key}] utoken пустой — пересканируй QR‑код")
+        return None
+
+    url = "https://api.lovense.com/api/lan/v2/command"
+    payload = {
+        "token": profile["DEVELOPER_TOKEN"],
+        "uid": uid,
+        "utoken": utoken,
+        "command": "Function",
+        "action": f"Vibrate:{strength}",
+        "timeSec": duration,
+    }
+    try:
+        print(f"📤 [{profile_key}] Отправка вибрации → {payload}")
+        r = requests.post(url, json=payload, timeout=10)
+        print(f"📥 [{profile_key}] Ответ Cloud API: {r.text}")
+        return r.json()
+    except Exception as e:
+        print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
+        return None
 
 @app.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
@@ -133,58 +154,21 @@ def lovense_callback():
     return "❌ Нет uid", 400
 
 
-def send_vibration_cloud(user, strength, duration):
-    profile = CONFIG["profiles"][user]
-    uid = profile["uid"]  # ✅ берём из конфига
-    user_data = CONNECTED_USERS.get(uid)
-
-    if not user_data:
-        print(f"❌ [{user}] Нет данных из callback — игрушка не подключена")
-        return None
-
-    utoken = user_data.get("utoken")
-    if not utoken:
-        print(f"❌ [{user}] utoken пустой — пересканируй QR‑код")
-        return None
-
-    url = "https://api.lovense.com/api/lan/v2/command"
-
-    payload = {
-        "token": profile["DEVELOPER_TOKEN"],  # Cloud Developer Token
-        "uid": uid,
-        "utoken": utoken,
-        "command": "Function",
-        "action": f"Vibrate:{strength}",
-        "timeSec": duration,
-    }
-
-    try:
-        print(f"📤 [{user}] Отправка вибрации → {payload}")  # 🔍 лог перед запросом
-        r = requests.post(url, json=payload, timeout=10)
-        print(f"📥 [{user}] Ответ Cloud API: {r.text}")  # 🔍 лог ответа
-        data = r.json()
-        return data
-    except Exception as e:
-        print(f"❌ [{user}] Ошибка Cloud‑вибрации:", e)
-        return None
-
-
-async def vibration_worker(user):
-    q = vibration_queues[user]
+async def vibration_worker(profile_key):
+    q = vibration_queues[profile_key]
     while True:
         try:
             strength, duration = await q.get()
-            send_vibration_cloud(user, strength, duration)
+            send_vibration_cloud(profile_key, strength, duration)
             await asyncio.sleep(duration)
         except Exception as e:
-            print(f"⚠️ [{user}] Ошибка в vibration_worker:", e)
+            print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
         finally:
             q.task_done()
 
-
 # ---------------- ПРАВИЛА ----------------
-def load_rules(user):
-    profile = CONFIG["profiles"][user]
+def load_rules(profile_key):
+    profile = CONFIG["profiles"][profile_key]
     rules_file = profile["rules_file"]
     try:
         with open(rules_file, "r", encoding="utf-8") as f:
@@ -192,44 +176,37 @@ def load_rules(user):
     except:
         return {"default": [1, 5], "rules": []}
 
-
-def apply_rule(user, amount, text):
-    rules = load_rules(user)
-
+def apply_rule(profile_key, amount, text):
+    rules = load_rules(profile_key)
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
             if action and action.strip():
-                update_stats(user, "actions", amount)
+                update_stats(profile_key, "actions", amount)  # см. блок ниже
                 return f"🎬 Действие: {action}"
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
-            vibration_queues[user].put_nowait((strength, duration))
-            update_stats(user, "vibrations", amount)
+            vibration_queues[profile_key].put_nowait((strength, duration))
+            update_stats(profile_key, "vibrations", amount)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
-
     return None
-
 # ---------------- VIP ----------------
 
 
-def update_vip(user, user_id, name=None, amount=0, event=None):
-    profile = CONFIG["profiles"][user]
+def update_vip(profile_key, user_id, name=None, amount=0, event=None):
+    profile = CONFIG["profiles"][profile_key]
     vip_file = profile["vip_file"]
-
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
     except:
         vip_data = {}
 
-    # если заблокирован — не обновляем
     if user_id in vip_data and vip_data[user_id].get("blocked"):
-        print(f"🚫 [{user}] Мембер {user_id} заблокирован — пропускаем")
+        print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован — пропускаем")
         return vip_data.get(user_id)
 
-    # если новый — создаём
     if user_id not in vip_data:
         vip_data[user_id] = {
             "name": name or "Аноним",
@@ -242,17 +219,14 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
             "_just_logged_in": False,
         }
 
-    # обновляем имя — только если оно ещё не задано вручную
     if name:
         current_name = vip_data[user_id].get("name", "")
         if not current_name or current_name == "Аноним":
             vip_data[user_id]["name"] = name
 
-    # обновляем сумму
     if amount and amount > 0:
         vip_data[user_id]["total"] += amount
 
-    # обновляем вход
     if event and event.lower() == "login":
         vip_data[user_id]["login_count"] += 1
         vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -261,19 +235,38 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
-    return vip_data[user_id]  # ✅ теперь возвращаем профиль
+    return vip_data[user_id]
 
+def update_stats(profile_key, category, amount):
+    stats_file = f"stats_{profile_key}.json"
+    try:
+        with open(stats_file, "r", encoding="utf-8") as f:
+            stats = json.load(f)
+    except FileNotFoundError:
+        stats = {}
 
-def log_donation(user, text, amount):
-    add_log(user, f"{amount} | {text}")
+    day = datetime.now().strftime("%d-%m-%y")
+    if day not in stats:
+        stats[day] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
 
+    if category == "vibrations":
+        stats[day]["vibrations"] += 1
+    elif category == "actions":
+        stats[day]["actions"] += 1
+    else:
+        stats[day]["other"] += 1
+
+    stats[day]["total"] += 1
+
+    with open(stats_file, "w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
-def get_vibration_queue(user):
-    q = vibration_queues.get(user)
+def get_vibration_queue(profile_key):
+    q = vibration_queues.get(profile_key)
     if not q:
         return []
-    return list(q._queue)  # доступ к внутреннему списку очереди
+    return list(q._queue)
 
 
 def fallback_amount(text, amount):
@@ -297,12 +290,11 @@ def try_extract_user_id_from_text(text):
 
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
-def get_vibration_queue(user):
-    q = vibration_queues.get(user)
+def get_vibration_queue(profile_key):
+    q = vibration_queues.get(profile_key)
     if not q:
         return []
-    return list(q._queue)  # доступ к внутреннему списку очереди
-
+    return list(q._queue)
 
 def fallback_amount(text, amount):
     if amount is None:
@@ -325,24 +317,38 @@ def try_extract_user_id_from_text(text):
 
 
 # --- список уже обработанных донатов ---
-
-def load_stats(user):
-    """Загрузка статистики конкретного профиля"""
-    stats_file = f"stats_{user}.json"
+def load_stats(profile_key):
+    stats_file = f"stats_{profile_key}.json"
     try:
         with open(stats_file, "r", encoding="utf-8") as f:
             return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def build_stats_from_logs(profile_key):
+    stats = {}
+    log_file = f"donations_{profile_key}.log"
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            for line in f:
+                date = line.split(" | ")[0].strip()
+                if date not in stats:
+                    stats[date] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
+                if "🏰" in line:
+                    stats[date]["vibrations"] += 1
+                elif "🎬" in line:
+                    stats[date]["actions"] += 1
+                else:
+                    stats[date]["other"] += 1
+                stats[date]["total"] += 1
     except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError:
-        # если файл повреждён — начинаем с пустого
-        return {}
+        pass
+    return stats
 
-def update_stats(user, category, points):
+def update_stats(profile_key, category, points):
     today = time.strftime("%Y-%m-%d")
-    stats_file = f"stats_{user}.json"   # отдельный файл для каждого профиля
-
-    stats = load_stats(user)
+    stats_file = f"stats_{profile_key}.json"
+    stats = load_stats(profile_key)
 
     if today not in stats:
         stats[today] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
@@ -360,30 +366,6 @@ def update_stats(user, category, points):
     with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
     os.replace(tmp_file, stats_file)
-
-def load_stats(user):
-    stats = {}
-    log_file = f"donations_{user}.log"
-    try:
-        with open(log_file, "r", encoding="utf-8") as f:
-            for line in f:
-                # допустим, у тебя формат: "24-10-25 22:10 | Анонимно → 1 🏰 Вибрация: сила=8, время=30"
-                date = line.split(" | ")[0].strip()
-                if date not in stats:
-                    stats[date] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
-
-                if "🏰" in line:
-                    stats[date]["vibrations"] += 1
-                elif "🎬" in line:
-                    stats[date]["actions"] += 1
-                else:
-                    stats[date]["other"] += 1
-
-                stats[date]["total"] += 1
-    except FileNotFoundError:
-        pass
-
-    return stats
 
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
@@ -482,8 +464,8 @@ async def ws_handler(websocket):
 
 async def ws_server():
     # запускаем воркеры для всех профилей
-    for user in CONFIG["profiles"]:
-        asyncio.create_task(vibration_worker(user))
+    for profile_key in CONFIG["profiles"]:
+        asyncio.create_task(vibration_worker(profile_key))
 
     # включаем пинг каждые 30 секунд
     async with websockets.serve(
@@ -491,6 +473,7 @@ async def ws_server():
     ):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765 (ping каждые 30 сек)")
         await asyncio.Future()  # держим сервер живым
+
 
 
 # ---------------- Flask Routes ----------------
@@ -566,24 +549,26 @@ def test_vibration():
 @login_required
 def stats():
     user = session.get("user")
-    stats_data = load_stats(user)  # Если используешь profile_key — передай его сюда
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    stats_data = load_stats(profile_key)  # читаем stats_{profile_key}.json
     return render_template("stats.html", user=user, stats=stats_data)
 
 @app.route("/stats_history")
 @login_required
 def stats_history():
-    user = session.get("user")
-    profile_key = f"{user}_{CURRENT_MODE['value']}"
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    archive_file = f"stats_archive_{profile_key}.json"
 
-    # Загружаем историю из файла (например, stats_history.json)
-    history_file = f"stats_history_{profile_key}.json"
     try:
-        with open(history_file, "r", encoding="utf-8") as f:
-            history = json.load(f)
-    except FileNotFoundError:
-        history = []
+        with open(archive_file, "r", encoding="utf-8") as f:
+            archive = json.load(f)
+    except:
+        archive = {}
 
-    return render_template("stats_history.html", user=user, history=history)
+    return render_template("stats_history.html", stats=archive, user=user)
 
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
@@ -952,7 +937,7 @@ def clear_logs():
     log_file = f"donations_{profile_key}.log"
     open(log_file, "w", encoding="utf-8").close()
 
-    return redirect("/logs")
+    return {"status": "ok", "message": "Логи очищены ✅"}
 
 
 @app.route("/clear_queue", methods=["POST"])
@@ -964,7 +949,11 @@ def clear_queue():
     q = vibration_queues.get(profile_key)
     if q:
         while not q.empty():
-            q.get_nowait()
+            try:
+                q.get_nowait()
+                q.task_done()
+            except:
+                break
     return {"status": "ok", "message": "Очередь очищена ✅"}
 
 @app.route("/close_period", methods=["POST"])
@@ -989,7 +978,9 @@ def close_period():
         archive = {}
 
     # добавляем в архив
-    archive.update(stats)
+    for day, values in stats.items():
+        if day not in archive:
+            archive[day] = values
 
     with open(archive_file, "w", encoding="utf-8") as f:
         json.dump(archive, f, indent=2, ensure_ascii=False)
@@ -999,22 +990,6 @@ def close_period():
         json.dump({}, f, indent=2, ensure_ascii=False)
 
     return redirect("/stats")
-
-@app.route("/stats_history")
-@login_required
-def stats_history():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    archive_file = f"stats_archive_{profile_key}.json"
-
-    try:
-        with open(archive_file, "r", encoding="utf-8") as f:
-            archive = json.load(f)
-    except:
-        archive = {}
-
-    return render_template("stats_history.html", stats=archive, user=user)
 
 # ---------------- ЗАПУСК ----------------
 def run_flask():
