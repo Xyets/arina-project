@@ -211,7 +211,6 @@ def apply_rule(user, amount, text):
 
     return None
 
-
 # ---------------- VIP ----------------
 
 
@@ -541,21 +540,11 @@ def test_vibration():
 
 @app.route("/stats")
 @login_required
-def stats_page():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    stats_file = f"stats_{profile_key}.json"   # ✅ отдельный файл для каждого профиля
-
-    try:
-        with open(stats_file, "r", encoding="utf-8") as f:
-            stats = json.load(f)
-    except FileNotFoundError:
-        stats = {}
-    except json.JSONDecodeError:
-        stats = {}
-
-    return render_template("stats.html", stats=stats, user=user, current_mode=mode)
+def stats():
+    user = session.get("user")
+    profile = CONFIG["profiles"][user]
+    stats = load_stats(user)  # твоя функция, которая собирает данные
+    return render_template("stats.html", user=user, stats=stats)
 
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
