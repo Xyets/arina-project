@@ -13,6 +13,7 @@ import subprocess
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from functools import wraps
 import uuid
+from datetime import datetime
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -207,11 +208,10 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
     # если заблокирован — не обновляем
     if user_id in vip_data and vip_data[user_id].get("blocked"):
         print(f"🚫 [{user}] Мембер {user_id} заблокирован — пропускаем")
-        return
+        return vip_data.get(user_id)
 
     # если новый — создаём
-    is_new = user_id not in vip_data
-    if is_new:
+    if user_id not in vip_data:
         vip_data[user_id] = {
             "name": name or "Аноним",
             "alias": "",
@@ -230,17 +230,19 @@ def update_vip(user, user_id, name=None, amount=0, event=None):
             vip_data[user_id]["name"] = name
 
     # обновляем сумму
-    if amount > 0:
+    if amount and amount > 0:
         vip_data[user_id]["total"] += amount
 
     # обновляем вход
-    if event == "login":
+    if event and event.lower() == "login":
         vip_data[user_id]["login_count"] += 1
         vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
         vip_data[user_id]["_just_logged_in"] = True
 
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
+
+    return vip_data[user_id]   # ✅ теперь возвращаем профиль
 
 
 def log_donation(text, amount):
@@ -378,16 +380,33 @@ async def ws_handler(websocket):
                 name = data.get("name", "Аноним")
                 text = data.get("text", "")
 
-                update_vip(user, user_id, name=name, event=event)
-                add_log( user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}" )
+                profile = update_vip(user, user_id, name=name, event=event)
+
+                add_log(user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+
+                # если это вход и профиль обновился → отправляем карточку на фронт
+                if profile and profile.get("_just_logged_in"):
+                    await websocket.send(json.dumps({
+                        "entry": {
+                            "user_id": user_id,
+                            "name": profile["name"],
+                            "visits": profile["login_count"],
+                            "last_login": profile["last_login"],
+                            "total_tips": profile["total"],
+                            "notes": profile["notes"]
+                        }
+                    }))
+                    profile["_just_logged_in"] = False  # сбрасываем флаг
+
                 await websocket.send(f"✅ Событие {event} обработано")
                 continue
+
             # 💸 Проверка суммы
             if not amount or amount <= 0:
                 await websocket.send("ℹ️ Сообщение не содержит донат")
                 continue
 
-            # ✅ Логируем донат
+            # ✅ Логируем донат + действие
             action_text = apply_rule(user, amount, text)
 
             if action_text:
@@ -395,7 +414,6 @@ async def ws_handler(websocket):
             else:
                 add_log(user, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
                 update_stats(user, "other", amount)
-
 
             # 👑 Обновление VIP‑листа
             if user_id:
