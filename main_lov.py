@@ -199,7 +199,6 @@ def apply_rule(user, amount, text):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
             if action and action.strip():
-                add_log(user, f"{amount} | ДЕЙСТВИЕ: {action}")
                 update_stats(user, "actions", amount)
                 return f"🎬 Действие: {action}"
 
