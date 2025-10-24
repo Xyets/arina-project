@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>📜 История статистики</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      color: #333;
+      margin: 0;
+      padding: 40px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #444;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 900px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #a3d8f4;
+      color: white;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    a.back {
+      display: inline-block;
+      margin-top: 20px;
+      background: #a3d8f4;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    a.back:hover {
+      background: #74c0e3;
+    }
+  </style>
+</head>
+<body>
+  <h2>📜 Архив статистики для {{ user }}</h2>
+
+  <div class="card">
+    <table>
+      <tr>
+        <th>Дата</th>
+        <th>Вибрации</th>
+        <th>Действия</th>
+        <th>Иное</th>
+        <th>Всего</th>
+        <th>Чистый доход</th>
+      </tr>
+      {% for day, data in stats.items() %}
+      <tr>
+        <td>{{ day }}</td>
+        <td>{{ data.vibrations }}</td>
+        <td>{{ data.actions }}</td>
+        <td>{{ data.other }}</td>
+        <td><b>{{ data.total }}</b></td>
+        <td><b>{{ (data.total * 0.7)|round(2) }}</b></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div style="text-align:center;">
+    <a href="{{ url_for('stats_page') }}" class="back">⬅ Назад к статистике</a>
+    <a href="{{ url_for('index') }}" class="back">🏠 Панель</a>
+  </div>
+</body>
+</html>

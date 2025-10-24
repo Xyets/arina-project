@@ -284,32 +284,23 @@
     <!-- JS -->
     <script>
       let shownLogs = new Set();
+      let shownEntries = new Set();
 
+      // 📜 Логи донатов
       async function loadLogs() {
         const res = await fetch("/logs_data");
         const data = await res.json();
         const box = document.getElementById("logbox");
 
-        data.logs.forEach(log => {
-          if (shownLogs.has(log)) return; // уже показано — пропускаем
-
+        (data.logs || []).forEach(log => {
+          if (shownLogs.has(log)) return;
           shownLogs.add(log);
 
           let cssClass = "log-entry";
-
-          if (log.includes("💗") || log.includes("пт") || log.includes("Донат")) {
-            cssClass += " log-donation";
-          }
-          if (log.includes("вибрация") || log.includes("🏰") || log.includes("🎂")) {
-            cssClass += " log-vibration";
-          }
-          if (log.includes("🎬") || log.includes("Действие") || log.includes("активировал")) {
-            cssClass += " log-action";
-          }
-          if (log.includes("📥") || log.includes("СОБЫТИЕ") || log.includes("вошёл")) {
-            cssClass += " log-entryevent";
-          }
-
+          if (log.includes("💗") || log.includes("Донат")) cssClass += " log-donation";
+          if (log.includes("вибрация") || log.includes("🏰")) cssClass += " log-vibration";
+          if (log.includes("🎬") || log.includes("Действие")) cssClass += " log-action";
+          if (log.includes("📥") || log.includes("СОБЫТИЕ") || log.includes("вошёл")) cssClass += " log-entryevent";
 
           const div = document.createElement("div");
           div.className = cssClass;
@@ -318,6 +309,30 @@
           box.scrollTop = box.scrollHeight;
         });
       }
+
+      // 👑 Новые мемберы
+      async function checkNewEntries() {
+        const res = await fetch("/entries_data");
+        const data = await res.json();
+
+        (data.entries || []).forEach(entry => {
+          const key = entry.user_id;
+          if (shownEntries.has(key)) return;
+          shownEntries.add(key);
+
+          let message = entry.visits
+            ? `👑 <strong>${entry.name}</strong><br>
+              📅 Последний визит: ${entry.last_login || "—"}<br>
+              🔢 Всего визитов: ${entry.visits}<br>
+              💗 Всего чаевых: ${entry.total_tips}<br>
+              📝 Заметки: ${entry.notes || "нет"}`
+            : "🆕 Новый мембер!";
+
+          showEntryPopup(message);
+        });
+      }
+
+      // 🔁 Очередь вибраций
       async function loadQueue() {
         const res = await fetch("/queue_data");
         const data = await res.json();
@@ -325,12 +340,19 @@
         if (data.queue.length === 0) {
           box.innerHTML = "<div>Очередь пуста ✅</div>";
         } else {
-          box.innerHTML = data.queue.map(([strength, duration], i) => {
-            return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
-          }).join("");
+          box.innerHTML = data.queue.map(([strength, duration], i) =>
+            `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
+          ).join("");
         }
       }
 
+      // 🧹 Очистка логов
+      document.querySelector("form[action='/clear_logs']").addEventListener("submit", () => {
+        shownLogs.clear();
+        document.getElementById("logbox").innerHTML = "";
+      });
+
+      // 🧹 Очистка очереди
       document.getElementById("clearQueueBtn").addEventListener("click", () => {
         fetch("/clear_queue", { method: "POST" })
           .then(r => r.json())
@@ -341,25 +363,17 @@
           .catch(() => showToast("❌ Ошибка при очистке очереди"));
       });
 
-      document.getElementById("modeSwitch").addEventListener("change", (e) => {
-        const mode = e.target.checked ? "private" : "public"; 
-        fetch("/set_mode", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({mode})
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === "ok") {
-            showToast("Режим переключен: " + (mode === "public" ? "🌐 Публичный" : "🔒 Частный"));
-            location.reload();
-          } else {
-            showToast("❌ Ошибка переключения режима");
-          }
-        });
-      });
-      
-      
+      // 🔔 Всплывающие уведомления
+      function showEntryPopup(message) {
+        const popup = document.getElementById("entryPopup");
+        popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
+        popup.style.display = "block";
+      }
+      function hideEntryPopup() {
+        document.getElementById("entryPopup").style.display = "none";
+      }
+
+      // 🔔 Toast‑уведомления
       function showToast(message) {
         const toast = document.getElementById("toast");
         toast.textContent = message;
@@ -368,54 +382,13 @@
           toast.className = toast.className.replace("show", "");
         }, 3000);
       }
-      let shownEntries = new Set();
 
-      async function checkNewEntries() {
-      const res = await fetch("/logs_data");
-      const data = await res.json();
-      const entries = data.entries || [];
-
-      entries.forEach(entry => {
-        const key = entry.user_id;
-        if (shownEntries.has(key)) return;
-
-        shownEntries.add(key);
-
-        let message;
-        if (entry.visits) {
-          message = `
-            👑 <strong>${entry.name}</strong><br>
-            📅 Последний визит: ${entry.last_login || "—"}<br>
-            🔢 Всего визитов: ${entry.visits}<br>
-            💗 Всего чаевых: ${entry.total_tips}<br>
-            📝 Заметки: ${entry.notes || "нет"}
-          `;
-        } else {
-          message = "🆕 Новый мембер!";
-        }
-
-        showEntryPopup(message);
-      });
-    }
-
-    function showEntryPopup(message) {
-      const popup = document.getElementById("entryPopup");
-      popup.innerHTML = `
-        <div>${message}</div>
-        <button onclick="hideEntryPopup()">ОК</button>
-      `;
-      popup.style.display = "block";
-    }
-
-    function hideEntryPopup() {
-      const popup = document.getElementById("entryPopup");
-      popup.style.display = "none";
-    }
-
-      setInterval(checkNewEntries, 3000);
+      // ⏱ Запускаем циклы
       setInterval(loadLogs, 2000);
+      setInterval(checkNewEntries, 3000);
       setInterval(loadQueue, 2000);
       loadLogs();
+      checkNewEntries();
       loadQueue();
     </script>
     <div id="toast" class="toast"></div>

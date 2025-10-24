@@ -518,10 +518,7 @@ def queue_data():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     q = vibration_queues.get(profile_key)
-    if not q:
-        return {"queue": []}
-    return {"queue": list(q._queue)}
-
+    return {"queue": list(q._queue) if q else []}
 
 @app.route("/logout")
 def logout():
@@ -545,13 +542,17 @@ def stats_page():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
+    stats_file = f"stats_{profile_key}.json"   # ✅ отдельный файл для каждого профиля
+
     try:
-        with open("stats.json", "r", encoding="utf-8") as f:
+        with open(stats_file, "r", encoding="utf-8") as f:
             stats = json.load(f)
-    except:
+    except FileNotFoundError:
         stats = {}
-    user_stats = stats.get(profile_key, {})
-    return render_template("stats.html", stats=user_stats, user=user)
+    except json.JSONDecodeError:
+        stats = {}
+
+    return render_template("stats.html", stats=stats, user=user, current_mode=mode)
 
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
@@ -658,6 +659,40 @@ def remove_member():
             json.dump(vip_data, f, indent=2, ensure_ascii=False)
         return {"status": "ok", "message": "Мембер удалён"}
     return {"status": "error", "message": "Мембер не найден"}, 404
+
+@app.route("/entries_data")
+@login_required
+def entries_data():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    profile = CONFIG["profiles"][profile_key]
+    vip_file = profile["vip_file"]
+
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except:
+        vip_data = {}
+
+    entries = []
+    for user_id, info in vip_data.items():
+        if info.get("_just_logged_in"):
+            entries.append({
+                "user_id": user_id,
+                "name": info.get("name", "Аноним"),
+                "last_login": info.get("last_login"),
+                "visits": info.get("login_count", 0),
+                "total_tips": info.get("total", 0),
+                "notes": info.get("notes", "")
+            })
+            info["_just_logged_in"] = False
+
+    # сохраняем изменения
+    with open(vip_file, "w", encoding="utf-8") as f:
+        json.dump(vip_data, f, indent=2, ensure_ascii=False)
+
+    return {"entries": entries}
 
 
 @app.route("/block_member", methods=["POST"])
@@ -863,46 +898,13 @@ def set_mode():
     return {"status": "error", "message": "Неверный режим"}, 400
 
 
-def get_recent_logins(user):
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except:
-        vip_data = {}
-
-    entries = []
-    for uid, info in vip_data.items():
-        if info.get("_just_logged_in"):
-            entries.append(
-                {
-                    "user_id": uid,
-                    "name": info.get("name", "Аноним"),
-                    "notes": info.get("notes", ""),
-                    "is_new": False,
-                }
-            )
-            info["_just_logged_in"] = False
-
-    with open(vip_file, "w", encoding="utf-8") as f:
-        json.dump(vip_data, f, indent=2, ensure_ascii=False)
-
-    return entries
-
-
 @app.route("/logs_data")
 @login_required
 def logs_data():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    return {
-        "logs": donation_logs.get(profile_key, []),
-        "entries": get_recent_logins(user),
-    }
+    return {"logs": donation_logs.get(profile_key, [])}
 
 
 @app.route("/clear_logs", methods=["POST"])
@@ -911,7 +913,14 @@ def clear_logs():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
+
+    # очищаем память
     donation_logs[profile_key] = []
+
+    # очищаем файл
+    log_file = f"donations_{profile_key}.log"
+    open(log_file, "w", encoding="utf-8").close()
+
     return redirect("/logs")
 
 
@@ -925,9 +934,56 @@ def clear_queue():
     if q:
         while not q.empty():
             q.get_nowait()
-            q.task_done()
     return {"status": "ok", "message": "Очередь очищена ✅"}
 
+@app.route("/close_period", methods=["POST"])
+@login_required
+def close_period():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    stats_file = f"stats_{profile_key}.json"
+    archive_file = f"stats_archive_{profile_key}.json"
+
+    try:
+        with open(stats_file, "r", encoding="utf-8") as f:
+            stats = json.load(f)
+    except:
+        stats = {}
+
+    try:
+        with open(archive_file, "r", encoding="utf-8") as f:
+            archive = json.load(f)
+    except:
+        archive = {}
+
+    # добавляем в архив
+    archive.update(stats)
+
+    with open(archive_file, "w", encoding="utf-8") as f:
+        json.dump(archive, f, indent=2, ensure_ascii=False)
+
+    # очищаем текущую статистику
+    with open(stats_file, "w", encoding="utf-8") as f:
+        json.dump({}, f, indent=2, ensure_ascii=False)
+
+    return redirect("/stats")
+
+@app.route("/stats_history")
+@login_required
+def stats_history():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    archive_file = f"stats_archive_{profile_key}.json"
+
+    try:
+        with open(archive_file, "r", encoding="utf-8") as f:
+            archive = json.load(f)
+    except:
+        archive = {}
+
+    return render_template("stats_history.html", stats=archive, user=user)
 
 # ---------------- ЗАПУСК ----------------
 def run_flask():

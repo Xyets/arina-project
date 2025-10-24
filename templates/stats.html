@@ -13,11 +13,7 @@
       margin: 0;
       padding: 40px;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 30px;
-      color: #444;
-    }
+    h2 { text-align: center; margin-bottom: 30px; color: #444; }
     .card {
       background: #fff;
       border-radius: 16px;
@@ -26,27 +22,11 @@
       margin: 20px auto;
       max-width: 900px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    th, td {
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background: #a3d8f4;
-      color: white;
-      font-weight: 600;
-    }
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-    canvas {
-      margin-top: 20px;
-    }
-    a.back {
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; text-align: center; }
+    th { background: #a3d8f4; color: white; font-weight: 600; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    a.back, button.close-period {
       display: inline-block;
       margin-top: 20px;
       background: #a3d8f4;
@@ -55,16 +35,19 @@
       border-radius: 20px;
       text-decoration: none;
       transition: 0.3s;
+      border: none;
+      cursor: pointer;
     }
-    a.back:hover {
-      background: #74c0e3;
-    }
+    a.back:hover, button.close-period:hover { background: #74c0e3; }
   </style>
 </head>
 <body>
   <h2>📊 Статистика для {{ user }}</h2>
 
   <div class="card">
+    <h3 style="text-align:center;">📈 Динамика по дням</h3>
+    <canvas id="statsChart" height="300"></canvas>
+
     <table>
       <tr>
         <th>Дата</th>
@@ -72,6 +55,7 @@
         <th>Действия</th>
         <th>Иное</th>
         <th>Всего</th>
+        <th>Чистый доход</th>
       </tr>
       {% for day, data in stats.items() %}
       <tr>
@@ -80,15 +64,17 @@
         <td>{{ data.actions }}</td>
         <td>{{ data.other }}</td>
         <td><b>{{ data.total }}</b></td>
+        <td><b>{{ (data.total * 0.7)|round(2) }}</b></td>
       </tr>
       {% endfor %}
     </table>
-
-    <h3 style="text-align:center;">📈 Динамика по дням</h3>
-    <canvas id="statsChart" height="300"></canvas>
   </div>
 
   <div style="text-align:center;">
+    <form method="POST" action="{{ url_for('close_period') }}">
+      <button type="submit" class="close-period">✅ Завершить период</button>
+    </form>
+    <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
     <a href="{{ url_for('index') }}" class="back">⬅ Назад</a>
   </div>
 
@@ -100,43 +86,21 @@
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
 
-    const labels = Object.keys(stats);
-    const vibrations = Object.values(stats).map(d => d.vibrations);
-    const actions = Object.values(stats).map(d => d.actions);
-    const other = Object.values(stats).map(d => d.other);
-    const total = Object.values(stats).map(d => d.total);
+    const labels = Object.keys(stats).sort(); // сортировка дат
+    const vibrations = labels.map(d => stats[d].vibrations);
+    const actions = labels.map(d => stats[d].actions);
+    const other = labels.map(d => stats[d].other);
+    const total = labels.map(d => stats[d].total);
+    const net = labels.map(d => stats[d].total * 0.7);
 
     const data = {
       labels: labels,
       datasets: [
-        {
-          label: 'Вибрации',
-          data: vibrations,
-          borderColor: '#74c0e3',
-          backgroundColor: 'rgba(163,216,244,0.4)',
-          tension: 0.3
-        },
-        {
-          label: 'Действия',
-          data: actions,
-          borderColor: '#81c784',
-          backgroundColor: 'rgba(129,199,132,0.4)',
-          tension: 0.3
-        },
-        {
-          label: 'Иное',
-          data: other,
-          borderColor: '#ffb74d',
-          backgroundColor: 'rgba(255,183,77,0.4)',
-          tension: 0.3
-        },
-        {
-          label: 'Всего',
-          data: total,
-          borderColor: '#f28497',
-          backgroundColor: 'rgba(242,132,151,0.4)',
-          tension: 0.3
-        }
+        { label: 'Вибрации', data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
+        { label: 'Действия', data: actions, borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
+        { label: 'Иное', data: other, borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
+        { label: 'Всего', data: total, borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 },
+        { label: 'Чистый доход', data: net, borderColor: '#333', backgroundColor: 'rgba(50,50,50,0.3)', tension: 0.3 }
       ]
     };
 
@@ -145,12 +109,10 @@
       data: data,
       options: {
         responsive: true,
-        plugins: {
-          legend: { position: 'top' },
-          title: { display: false }
-        },
+        plugins: { legend: { position: 'top' } },
         scales: {
-          y: { beginAtZero: true }
+          x: { title: { display: true, text: 'Дата' } },
+          y: { beginAtZero: true, title: { display: true, text: 'События' } }
         }
       }
     });
