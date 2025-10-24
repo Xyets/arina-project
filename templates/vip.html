@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
   <title>VIP‑лист</title>
@@ -14,6 +15,7 @@
       padding: 40px;
       text-align: center;
     }
+
     header {
       display: flex;
       align-items: center;
@@ -21,15 +23,18 @@
       gap: 15px;
       margin-bottom: 40px;
     }
+
     header img {
       height: 60px;
     }
+
     header h1 {
       margin: 0;
       font-size: 30px;
       font-weight: 600;
       color: #444;
     }
+
     .toast {
       position: fixed;
       bottom: 20px;
@@ -47,6 +52,7 @@
     .search-bar {
       margin-bottom: 30px;
     }
+
     .search-bar input {
       padding: 10px 15px;
       border-radius: 20px;
@@ -54,6 +60,7 @@
       width: 300px;
       font-size: 16px;
     }
+
     .search-bar button {
       padding: 10px 20px;
       border-radius: 20px;
@@ -63,12 +70,14 @@
       font-size: 16px;
       cursor: pointer;
     }
+
     .search-bar a {
       margin-left: 10px;
       font-size: 14px;
       color: #888;
       text-decoration: none;
     }
+
     .top-bar {
       position: sticky;
       top: 0;
@@ -111,20 +120,25 @@
       background: white;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
-    th, td {
+
+    th,
+    td {
       padding: 12px;
       border-bottom: 1px solid #eee;
       text-align: left;
     }
+
     th {
       background-color: #f0f0f0;
       font-weight: 600;
     }
+
     tr.blocked {
       background-color: #ffe0e0;
     }
+
     input[type="text"] {
       width: 100%;
       padding: 6px;
@@ -132,6 +146,7 @@
       border: 1px solid #ccc;
       font-family: monospace;
     }
+
     button {
       background: #f7a8b8;
       border: none;
@@ -141,17 +156,21 @@
       cursor: pointer;
       font-size: 14px;
     }
+
     button:hover {
       background: #f28497;
     }
+
     form.inline {
       display: inline;
     }
+
     body.scrolled .top-bar {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
   </style>
 </head>
+
 <body>
   <header>
     <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
@@ -170,7 +189,7 @@
       <input type="text" name="q" placeholder="🔍 Поиск по имени или заметке..." value="{{ query }}">
       <button type="submit">Найти</button>
       {% if query %}
-        <a href="/vip">Сбросить</a>
+      <a href="/vip">Сбросить</a>
       {% endif %}
     </form>
   </div>
@@ -199,10 +218,7 @@
         </td>
       </form>
       <td>
-        <form method="POST" action="/remove_member" class="inline">
-          <input type="hidden" name="user_id" value="{{ user_id }}">
-          <button onclick="removeMember('{{ user_id }}')">🗑️</button>
-        </form>
+        <button type="button" onclick="removeMember('{{ user_id }}')">🗑️</button>
         <form method="POST" action="/block_member" class="inline">
           <input type="hidden" name="user_id" value="{{ user_id }}">
           <button>🚫</button>
@@ -218,16 +234,16 @@
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: "user_id=" + encodeURIComponent(userId)
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "ok") {
-          showToast("🗑️ Мембер удалён");
-          document.getElementById("row_" + userId)?.remove();
-        } else {
-          showToast("❌ Ошибка: " + data.message);
-        }
-      })
-      .catch(() => showToast("❌ Ошибка удаления"));
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "ok") {
+            showToast("🗑️ Мембер удалён");
+            document.getElementById("row_" + userId)?.remove();
+          } else {
+            showToast("❌ Ошибка: " + data.message);
+          }
+        })
+        .catch(() => showToast("❌ Ошибка удаления"));
     }
 
     function showToast(message) {
@@ -238,10 +254,11 @@
       setTimeout(() => toast.remove(), 3000);
     }
 
-  window.addEventListener("scroll", () => {
-    document.body.classList.toggle("scrolled", window.scrollY > 10);
-  });
+    window.addEventListener("scroll", () => {
+      document.body.classList.toggle("scrolled", window.scrollY > 10);
+    });
   </script>
 
 </body>
+
 </html>
