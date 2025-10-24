@@ -342,7 +342,7 @@
       });
 
       document.getElementById("modeSwitch").addEventListener("change", (e) => {
-        const mode = e.target.checked ? "public" : "private";
+        const mode = e.target.checked ? "private" : "public"; 
         fetch("/set_mode", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -351,16 +351,14 @@
         .then(r => r.json())
         .then(data => {
           if (data.status === "ok") {
-            showToast("Режим переключен: " + (mode === "public" ? "🌐 Общий чат" : "🔒 Приват"));
-            // можно перезагрузить страницу, чтобы подхватить новые правила/списки
+            showToast("Режим переключен: " + (mode === "public" ? "🌐 Публичный" : "🔒 Частный"));
             location.reload();
           } else {
             showToast("❌ Ошибка переключения режима");
           }
         });
       });
-
-
+      
       
       function showToast(message) {
         const toast = document.getElementById("toast");
