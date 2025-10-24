@@ -566,9 +566,8 @@ def test_vibration():
 @login_required
 def stats():
     user = session.get("user")
-    profile = CONFIG["profiles"][user]
-    stats = load_stats(user)  # твоя функция, которая собирает данные
-    return render_template("stats.html", user=user, stats=stats)
+    stats_data = load_stats(user)  # Если используешь profile_key — передай его сюда
+    return render_template("stats.html", user=user, stats=stats_data)
 
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
