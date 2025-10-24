@@ -361,6 +361,30 @@ def update_stats(user, category, points):
         json.dump(stats, f, indent=2, ensure_ascii=False)
     os.replace(tmp_file, stats_file)
 
+def load_stats(user):
+    stats = {}
+    log_file = f"donations_{user}.log"
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            for line in f:
+                # допустим, у тебя формат: "24-10-25 22:10 | Анонимно → 1 🏰 Вибрация: сила=8, время=30"
+                date = line.split(" | ")[0].strip()
+                if date not in stats:
+                    stats[date] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
+
+                if "🏰" in line:
+                    stats[date]["vibrations"] += 1
+                elif "🎬" in line:
+                    stats[date]["actions"] += 1
+                else:
+                    stats[date]["other"] += 1
+
+                stats[date]["total"] += 1
+    except FileNotFoundError:
+        pass
+
+    return stats
+
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
 
