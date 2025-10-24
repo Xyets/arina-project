@@ -244,7 +244,6 @@
 
     <!-- Приветствие -->
     <h2>👋 Привет, {{ user }}</h2>
-    <p>🔗 Адрес WebSocket: <code>wss://arinairina.duckdns.org/ws/</code></p>
     
     <div class="mode-toggle">
       <span>🌐 Публичный</span>
@@ -284,6 +283,24 @@
     <script>
       let shownLogs = new Set();
       let shownEntries = new Set();
+      const modeSwitch = document.getElementById("modeSwitch");
+      modeSwitch.addEventListener("change", () => {
+        const newMode = modeSwitch.checked ? "private" : "public";
+        fetch("/set_mode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: newMode })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === "ok") {
+            showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
+          } else {
+            showToast("❌ Ошибка переключения режима");
+          }
+        })
+        .catch(() => showToast("❌ Ошибка соединения с сервером"));
+      });
 
       // 📜 Логи донатов
       async function loadLogs() {
