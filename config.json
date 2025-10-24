@@ -5,21 +5,37 @@
     "Irina": "1122334455fA!"
   },
   "profiles": {
-    "Arina": {
+    "Arina_private": {
       "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx",
       "uid": "arina_001",
       "uname": "Arina",
       "rules_file": "rules_arina.json",
       "vip_file": "vip_arina.json"
     },
-    "Irina": {
+    "Arina_public": {
+      "DEVELOPER_TOKEN": "qMGjSjH0zrDh-sgTCv5LLd4w3KQQWiKt8VWSlxHlsTkP5zT1YRh0NDMEhVj-rkOx",
+      "uid": "arina_pub",
+      "uname": "Arina (Общий чат)",
+      "rules_file": "rules_arina_public.json",
+      "vip_file": "vip_arina_public.json"
+    },
+    "Irina_private": {
       "DEVELOPER_TOKEN": "h5LnHdaxMQN5sKy1pNNwaJP6cmicpvYo3COz4PLgbbZiMZ1novWyyEYfQq0isxeo",
-      "uid": "Irina_001",
+      "uid": "irina_001",
       "uname": "Irina",
       "rules_file": "rules_irina.json",
       "vip_file": "vip_irina.json"
+    },
+    "Irina_public": {
+      "DEVELOPER_TOKEN": "h5LnHdaxMQN5sKy1pNNwaJP6cmicpvYo3COz4PLgbbZiMZ1novWyyEYfQq0isxeo",
+      "uid": "irina_pub",
+      "uname": "Irina (Общий чат)",
+      "rules_file": "rules_irina_public.json",
+      "vip_file": "vip_irina_public.json"
     }
   },
-
+  
   "webhook_secret": "arina_webhook_secret"
 }
+
+          

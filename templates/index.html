@@ -194,7 +194,12 @@
     <!-- Приветствие -->
     <h2>👋 Привет, {{ user }}</h2>
     <p>🔗 Адрес WebSocket: <code>wss://arinairina.duckdns.org/ws/</code></p>
-
+    <div style="margin:20px;">
+      <label>
+        <input type="checkbox" id="modeSwitch">
+        🌐 Общий чат
+      </label>
+    </div>
     <!-- Меню -->
     <div class="menu">
       <a href="{{ url_for('qrcode_page') }}"><button>📱 QR‑код</button></a>
@@ -279,6 +284,26 @@
           })
           .catch(() => showToast("❌ Ошибка при очистке очереди"));
       });
+
+      document.getElementById("modeSwitch").addEventListener("change", (e) => {
+        const mode = e.target.checked ? "public" : "private";
+        fetch("/set_mode", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({mode})
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === "ok") {
+            showToast("Режим переключен: " + (mode === "public" ? "🌐 Общий чат" : "🔒 Приват"));
+            // можно перезагрузить страницу, чтобы подхватить новые правила/списки
+            location.reload();
+          } else {
+            showToast("❌ Ошибка переключения режима");
+          }
+        });
+      });
+
 
       
       function showToast(message) {

@@ -18,6 +18,9 @@ from datetime import datetime
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
+# 🔑 глобальная переменная для режима работы
+CURRENT_MODE = {"value": "private"}  # может быть "private" или "public"
+
 app = Flask(__name__)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
@@ -61,14 +64,14 @@ def get_qr_code(user):
     profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/getQrCode"
 
-    uid = f"{user}_001"
+    uid = profile["uid"]   # ✅ вместо f"{user}_001"
     utoken = generate_utoken(uid)
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
-        "uname": user,
-        "utoken": utoken,  # ⚠️ теперь мы сами его задаём
+        "uname": profile["uname"],
+        "utoken": utoken,
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
         "v": 2,
     }
@@ -104,8 +107,8 @@ def lovense_callback():
 
 
 def send_vibration_cloud(user, strength, duration):
-    """Отправка вибрации через Lovense Cloud API"""
-    uid = f"{user}_001"
+    profile = CONFIG["profiles"][user]
+    uid = profile["uid"]   # ✅ берём из конфига
     user_data = CONNECTED_USERS.get(uid)
 
     if not user_data:
@@ -117,7 +120,6 @@ def send_vibration_cloud(user, strength, duration):
         print(f"❌ [{user}] utoken пустой — пересканируй QR‑код")
         return None
 
-    profile = CONFIG["profiles"][user]
     url = "https://api.lovense.com/api/lan/v2/command"
 
     payload = {
@@ -337,15 +339,6 @@ def update_stats(user, category, points):
         json.dump(stats, f, indent=2, ensure_ascii=False)
 
 
-processed_donations = set()
-
-
-def clear_processed_donations():
-    global processed_donations
-    processed_donations.clear()
-    print("🧹 Список обработанных донатов очищен")
-
-
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
 
@@ -365,8 +358,12 @@ async def ws_handler(websocket):
             if not user:
                 await websocket.send("❌ Не указан профиль")
                 continue
-            if user not in CONFIG.get("profiles", {}):
-                await websocket.send(f"❌ Профиль '{user}' не найден")
+
+            mode = CURRENT_MODE["value"]  # private / public
+            profile_key = f"{user}_{mode}"
+
+            if profile_key not in CONFIG.get("profiles", {}):
+                await websocket.send(f"❌ Профиль '{profile_key}' не найден")
                 continue
 
             # ⚠️ donation_id можно логировать, но не блокировать
@@ -380,9 +377,9 @@ async def ws_handler(websocket):
                 name = data.get("name", "Аноним")
                 text = data.get("text", "")
 
-                profile = update_vip(user, user_id, name=name, event=event)
+                profile = update_vip(profile_key, user_id, name=name, event=event)
 
-                add_log(user, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+                add_log(profile_key, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
 
                 # если это вход и профиль обновился → отправляем карточку на фронт
                 if profile and profile.get("_just_logged_in"):
@@ -407,17 +404,17 @@ async def ws_handler(websocket):
                 continue
 
             # ✅ Логируем донат + действие
-            action_text = apply_rule(user, amount, text)
+            action_text = apply_rule(profile_key, amount, text)
 
             if action_text:
-                add_log(user, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
+                add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
             else:
-                add_log(user, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
-                update_stats(user, "other", amount)
+                add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
+                update_stats(profile_key, "other", amount)
 
             # 👑 Обновление VIP‑листа
             if user_id:
-                update_vip(user, user_id, name=name, amount=amount)
+                update_vip(profile_key, user_id, name=name, amount=amount)
 
             await websocket.send("✅ Донат принят")
 
@@ -444,19 +441,22 @@ async def ws_server():
 @login_required
 def index():
     user = session["user"]
-    profile = CONFIG["profiles"][user]
-    queue = get_vibration_queue(user)
-    logs = donation_logs.get(user, [])
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    profile = CONFIG["profiles"][profile_key]
+    queue = get_vibration_queue(profile_key)
+    logs = donation_logs.get(profile_key, [])
     return render_template(
         "index.html", user=user, profile=profile, queue=queue, logs=logs
     )
-
 
 @app.route("/qrcode")
 @login_required
 def qrcode_page():
     user = session["user"]
-    qr_url = get_qr_code(user)
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    qr_url = get_qr_code(profile_key)
     if not qr_url:
         return "❌ Не удалось получить QR‑код", 500
     return render_template("qrcode.html", user=user, qr_url=qr_url)
@@ -478,7 +478,9 @@ def login():
 @login_required
 def queue_data():
     user = session["user"]
-    q = vibration_queues.get(user)
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    q = vibration_queues.get(profile_key)
     if not q:
         return {"queue": []}
     return {"queue": list(q._queue)}
@@ -494,7 +496,9 @@ def logout():
 @login_required
 def test_vibration():
     user = session["user"]
-    threading.Thread(target=send_vibration_cloud, args=(user, 1, 5)).start()
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    threading.Thread(target=send_vibration_cloud, args=(profile_key, 1, 5)).start()
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 
@@ -502,13 +506,14 @@ def test_vibration():
 @login_required
 def stats_page():
     user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
     try:
         with open("stats.json", "r", encoding="utf-8") as f:
             stats = json.load(f)
     except:
         stats = {}
-
-    user_stats = stats.get(user, {})
+    user_stats = stats.get(profile_key, {})
     return render_template("stats.html", stats=user_stats, user=user)
 
 
@@ -516,7 +521,9 @@ def stats_page():
 @login_required
 def test_rule(rule_index):
     user = session["user"]
-    rules = load_rules(user)
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    rules = load_rules(profile_key)
 
     if 0 <= rule_index < len(rules["rules"]):
         rule = rules["rules"][rule_index]
@@ -524,9 +531,9 @@ def test_rule(rule_index):
         duration = rule.get("duration", 5)
 
         print(
-            f"🧪 [{user}] Тест правила {rule_index}: сила={strength}, время={duration}"
+            f"🧪 [{profile_key}] Тест правила {rule_index}: сила={strength}, время={duration}"
         )
-        send_vibration_cloud(user, strength, duration)
+        send_vibration_cloud(profile_key, strength, duration)
 
         return {
             "status": "ok",
@@ -583,7 +590,9 @@ def error_page():
 @login_required
 def clear_vip():
     user = session["user"]
-    vip_file = CONFIG["profiles"][user]["vip_file"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump({}, f, indent=2, ensure_ascii=False)
     return redirect("/vip")
@@ -593,11 +602,13 @@ def clear_vip():
 @login_required
 def remove_member():
     user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
         return {"status": "error", "message": "Нет user_id"}, 400
 
-    vip_file = CONFIG["profiles"][user]["vip_file"]
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
@@ -616,11 +627,13 @@ def remove_member():
 @login_required
 def block_member():
     user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
         return {"status": "error", "message": "Нет user_id"}, 400
 
-    vip_file = CONFIG["profiles"][user]["vip_file"]
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
@@ -639,7 +652,9 @@ def block_member():
 @login_required
 def vip_page():
     user = session["user"]
-    vip_file = CONFIG["profiles"][user]["vip_file"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
@@ -683,13 +698,15 @@ def vip_page():
 @login_required
 def update_name():
     user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     new_name = request.form.get("name")
 
     if not user_id or not new_name:
         return {"status": "error", "message": "Недостаточно данных"}, 400
 
-    vip_file = CONFIG["profiles"][user]["vip_file"]
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
@@ -710,8 +727,10 @@ def update_name():
 @app.route("/rules", methods=["GET", "POST"])
 @login_required
 def rules():
-    profile = CONFIG["profiles"][session["user"]]
-    rules_file = profile["rules_file"]
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
 
     try:
         with open(rules_file, "r", encoding="utf-8") as f:
@@ -740,7 +759,7 @@ def rules():
                 action = None
 
             new_rule = {
-                "id": str(uuid.uuid4()),  # уникальный идентификатор
+                "id": str(uuid.uuid4()),
                 "min": to_int("min", 1),
                 "max": to_int("max", 5),
                 "strength": to_int("strength", 1),
@@ -780,23 +799,39 @@ def rules():
 
         return redirect("/rules")
 
-    # ✅ Сортировка перед отдачей в шаблон
-    sorted_rules = sorted(rules_data["rules"], key=lambda r: r["min"])
 
-    return render_template(
-        "rules.html", rules=sorted_rules, default=rules_data["default"]
-    )
+    sorted_rules = sorted(rules_data["rules"], key=lambda r: r["min"])
+    return render_template("rules.html", rules=sorted_rules, default=rules_data["default"])
+
+
 
 
 @app.route("/logs")
 @login_required
 def logs_page():
     user = session["user"]
-    return render_template("logs.html", logs=donation_logs.get(user, []))
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    return render_template("logs.html", logs=donation_logs.get(profile_key, []))
+
+
+@app.route("/set_mode", methods=["POST"])
+@login_required
+def set_mode():
+    data = request.get_json(force=True)
+    mode = data.get("mode")
+    if mode in ("private", "public"):
+        CURRENT_MODE["value"] = mode
+        print(f"🔄 Режим переключен на {mode}")
+        return {"status": "ok", "mode": mode}
+    return {"status": "error", "message": "Неверный режим"}, 400
 
 
 def get_recent_logins(user):
-    vip_file = CONFIG["profiles"][user]["vip_file"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
@@ -814,9 +849,8 @@ def get_recent_logins(user):
                     "is_new": False,
                 }
             )
-            info["_just_logged_in"] = False  # сбрасываем флаг
+            info["_just_logged_in"] = False
 
-    # сохраняем сброшенный флаг
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
@@ -827,14 +861,20 @@ def get_recent_logins(user):
 @login_required
 def logs_data():
     user = session["user"]
-    return {"logs": donation_logs.get(user, []), "entries": get_recent_logins(user)}
-
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    return {
+        "logs": donation_logs.get(profile_key, []),
+        "entries": get_recent_logins(user)
+    }
 
 @app.route("/clear_logs", methods=["POST"])
 @login_required
 def clear_logs():
     user = session["user"]
-    donation_logs[user] = []  # очищаем только логи текущего пользователя
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    donation_logs[profile_key] = []
     return redirect("/logs")
 
 
@@ -842,18 +882,18 @@ def clear_logs():
 @login_required
 def clear_queue():
     user = session["user"]
-    q = vibration_queues.get(user)
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    q = vibration_queues.get(profile_key)
     if q:
         while not q.empty():
             q.get_nowait()
             q.task_done()
     return {"status": "ok", "message": "Очередь очищена ✅"}
 
-
 # ---------------- ЗАПУСК ----------------
 def run_flask():
     app.run(host="0.0.0.0", port=5000, debug=False)
-
 
 def run_websocket():
     loop = asyncio.new_event_loop()
@@ -861,18 +901,14 @@ def run_websocket():
     loop.run_until_complete(ws_server())
     loop.run_forever()
 
-
 def monitor_flag():
     print("🚀 Программа запущена. Ожидание донатов через WebSocket...")
     try:
         while True:
-            if os.path.exists("reset.flag"):
-                clear_processed_donations()
-                os.remove("reset.flag")
+            # раньше здесь был clear_processed_donations(), но он больше не нужен
             time.sleep(60)
     except KeyboardInterrupt:
         print("⏹ Остановка программы")
-
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
