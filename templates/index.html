@@ -250,7 +250,7 @@
     <div class="mode-toggle">
       <span>🌐 Публичный</span>
       <label class="switch">
-        <input type="checkbox" id="modeSwitch">
+        <input type="checkbox" id="modeSwitch" {% if current_mode == "private" %}checked{% endif %}>
         <span class="slider"></span>
       </label>
       <span>🔒 Частный</span>

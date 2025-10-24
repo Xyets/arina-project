@@ -447,8 +447,14 @@ def index():
     queue = get_vibration_queue(profile_key)
     logs = donation_logs.get(profile_key, [])
     return render_template(
-        "index.html", user=user, profile=profile, queue=queue, logs=logs
+        "index.html",
+        user=user,
+        profile=profile,
+        queue=queue,
+        logs=logs,
+        current_mode=mode   # 👈 передаём в шаблон
     )
+
 
 @app.route("/qrcode")
 @login_required
