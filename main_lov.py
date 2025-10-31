@@ -445,6 +445,19 @@ async def ws_handler(websocket):
                 add_log(
                     profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
                 )
+
+                # ✨ Если это вибрация — отправляем параметры на фронт
+                if "🏰 Вибрация" in action_text:
+                    m = re.search(r"сила=(\d+), время=(\d+)", action_text)
+                    if m:
+                        strength = int(m.group(1))
+                        duration = int(m.group(2))
+                        await websocket.send(json.dumps({
+                            "vibration": {
+                                "strength": strength,
+                                "duration": duration
+                            }
+                        }))
             else:
                 add_log(
                     profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"

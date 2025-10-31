@@ -232,6 +232,29 @@
         background: #dceeff; /* мягкий голубой */
         color: #333;
       }
+      .vibration-timer {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        background: rgba(255, 244, 204, 0.95); /* мягкий жёлтый */
+        color: #333;
+        padding: 16px 24px;
+        border-radius: 20px;
+        font-size: 16px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 999;
+        animation: fadeIn 0.3s ease;
+        text-align: center;
+        line-height: 1.6;
+        animation: pulse 1.2s infinite;
+      }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 10px rgba(255, 200, 100, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(255, 200, 100, 0.6); }
+        100% { box-shadow: 0 0 10px rgba(255, 200, 100, 0.3); }
+      }
 
     </style>
 </head>
@@ -408,6 +431,71 @@
         }, 3000);
       }
 
+      function startVibrationTimer(duration) {
+        const timerBox = document.getElementById("vibrationTimer");
+        const countdown = document.getElementById("vibrationCountdown");
+        timerBox.style.display = "block";
+
+        let remaining = duration;
+        countdown.textContent = remaining.toFixed(1);
+
+        const interval = setInterval(() => {
+          remaining -= 0.1;
+          if (remaining <= 0) {
+            clearInterval(interval);
+            timerBox.innerHTML = "✅ Вибрация завершена";
+            setTimeout(() => {
+              timerBox.style.display = "none";
+              timerBox.innerHTML = `🔁 Вибрация: <span id="vibrationCountdown">0.0</span> сек`;
+            }, 2000);
+          } else {
+            countdown.textContent = remaining.toFixed(1);
+          }
+        }, 100);
+      }
+
+      // 🌐 Подключение к WebSocket
+      const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+      socket.onopen = () => {
+        console.log("🔌 WebSocket подключён");
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          // 💥 Если пришла вибрация — запускаем таймер
+          if (data.vibration) {
+            const { strength, duration } = data.vibration;
+            startVibrationTimer(duration); // можно также отобразить силу
+          }
+
+          // 👑 Если пришёл новый мембер
+          if (data.entry) {
+            const entry = data.entry;
+            let message = `👑 <strong>${entry.name}</strong><br>
+              📅 Последний визит: ${entry.last_login || "—"}<br>
+              🔢 Всего визитов: ${entry.visits}<br>
+              💗 Всего чаевых: ${entry.total_tips}<br>
+              📝 Заметки: ${entry.notes || "нет"}`;
+            showEntryPopup(message);
+          }
+
+          // ℹ️ Если это просто текстовое сообщение
+          if (typeof data === "string") {
+            showToast(data);
+          }
+
+        } catch (e) {
+          console.error("❌ Ошибка обработки WebSocket-сообщения:", e);
+        }
+      };
+
+      socket.onerror = (error) => {
+        console.error("❌ WebSocket ошибка:", error);
+      };
+
       // ⏱ Запускаем циклы
       setInterval(loadLogs, 2000);
       setInterval(checkNewEntries, 3000);
@@ -418,5 +506,13 @@
     </script>
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>
+    <div id="vibrationTimer" class="vibration-timer" style="display:none;">
+      🔁 Вибрация: <span id="vibrationCountdown">0.0</span> сек
+    </div>
+    <div id="vibrationTimer" class="vibration-timer" style="display:none;">
+      💥 Вибрация: <span id="vibrationStrength">—</span><br>
+      ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
+    </div>
+
 </body>
 </html>
