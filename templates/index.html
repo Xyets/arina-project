@@ -435,10 +435,12 @@
         const timerBox = document.getElementById("vibrationTimer");
         const countdown = document.getElementById("vibrationCountdown");
         const strengthDisplay = document.getElementById("vibrationStrength");
+
         if (!timerBox || !countdown || !strengthDisplay) {
           console.error("❌ Элементы таймера не найдены в DOM");
           return;
         }
+
         timerBox.style.display = "block";
         strengthDisplay.textContent = strength;
 
@@ -449,13 +451,10 @@
           remaining -= 0.1;
           if (remaining <= 0) {
             clearInterval(interval);
-            timerBox.innerHTML = "✅ Вибрация завершена";
+            countdown.textContent = "0.0";
+            strengthDisplay.textContent = "—";
             setTimeout(() => {
               timerBox.style.display = "none";
-              timerBox.innerHTML = `
-                💥 Вибрация: <span id="vibrationStrength">—</span><br>
-                ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
-              `;
             }, 2000);
           } else {
             countdown.textContent = remaining.toFixed(1);
@@ -471,40 +470,31 @@
       };
 
       socket.onmessage = (event) => {
+        console.log("📩 RAW:", event.data);
+
+        let data;
         try {
-          let data;
-          try {
-            data = JSON.parse(event.data);
-          } catch {
-            // если это не JSON, значит просто строка
-            showToast(event.data);
-            return;
-          }
-          // 💥 Если пришла вибрация — запускаем таймер
-          if (data.vibration) {
-            console.log("📩 Пришло сообщение:", event.data);
-            const { strength, duration } = data.vibration;
-            startVibrationTimer(duration, strength);
-          }
+          data = JSON.parse(event.data);
+        } catch {
+          // если это не JSON, значит просто строка
+          showToast(event.data);
+          return;
+        }
 
-          // 👑 Если пришёл новый мембер
-          if (data.entry) {
-            const entry = data.entry;
-            let message = `👑 <strong>${entry.name}</strong><br>
-              📅 Последний визит: ${entry.last_login || "—"}<br>
-              🔢 Всего визитов: ${entry.visits}<br>
-              💗 Всего чаевых: ${entry.total_tips}<br>
-              📝 Заметки: ${entry.notes || "нет"}`;
-            showEntryPopup(message);
-          }
+        if (data.vibration) {
+          console.log("🔥 Запускаю таймер:", data.vibration);
+          const { strength, duration } = data.vibration;
+          startVibrationTimer(duration, strength);
+        }
 
-          // ℹ️ Если это просто текстовое сообщение
-          if (typeof data === "string") {
-            showToast(data);
-          }
-
-        } catch (e) {
-          console.error("❌ Ошибка обработки WebSocket-сообщения:", e);
+        if (data.entry) {
+          const entry = data.entry;
+          let message = `👑 <strong>${entry.name}</strong><br>
+            📅 Последний визит: ${entry.last_login || "—"}<br>
+            🔢 Всего визитов: ${entry.visits}<br>
+            💗 Всего чаевых: ${entry.total_tips}<br>
+            📝 Заметки: ${entry.notes || "нет"}`;
+          showEntryPopup(message);
         }
       };
 
