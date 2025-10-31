@@ -232,29 +232,6 @@
         background: #dceeff; /* мягкий голубой */
         color: #333;
       }
-      .vibration-timer {
-        position: fixed;
-        bottom: 100px;
-        right: 20px;
-        background: rgba(255, 244, 204, 0.95); /* мягкий жёлтый */
-        color: #333;
-        padding: 16px 24px;
-        border-radius: 20px;
-        font-size: 16px;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        z-index: 999;
-        animation: fadeIn 0.3s ease;
-        text-align: center;
-        line-height: 1.6;
-        animation: pulse 1.2s infinite;
-      }
-
-      @keyframes pulse {
-        0% { box-shadow: 0 0 10px rgba(255, 200, 100, 0.3); }
-        50% { box-shadow: 0 0 20px rgba(255, 200, 100, 0.6); }
-        100% { box-shadow: 0 0 10px rgba(255, 200, 100, 0.3); }
-      }
 
     </style>
 </head>
@@ -431,89 +408,6 @@
         }, 3000);
       }
 
-      let vibrationInterval; // глобальная переменная для хранения текущего интервала
-
-      function startVibrationTimer(duration, strength = "—") {
-        console.log("▶️ startVibrationTimer вызван:", duration, strength);
-
-        const timerBox = document.getElementById("vibrationTimer");
-        const countdown = document.getElementById("vibrationCountdown");
-        const strengthDisplay = document.getElementById("vibrationStrength");
-
-        if (!timerBox || !countdown || !strengthDisplay) {
-          console.error("❌ Элементы таймера не найдены в DOM");
-          return;
-        }
-
-        // 🧹 очищаем предыдущий таймер, если он был
-        if (vibrationInterval) {
-          clearInterval(vibrationInterval);
-          vibrationInterval = null;
-        }
-
-        timerBox.style.display = "block";
-        strengthDisplay.textContent = strength;
-
-        let remaining = duration;
-        countdown.textContent = remaining.toFixed(1);
-
-        vibrationInterval = setInterval(() => {
-          remaining -= 0.1;
-          if (remaining <= 0) {
-            clearInterval(vibrationInterval);
-            vibrationInterval = null;
-            countdown.textContent = "0.0";
-            strengthDisplay.textContent = "—";
-            setTimeout(() => {
-              timerBox.style.display = "none";
-            }, 2000);
-          } else {
-            countdown.textContent = remaining.toFixed(1);
-          }
-        }, 100);
-      }
-
-
-      // 🌐 Подключение к WebSocket
-      const socket = new WebSocket("ws://arinairina.duckdns.org:8765");
-
-      socket.onopen = () => {
-        console.log("🔌 WebSocket подключён");
-      };
-
-      socket.onmessage = (event) => {
-        console.log("📩 RAW:", event.data);
-
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          // если это не JSON, значит просто строка
-          showToast(event.data);
-          return;
-        }
-
-        if (data.vibration) {
-          console.log("🔥 Запускаю таймер:", data.vibration);
-          const { strength, duration } = data.vibration;
-          startVibrationTimer(duration, strength);
-        }
-
-        if (data.entry) {
-          const entry = data.entry;
-          let message = `👑 <strong>${entry.name}</strong><br>
-            📅 Последний визит: ${entry.last_login || "—"}<br>
-            🔢 Всего визитов: ${entry.visits}<br>
-            💗 Всего чаевых: ${entry.total_tips}<br>
-            📝 Заметки: ${entry.notes || "нет"}`;
-          showEntryPopup(message);
-        }
-      };
-
-      socket.onerror = (error) => {
-        console.error("❌ WebSocket ошибка:", error);
-      };
-
       // ⏱ Запускаем циклы
       setInterval(loadLogs, 2000);
       setInterval(checkNewEntries, 3000);
@@ -524,10 +418,5 @@
     </script>
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>
-    <div id="vibrationTimer" class="vibration-timer" style="display:none;">
-      💥 Вибрация: <span id="vibrationStrength">—</span><br>
-      ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
-    </div>
-
 </body>
 </html>
