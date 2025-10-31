@@ -432,6 +432,7 @@
       }
 
       function startVibrationTimer(duration, strength = "—") {
+        console.log("▶️ startVibrationTimer вызван:", duration, strength);
         const timerBox = document.getElementById("vibrationTimer");
         const countdown = document.getElementById("vibrationCountdown");
         const strengthDisplay = document.getElementById("vibrationStrength");
