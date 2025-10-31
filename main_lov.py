@@ -160,15 +160,21 @@ async def vibration_worker(profile_key):
     while True:
         try:
             strength, duration = await q.get()
-            send_vibration_cloud(profile_key, strength, duration)
-            print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
-            # 🔔 Рассылаем фронту событие о старте вибрации
+
+            # пробуем отправить в Lovense
+            try:
+                send_vibration_cloud(profile_key, strength, duration)
+            except Exception as e:
+                print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
+
+            # 🔔 Всегда шлём фронту событие о старте вибрации
             msg = json.dumps({
                 "vibration": {
                     "strength": strength,
                     "duration": duration
                 }
             })
+            print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
             for ws in list(CONNECTED_SOCKETS):
                 try:
                     await ws.send(msg)
@@ -182,6 +188,7 @@ async def vibration_worker(profile_key):
             print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
         finally:
             q.task_done()
+
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules(profile_key):
