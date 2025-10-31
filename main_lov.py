@@ -153,18 +153,39 @@ def lovense_callback():
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
 
+CONNECTED_SOCKETS = set()  # глобально
 
 async def vibration_worker(profile_key):
     q = vibration_queues[profile_key]
     while True:
         try:
             strength, duration = await q.get()
+
+            # 🔔 Сообщаем фронту, что вибрация реально стартовала
+            msg = json.dumps({
+                "vibration": {
+                    "strength": strength,
+                    "duration": duration,
+                    "profile": profile_key
+                }
+            })
+            for ws in list(CONNECTED_SOCKETS):
+                try:
+                    await ws.send(msg)
+                except:
+                    CONNECTED_SOCKETS.discard(ws)
+
+            # 🚀 Отправляем команду в Lovense
             send_vibration_cloud(profile_key, strength, duration)
+
+            # ждём окончания
             await asyncio.sleep(duration)
+
         except Exception as e:
             print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
         finally:
             q.task_done()
+
 
 # ---------------- ПРАВИЛА ----------------
 def load_rules(profile_key):
@@ -369,6 +390,7 @@ def update_stats(profile_key, category, points):
 
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
+    CONNECTED_SOCKETS.add(websocket)
 
     async for message in websocket:
         try:
@@ -446,19 +468,6 @@ async def ws_handler(websocket):
                     profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
                 )
 
-                # ✨ Если это вибрация — отправляем параметры на фронт
-                if "🏰 Вибрация" in action_text:
-                    m = re.search(r"сила=(\d+), время=(\d+)", action_text)
-                    if m:
-                        strength = int(m.group(1))
-                        duration = int(m.group(2))
-                        print("📤 Отправляю vibration:", strength, duration)
-                        await websocket.send(json.dumps({
-                            "vibration": {
-                                "strength": strength,
-                                "duration": duration
-                            }
-                        }))
             else:
                 add_log(
                     profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
@@ -474,6 +483,9 @@ async def ws_handler(websocket):
         except Exception as e:
             print("⚠️ Ошибка обработки:", e)
             await websocket.send("❌ Ошибка обработки")
+        finally:
+            CONNECTED_SOCKETS.discard(websocket)
+            print("🔌 WebSocket отключён")
 
 
 async def ws_server():

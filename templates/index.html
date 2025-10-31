@@ -431,8 +431,11 @@
         }, 3000);
       }
 
+      let vibrationInterval; // глобальная переменная для хранения текущего интервала
+
       function startVibrationTimer(duration, strength = "—") {
         console.log("▶️ startVibrationTimer вызван:", duration, strength);
+
         const timerBox = document.getElementById("vibrationTimer");
         const countdown = document.getElementById("vibrationCountdown");
         const strengthDisplay = document.getElementById("vibrationStrength");
@@ -442,16 +445,23 @@
           return;
         }
 
+        // 🧹 очищаем предыдущий таймер, если он был
+        if (vibrationInterval) {
+          clearInterval(vibrationInterval);
+          vibrationInterval = null;
+        }
+
         timerBox.style.display = "block";
         strengthDisplay.textContent = strength;
 
         let remaining = duration;
         countdown.textContent = remaining.toFixed(1);
 
-        const interval = setInterval(() => {
+        vibrationInterval = setInterval(() => {
           remaining -= 0.1;
           if (remaining <= 0) {
-            clearInterval(interval);
+            clearInterval(vibrationInterval);
+            vibrationInterval = null;
             countdown.textContent = "0.0";
             strengthDisplay.textContent = "—";
             setTimeout(() => {
@@ -463,8 +473,9 @@
         }, 100);
       }
 
+
       // 🌐 Подключение к WebSocket
-      const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+      const socket = new WebSocket("ws://arinairina.duckdns.org:8765");
 
       socket.onopen = () => {
         console.log("🔌 WebSocket подключён");
