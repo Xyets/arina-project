@@ -435,7 +435,10 @@
         const timerBox = document.getElementById("vibrationTimer");
         const countdown = document.getElementById("vibrationCountdown");
         const strengthDisplay = document.getElementById("vibrationStrength");
-
+        if (!timerBox || !countdown || !strengthDisplay) {
+          console.error("❌ Элементы таймера не найдены в DOM");
+          return;
+        }
         timerBox.style.display = "block";
         strengthDisplay.textContent = strength;
 
@@ -477,9 +480,9 @@
             showToast(event.data);
             return;
           }
-          console.log("📩 Пришло сообщение:", event.data);
           // 💥 Если пришла вибрация — запускаем таймер
           if (data.vibration) {
+            console.log("📩 Пришло сообщение:", event.data);
             const { strength, duration } = data.vibration;
             startVibrationTimer(duration, strength);
           }
