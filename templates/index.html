@@ -469,8 +469,15 @@
 
       socket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch {
+            // если это не JSON, значит просто строка
+            showToast(event.data);
+            return;
+          }
+          console.log("📩 Пришло сообщение:", event.data);
           // 💥 Если пришла вибрация — запускаем таймер
           if (data.vibration) {
             const { strength, duration } = data.vibration;
