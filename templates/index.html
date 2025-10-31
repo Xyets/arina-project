@@ -352,7 +352,7 @@
       }
 
       // 🌐 Подключение к WebSocket
-      const socket = new WebSocket("wss://arinairina.duckdns.org:8765");
+      const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
       socket.onmessage = (event) => {
         let data;
