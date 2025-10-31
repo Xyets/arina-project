@@ -452,6 +452,7 @@ async def ws_handler(websocket):
                     if m:
                         strength = int(m.group(1))
                         duration = int(m.group(2))
+                        print("📤 Отправляю vibration:", strength, duration)
                         await websocket.send(json.dumps({
                             "vibration": {
                                 "strength": strength,
