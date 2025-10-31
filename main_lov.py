@@ -161,7 +161,7 @@ async def vibration_worker(profile_key):
         try:
             strength, duration = await q.get()
             send_vibration_cloud(profile_key, strength, duration)
-
+            print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
             # 🔔 Рассылаем фронту событие о старте вибрации
             msg = json.dumps({
                 "vibration": {
