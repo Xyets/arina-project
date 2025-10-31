@@ -232,6 +232,22 @@
         background: #dceeff; /* мягкий голубой */
         color: #333;
       }
+      #vibrationTimer {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 25px 40px;
+        border-radius: 20px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+        display: none;
+      }
+
 
     </style>
 </head>
@@ -335,6 +351,57 @@
         });
       }
 
+      // 🌐 Подключение к WebSocket
+      const socket = new WebSocket("wss://arinairina.duckdns.org:8765");
+
+      socket.onmessage = (event) => {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (data.vibration) {
+          const { strength, duration } = data.vibration;
+          startVibrationTimer(duration, strength);
+        }
+      };
+
+      // ⏱ Таймер вибрации
+      let vibrationInterval;
+
+      function startVibrationTimer(duration, strength = "—") {
+        const timerBox = document.getElementById("vibrationTimer");
+        const countdown = document.getElementById("vibrationCountdown");
+        const strengthDisplay = document.getElementById("vibrationStrength");
+
+        if (!timerBox) return;
+
+        if (vibrationInterval) clearInterval(vibrationInterval);
+
+        timerBox.style.display = "block";
+        strengthDisplay.textContent = strength;
+
+        let remaining = duration;
+        countdown.textContent = remaining.toFixed(1);
+
+        vibrationInterval = setInterval(() => {
+          remaining -= 0.1;
+          if (remaining <= 0) {
+            clearInterval(vibrationInterval);
+            vibrationInterval = null;
+            countdown.textContent = "0.0";
+            strengthDisplay.textContent = "—";
+            setTimeout(() => {
+              timerBox.style.display = "none";
+            }, 2000);
+          } else {
+            countdown.textContent = remaining.toFixed(1);
+          }
+        }, 100);
+      }
+
       // 👑 Новые мемберы
       async function checkNewEntries() {
         const res = await fetch("/entries_data");
@@ -416,6 +483,13 @@
       checkNewEntries();
       loadQueue();
     </script>
+
+    <!-- Таймер вибрации -->
+    <div id="vibrationTimer" class="vibration-timer" style="display:none;">
+      💥 Вибрация: <span id="vibrationStrength">—</span><br>
+      ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
+    </div>
+
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>
 </body>

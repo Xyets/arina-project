@@ -153,6 +153,7 @@ def lovense_callback():
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
 
+CONNECTED_SOCKETS = set()
 
 async def vibration_worker(profile_key):
     q = vibration_queues[profile_key]
@@ -160,7 +161,23 @@ async def vibration_worker(profile_key):
         try:
             strength, duration = await q.get()
             send_vibration_cloud(profile_key, strength, duration)
+
+            # 🔔 Рассылаем фронту событие о старте вибрации
+            msg = json.dumps({
+                "vibration": {
+                    "strength": strength,
+                    "duration": duration
+                }
+            })
+            for ws in list(CONNECTED_SOCKETS):
+                try:
+                    await ws.send(msg)
+                except:
+                    CONNECTED_SOCKETS.discard(ws)
+
+            # ждём окончания вибрации
             await asyncio.sleep(duration)
+
         except Exception as e:
             print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
         finally:
@@ -369,97 +386,103 @@ def update_stats(profile_key, category, points):
 
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
+    CONNECTED_SOCKETS.add(websocket)
+    try:
+        async for message in websocket:
+            try:
+                print("📩 Получено сообщение от WebSocket:", message)
 
-    async for message in websocket:
-        try:
-            print("📩 Получено сообщение от WebSocket:", message)
-
-            data = json.loads(message)
-            text = data.get("text", "")
-            name = (data.get("name") or "Аноним").strip()
-            user_id = data.get("user_id")
-            amount = data.get("amount")
-            donation_id = data.get("donation_id")
-            user = data.get("user")
-
-            # 🔐 Проверка профиля
-            if not user:
-                await websocket.send("❌ Не указан профиль")
-                continue
-
-            mode = CURRENT_MODE["value"]  # private / public
-            profile_key = f"{user}_{mode}"
-
-            if profile_key not in CONFIG.get("profiles", {}):
-                await websocket.send(f"❌ Профиль '{profile_key}' не найден")
-                continue
-
-            # ⚠️ donation_id можно логировать, но не блокировать
-            if not donation_id:
-                print("⚠️ Нет donation_id — может быть тест или ошибка")
-
-            # 🧠 Обработка входа/выхода
-            if "event" in data:
-                event = data["event"]
-                user_id = data.get("user_id")
-                name = data.get("name", "Аноним")
+                data = json.loads(message)
                 text = data.get("text", "")
+                name = (data.get("name") or "Аноним").strip()
+                user_id = data.get("user_id")
+                amount = data.get("amount")
+                donation_id = data.get("donation_id")
+                user = data.get("user")
 
-                profile = update_vip(profile_key, user_id, name=name, event=event)
+                # 🔐 Проверка профиля
+                if not user:
+                    await websocket.send("❌ Не указан профиль")
+                    continue
 
-                add_log(
-                    profile_key,
-                    f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
-                )
+                mode = CURRENT_MODE["value"]  # private / public
+                profile_key = f"{user}_{mode}"
 
-                # если это вход и профиль обновился → отправляем карточку на фронт
-                if profile and profile.get("_just_logged_in"):
-                    await websocket.send(
-                        json.dumps(
-                            {
-                                "entry": {
-                                    "user_id": user_id,
-                                    "name": profile["name"],
-                                    "visits": profile["login_count"],
-                                    "last_login": profile["last_login"],
-                                    "total_tips": profile["total"],
-                                    "notes": profile["notes"],
-                                }
-                            }
-                        )
+                if profile_key not in CONFIG.get("profiles", {}):
+                    await websocket.send(f"❌ Профиль '{profile_key}' не найден")
+                    continue
+
+                # ⚠️ donation_id можно логировать, но не блокировать
+                if not donation_id:
+                    print("⚠️ Нет donation_id — может быть тест или ошибка")
+
+                # 🧠 Обработка входа/выхода
+                if "event" in data:
+                    event = data["event"]
+                    user_id = data.get("user_id")
+                    name = data.get("name", "Аноним")
+                    text = data.get("text", "")
+
+                    profile = update_vip(profile_key, user_id, name=name, event=event)
+
+                    add_log(
+                        profile_key,
+                        f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
                     )
-                    profile["_just_logged_in"] = False  # сбрасываем флаг
 
-                await websocket.send(f"✅ Событие {event} обработано")
-                continue
+                    # если это вход и профиль обновился → отправляем карточку на фронт
+                    if profile and profile.get("_just_logged_in"):
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "entry": {
+                                        "user_id": user_id,
+                                        "name": profile["name"],
+                                        "visits": profile["login_count"],
+                                        "last_login": profile["last_login"],
+                                        "total_tips": profile["total"],
+                                        "notes": profile["notes"],
+                                    }
+                                }
+                            )
+                        )
+                        profile["_just_logged_in"] = False  # сбрасываем флаг
 
-            # 💸 Проверка суммы
-            if not amount or amount <= 0:
-                await websocket.send("ℹ️ Сообщение не содержит донат")
-                continue
+                    await websocket.send(f"✅ Событие {event} обработано")
+                    continue
 
-            # ✅ Логируем донат + действие
-            action_text = apply_rule(profile_key, amount, text)
+                # 💸 Проверка суммы
+                if not amount or amount <= 0:
+                    await websocket.send("ℹ️ Сообщение не содержит донат")
+                    continue
 
-            if action_text:
-                add_log(
-                    profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
-                )
-            else:
-                add_log(
-                    profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
-                )
-                update_stats(profile_key, "other", amount)
+                # ✅ Логируем донат + действие
+                action_text = apply_rule(profile_key, amount, text)
 
-            # 👑 Обновление VIP‑листа
-            if user_id:
-                update_vip(profile_key, user_id, name=name, amount=amount)
+                if action_text:
+                    add_log(
+                        profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
+                    )
+                else:
+                    add_log(
+                        profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
+                    )
+                    update_stats(profile_key, "other", amount)
 
-            await websocket.send("✅ Донат принят")
+                # 👑 Обновление VIP‑листа
+                if user_id:
+                    update_vip(profile_key, user_id, name=name, amount=amount)
 
-        except Exception as e:
-            print("⚠️ Ошибка обработки:", e)
-            await websocket.send("❌ Ошибка обработки")
+                await websocket.send("✅ Донат принят")
+
+            except Exception as e:
+                print("⚠️ Ошибка обработки:", e)
+                await websocket.send("❌ Ошибка обработки")
+
+    finally:
+        # 🔌 Убираем клиента из списка при отключении
+        CONNECTED_SOCKETS.discard(websocket)
+        print("🔌 WebSocket отключён")
 
 
 async def ws_server():
