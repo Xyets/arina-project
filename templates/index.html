@@ -431,11 +431,13 @@
         }, 3000);
       }
 
-      function startVibrationTimer(duration) {
+      function startVibrationTimer(duration, strength = "—") {
         const timerBox = document.getElementById("vibrationTimer");
         const countdown = document.getElementById("vibrationCountdown");
-        timerBox.style.display = "block";
+        const strengthDisplay = document.getElementById("vibrationStrength");
 
+        timerBox.style.display = "block";
+        strengthDisplay.textContent = strength;
         let remaining = duration;
         countdown.textContent = remaining.toFixed(1);
 
@@ -446,7 +448,10 @@
             timerBox.innerHTML = "✅ Вибрация завершена";
             setTimeout(() => {
               timerBox.style.display = "none";
-              timerBox.innerHTML = `🔁 Вибрация: <span id="vibrationCountdown">0.0</span> сек`;
+              timerBox.innerHTML = `
+                💥 Вибрация: <span id="vibrationStrength">—</span><br>
+                ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
+              `;
             }, 2000);
           } else {
             countdown.textContent = remaining.toFixed(1);
@@ -468,7 +473,7 @@
           // 💥 Если пришла вибрация — запускаем таймер
           if (data.vibration) {
             const { strength, duration } = data.vibration;
-            startVibrationTimer(duration); // можно также отобразить силу
+            startVibrationTimer(duration, strength);
           }
 
           // 👑 Если пришёл новый мембер
@@ -506,9 +511,6 @@
     </script>
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>
-    <div id="vibrationTimer" class="vibration-timer" style="display:none;">
-      🔁 Вибрация: <span id="vibrationCountdown">0.0</span> сек
-    </div>
     <div id="vibrationTimer" class="vibration-timer" style="display:none;">
       💥 Вибрация: <span id="vibrationStrength">—</span><br>
       ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
