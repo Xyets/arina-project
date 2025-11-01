@@ -393,11 +393,13 @@
           return;
         }
 
-        if (data.vibration) {
+        const currentUser = "{{ user }}"; // уже есть в шаблоне
+
+        if (data.vibration && data.vibration.target === currentUser) {
           const { strength, duration } = data.vibration;
           startVibrationTimer(duration, strength);
         }
-      };
+        };
 
       // ⏱ Таймер вибрации
       let vibrationInterval;

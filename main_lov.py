@@ -160,34 +160,36 @@ async def vibration_worker(profile_key):
     while True:
         try:
             strength, duration = await q.get()
-
-            # пробуем отправить в Lovense
             try:
-                send_vibration_cloud(profile_key, strength, duration)
-            except Exception as e:
-                print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
-
-            # 🔔 Всегда шлём фронту событие о старте вибрации
-            msg = json.dumps({
-                "vibration": {
-                    "strength": strength,
-                    "duration": duration
-                }
-            })
-            print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
-            for ws in list(CONNECTED_SOCKETS):
+                # пробуем отправить в Lovense
                 try:
-                    await ws.send(msg)
-                except:
-                    CONNECTED_SOCKETS.discard(ws)
+                    send_vibration_cloud(profile_key, strength, duration)
+                except Exception as e:
+                    print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
 
-            # ждём окончания вибрации
-            await asyncio.sleep(duration)
+                # сообщение фронту
+                msg = json.dumps({
+                    "vibration": {
+                        "strength": strength,
+                        "duration": duration,
+                        "target": profile_key.split("_")[0]
+                    }
+                })
+                print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
+                for ws in list(CONNECTED_SOCKETS):
+                    try:
+                        await ws.send(msg)
+                    except:
+                        CONNECTED_SOCKETS.discard(ws)
+
+                # ждём окончания вибрации
+                await asyncio.sleep(duration)
+
+            finally:
+                q.task_done()
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
-        finally:
-            q.task_done()
 
 
 # ---------------- ПРАВИЛА ----------------
@@ -402,6 +404,15 @@ def update_stats(profile_key, category, points):
         json.dump(stats, f, indent=2, ensure_ascii=False)
     os.replace(tmp_file, stats_file)
 
+def extract_strength(text):
+    m = re.search(r"сила[:=]\s*(\d+)", text)
+    return int(m.group(1)) if m else None
+
+def extract_duration(text):
+    m = re.search(r"время[:=]\s*(\d+)", text)
+    return int(m.group(1)) if m else None
+
+
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
     CONNECTED_SOCKETS.add(websocket)
@@ -476,6 +487,21 @@ async def ws_handler(websocket):
 
                 # ✅ Логируем донат + действие
                 action_text = apply_rule(profile_key, amount, text)
+
+                if action_text and "🏰" in action_text:
+                    strength = extract_strength(action_text) or 1
+                    duration = extract_duration(action_text) or 5
+                    for sock in CONNECTED_SOCKETS:
+                        try:
+                            await sock.send(json.dumps({
+                                "vibration": {
+                                    "strength": strength,
+                                    "duration": duration,
+                                    "target": user  # имя профиля, например "Arina"
+                                }
+                            }))
+                        except Exception as e:
+                            print(f"⚠️ Ошибка отправки вибрации: {e}")
 
                 if action_text:
                     add_log(
