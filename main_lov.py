@@ -488,21 +488,6 @@ async def ws_handler(websocket):
                 # ✅ Логируем донат + действие
                 action_text = apply_rule(profile_key, amount, text)
 
-                if action_text and "🏰" in action_text:
-                    strength = extract_strength(action_text) or 1
-                    duration = extract_duration(action_text) or 5
-                    for sock in CONNECTED_SOCKETS:
-                        try:
-                            await sock.send(json.dumps({
-                                "vibration": {
-                                    "strength": strength,
-                                    "duration": duration,
-                                    "target": user  # имя профиля, например "Arina"
-                                }
-                            }))
-                        except Exception as e:
-                            print(f"⚠️ Ошибка отправки вибрации: {e}")
-
                 if action_text:
                     add_log(
                         profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
