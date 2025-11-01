@@ -458,7 +458,7 @@
 
           let message = entry.visits
             ? `👑 <strong>${entry.name}</strong><br>
-              📅 Последний визит: ${formatDate(entry.last_login)}
+              📅 Предыдущий визит: ${formatDate(entry._previous_login || entry.last_login)}
               🔢 Всего визитов: ${entry.visits}<br>
               💗 Всего чаевых: ${entry.total_tips}<br>
               📝 Заметки: ${entry.notes || "нет"}`
