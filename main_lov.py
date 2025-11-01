@@ -402,6 +402,15 @@ def update_stats(profile_key, category, points):
         json.dump(stats, f, indent=2, ensure_ascii=False)
     os.replace(tmp_file, stats_file)
 
+def extract_strength(text):
+    m = re.search(r"сила[:=]\s*(\d+)", text)
+    return int(m.group(1)) if m else None
+
+def extract_duration(text):
+    m = re.search(r"время[:=]\s*(\d+)", text)
+    return int(m.group(1)) if m else None
+
+
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
     CONNECTED_SOCKETS.add(websocket)
@@ -449,22 +458,24 @@ async def ws_handler(websocket):
                     )
 
                     # если это вход и профиль обновился → отправляем карточку на фронт
-                    if profile and profile.get("_just_logged_in"):
-                        await websocket.send(
-                            json.dumps(
-                                {
-                                    "entry": {
-                                        "user_id": user_id,
-                                        "name": profile["name"],
-                                        "visits": profile["login_count"],
-                                        "last_login": profile["_previous_login"],
-                                        "total_tips": profile["total"],
-                                        "notes": profile["notes"],
-                                    }
+                    
+                if profile and profile.get("_just_logged_in"):
+                    for sock in CONNECTED_SOCKETS:
+                        try:
+                            await sock.send(json.dumps({
+                                "entry": {
+                                    "user_id": user_id,
+                                    "name": profile["name"],
+                                    "visits": profile["login_count"],
+                                    "last_login": profile["_previous_login"],
+                                    "total_tips": profile["total"],
+                                    "notes": profile["notes"],
                                 }
-                            )
-                        )
-                        profile["_just_logged_in"] = False  # сбрасываем флаг
+                            }))
+                        except Exception as e:
+                            print(f"⚠️ Ошибка отправки entry: {e}")
+                    profile["_just_logged_in"] = False
+    
 
                     await websocket.send(f"✅ Событие {event} обработано")
                     continue
@@ -486,6 +497,22 @@ async def ws_handler(websocket):
                         profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
                     )
                     update_stats(profile_key, "other", amount)
+                 # если в тексте есть вибрация — отправляем её на клиент
+                if "🏰" in action_text:
+                    strength = extract_strength(action_text) or 1
+                    duration = extract_duration(action_text) or 5
+
+                    for sock in CONNECTED_SOCKETS:
+                        try:
+                            await sock.send(json.dumps({
+                                "vibration": {
+                                    "strength": strength,
+                                    "duration": duration,
+                                    "target": user  # имя профиля, например "Arina"
+                                }
+                            }))
+                        except Exception as e:
+                            print(f"⚠️ Ошибка отправки вибрации: {e}")
 
                 # 👑 Обновление VIP‑листа
                 if user_id:
