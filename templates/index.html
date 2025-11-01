@@ -178,6 +178,12 @@
         font-size: 18px;
         color: #333;
         max-width: 400px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        cursor: move;
+      }
+      #entryPopup.show {
+        opacity: 1;
       }
       #entryPopup button {
         margin-top: 20px;
@@ -428,6 +434,16 @@
         progressBar.style.width = "100%";
       }
 
+      function formatDate(raw) {
+        if (!raw) return "—";
+        const d = new Date(raw);
+        return d.toLocaleString("ru-RU", {
+          day: "numeric",
+          month: "long",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
 
 
       // 👑 Новые мемберы
@@ -442,7 +458,7 @@
 
           let message = entry.visits
             ? `👑 <strong>${entry.name}</strong><br>
-              📅 Последний визит: ${entry.last_login || "—"}<br>
+              📅 Последний визит: ${formatDate(entry.last_login)}
               🔢 Всего визитов: ${entry.visits}<br>
               💗 Всего чаевых: ${entry.total_tips}<br>
               📝 Заметки: ${entry.notes || "нет"}`
@@ -467,10 +483,15 @@
       }
 
       // 🧹 Очистка логов
-      document.querySelector("form[action='/clear_logs']").addEventListener("submit", () => {
+      document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
+        e.preventDefault();
         shownLogs.clear();
         document.getElementById("logbox").innerHTML = "";
+        fetch("/clear_logs", { method: "POST" })
+          .then(() => showToast("Логи очищены ✅"))
+          .catch(() => showToast("❌ Ошибка при очистке логов"));
       });
+
 
       // 🧹 Очистка очереди
       document.getElementById("clearQueueBtn").addEventListener("click", () => {
@@ -488,10 +509,19 @@
         const popup = document.getElementById("entryPopup");
         popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
         popup.style.display = "block";
+        popup.classList.add("show"); // 👈 плавное появление
+        setTimeout(() => {
+          popup.classList.remove("show"); // 👈 плавное исчезновение
+          popup.style.display = "none";
+        }, 8000);
       }
+
       function hideEntryPopup() {
-        document.getElementById("entryPopup").style.display = "none";
+        const popup = document.getElementById("entryPopup");
+        popup.classList.remove("show");
+        popup.style.display = "none";
       }
+
 
       // 🔔 Toast‑уведомления
       function showToast(message) {
@@ -510,13 +540,31 @@
       loadLogs();
       checkNewEntries();
       loadQueue();
-    </script>
 
-    <!-- Таймер вибрации -->
-    <div id="vibrationTimer" class="vibration-timer" style="display:none;">
-      💥 Вибрация: <span id="vibrationStrength">—</span><br>
-      ⏳ Осталось: <span id="vibrationCountdown">0.0</span> сек
-    </div>
+        // 🖱️ Перетаскивание entryPopup
+        let isDragging = false, offsetX = 0, offsetY = 0;
+        const popup = document.getElementById("entryPopup");
+
+        popup.addEventListener("mousedown", (e) => {
+          isDragging = true;
+          offsetX = e.clientX - popup.offsetLeft;
+          offsetY = e.clientY - popup.offsetTop;
+          popup.style.transition = "none";
+        });
+
+        document.addEventListener("mousemove", (e) => {
+          if (isDragging) {
+            popup.style.left = `${e.clientX - offsetX}px`;
+            popup.style.top = `${e.clientY - offsetY}px`;
+            popup.style.transform = "none";
+          }
+        });
+
+        document.addEventListener("mouseup", () => {
+          isDragging = false;
+          popup.style.transition = "opacity 0.3s ease";
+        });
+    </script>
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>

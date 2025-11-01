@@ -231,6 +231,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован — пропускаем")
         return vip_data.get(user_id)
 
+    # если новый — создаём
     if user_id not in vip_data:
         vip_data[user_id] = {
             "name": name or "Аноним",
@@ -238,28 +239,38 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
             "total": 0,
             "notes": "",
             "login_count": 0,
-            "last_login": "",
+            "last_login": "",  # будет пусто
             "blocked": False,
             "_just_logged_in": False,
         }
 
+    # обновляем имя, если нужно
     if name:
         current_name = vip_data[user_id].get("name", "")
         if not current_name or current_name == "Аноним":
             vip_data[user_id]["name"] = name
 
+    # обновляем сумму
     if amount and amount > 0:
         vip_data[user_id]["total"] += amount
 
+    # сохраняем старую дату входа
+    previous_login = vip_data[user_id].get("last_login", "—")
+
+    # обновляем вход
     if event and event.lower() == "login":
         vip_data[user_id]["login_count"] += 1
         vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
         vip_data[user_id]["_just_logged_in"] = True
 
+    # сохраняем файл
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
+    # возвращаем данные, но с предыдущей датой
+    vip_data[user_id]["_previous_login"] = previous_login
     return vip_data[user_id]
+
 
 def update_stats(profile_key, category, amount):
     stats_file = f"stats_{profile_key}.json"
@@ -446,7 +457,7 @@ async def ws_handler(websocket):
                                         "user_id": user_id,
                                         "name": profile["name"],
                                         "visits": profile["login_count"],
-                                        "last_login": profile["last_login"],
+                                        "last_login": profile["_previous_login"],
                                         "total_tips": profile["total"],
                                         "notes": profile["notes"],
                                     }
@@ -727,7 +738,7 @@ def entries_data():
             entries.append({
                 "user_id": user_id,
                 "name": info.get("name", "Аноним"),
-                "last_login": info.get("last_login"),
+                "last_login": info.get("_previous_login", info.get("last_login")),
                 "visits": info.get("login_count", 0),
                 "total_tips": info.get("total", 0),
                 "notes": info.get("notes", "")
@@ -805,8 +816,12 @@ def vip_page():
     )
 
     # 📋 Сортировка по сумме
+    sort_by = request.args.get("sort", "total")  # можно ?sort=login_count
+
     sorted_members = sorted(
-        filtered.items(), key=lambda x: x[1].get("total", 0), reverse=True
+        filtered.items(),
+        key=lambda x: x[1].get(sort_by, 0),
+        reverse=True
     )
 
     return render_template("vip.html", user=user, members=sorted_members, query=query)
