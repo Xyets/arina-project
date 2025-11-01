@@ -161,35 +161,33 @@ async def vibration_worker(profile_key):
         try:
             strength, duration = await q.get()
             try:
-                # пробуем отправить в Lovense
+                send_vibration_cloud(profile_key, strength, duration)
+            except Exception as e:
+                print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
+
+            # Берём имя профиля из ключа конфига
+            target_user = profile_key.split("_")[0]
+
+            msg = json.dumps({
+                "vibration": {
+                    "strength": strength,
+                    "duration": duration,
+                    "target": target_user  # ← совпадает с {{ user }} на фронте
+                }
+            })
+            print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
+            for ws in list(CONNECTED_SOCKETS):
                 try:
-                    send_vibration_cloud(profile_key, strength, duration)
-                except Exception as e:
-                    print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
+                    await ws.send(msg)
+                except:
+                    CONNECTED_SOCKETS.discard(ws)
 
-                # сообщение фронту
-                msg = json.dumps({
-                    "vibration": {
-                        "strength": strength,
-                        "duration": duration,
-                        "target": profile_key.split("_")[0]
-                    }
-                })
-                print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
-                for ws in list(CONNECTED_SOCKETS):
-                    try:
-                        await ws.send(msg)
-                    except:
-                        CONNECTED_SOCKETS.discard(ws)
-
-                # ждём окончания вибрации
-                await asyncio.sleep(duration)
-
-            finally:
-                q.task_done()
+            await asyncio.sleep(duration)
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
+        finally:
+            q.task_done()
 
 
 # ---------------- ПРАВИЛА ----------------
