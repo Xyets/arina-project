@@ -382,24 +382,41 @@
         });
       }
 
-      // 🌐 Подключение к WebSocket
-      const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+      // 🌐 Подключение к WebSocket с авто‑реконнектом
+      let socket;
 
-      socket.onmessage = (event) => {
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          return;
-        }
+      function connectWS() {
+        socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
-        const currentUser = "{{ user }}"; // уже есть в шаблоне
-
-        if (data.vibration && data.vibration.target === currentUser) {
-          const { strength, duration } = data.vibration;
-          startVibrationTimer(duration, strength);
-        }
+        socket.onopen = () => {
+          console.log("✅ WebSocket подключён");
         };
+
+        socket.onclose = () => {
+          console.log("❌ WebSocket закрыт, пробуем переподключиться...");
+          setTimeout(connectWS, 2000); // переподключение через 2 секунды
+        };
+
+        socket.onmessage = (event) => {
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          const currentUser = "{{ user }}";
+
+          if (data.vibration && data.vibration.target === currentUser) {
+            const { strength, duration } = data.vibration;
+            startVibrationTimer(duration, strength);
+          }
+        };
+      }
+
+      // запускаем подключение
+      connectWS();
+
 
       // ⏱ Таймер вибрации
       let vibrationInterval;
