@@ -242,7 +242,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
             "last_login": "",   # будет пусто
             "_previous_login": "",
             "blocked": False,
-            "_just_logged_in": False,
+            "_just_logged_in": True,
         }
 
     # обновляем имя, если нужно
@@ -772,21 +772,23 @@ def block_member():
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
-        return {"status": "error", "message": "Нет user_id"}, 400
+        return jsonify(status="error", message="Нет user_id"), 400
 
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         vip_data = {}
 
     if user_id in vip_data:
         vip_data[user_id]["blocked"] = True
         with open(vip_file, "w", encoding="utf-8") as f:
             json.dump(vip_data, f, indent=2, ensure_ascii=False)
-        return {"status": "ok", "message": "Мембер заблокирован"}
-    return {"status": "error", "message": "Мембер не найден"}, 404
+        print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован")
+        return jsonify(status="ok", message="Мембер заблокирован")
+
+    return jsonify(status="error", message="Мембер не найден"), 404
 
 
 @app.route("/vip", methods=["GET", "POST"])
@@ -827,14 +829,27 @@ def vip_page():
         else vip_data
     )
 
-    # 📋 Сортировка по сумме
-    sort_by = request.args.get("sort", "total")  # можно ?sort=login_count
+    # 📋 Сортировка
+    sort_by = request.args.get("sort", "total")  # total / login_count / last_login
 
-    sorted_members = sorted(
-        filtered.items(),
-        key=lambda x: x[1].get(sort_by, 0),
-        reverse=True
-    )
+    def parse_date(s):
+        try:
+            return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return datetime.min
+
+    if sort_by == "last_login":
+        sorted_members = sorted(
+            filtered.items(),
+            key=lambda x: parse_date(x[1].get("last_login", "")),
+            reverse=True
+        )
+    else:
+        sorted_members = sorted(
+            filtered.items(),
+            key=lambda x: x[1].get(sort_by, 0),
+            reverse=True
+        )
 
     return render_template("vip.html", user=user, members=sorted_members, query=query)
 
