@@ -239,7 +239,8 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
             "total": 0,
             "notes": "",
             "login_count": 0,
-            "last_login": "",  # будет пусто
+            "last_login": "",   # будет пусто
+            "_previous_login": "",
             "blocked": False,
             "_just_logged_in": False,
         }
@@ -254,12 +255,16 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     if amount and amount > 0:
         vip_data[user_id]["total"] += amount
 
-    # сохраняем старую дату входа
-    previous_login = vip_data[user_id].get("last_login", "—")
-
     # обновляем вход
     if event and event.lower() == "login":
         vip_data[user_id]["login_count"] += 1
+
+        # сохраняем старый last_login в _previous_login
+        old_login = vip_data[user_id].get("last_login")
+        if old_login:
+            vip_data[user_id]["_previous_login"] = old_login
+
+        # обновляем last_login на текущее время
         vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
         vip_data[user_id]["_just_logged_in"] = True
 
@@ -267,8 +272,6 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
-    # возвращаем данные, но с предыдущей датой
-    vip_data[user_id]["_previous_login"] = previous_login
     return vip_data[user_id]
 
 
