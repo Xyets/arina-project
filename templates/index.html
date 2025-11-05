@@ -390,11 +390,21 @@
 
         socket.onopen = () => {
           console.log("✅ WebSocket подключён");
+
+          // 🔄 запускаем клиентский keepalive‑пинг
+          if (socket._pingInterval) clearInterval(socket._pingInterval);
+          socket._pingInterval = setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ type: "ping" }));
+              console.log("📤 ping → серверу");
+            }
+          }, 30000); // каждые 30 секунд
         };
 
         socket.onclose = () => {
           console.log("❌ WebSocket закрыт, пробуем переподключиться...");
-          setTimeout(connectWS, 2000); // переподключение через 2 секунды
+          if (socket._pingInterval) clearInterval(socket._pingInterval);
+          setTimeout(connectWS, 2000);
         };
 
         socket.onmessage = (event) => {
