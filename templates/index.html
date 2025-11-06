@@ -481,7 +481,7 @@
         const data = await res.json();
 
         (data.entries || []).forEach(entry => {
-          const key = entry.user_id;
+          const key = `${entry.user_id}-${entry.last_login}`;
           if (shownEntries.has(key)) return;
           shownEntries.add(key);
 
