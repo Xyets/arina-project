@@ -350,14 +350,21 @@
       });
 
       // 📜 Логи донатов
+      let lastLogCount = 0; // сколько логов уже показано
+
       async function loadLogs() {
         const res = await fetch("/logs_data");
         const data = await res.json();
         const box = document.getElementById("logbox");
 
-        (data.logs || []).forEach(log => {
-          let cssClass = "log-entry";
+        const logs = data.logs || [];
 
+        // берём только новые строки
+        const newLogs = logs.slice(lastLogCount);
+        lastLogCount = logs.length;
+
+        newLogs.forEach(log => {
+          let cssClass = "log-entry";
           // 💗 Донаты (любая строка с "→")
           if (log.includes("→")) cssClass += " log-donation";
 
@@ -511,12 +518,13 @@
       // 🧹 Очистка логов
       document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
         e.preventDefault();
-        shownLogs.clear();
+        lastLogCount = 0; // 👈 сбрасываем счётчик
         document.getElementById("logbox").innerHTML = "";
         fetch("/clear_logs", { method: "POST" })
           .then(() => showToast("Логи очищены ✅"))
           .catch(() => showToast("❌ Ошибка при очистке логов"));
       });
+
 
 
       // 🧹 Очистка очереди
