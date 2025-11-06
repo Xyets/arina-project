@@ -219,6 +219,9 @@
     <div class="vip-card {% if info.blocked %}blocked{% endif %}" id="card_{{ user_id }}">
       <form method="POST">
         <input type="hidden" name="user_id" value="{{ user_id }}">
+        <input type="hidden" name="sort" value="{{ request.args.get('sort', 'total') }}">
+        <input type="hidden" name="q" value="{{ query }}">
+  
         <h3><input type="text" name="name" value="{{ info.name }}"></h3>
         <input type="text" name="notes" value="{{ info.notes }}" placeholder="Заметки">
         <div class="meta">
@@ -286,6 +289,108 @@
         });
       }
     });
+    // подключение к WebSocket
+    let socket;
+
+    function connectWS() {
+      socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+      socket.onopen = () => console.log("✅ WS открыт");
+      socket.onclose = () => {
+        console.log("❌ WS закрыт, переподключаемся...");
+        setTimeout(connectWS, 2000); // авто‑реконнект
+      };
+
+      
+      socket.onmessage = (event) => {
+        let data;
+        try { data = JSON.parse(event.data); } catch { return; }
+
+        if (data.vip_update && data.user_id) {
+          console.log("🔄 Обновляем карточку:", data.user_id);
+          refreshVipCard(data.user_id); // обновляем только одного мембера
+        }
+      };
+
+
+
+    }
+    connectWS();
+
+    // функция обновления списка
+    async function refreshVipList() {
+      try {
+        const res = await fetch("/vip_data"); // эндпоинт должен отдавать JSON
+        const data = await res.json();
+        const grid = document.querySelector(".card-grid");
+        grid.innerHTML = "";
+
+        Object.entries(data.members || {}).forEach(([user_id, info]) => {
+          const card = document.createElement("div");
+          card.className = "vip-card" + (info.blocked ? " blocked" : "");
+          card.id = "card_" + user_id;
+          card.innerHTML = `
+            <form method="POST">
+              <input type="hidden" name="user_id" value="${user_id}">
+              <h3><input type="text" name="name" value="${info.name}"></h3>
+              <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
+              <div class="meta">
+                💗 ${info.total} | 📅 ${info.login_count} входов<br>
+                🕒 Последний визит: ${info.last_login}<br>
+                🆔 ID: <code>${user_id}</code>
+              </div>
+              <div class="actions">
+                <button type="submit">💾</button>
+                <button type="button" onclick="removeMember('${user_id}')">🗑️</button>
+                <button type="button" onclick="blockMember('${user_id}')">🚫</button>
+              </div>
+            </form>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (e) {
+        console.warn("⚠️ Ошибка обновления VIP‑листа:", e);
+      }
+    }
+    async function refreshVipCard(userId) {
+      try {
+        const res = await fetch("/vip_data");
+        const data = await res.json();
+        const info = data.members[userId];
+        if (!info) return; // если такого юзера нет — ничего не делаем
+
+        const card = document.getElementById("card_" + userId);
+        const newCard = document.createElement("div");
+        newCard.className = "vip-card" + (info.blocked ? " blocked" : "");
+        newCard.id = "card_" + userId;
+        newCard.innerHTML = `
+          <form method="POST">
+            <input type="hidden" name="user_id" value="${userId}">
+            <h3><input type="text" name="name" value="${info.name}"></h3>
+            <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
+            <div class="meta">
+              💗 ${info.total} | 📅 ${info.login_count} входов<br>
+              🕒 Последний визит: ${info.last_login}<br>
+              🆔 ID: <code>${userId}</code>
+            </div>
+            <div class="actions">
+              <button type="submit">💾</button>
+              <button type="button" onclick="removeMember('${userId}')">🗑️</button>
+              <button type="button" onclick="blockMember('${userId}')">🚫</button>
+            </div>
+          </form>
+        `;
+
+        if (card) {
+          card.replaceWith(newCard); // заменяем старую карточку
+        } else {
+          document.querySelector(".card-grid").appendChild(newCard); // если новой — добавляем
+        }
+      } catch (e) {
+        console.warn("⚠️ Ошибка обновления карточки:", e);
+      }
+    }
+
   </script>
 </body>
 </html>

@@ -268,6 +268,16 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
         vip_data[user_id]["_just_logged_in"] = True
 
+        try:
+            msg = json.dumps({"vip_update": True, "user_id": user_id})
+            for ws in list(CONNECTED_SOCKETS):
+                try:
+                    asyncio.create_task(ws.send(msg))
+                except:
+                    CONNECTED_SOCKETS.discard(ws)
+        except Exception as e:
+            print(f"⚠️ Ошибка рассылки vip_update: {e}")
+
     # сохраняем файл
     with open(vip_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
@@ -298,33 +308,6 @@ def update_stats(profile_key, category, amount):
 
     with open(stats_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
-
-# ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
-def get_vibration_queue(profile_key):
-    q = vibration_queues.get(profile_key)
-    if not q:
-        return []
-    return list(q._queue)
-
-
-def fallback_amount(text, amount):
-    if amount is None:
-        m = re.search(r"(\d+)", text)
-        if m:
-            return int(m.group(1))
-        if "подарил" in text.lower():
-            return 1
-    return amount
-
-
-def try_extract_user_id_from_text(text):
-    m_hex = re.search(r"\b([0-9a-f]{32})\b", text, re.IGNORECASE)
-    if m_hex:
-        return m_hex.group(1)
-    m_nonopan = re.search(r"nonopan(\d{1,7})", text, re.IGNORECASE)
-    if m_nonopan:
-        return m_nonopan.group(1)
-    return None
 
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
@@ -501,7 +484,22 @@ async def ws_handler(websocket):
 
                 # 👑 Обновление VIP‑листа
                 if user_id:
-                    update_vip(profile_key, user_id, name=name, amount=amount)
+                    profile = update_vip(profile_key, user_id, name=name, amount=amount)
+
+                    # рассылаем событие vip_update для обновления карточки
+                    try:
+                        msg = json.dumps({
+                            "vip_update": True,
+                            "user_id": user_id,
+                            "profile_key": profile_key
+                        })
+                        for ws in list(CONNECTED_SOCKETS):
+                            try:
+                                asyncio.create_task(ws.send(msg))
+                            except:
+                                CONNECTED_SOCKETS.discard(ws)
+                    except Exception as e:
+                        print(f"⚠️ Ошибка рассылки vip_update (donation): {e}")
 
                 await websocket.send("✅ Донат принят")
 
@@ -805,7 +803,6 @@ def vip_page():
     except:
         vip_data = {}
 
-    # ✏️ Обработка редактирования alias и заметок
     if request.method == "POST" and "user_id" in request.form:
         user_id = request.form.get("user_id")
         if user_id in vip_data:
@@ -813,7 +810,12 @@ def vip_page():
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
             with open(vip_file, "w", encoding="utf-8") as f:
                 json.dump(vip_data, f, indent=2, ensure_ascii=False)
-        return redirect("/vip")
+
+        # сохраняем параметры сортировки и поиска из формы
+        sort_by = request.form.get("sort", "total")
+        query = request.form.get("q", "")
+        return redirect(url_for("vip_page", sort=sort_by, q=query))
+
 
     # 🔍 Поиск
     query = request.args.get("q", "").strip().lower()
@@ -882,6 +884,22 @@ def update_name():
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
 
     return {"status": "ok"}
+
+@app.route("/vip_data")
+@login_required
+def vip_data():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            vip_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        vip_data = {}
+
+    return {"members": vip_data}
 
 
 @app.route("/rules", methods=["GET", "POST"])
