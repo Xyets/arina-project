@@ -356,9 +356,6 @@
         const box = document.getElementById("logbox");
 
         (data.logs || []).forEach(log => {
-          if (shownLogs.has(log)) return;
-          shownLogs.add(log);
-
           let cssClass = "log-entry";
 
           // 💗 Донаты (любая строка с "→")
