@@ -1050,20 +1050,21 @@ def clear_logs():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
 
+    # очищаем память и файл
     donation_logs[profile_key] = []
     log_file = f"donations_{profile_key}.log"
     open(log_file, "w", encoding="utf-8").close()
 
-    # рассылаем событие очистки логов
+    # рассылаем событие очистки логов только для этого профиля
     try:
-        msg = json.dumps({"log_update": "Логи очищены ✅"})
+        msg = json.dumps({"clear_logs": True, "profile_key": profile_key})
         for ws in list(CONNECTED_SOCKETS):
             try:
                 asyncio.create_task(ws.send(msg))
             except:
                 CONNECTED_SOCKETS.discard(ws)
     except Exception as e:
-        print(f"⚠️ Ошибка рассылки log_update (clear): {e}")
+        print(f"⚠️ Ошибка рассылки clear_logs: {e}")
 
     return {"status": "ok", "message": "Логи очищены ✅"}
 
