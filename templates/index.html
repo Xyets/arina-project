@@ -422,7 +422,7 @@
             return;
           }
 
-          // 📜 Новые логи
+          // 📜 Новые логи (только для текущего профиля)
           if (data.log_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
             const box = document.getElementById("logbox");
             const div = document.createElement("div");

@@ -76,7 +76,7 @@ def add_log(profile_key, message):
 
     print(entry)
     try:
-        msg = json.dumps({"log_update": entry})
+        msg = json.dumps({"log_update": entry, "profile_key": profile_key})
         for ws in list(CONNECTED_SOCKETS):
             try:
                 asyncio.create_task(ws.send(msg))
