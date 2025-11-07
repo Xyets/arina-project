@@ -426,11 +426,22 @@
           if (data.log_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
             const box = document.getElementById("logbox");
             const div = document.createElement("div");
-            div.className = "log-entry";
-            div.textContent = data.log_update;
+            let cssClass = "log-entry";
+
+            const log = data.log_update;
+
+            if (log.includes("→")) cssClass += " log-donation";       // донаты
+            if (log.includes("🏰")) cssClass += " log-vibration";      // вибрации
+            if (log.includes("🎬")) cssClass += " log-action";         // действия
+            if (log.includes("📥") || log.toLowerCase().includes("вошёл")) 
+              cssClass += " log-login log-entryevent";               // вход/выход
+
+            div.className = cssClass;
+            div.textContent = log;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
           }
+
 
           // 🔁 Обновление очереди вибраций
           if (data.queue_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
