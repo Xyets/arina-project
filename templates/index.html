@@ -350,7 +350,7 @@
       });
 
       // 📜 Логи донатов
-      let lastLogCount = 0; // сколько логов уже показано
+      let lastLogCount = 0;
 
       async function loadLogs() {
         const res = await fetch("/logs_data");
@@ -359,24 +359,26 @@
 
         const logs = data.logs || [];
 
-        // берём только новые строки
-        const newLogs = logs.slice(lastLogCount);
+        if (logs.length === 0) {
+          console.warn("⚠️ Логи пусты, оставляем текущее окно");
+          return;
+        }
+
+        let newLogs;
+        if (lastLogCount === 0) {
+          newLogs = logs; // первая загрузка — показываем все
+        } else {
+          newLogs = logs.slice(lastLogCount);
+        }
         lastLogCount = logs.length;
 
         newLogs.forEach(log => {
           let cssClass = "log-entry";
-          // 💗 Донаты (любая строка с "→")
           if (log.includes("→")) cssClass += " log-donation";
-
-          // 🏰 Вибрации
           if (log.includes("🏰")) cssClass += " log-vibration";
-
-          // 🎬 Действия
           if (log.includes("🎬")) cssClass += " log-action";
-
-          // 📥 События входа/выхода
           if (log.includes("📥") || log.toLowerCase().includes("вошёл")) 
-              cssClass += " log-entryevent";
+            cssClass += " log-entryevent";
 
           const div = document.createElement("div");
           div.className = cssClass;

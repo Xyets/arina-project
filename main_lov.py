@@ -53,9 +53,8 @@ def load_logs_from_file(profile_key):
             return [line.strip() for line in f.readlines()]
     except FileNotFoundError:
         return []
-# при старте заполняем donation_logs из файлов каждого профиля
-donation_logs = {}
 
+donation_logs = {}
 for profile_key in CONFIG["profiles"].keys():
     donation_logs[profile_key] = load_logs_from_file(profile_key)
 
@@ -654,7 +653,7 @@ def stats_history():
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required
-def test_rule(rule_index):
+async def test_rule(rule_index):
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
@@ -665,10 +664,10 @@ def test_rule(rule_index):
         strength = rule.get("strength", 1)
         duration = rule.get("duration", 5)
 
-        print(
-            f"🧪 [{profile_key}] Тест правила {rule_index}: сила={strength}, время={duration}"
-        )
-        send_vibration_cloud(profile_key, strength, duration)
+        print(f"🧪 [{profile_key}] Тест правила {rule_index}: сила={strength}, время={duration}")
+
+        # кладём задачу в очередь и сразу рассылаем обновление
+        await add_vibration(profile_key, strength, duration)
 
         return {
             "status": "ok",
@@ -1084,9 +1083,9 @@ def clear_queue():
             except:
                 break
 
-    # рассылаем пустую очередь на фронт
+    # рассылаем пустую очередь на фронт только для этого профиля
     try:
-        msg = json.dumps({"queue_update": []})
+        msg = json.dumps({"queue_update": [], "profile_key": profile_key})
         for ws in list(CONNECTED_SOCKETS):
             try:
                 asyncio.create_task(ws.send(msg))
@@ -1096,6 +1095,7 @@ def clear_queue():
         print(f"⚠️ Ошибка рассылки queue_update (clear): {e}")
 
     return {"status": "ok", "message": "Очередь очищена ✅"}
+
 
 @app.route("/close_period", methods=["POST"])
 @login_required
