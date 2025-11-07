@@ -75,6 +75,16 @@ def add_log(profile_key, message):
         donation_logs[profile_key].pop(0)
 
     print(entry)
+    try:
+        msg = json.dumps({"log_update": entry})
+        for ws in list(CONNECTED_SOCKETS):
+            try:
+                asyncio.create_task(ws.send(msg))
+            except:
+                CONNECTED_SOCKETS.discard(ws)
+    except Exception as e:
+        print(f"⚠️ Ошибка рассылки log_update: {e}")
+
 
 def generate_utoken(uid, secret="arina_secret_123"):
     raw = uid + secret
@@ -317,6 +327,18 @@ def get_vibration_queue(profile_key):
         return []
     return list(q._queue)
 
+def broadcast_queue_update(profile_key):
+    try:
+        msg = json.dumps({"queue_update": get_vibration_queue(profile_key)})
+        for ws in list(CONNECTED_SOCKETS):
+            try:
+                asyncio.create_task(ws.send(msg))
+            except:
+                CONNECTED_SOCKETS.discard(ws)
+    except Exception as e:
+        print(f"⚠️ Ошибка рассылки queue_update: {e}")
+
+
 def fallback_amount(text, amount):
     if amount is None:
         m = re.search(r"(\d+)", text)
@@ -425,16 +447,10 @@ async def ws_handler(websocket):
                     await websocket.send(f"❌ Профиль '{profile_key}' не найден")
                     continue
 
-                # ⚠️ donation_id можно логировать, но не блокировать
-                if not donation_id:
-                    print("⚠️ Нет donation_id — может быть тест или ошибка")
-
                 # 🧠 Обработка входа/выхода
                 if "event" in data:
                     event = data["event"]
-                    user_id = data.get("user_id")
                     name = data.get("name", "Аноним")
-                    text = data.get("text", "")
 
                     profile = update_vip(profile_key, user_id, name=name, event=event)
 
@@ -443,23 +459,24 @@ async def ws_handler(websocket):
                         f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
                     )
 
-                    # если это вход и профиль обновился → отправляем карточку на фронт
+                    # если это вход → рассылаем entry_update
                     if profile and profile.get("_just_logged_in"):
-                        await websocket.send(
-                            json.dumps(
-                                {
-                                    "entry": {
-                                        "user_id": user_id,
-                                        "name": profile["name"],
-                                        "visits": profile["login_count"],
-                                        "last_login": profile["_previous_login"],
-                                        "total_tips": profile["total"],
-                                        "notes": profile["notes"],
-                                    }
-                                }
-                            )
-                        )
-                        profile["_just_logged_in"] = False  # сбрасываем флаг
+                        msg = json.dumps({
+                            "entry_update": {
+                                "user_id": user_id,
+                                "name": profile["name"],
+                                "visits": profile["login_count"],
+                                "last_login": profile["_previous_login"],
+                                "total_tips": profile["total"],
+                                "notes": profile["notes"],
+                            }
+                        })
+                        for ws in list(CONNECTED_SOCKETS):
+                            try:
+                                asyncio.create_task(ws.send(msg))
+                            except:
+                                CONNECTED_SOCKETS.discard(ws)
+                        profile["_just_logged_in"] = False
 
                     await websocket.send(f"✅ Событие {event} обработано")
                     continue
@@ -473,20 +490,15 @@ async def ws_handler(websocket):
                 action_text = apply_rule(profile_key, amount, text)
 
                 if action_text:
-                    add_log(
-                        profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
-                    )
+                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
                 else:
-                    add_log(
-                        profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
-                    )
+                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
                     update_stats(profile_key, "other", amount)
 
                 # 👑 Обновление VIP‑листа
                 if user_id:
                     profile = update_vip(profile_key, user_id, name=name, amount=amount)
 
-                    # рассылаем событие vip_update для обновления карточки
                     try:
                         msg = json.dumps({
                             "vip_update": True,
@@ -501,6 +513,9 @@ async def ws_handler(websocket):
                     except Exception as e:
                         print(f"⚠️ Ошибка рассылки vip_update (donation): {e}")
 
+                # 🔁 Обновляем очередь вибраций
+                broadcast_queue_update(profile_key)
+
                 await websocket.send("✅ Донат принят")
 
             except Exception as e:
@@ -508,7 +523,6 @@ async def ws_handler(websocket):
                 await websocket.send("❌ Ошибка обработки")
 
     finally:
-        # 🔌 Убираем клиента из списка при отключении
         CONNECTED_SOCKETS.discard(websocket)
         print("🔌 WebSocket отключён")
 
@@ -1020,12 +1034,20 @@ def clear_logs():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
 
-    # очищаем память
     donation_logs[profile_key] = []
-
-    # очищаем файл
     log_file = f"donations_{profile_key}.log"
     open(log_file, "w", encoding="utf-8").close()
+
+    # рассылаем событие очистки логов
+    try:
+        msg = json.dumps({"log_update": "Логи очищены ✅"})
+        for ws in list(CONNECTED_SOCKETS):
+            try:
+                asyncio.create_task(ws.send(msg))
+            except:
+                CONNECTED_SOCKETS.discard(ws)
+    except Exception as e:
+        print(f"⚠️ Ошибка рассылки log_update (clear): {e}")
 
     return {"status": "ok", "message": "Логи очищены ✅"}
 
@@ -1044,6 +1066,18 @@ def clear_queue():
                 q.task_done()
             except:
                 break
+
+    # рассылаем пустую очередь на фронт
+    try:
+        msg = json.dumps({"queue_update": []})
+        for ws in list(CONNECTED_SOCKETS):
+            try:
+                asyncio.create_task(ws.send(msg))
+            except:
+                CONNECTED_SOCKETS.discard(ws)
+    except Exception as e:
+        print(f"⚠️ Ошибка рассылки queue_update (clear): {e}")
+
     return {"status": "ok", "message": "Очередь очищена ✅"}
 
 @app.route("/close_period", methods=["POST"])

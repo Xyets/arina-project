@@ -220,3 +220,118 @@ function connectWS()
 
 
   </script>
+  
+async def ws_handler(websocket):
+    print("🔌 WebSocket подключён")
+    CONNECTED_SOCKETS.add(websocket)
+    try:
+        async for message in websocket:
+            try:
+                print("📩 Получено сообщение от WebSocket:", message)
+
+                data = json.loads(message)
+                text = data.get("text", "")
+                name = (data.get("name") or "Аноним").strip()
+                user_id = data.get("user_id")
+                amount = data.get("amount")
+                donation_id = data.get("donation_id")
+                user = data.get("user")
+
+                # 🔐 Проверка профиля
+                if not user:
+                    await websocket.send("❌ Не указан профиль")
+                    continue
+
+                mode = CURRENT_MODE["value"]  # private / public
+                profile_key = f"{user}_{mode}"
+
+                if profile_key not in CONFIG.get("profiles", {}):
+                    await websocket.send(f"❌ Профиль '{profile_key}' не найден")
+                    continue
+
+                # ⚠️ donation_id можно логировать, но не блокировать
+                if not donation_id:
+                    print("⚠️ Нет donation_id — может быть тест или ошибка")
+
+                # 🧠 Обработка входа/выхода
+                if "event" in data:
+                    event = data["event"]
+                    user_id = data.get("user_id")
+                    name = data.get("name", "Аноним")
+                    text = data.get("text", "")
+
+                    profile = update_vip(profile_key, user_id, name=name, event=event)
+
+                    add_log(
+                        profile_key,
+                        f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
+                    )
+
+                    # если это вход и профиль обновился → отправляем карточку на фронт
+                    if profile and profile.get("_just_logged_in"):
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "entry": {
+                                        "user_id": user_id,
+                                        "name": profile["name"],
+                                        "visits": profile["login_count"],
+                                        "last_login": profile["_previous_login"],
+                                        "total_tips": profile["total"],
+                                        "notes": profile["notes"],
+                                    }
+                                }
+                            )
+                        )
+                        profile["_just_logged_in"] = False  # сбрасываем флаг
+
+                    await websocket.send(f"✅ Событие {event} обработано")
+                    continue
+
+                # 💸 Проверка суммы
+                if not amount or amount <= 0:
+                    await websocket.send("ℹ️ Сообщение не содержит донат")
+                    continue
+
+                # ✅ Логируем донат + действие
+                action_text = apply_rule(profile_key, amount, text)
+
+                if action_text:
+                    add_log(
+                        profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
+                    )
+                else:
+                    add_log(
+                        profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
+                    )
+                    update_stats(profile_key, "other", amount)
+
+                # 👑 Обновление VIP‑листа
+                if user_id:
+                    profile = update_vip(profile_key, user_id, name=name, amount=amount)
+
+                    # рассылаем событие vip_update для обновления карточки
+                    try:
+                        msg = json.dumps({
+                            "vip_update": True,
+                            "user_id": user_id,
+                            "profile_key": profile_key
+                        })
+                        for ws in list(CONNECTED_SOCKETS):
+                            try:
+                                asyncio.create_task(ws.send(msg))
+                            except:
+                                CONNECTED_SOCKETS.discard(ws)
+                    except Exception as e:
+                        print(f"⚠️ Ошибка рассылки vip_update (donation): {e}")
+
+                await websocket.send("✅ Донат принят")
+
+            except Exception as e:
+                print("⚠️ Ошибка обработки:", e)
+                await websocket.send("❌ Ошибка обработки")
+
+    finally:
+        # 🔌 Убираем клиента из списка при отключении
+        CONNECTED_SOCKETS.discard(websocket)
+        print("🔌 WebSocket отключён")

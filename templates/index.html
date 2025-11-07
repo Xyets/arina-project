@@ -410,24 +410,71 @@
           if (socket._pingInterval) clearInterval(socket._pingInterval);
           setTimeout(connectWS, 2000);
         };
-
+        
         socket.onmessage = (event) => {
           let data;
-          try {
-            data = JSON.parse(event.data);
-          } catch {
-            return;
+          try { data = JSON.parse(event.data); } catch { return; }
+
+          // 🧹 Очистка логов
+          if (data.clear_logs) {
+            const box = document.getElementById("logbox");
+            box.innerHTML = "";   // очищаем окно логов
+            return;               // выходим, чтобы не добавлять лишнего
           }
 
-          const currentUser = "{{ user }}";
+          // 📜 Новые логи
+          if (data.log_update) {
+            const box = document.getElementById("logbox");
+            const div = document.createElement("div");
+            div.className = "log-entry";
+            div.textContent = data.log_update;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+          }
 
-          if (data.vibration && data.vibration.target === currentUser) {
+          // 🔁 Обновление очереди вибраций
+          if (data.queue_update) {
+            const box = document.getElementById("queuebox");
+            if (data.queue_update.length === 0) {
+              box.innerHTML = "<div>Очередь пуста ✅</div>";
+            } else {
+              box.innerHTML = data.queue_update.map(([strength, duration], i) =>
+                `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
+              ).join("");
+            }
+          }
+
+          // 👑 Новые мемберы
+          if (data.entry_update) {
+            const entry = data.entry_update;
+            const key = `${entry.user_id}-${entry.last_login}`;
+            if (!shownEntries.has(key)) {
+              shownEntries.add(key);
+              let message = entry.visits
+                ? `👑 <strong>${entry.name}</strong><br>
+                   📅 Предыдущий визит: ${formatDate(entry.last_login)}
+                   🔢 Всего визитов: ${entry.visits}<br>
+                   💗 Всего чаевых: ${entry.total_tips}<br>
+                   📝 Заметки: ${entry.notes || "нет"}`
+                : "🆕 Новый мембер!";
+              showEntryPopup(message);
+            }
+          }
+
+          // 🚫 VIP‑обновления (например, блокировка/удаление/редактирование)
+          if (data.vip_update && data.user_id) {
+            refreshVipCard(data.user_id).then(() => {
+              resortCards("{{ request.args.get('sort', 'total') }}");
+            });
+          }
+
+          // 💖 Вибрации
+          if (data.vibration && data.vibration.target === "{{ user }}") {
             const { strength, duration } = data.vibration;
             startVibrationTimer(duration, strength);
           }
         };
       }
-
       // запускаем подключение
       connectWS();
 
@@ -566,15 +613,6 @@
           toast.className = toast.className.replace("show", "");
         }, 3000);
       }
-
-      // ⏱ Запускаем циклы
-      setInterval(loadLogs, 2000);
-      setInterval(checkNewEntries, 3000);
-      setInterval(loadQueue, 2000);
-      loadLogs();
-      checkNewEntries();
-      loadQueue();
-
         // 🖱️ Перетаскивание entryPopup
         let isDragging = false, offsetX = 0, offsetY = 0;
         const popup = document.getElementById("entryPopup");
