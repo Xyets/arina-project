@@ -328,15 +328,22 @@ def get_vibration_queue(profile_key):
     return list(q._queue)
 
 def broadcast_queue_update(profile_key):
-    try:
-        msg = json.dumps({"queue_update": get_vibration_queue(profile_key)})
-        for ws in list(CONNECTED_SOCKETS):
-            try:
-                asyncio.create_task(ws.send(msg))
-            except:
-                CONNECTED_SOCKETS.discard(ws)
-    except Exception as e:
-        print(f"⚠️ Ошибка рассылки queue_update: {e}")
+    q = vibration_queues.get(profile_key)
+    if q:
+        queue_list = list(q.queue)
+    else:
+        queue_list = []
+
+    msg = json.dumps({
+        "queue_update": queue_list,
+        "profile_key": profile_key
+    })
+
+    for ws in list(CONNECTED_SOCKETS):
+        try:
+            asyncio.create_task(ws.send(msg))
+        except:
+            CONNECTED_SOCKETS.discard(ws)
 
 
 def fallback_amount(text, amount):
