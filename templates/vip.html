@@ -240,6 +240,34 @@
   </div>
 
   <script>
+    // AJAX‑сохранение карточки
+    async function saveMember(form) {
+      const formData = new FormData(form);
+
+      try {
+        const res = await fetch("/vip", {
+          method: "POST",
+          body: formData
+        });
+
+        if (res.ok) {
+          console.log("✅ Сохранено");
+
+          // обновляем карточку заново из /vip_data
+          const userId = form.querySelector("input[name='user_id']").value;
+          await refreshVipCard(userId);
+
+          // пересортируем список после обновления
+          resortCards("{{ request.args.get('sort', 'total') }}");
+        } else {
+          alert("❌ Ошибка сохранения");
+        }
+      } catch (e) {
+        console.warn("⚠️ Ошибка AJAX‑сохранения:", e);
+        alert("❌ Ошибка сохранения");
+      }
+    }
+
     function removeMember(userId) {
       fetch("/remove_member", {
         method: "POST",
@@ -278,7 +306,7 @@
     document.querySelectorAll(".date").forEach(el => {
       const raw = el.textContent.trim();
       if (!raw) return;
-      const iso = raw.replace(" ", "T"); // "YYYY-MM-DD HH:MM:SS" → ISO
+      const iso = raw.replace(" ", "T");
       const d = new Date(iso);
       if (!isNaN(d.getTime())) {
         el.textContent = d.toLocaleString("ru-RU", {
@@ -289,38 +317,36 @@
         });
       }
     });
+
     // подключение к WebSocket
     let socket;
-
     function connectWS() {
       socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
       socket.onopen = () => console.log("✅ WS открыт");
       socket.onclose = () => {
         console.log("❌ WS закрыт, переподключаемся...");
-        setTimeout(connectWS, 2000); // авто‑реконнект
+        setTimeout(connectWS, 2000);
       };
 
-      
       socket.onmessage = (event) => {
         let data;
         try { data = JSON.parse(event.data); } catch { return; }
 
         if (data.vip_update && data.user_id) {
           console.log("🔄 Обновляем карточку:", data.user_id);
-          refreshVipCard(data.user_id); // обновляем только одного мембера
+          refreshVipCard(data.user_id).then(() => {
+            resortCards("{{ request.args.get('sort', 'total') }}");
+          });
         }
       };
-
-
-
     }
     connectWS();
 
-    // функция обновления списка
+    // обновление всего списка
     async function refreshVipList() {
       try {
-        const res = await fetch("/vip_data"); // эндпоинт должен отдавать JSON
+        const res = await fetch("/vip_data");
         const data = await res.json();
         const grid = document.querySelector(".card-grid");
         grid.innerHTML = "";
@@ -330,7 +356,7 @@
           card.className = "vip-card" + (info.blocked ? " blocked" : "");
           card.id = "card_" + user_id;
           card.innerHTML = `
-            <form method="POST">
+            <form onsubmit="event.preventDefault(); saveMember(this)">
               <input type="hidden" name="user_id" value="${user_id}">
               <h3><input type="text" name="name" value="${info.name}"></h3>
               <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
@@ -352,19 +378,21 @@
         console.warn("⚠️ Ошибка обновления VIP‑листа:", e);
       }
     }
+
+    // обновление одной карточки
     async function refreshVipCard(userId) {
       try {
         const res = await fetch("/vip_data");
         const data = await res.json();
         const info = data.members[userId];
-        if (!info) return; // если такого юзера нет — ничего не делаем
+        if (!info) return;
 
         const card = document.getElementById("card_" + userId);
         const newCard = document.createElement("div");
         newCard.className = "vip-card" + (info.blocked ? " blocked" : "");
         newCard.id = "card_" + userId;
         newCard.innerHTML = `
-          <form method="POST">
+          <form onsubmit="event.preventDefault(); saveMember(this)">
             <input type="hidden" name="user_id" value="${userId}">
             <h3><input type="text" name="name" value="${info.name}"></h3>
             <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
@@ -382,15 +410,47 @@
         `;
 
         if (card) {
-          card.replaceWith(newCard); // заменяем старую карточку
+          card.replaceWith(newCard);
         } else {
-          document.querySelector(".card-grid").appendChild(newCard); // если новой — добавляем
+          document.querySelector(".card-grid").appendChild(newCard);
         }
       } catch (e) {
         console.warn("⚠️ Ошибка обновления карточки:", e);
       }
     }
 
+    // пересортировка карточек
+    function resortCards(sortBy) {
+      const grid = document.querySelector(".card-grid");
+      const cards = Array.from(grid.children);
+
+      cards.sort((a, b) => {
+        if (sortBy === "last_login") {
+          const dateA = new Date(a.querySelector(".date")?.textContent || 0);
+          const dateB = new Date(b.querySelector(".date")?.textContent || 0);
+          return dateB - dateA;
+        }
+        if (sortBy === "login_count") {
+          const textA = a.querySelector(".meta").textContent;
+          const textB = b.querySelector(".meta").textContent;
+          const numA = parseInt(textA.match(/(\d+) вход/));
+          const numB = parseInt(textB.match(/(\d+) вход/));
+          return (numB || 0) - (numA || 0);
+        }
+        if (sortBy === "total") {
+          const textA = a.querySelector(".meta").textContent;
+          const textB = b.querySelector(".meta").textContent;
+          const numA = parseInt(textA.match(/💗\s*(\d+)/));
+          const numB = parseInt(textB.match(/💗\s*(\d+)/));
+          return (numB || 0) - (numA || 0);
+        }
+        return 0;
+      });
+
+      grid.innerHTML = "";
+      cards.forEach(c => grid.appendChild(c));
+    }
   </script>
+
 </body>
 </html>
