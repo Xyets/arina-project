@@ -183,7 +183,8 @@ async def vibration_worker(profile_key):
                     "strength": strength,
                     "duration": duration,
                     "target": target_user  # ← совпадает с {{ user }} на фронте
-                }
+                },
+                "profile_key": profile_key
             })
             print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
             for ws in list(CONNECTED_SOCKETS):
@@ -210,21 +211,22 @@ def load_rules(profile_key):
     except:
         return {"default": [1, 5], "rules": []}
 
-def apply_rule(profile_key, amount, text):
+async def apply_rule(profile_key, amount, text):
     rules = load_rules(profile_key)
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
             if action and action.strip():
-                update_stats(profile_key, "actions", amount)  # см. блок ниже
+                update_stats(profile_key, "actions", amount)
                 return f"🎬 Действие: {action}"
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
-            vibration_queues[profile_key].put_nowait((strength, duration))
+            await add_vibration(profile_key, strength, duration)
             update_stats(profile_key, "vibrations", amount)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
     return None
+
 # ---------------- VIP ----------------
 
 
@@ -279,7 +281,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         vip_data[user_id]["_just_logged_in"] = True
 
         try:
-            msg = json.dumps({"vip_update": True, "user_id": user_id})
+            msg = json.dumps({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
             for ws in list(CONNECTED_SOCKETS):
                 try:
                     asyncio.create_task(ws.send(msg))
@@ -329,10 +331,7 @@ def get_vibration_queue(profile_key):
 
 def broadcast_queue_update(profile_key):
     q = vibration_queues.get(profile_key)
-    if q:
-        queue_list = list(q.queue)
-    else:
-        queue_list = []
+    queue_list = list(q._queue) if q else []
 
     msg = json.dumps({
         "queue_update": queue_list,
@@ -345,7 +344,16 @@ def broadcast_queue_update(profile_key):
         except:
             CONNECTED_SOCKETS.discard(ws)
 
+async def add_vibration(profile_key, strength, duration):
+    q = vibration_queues.get(profile_key)
+    if not q:
+        q = asyncio.Queue()
+        vibration_queues[profile_key] = q
 
+    await q.put((strength, duration))
+    broadcast_queue_update(profile_key)
+
+ 
 def fallback_amount(text, amount):
     if amount is None:
         m = re.search(r"(\d+)", text)
@@ -476,7 +484,8 @@ async def ws_handler(websocket):
                                 "last_login": profile["_previous_login"],
                                 "total_tips": profile["total"],
                                 "notes": profile["notes"],
-                            }
+                            },
+                            "profile_key": profile_key
                         })
                         for ws in list(CONNECTED_SOCKETS):
                             try:
@@ -494,7 +503,7 @@ async def ws_handler(websocket):
                     continue
 
                 # ✅ Логируем донат + действие
-                action_text = apply_rule(profile_key, amount, text)
+                action_text = await apply_rule(profile_key, amount, text)
 
                 if action_text:
                     add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
