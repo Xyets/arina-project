@@ -391,6 +391,19 @@
         const newCard = document.createElement("div");
         newCard.className = "vip-card" + (info.blocked ? " blocked" : "");
         newCard.id = "card_" + userId;
+
+        // сохраняем дату в data-last-login для сортировки
+        const rawDate = info.last_login;
+        const d = new Date(rawDate.replace(" ", "T"));
+        const formattedDate = !isNaN(d.getTime())
+          ? d.toLocaleString("ru-RU", {
+              day: "numeric",
+              month: "long",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          : rawDate;
+
         newCard.innerHTML = `
           <form onsubmit="event.preventDefault(); saveMember(this)">
             <input type="hidden" name="user_id" value="${userId}">
@@ -398,7 +411,7 @@
             <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
             <div class="meta">
               💗 ${info.total} | 📅 ${info.login_count} входов<br>
-              🕒 Последний визит: <span class="date">${info.last_login}</span><br>
+              🕒 Последний визит: <span class="date" data-last-login="${rawDate}">${formattedDate}</span><br>
               🆔 ID: <code>${userId}</code>
             </div>
             <div class="actions">
@@ -415,13 +428,12 @@
           document.querySelector(".card-grid").appendChild(newCard);
         }
 
-        // 👉 пересортировать список после обновления карточки
+        // пересортировать список после обновления карточки
         resortCards("{{ request.args.get('sort', 'total') }}");
       } catch (e) {
         console.warn("⚠️ Ошибка обновления карточки:", e);
       }
     }
-
 
     // пересортировка карточек
     function resortCards(sortBy) {
@@ -430,8 +442,8 @@
 
       cards.sort((a, b) => {
         if (sortBy === "last_login") {
-          const dateA = new Date(a.querySelector(".date")?.textContent || 0);
-          const dateB = new Date(b.querySelector(".date")?.textContent || 0);
+          const dateA = new Date(a.querySelector(".date")?.dataset.lastLogin || 0);
+          const dateB = new Date(b.querySelector(".date")?.dataset.lastLogin || 0);
           return dateB - dateA;
         }
         if (sortBy === "login_count") {
@@ -453,7 +465,9 @@
 
       grid.innerHTML = "";
       cards.forEach(c => grid.appendChild(c));
+      console.log("✅ Сортировка завершена (" + sortBy + ")");
     }
+
     // сохраняем позицию перед обновлением страницы
     window.addEventListener("beforeunload", () => {
       localStorage.setItem("vip_scroll", window.scrollY);
