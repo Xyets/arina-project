@@ -454,6 +454,18 @@
       grid.innerHTML = "";
       cards.forEach(c => grid.appendChild(c));
     }
+    // сохраняем позицию перед обновлением страницы
+    window.addEventListener("beforeunload", () => {
+      localStorage.setItem("vip_scroll", window.scrollY);
+    });
+
+    // восстанавливаем позицию после загрузки
+    window.addEventListener("load", () => {
+      const y = localStorage.getItem("vip_scroll");
+      if (y) {
+        window.scrollTo(0, parseInt(y));
+      }
+    });
   </script>
 
 </body>
