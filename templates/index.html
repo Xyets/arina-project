@@ -416,14 +416,14 @@
           try { data = JSON.parse(event.data); } catch { return; }
 
           // 🧹 Очистка логов
-          if (data.clear_logs) {
+          if (data.clear_logs && data.profile_key === "{{ user }}_{{ current_mode }}") {
             const box = document.getElementById("logbox");
             box.innerHTML = "";   // очищаем окно логов
-            return;               // выходим, чтобы не добавлять лишнего
+            return;
           }
 
           // 📜 Новые логи
-          if (data.log_update) {
+          if (data.log_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
             const box = document.getElementById("logbox");
             const div = document.createElement("div");
             div.className = "log-entry";
@@ -433,7 +433,7 @@
           }
 
           // 🔁 Обновление очереди вибраций
-          if (data.queue_update) {
+          if (data.queue_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
             const box = document.getElementById("queuebox");
             if (data.queue_update.length === 0) {
               box.innerHTML = "<div>Очередь пуста ✅</div>";
@@ -445,7 +445,7 @@
           }
 
           // 👑 Новые мемберы
-          if (data.entry_update) {
+          if (data.entry_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
             const entry = data.entry_update;
             const key = `${entry.user_id}-${entry.last_login}`;
             if (!shownEntries.has(key)) {
@@ -461,8 +461,8 @@
             }
           }
 
-          // 🚫 VIP‑обновления (например, блокировка/удаление/редактирование)
-          if (data.vip_update && data.user_id) {
+          // 🚫 VIP‑обновления
+          if (data.vip_update && data.profile_key === "{{ user }}_{{ current_mode }}" && data.user_id) {
             refreshVipCard(data.user_id).then(() => {
               resortCards("{{ request.args.get('sort', 'total') }}");
             });
