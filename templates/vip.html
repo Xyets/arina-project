@@ -398,7 +398,7 @@
             <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
             <div class="meta">
               💗 ${info.total} | 📅 ${info.login_count} входов<br>
-              🕒 Последний визит: ${info.last_login}<br>
+              🕒 Последний визит: <span class="date">${info.last_login}</span><br>
               🆔 ID: <code>${userId}</code>
             </div>
             <div class="actions">
@@ -414,10 +414,14 @@
         } else {
           document.querySelector(".card-grid").appendChild(newCard);
         }
+
+        // 👉 пересортировать список после обновления карточки
+        resortCards("{{ request.args.get('sort', 'total') }}");
       } catch (e) {
         console.warn("⚠️ Ошибка обновления карточки:", e);
       }
     }
+
 
     // пересортировка карточек
     function resortCards(sortBy) {
