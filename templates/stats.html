@@ -54,7 +54,9 @@
         <th>Вибрации</th>
         <th>Действия</th>
         <th>Иное</th>
-        <th>Всего</th>
+        {% if user == "Irina" %}
+          <th>%Арчи</th>
+        {% endif %}
         <th>Чистый доход</th>
       </tr>
       {% for day, data in stats.items() %}
@@ -63,8 +65,13 @@
         <td>{{ data.vibrations }}</td>
         <td>{{ data.actions }}</td>
         <td>{{ data.other }}</td>
-        <td><b>{{ data.total }}</b></td>
-        <td><b>{{ (data.total * 0.7)|round(2) }}</b></td>
+        {% if user == "Irina" %}
+          {# комиссия Арчи: 10% от (вибрации * 0.7) #}
+          <td><b>{{ (data.vibrations * 0.7 * 0.1)|round(2) }}</b></td>
+          <td><b>{{ (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|round(2) }}</b></td>
+        {% else %}
+          <td><b>{{ (data.total * 0.7)|round(2) }}</b></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </table>
