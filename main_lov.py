@@ -631,8 +631,33 @@ def stats_history():
     except:
         archive = {}
 
-    return render_template("stats_history.html", stats=archive, user=user)
+    # фильтрация по датам
+    from_date = request.args.get("from")
+    to_date = request.args.get("to")
 
+    filtered = {}
+    for day, data in archive.items():
+        try:
+            d = datetime.strptime(day, "%Y-%m-%d")
+        except:
+            continue
+        if from_date and d < datetime.strptime(from_date, "%Y-%m-%d"):
+            continue
+        if to_date and d > datetime.strptime(to_date, "%Y-%m-%d"):
+            continue
+        filtered[day] = data
+
+    # считаем суммы
+    total_income = sum(day["total"] * 0.7 for day in filtered.values())
+    archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in filtered.values())
+
+    return render_template(
+        "stats_history.html",
+        stats=filtered,
+        user=user,
+        total_income=round(total_income),
+        archi_fee=round(archi_fee)
+    )
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required

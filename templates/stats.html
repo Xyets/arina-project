@@ -96,6 +96,19 @@
         {% endif %}
       </tr>
       {% endfor %}
+      <!-- Итоговая строка -->
+      <tr style="font-weight:bold; background:#e0f7fa;">
+        <td>Итого</td>
+        <td>{{ stats.values()|map(attribute='vibrations')|sum }}</td>
+        <td>{{ stats.values()|map(attribute='actions')|sum }}</td>
+        <td>{{ stats.values()|map(attribute='other')|sum }}</td>
+        {% if user == "Irina" %}
+          <td>{{ stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1|round(0) }}</td>
+          <td>{{ stats.values()|map(attribute='total')|sum * 0.7 - stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1|round(0) }}</td>
+        {% else %}
+          <td>{{ stats.values()|map(attribute='total')|sum * 0.7|round(0) }}</td>
+        {% endif %}
+      </tr>
     </table>
   </div>
 

@@ -2,84 +2,90 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>📜 История статистики</title>
+  <title>📜 Архив статистики</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #fdfbfb, #ebedee);
-      color: #333;
-      margin: 0;
-      padding: 40px;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 30px;
-      color: #444;
-    }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin: 20px auto;
-      max-width: 900px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    th, td {
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background: #a3d8f4;
-      color: white;
-      font-weight: 600;
-    }
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-    a.back {
-      display: inline-block;
-      margin-top: 20px;
-      background: #a3d8f4;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 20px;
-      text-decoration: none;
-      transition: 0.3s;
-    }
-    a.back:hover {
-      background: #74c0e3;
-    }
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg,#fdfbfb,#ebedee); color:#333; margin:0; padding:40px; }
+    h2 { text-align:center; margin-bottom:30px; color:#444; }
+    .card { background:#fff; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,0.1); padding:20px; margin:20px auto; max-width:900px; }
+    table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+    th,td { padding:10px; text-align:center; }
+    th { background:#a3d8f4; color:white; font-weight:600; }
+    tr:nth-child(even){ background:#f9f9f9; }
+    a.back { display:inline-block; margin-top:20px; background:#a3d8f4; color:white; padding:10px 20px; border-radius:20px; text-decoration:none; transition:0.3s; }
+    a.back:hover { background:#74c0e3; }
+    form.filter { text-align:center; margin-bottom:20px; }
+    form.filter input { padding:5px; margin:0 5px; }
+    form.filter button { padding:5px 15px; border:none; border-radius:10px; background:#a3d8f4; color:white; cursor:pointer; }
   </style>
 </head>
 <body>
   <h2>📜 Архив статистики для {{ user }}</h2>
 
+  <!-- Фильтрация по датам -->
+  <form class="filter" method="GET" action="{{ url_for('stats_history') }}">
+    <label>с: <input type="date" name="from" value="{{ request.args.get('from','') }}"></label>
+    <label>по: <input type="date" name="to" value="{{ request.args.get('to','') }}"></label>
+    <button type="submit">🔍 Показать</button>
+  </form>
+
   <div class="card">
+    <canvas id="historyChart" height="200"></canvas>
     <table>
       <tr>
         <th>Дата</th>
         <th>Вибрации</th>
         <th>Действия</th>
         <th>Иное</th>
-        <th>Всего</th>
+        {% if user == "Irina" %}
+          <th>%Арчи</th>
+        {% elif user == "Arina" %}
+          <th>Доход от Иры</th>
+        {% endif %}
         <th>Чистый доход</th>
       </tr>
+      {% set sum_vibr = 0 %}
+      {% set sum_act = 0 %}
+      {% set sum_other = 0 %}
+      {% set sum_archi = 0 %}
+      {% set sum_income = 0 %}
       {% for day, data in stats.items() %}
+      {% set sum_vibr = sum_vibr + data.vibrations %}
+      {% set sum_act = sum_act + data.actions %}
+      {% set sum_other = sum_other + data.other %}
+      {% set income = (data.total * 0.7)|round(0) %}
+      {% if user == "Irina" %}
+        {% set archi = (data.vibrations * 0.7 * 0.1)|round(0) %}
+        {% set sum_archi = sum_archi + archi %}
+        {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|round(0) %}
+      {% elif user == "Arina" %}
+        {% set archi = (data.vibrations * 0.7 * 0.1)|round(0) %}
+        {% set sum_archi = sum_archi + archi %}
+      {% endif %}
+      {% set sum_income = sum_income + income %}
       <tr>
         <td>{{ day }}</td>
-        <td>{{ data.vibrations }}</td>
-        <td>{{ data.actions }}</td>
-        <td>{{ data.other }}</td>
-        <td><b>{{ data.total }}</b></td>
-        <td><b>{{ (data.total * 0.7)|round(2) }}</b></td>
+        <td>{{ "{:,}".format(data.vibrations) }}</td>
+        <td>{{ "{:,}".format(data.actions) }}</td>
+        <td>{{ "{:,}".format(data.other) }}</td>
+        {% if user in ["Irina","Arina"] %}
+          <td><b>{{ "{:,}".format(archi) }}</b></td>
+        {% endif %}
+        <td><b>{{ "{:,}".format(income) }}</b></td>
       </tr>
       {% endfor %}
+      <!-- Итоговая строка -->
+      <tr style="font-weight:bold; background:#e0f7fa;">
+        <td>Итого</td>
+        <td>{{ "{:,}".format(sum_vibr) }}</td>
+        <td>{{ "{:,}".format(sum_act) }}</td>
+        <td>{{ "{:,}".format(sum_other) }}</td>
+        {% if user in ["Irina","Arina"] %}
+          <td>{{ "{:,}".format(sum_archi) }}</td>
+        {% endif %}
+        <td>{{ "{:,}".format(sum_income) }}</td>
+      </tr>
     </table>
   </div>
 
@@ -87,5 +93,24 @@
     <a href="{{ url_for('stats') }}" class="back">⬅ Назад к статистике</a>
     <a href="{{ url_for('index') }}" class="back">🏠 Панель</a>
   </div>
+
+  <!-- Chart.js -->
+  <script id="stats-data" type="application/json">
+    {{ stats|tojson|safe }}
+  </script>
+  <script>
+    const stats = JSON.parse(document.getElementById("stats-data").textContent);
+    const labels = Object.keys(stats).sort();
+    const income = labels.map(d => Math.round(stats[d].total * 0.7));
+    const ctx = document.getElementById('historyChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Чистый доход', data: income, backgroundColor: '#74c0e3' }]
+      },
+      options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+    });
+  </script>
 </body>
 </html>
