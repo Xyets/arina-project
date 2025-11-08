@@ -56,11 +56,11 @@
         {% endif %}
       </tr>
       <tr>
-        <td><b>{{ total_income }}</b></td>
+        <td><b>{{ total_income|int }}</b></td>
         {% if user == "Irina" %}
-          <td><b>{{ archi_fee }}</b></td>
+          <td><b>{{ archi_fee|int }}</b></td>
         {% elif user == "Arina" %}
-          <td><b>{{ archi_fee }}</b></td>
+          <td><b>{{ archi_fee|int }}</b></td>
         {% endif %}
       </tr>
     </table>
@@ -88,11 +88,10 @@
         <td>{{ data.actions }}</td>
         <td>{{ data.other }}</td>
         {% if user == "Irina" %}
-          {# комиссия Арчи: 10% от (вибрации * 0.7) #}
-          <td><b>{{ (data.vibrations * 0.7 * 0.1)|round(2) }}</b></td>
-          <td><b>{{ (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|round(2) }}</b></td>
+          <td><b>{{ (data.vibrations * 0.7 * 0.1)|int }}</b></td>
+          <td><b>{{ (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|int }}</b></td>
         {% else %}
-          <td><b>{{ (data.total * 0.7)|round(2) }}</b></td>
+          <td><b>{{ (data.total * 0.7)|int }}</b></td>
         {% endif %}
       </tr>
       {% endfor %}
@@ -103,10 +102,10 @@
         <td>{{ stats.values()|map(attribute='actions')|sum }}</td>
         <td>{{ stats.values()|map(attribute='other')|sum }}</td>
         {% if user == "Irina" %}
-          <td>{{ (stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1)|round(0) }}</td>
-          <td>{{ (stats.values()|map(attribute='total')|sum * 0.7 - stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1)|round(0) }}</td>
+          <td>{{ (stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1)|int }}</td>
+          <td>{{ (stats.values()|map(attribute='total')|sum * 0.7 - stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1)|int }}</td>
         {% else %}
-          <td>{{ (stats.values()|map(attribute='total')|sum * 0.7)|round(0) }}</td>
+          <td>{{ (stats.values()|map(attribute='total')|sum * 0.7)|int }}</td>
         {% endif %}
       </tr>
     </table>
@@ -128,7 +127,7 @@
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
 
-    const labels = Object.keys(stats).sort(); // сортировка дат
+    const labels = Object.keys(stats).sort();
     const vibrations = labels.map(d => stats[d].vibrations);
     const actions = labels.map(d => stats[d].actions);
     const other = labels.map(d => stats[d].other);

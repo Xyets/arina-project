@@ -54,37 +54,37 @@
       {% set sum_vibr = sum_vibr + data.vibrations %}
       {% set sum_act = sum_act + data.actions %}
       {% set sum_other = sum_other + data.other %}
-      {% set income = (data.total * 0.7)|round(0) %}
+      {% set income = (data.total * 0.7)|int %}
       {% if user == "Irina" %}
-        {% set archi = (data.vibrations * 0.7 * 0.1)|round(0) %}
+        {% set archi = (data.vibrations * 0.7 * 0.1)|int %}
         {% set sum_archi = sum_archi + archi %}
-        {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|round(0) %}
+        {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|int %}
       {% elif user == "Arina" %}
-        {% set archi = (data.vibrations * 0.7 * 0.1)|round(0) %}
+        {% set archi = (data.vibrations * 0.7 * 0.1)|int %}
         {% set sum_archi = sum_archi + archi %}
       {% endif %}
       {% set sum_income = sum_income + income %}
       <tr>
         <td>{{ day }}</td>
-        <td>{{ "{:,}".format(data.vibrations) }}</td>
-        <td>{{ "{:,}".format(data.actions) }}</td>
-        <td>{{ "{:,}".format(data.other) }}</td>
+        <td>{{ "{:,}".format(data.vibrations|int) }}</td>
+        <td>{{ "{:,}".format(data.actions|int) }}</td>
+        <td>{{ "{:,}".format(data.other|int) }}</td>
         {% if user in ["Irina","Arina"] %}
-          <td><b>{{ "{:,}".format(archi) }}</b></td>
+          <td><b>{{ "{:,}".format(archi|int) }}</b></td>
         {% endif %}
-        <td><b>{{ "{:,}".format(income) }}</b></td>
+        <td><b>{{ "{:,}".format(income|int) }}</b></td>
       </tr>
       {% endfor %}
       <!-- Итоговая строка -->
       <tr style="font-weight:bold; background:#e0f7fa;">
         <td>Итого</td>
-        <td>{{ "{:,}".format(sum_vibr) }}</td>
-        <td>{{ "{:,}".format(sum_act) }}</td>
-        <td>{{ "{:,}".format(sum_other) }}</td>
+        <td>{{ "{:,}".format(sum_vibr|int) }}</td>
+        <td>{{ "{:,}".format(sum_act|int) }}</td>
+        <td>{{ "{:,}".format(sum_other|int) }}</td>
         {% if user in ["Irina","Arina"] %}
-          <td>{{ "{:,}".format(sum_archi) }}</td>
+          <td>{{ "{:,}".format(sum_archi|int) }}</td>
         {% endif %}
-        <td>{{ "{:,}".format(sum_income) }}</td>
+        <td>{{ "{:,}".format(sum_income|int) }}</td>
       </tr>
     </table>
   </div>
@@ -101,7 +101,7 @@
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
     const labels = Object.keys(stats).sort();
-    const income = labels.map(d => Math.round(stats[d].total * 0.7));
+    const income = labels.map(d => Math.floor(stats[d].total * 0.7));
     const ctx = document.getElementById('historyChart').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
