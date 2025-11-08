@@ -319,13 +319,16 @@
 
     <!-- Очередь -->
     <h3>🔁 Очередь вибраций</h3>
-    <div id="queuebox" class="box" style="height:200px; overflow-y:scroll;"></div>
+    <div id="queuebox" class="box" style="height:200px; overflow-y:scroll;">
+      Очередь пуста ✅
+    </div>
     <div style="text-align:center;">
       <button id="clearQueueBtn"
         style="margin-top:10px; background:#f7a8b8; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
         🧹 Очистить очередь
       </button>
     </div>
+
     <!-- JS -->
     <script>
       let shownLogs = new Set();
@@ -648,6 +651,11 @@
         document.addEventListener("mouseup", () => {
           isDragging = false;
           popup.style.transition = "opacity 0.3s ease";
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+          loadQueue();   // сразу подгружаем очередь
+          loadLogs();    // и логи, если нужно
         });
     </script>
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
