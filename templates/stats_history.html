@@ -18,6 +18,8 @@
     form.filter { text-align:center; margin-bottom:20px; }
     form.filter input { padding:5px; margin:0 5px; }
     form.filter button { padding:5px 15px; border:none; border-radius:10px; background:#a3d8f4; color:white; cursor:pointer; }
+    .summary-row { cursor:pointer; padding:10px; background:#e0f7fa; border-radius:8px; text-align:center; margin-top:15px; }
+    .summary-row:hover { background:#cceef5; }
   </style>
 </head>
 <body>
@@ -32,61 +34,56 @@
 
   <div class="card">
     <canvas id="historyChart" height="200"></canvas>
-    <table>
-      <tr>
-        <th>Дата</th>
-        <th>Вибрации</th>
-        <th>Действия</th>
-        <th>Иное</th>
-        {% if user == "Irina" %}
-          <th>%Арчи</th>
-        {% elif user == "Arina" %}
-          <th>Доход от Иры</th>
-        {% endif %}
-        <th>Чистый доход</th>
-      </tr>
-      {% set sum_vibr = 0 %}
-      {% set sum_act = 0 %}
-      {% set sum_other = 0 %}
-      {% set sum_archi = 0 %}
-      {% set sum_income = 0 %}
-      {% for day, data in stats.items() %}
-      {% set sum_vibr = sum_vibr + data.vibrations %}
-      {% set sum_act = sum_act + data.actions %}
-      {% set sum_other = sum_other + data.other %}
-      {% set income = (data.total * 0.7)|int %}
-      {% if user == "Irina" %}
-        {% set archi = (data.vibrations * 0.7 * 0.1)|int %}
-        {% set sum_archi = sum_archi + archi %}
-        {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|int %}
-      {% elif user == "Arina" %}
-        {% set archi = (data.vibrations * 0.7 * 0.1)|int %}
-        {% set sum_archi = sum_archi + archi %}
+
+    <!-- Итоговая строка -->
+    <div class="summary-row" onclick="toggleTable()">
+      <b>Период:</b> {{ request.args.get('from','') }} – {{ request.args.get('to','') }}
+      | <b>Вибрации:</b> {{ sum_vibr|int }}
+      | <b>Действия:</b> {{ sum_act|int }}
+      | <b>Иное:</b> {{ sum_other|int }}
+      {% if user in ["Irina","Arina"] %}
+        | <b>Арчи:</b> {{ sum_archi|int }}
       {% endif %}
-      {% set sum_income = sum_income + income %}
-      <tr>
-        <td>{{ day }}</td>
-        <td>{{ "{:,}".format(data.vibrations|int) }}</td>
-        <td>{{ "{:,}".format(data.actions|int) }}</td>
-        <td>{{ "{:,}".format(data.other|int) }}</td>
-        {% if user in ["Irina","Arina"] %}
-          <td><b>{{ "{:,}".format(archi|int) }}</b></td>
+      | <b>Доход:</b> {{ sum_income|int }}
+      <span style="color:#74c0e3;">(нажми, чтобы раскрыть)</span>
+    </div>
+
+    <!-- Скрытая таблица -->
+    <div id="details-table" style="display:none; margin-top:15px;">
+      <table>
+        <tr>
+          <th>Дата</th>
+          <th>Вибрации</th>
+          <th>Действия</th>
+          <th>Иное</th>
+          {% if user == "Irina" %}
+            <th>%Арчи</th>
+          {% elif user == "Arina" %}
+            <th>Доход от Иры</th>
+          {% endif %}
+          <th>Чистый доход</th>
+        </tr>
+        {% for day, data in stats.items() %}
+        {% set income = (data.total * 0.7) %}
+        {% if user == "Irina" %}
+          {% set archi = (data.vibrations * 0.7 * 0.1) %}
+          {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1) %}
+        {% elif user == "Arina" %}
+          {% set archi = (data.vibrations * 0.7 * 0.1) %}
         {% endif %}
-        <td><b>{{ "{:,}".format(income|int) }}</b></td>
-      </tr>
-      {% endfor %}
-      <!-- Итоговая строка -->
-      <tr style="font-weight:bold; background:#e0f7fa;">
-        <td>Итого</td>
-        <td>{{ "{:,}".format(sum_vibr|int) }}</td>
-        <td>{{ "{:,}".format(sum_act|int) }}</td>
-        <td>{{ "{:,}".format(sum_other|int) }}</td>
-        {% if user in ["Irina","Arina"] %}
-          <td>{{ "{:,}".format(sum_archi|int) }}</td>
-        {% endif %}
-        <td>{{ "{:,}".format(sum_income|int) }}</td>
-      </tr>
-    </table>
+        <tr>
+          <td>{{ day }}</td>
+          <td>{{ data.vibrations|int }}</td>
+          <td>{{ data.actions|int }}</td>
+          <td>{{ data.other|int }}</td>
+          {% if user in ["Irina","Arina"] %}
+            <td><b>{{ archi|int }}</b></td>
+          {% endif %}
+          <td><b>{{ income|int }}</b></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
   </div>
 
   <div style="text-align:center;">
@@ -111,6 +108,11 @@
       },
       options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
     });
+
+    function toggleTable() {
+      const table = document.getElementById("details-table");
+      table.style.display = (table.style.display === "none") ? "block" : "none";
+    }
   </script>
 </body>
 </html>
