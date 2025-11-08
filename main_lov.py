@@ -606,7 +606,13 @@ def stats():
 
     # считаем суммы за период
     total_income = sum(day["total"] * 0.7 for day in stats_data.values())
-    archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in stats_data.values())
+
+    # если Arina — берём проценты от Ирины
+    if user == "Arina":
+        irina_stats = load_stats(f"Irina_{mode}")
+        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in irina_stats.values())
+    else:
+        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in stats_data.values())
 
     return render_template(
         "stats.html",
@@ -649,7 +655,18 @@ def stats_history():
 
     # считаем суммы
     total_income = sum(day["total"] * 0.7 for day in filtered.values())
-    archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in filtered.values())
+
+    # если Arina — берём проценты от архива Ирины
+    if user == "Arina":
+        irina_archive_file = f"stats_archive_Irina_{mode}.json"
+        try:
+            with open(irina_archive_file, "r", encoding="utf-8") as f:
+                irina_archive = json.load(f)
+        except:
+            irina_archive = {}
+        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in irina_archive.values())
+    else:
+        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in filtered.values())
 
     return render_template(
         "stats_history.html",

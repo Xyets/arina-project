@@ -42,9 +42,9 @@
       | <b>Действия:</b> {{ sum_act|int }}
       | <b>Иное:</b> {{ sum_other|int }}
       {% if user in ["Irina","Arina"] %}
-        | <b>Арчи:</b> {{ sum_archi|int }}
+        | <b>Арчи:</b> {{ archi_fee|int }}
       {% endif %}
-      | <b>Доход:</b> {{ sum_income|int }}
+      | <b>Доход:</b> {{ total_income|int }}
       <span style="color:#74c0e3;">(нажми, чтобы раскрыть)</span>
     </div>
 
@@ -58,8 +58,6 @@
           <th>Иное</th>
           {% if user == "Irina" %}
             <th>%Арчи</th>
-          {% elif user == "Arina" %}
-            <th>Доход от Иры</th>
           {% endif %}
           <th>Чистый доход</th>
         </tr>
@@ -68,15 +66,13 @@
         {% if user == "Irina" %}
           {% set archi = (data.vibrations * 0.7 * 0.1) %}
           {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1) %}
-        {% elif user == "Arina" %}
-          {% set archi = (data.vibrations * 0.7 * 0.1) %}
         {% endif %}
         <tr>
           <td>{{ day }}</td>
           <td>{{ data.vibrations|int }}</td>
           <td>{{ data.actions|int }}</td>
           <td>{{ data.other|int }}</td>
-          {% if user in ["Irina","Arina"] %}
+          {% if user == "Irina" %}
             <td><b>{{ archi|int }}</b></td>
           {% endif %}
           <td><b>{{ income|int }}</b></td>
