@@ -654,9 +654,12 @@ def stats_history():
         filtered[day] = data
 
     # считаем суммы
+    sum_vibr = sum(day["vibrations"] for day in filtered.values())
+    sum_act = sum(day["actions"] for day in filtered.values())
+    sum_other = sum(day["other"] for day in filtered.values())
     total_income = sum(day["total"] * 0.7 for day in filtered.values())
 
-    # если Arina — берём проценты от архива Ирины
+    # проценты Арине
     if user == "Arina":
         irina_archive_file = f"stats_archive_Irina_{mode}.json"
         try:
@@ -673,8 +676,12 @@ def stats_history():
         stats=filtered,
         user=user,
         total_income=round(total_income),
-        archi_fee=round(archi_fee)
+        archi_fee=round(archi_fee),
+        sum_vibr=sum_vibr,
+        sum_act=sum_act,
+        sum_other=sum_other
     )
+
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required

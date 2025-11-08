@@ -62,21 +62,21 @@
           <th>Чистый доход</th>
         </tr>
         {% for day, data in stats.items() %}
-        {% set income = (data.total * 0.7) %}
-        {% if user == "Irina" %}
-          {% set archi = (data.vibrations * 0.7 * 0.1) %}
-          {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1) %}
-        {% endif %}
-        <tr>
-          <td>{{ day }}</td>
-          <td>{{ data.vibrations|int }}</td>
-          <td>{{ data.actions|int }}</td>
-          <td>{{ data.other|int }}</td>
+          {% set income = (data.total * 0.7) %}
           {% if user == "Irina" %}
-            <td><b>{{ archi|int }}</b></td>
+            {% set archi = (data.vibrations * 0.7 * 0.1) %}
+            {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1) %}
           {% endif %}
-          <td><b>{{ income|int }}</b></td>
-        </tr>
+          <tr>
+            <td>{{ day }}</td>
+            <td>{{ data.vibrations|int }}</td>
+            <td>{{ data.actions|int }}</td>
+            <td>{{ data.other|int }}</td>
+            {% if user == "Irina" %}
+              <td><b>{{ archi|int }}</b></td>
+            {% endif %}
+            <td><b>{{ income|int }}</b></td>
+          </tr>
         {% endfor %}
       </table>
     </div>
