@@ -603,7 +603,19 @@ def stats():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     stats_data = load_stats(profile_key)  # читаем stats_{profile_key}.json
-    return render_template("stats.html", user=user, stats=stats_data)
+
+    # считаем суммы за период
+    total_income = sum(day["total"] * 0.7 for day in stats_data.values())
+    archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in stats_data.values())
+
+    return render_template(
+        "stats.html",
+        user=user,
+        stats=stats_data,
+        total_income=round(total_income, 2),
+        archi_fee=round(archi_fee, 2)
+    )
+
 
 @app.route("/stats_history")
 @login_required

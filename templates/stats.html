@@ -45,6 +45,28 @@
   <h2>📊 Статистика для {{ user }}</h2>
 
   <div class="card">
+    <h3 style="text-align:center;">📊 Итоги за период</h3>
+    <table>
+      <tr>
+        <th>Чистый доход за период</th>
+        {% if user == "Irina" %}
+          <th>Процент Арине</th>
+        {% elif user == "Arina" %}
+          <th>Доход от Иры</th>
+        {% endif %}
+      </tr>
+      <tr>
+        <td><b>{{ total_income }}</b></td>
+        {% if user == "Irina" %}
+          <td><b>{{ archi_fee }}</b></td>
+        {% elif user == "Arina" %}
+          <td><b>{{ archi_fee }}</b></td>
+        {% endif %}
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
     <h3 style="text-align:center;">📈 Динамика по дням</h3>
     <canvas id="statsChart" height="300"></canvas>
 
