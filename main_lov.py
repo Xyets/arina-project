@@ -53,8 +53,9 @@ def load_logs_from_file(profile_key):
             return [line.strip() for line in f.readlines()]
     except FileNotFoundError:
         return []
-
+# при старте заполняем donation_logs из файлов каждого профиля
 donation_logs = {}
+
 for profile_key in CONFIG["profiles"].keys():
     donation_logs[profile_key] = load_logs_from_file(profile_key)
 
@@ -74,16 +75,6 @@ def add_log(profile_key, message):
         donation_logs[profile_key].pop(0)
 
     print(entry)
-    try:
-        msg = json.dumps({"log_update": entry, "profile_key": profile_key})
-        for ws in list(CONNECTED_SOCKETS):
-            try:
-                asyncio.create_task(ws.send(msg))
-            except:
-                CONNECTED_SOCKETS.discard(ws)
-    except Exception as e:
-        print(f"⚠️ Ошибка рассылки log_update: {e}")
-
 
 def generate_utoken(uid, secret="arina_secret_123"):
     raw = uid + secret
@@ -182,8 +173,7 @@ async def vibration_worker(profile_key):
                     "strength": strength,
                     "duration": duration,
                     "target": target_user  # ← совпадает с {{ user }} на фронте
-                },
-                "profile_key": profile_key
+                }
             })
             print(f"📡 [{profile_key}] Отправляем фронту: {msg}")
             for ws in list(CONNECTED_SOCKETS):
@@ -210,22 +200,21 @@ def load_rules(profile_key):
     except:
         return {"default": [1, 5], "rules": []}
 
-async def apply_rule(profile_key, amount, text):
+def apply_rule(profile_key, amount, text):
     rules = load_rules(profile_key)
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
             if action and action.strip():
-                update_stats(profile_key, "actions", amount)
+                update_stats(profile_key, "actions", amount)  # см. блок ниже
                 return f"🎬 Действие: {action}"
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
-            await add_vibration(profile_key, strength, duration)
+            vibration_queues[profile_key].put_nowait((strength, duration))
             update_stats(profile_key, "vibrations", amount)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
     return None
-
 # ---------------- VIP ----------------
 
 
@@ -280,7 +269,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         vip_data[user_id]["_just_logged_in"] = True
 
         try:
-            msg = json.dumps({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
+            msg = json.dumps({"vip_update": True, "user_id": user_id})
             for ws in list(CONNECTED_SOCKETS):
                 try:
                     asyncio.create_task(ws.send(msg))
@@ -328,31 +317,6 @@ def get_vibration_queue(profile_key):
         return []
     return list(q._queue)
 
-def broadcast_queue_update(profile_key):
-    q = vibration_queues.get(profile_key)
-    queue_list = list(q._queue) if q else []
-
-    msg = json.dumps({
-        "queue_update": queue_list,
-        "profile_key": profile_key
-    })
-
-    for ws in list(CONNECTED_SOCKETS):
-        try:
-            asyncio.create_task(ws.send(msg))
-        except:
-            CONNECTED_SOCKETS.discard(ws)
-
-async def add_vibration(profile_key, strength, duration):
-    q = vibration_queues.get(profile_key)
-    if not q:
-        q = asyncio.Queue()
-        vibration_queues[profile_key] = q
-
-    await q.put((strength, duration))
-    broadcast_queue_update(profile_key)
-
- 
 def fallback_amount(text, amount):
     if amount is None:
         m = re.search(r"(\d+)", text)
@@ -461,10 +425,16 @@ async def ws_handler(websocket):
                     await websocket.send(f"❌ Профиль '{profile_key}' не найден")
                     continue
 
+                # ⚠️ donation_id можно логировать, но не блокировать
+                if not donation_id:
+                    print("⚠️ Нет donation_id — может быть тест или ошибка")
+
                 # 🧠 Обработка входа/выхода
                 if "event" in data:
                     event = data["event"]
+                    user_id = data.get("user_id")
                     name = data.get("name", "Аноним")
+                    text = data.get("text", "")
 
                     profile = update_vip(profile_key, user_id, name=name, event=event)
 
@@ -473,25 +443,23 @@ async def ws_handler(websocket):
                         f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
                     )
 
-                    # если это вход → рассылаем entry_update
+                    # если это вход и профиль обновился → отправляем карточку на фронт
                     if profile and profile.get("_just_logged_in"):
-                        msg = json.dumps({
-                            "entry_update": {
-                                "user_id": user_id,
-                                "name": profile["name"],
-                                "visits": profile["login_count"],
-                                "last_login": profile["_previous_login"],
-                                "total_tips": profile["total"],
-                                "notes": profile["notes"],
-                            },
-                            "profile_key": profile_key
-                        })
-                        for ws in list(CONNECTED_SOCKETS):
-                            try:
-                                asyncio.create_task(ws.send(msg))
-                            except:
-                                CONNECTED_SOCKETS.discard(ws)
-                        profile["_just_logged_in"] = False
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "entry": {
+                                        "user_id": user_id,
+                                        "name": profile["name"],
+                                        "visits": profile["login_count"],
+                                        "last_login": profile["_previous_login"],
+                                        "total_tips": profile["total"],
+                                        "notes": profile["notes"],
+                                    }
+                                }
+                            )
+                        )
+                        profile["_just_logged_in"] = False  # сбрасываем флаг
 
                     await websocket.send(f"✅ Событие {event} обработано")
                     continue
@@ -502,18 +470,23 @@ async def ws_handler(websocket):
                     continue
 
                 # ✅ Логируем донат + действие
-                action_text = await apply_rule(profile_key, amount, text)
+                action_text = apply_rule(profile_key, amount, text)
 
                 if action_text:
-                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
+                    add_log(
+                        profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
+                    )
                 else:
-                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
+                    add_log(
+                        profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
+                    )
                     update_stats(profile_key, "other", amount)
 
                 # 👑 Обновление VIP‑листа
                 if user_id:
                     profile = update_vip(profile_key, user_id, name=name, amount=amount)
 
+                    # рассылаем событие vip_update для обновления карточки
                     try:
                         msg = json.dumps({
                             "vip_update": True,
@@ -528,9 +501,6 @@ async def ws_handler(websocket):
                     except Exception as e:
                         print(f"⚠️ Ошибка рассылки vip_update (donation): {e}")
 
-                # 🔁 Обновляем очередь вибраций
-                broadcast_queue_update(profile_key)
-
                 await websocket.send("✅ Донат принят")
 
             except Exception as e:
@@ -538,6 +508,7 @@ async def ws_handler(websocket):
                 await websocket.send("❌ Ошибка обработки")
 
     finally:
+        # 🔌 Убираем клиента из списка при отключении
         CONNECTED_SOCKETS.discard(websocket)
         print("🔌 WebSocket отключён")
 
@@ -653,7 +624,7 @@ def stats_history():
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required
-async def test_rule(rule_index):
+def test_rule(rule_index):
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
@@ -664,10 +635,10 @@ async def test_rule(rule_index):
         strength = rule.get("strength", 1)
         duration = rule.get("duration", 5)
 
-        print(f"🧪 [{profile_key}] Тест правила {rule_index}: сила={strength}, время={duration}")
-
-        # кладём задачу в очередь и сразу рассылаем обновление
-        await add_vibration(profile_key, strength, duration)
+        print(
+            f"🧪 [{profile_key}] Тест правила {rule_index}: сила={strength}, время={duration}"
+        )
+        send_vibration_cloud(profile_key, strength, duration)
 
         return {
             "status": "ok",
@@ -1049,21 +1020,12 @@ def clear_logs():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
 
-    # очищаем память и файл
+    # очищаем память
     donation_logs[profile_key] = []
+
+    # очищаем файл
     log_file = f"donations_{profile_key}.log"
     open(log_file, "w", encoding="utf-8").close()
-
-    # рассылаем событие очистки логов только для этого профиля
-    try:
-        msg = json.dumps({"clear_logs": True, "profile_key": profile_key})
-        for ws in list(CONNECTED_SOCKETS):
-            try:
-                asyncio.create_task(ws.send(msg))
-            except:
-                CONNECTED_SOCKETS.discard(ws)
-    except Exception as e:
-        print(f"⚠️ Ошибка рассылки clear_logs: {e}")
 
     return {"status": "ok", "message": "Логи очищены ✅"}
 
@@ -1082,20 +1044,7 @@ def clear_queue():
                 q.task_done()
             except:
                 break
-
-    # рассылаем пустую очередь на фронт только для этого профиля
-    try:
-        msg = json.dumps({"queue_update": [], "profile_key": profile_key})
-        for ws in list(CONNECTED_SOCKETS):
-            try:
-                asyncio.create_task(ws.send(msg))
-            except:
-                CONNECTED_SOCKETS.discard(ws)
-    except Exception as e:
-        print(f"⚠️ Ошибка рассылки queue_update (clear): {e}")
-
     return {"status": "ok", "message": "Очередь очищена ✅"}
-
 
 @app.route("/close_period", methods=["POST"])
 @login_required

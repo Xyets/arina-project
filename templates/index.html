@@ -319,16 +319,13 @@
 
     <!-- Очередь -->
     <h3>🔁 Очередь вибраций</h3>
-    <div id="queuebox" class="box" style="height:200px; overflow-y:scroll;">
-      Очередь пуста ✅
-    </div>
+    <div id="queuebox" class="box" style="height:200px; overflow-y:scroll;"></div>
     <div style="text-align:center;">
       <button id="clearQueueBtn"
         style="margin-top:10px; background:#f7a8b8; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
         🧹 Очистить очередь
       </button>
     </div>
-
     <!-- JS -->
     <script>
       let shownLogs = new Set();
@@ -353,7 +350,7 @@
       });
 
       // 📜 Логи донатов
-      let lastLogCount = 0;
+      let lastLogCount = 0; // сколько логов уже показано
 
       async function loadLogs() {
         const res = await fetch("/logs_data");
@@ -362,26 +359,24 @@
 
         const logs = data.logs || [];
 
-        if (logs.length === 0) {
-          console.warn("⚠️ Логи пусты, оставляем текущее окно");
-          return;
-        }
-
-        let newLogs;
-        if (lastLogCount === 0) {
-          newLogs = logs; // первая загрузка — показываем все
-        } else {
-          newLogs = logs.slice(lastLogCount);
-        }
+        // берём только новые строки
+        const newLogs = logs.slice(lastLogCount);
         lastLogCount = logs.length;
 
         newLogs.forEach(log => {
           let cssClass = "log-entry";
+          // 💗 Донаты (любая строка с "→")
           if (log.includes("→")) cssClass += " log-donation";
+
+          // 🏰 Вибрации
           if (log.includes("🏰")) cssClass += " log-vibration";
+
+          // 🎬 Действия
           if (log.includes("🎬")) cssClass += " log-action";
+
+          // 📥 События входа/выхода
           if (log.includes("📥") || log.toLowerCase().includes("вошёл")) 
-            cssClass += " log-entryevent";
+              cssClass += " log-entryevent";
 
           const div = document.createElement("div");
           div.className = cssClass;
@@ -415,82 +410,24 @@
           if (socket._pingInterval) clearInterval(socket._pingInterval);
           setTimeout(connectWS, 2000);
         };
-        
+
         socket.onmessage = (event) => {
           let data;
-          try { data = JSON.parse(event.data); } catch { return; }
-
-          // 🧹 Очистка логов
-          if (data.clear_logs && data.profile_key === "{{ user }}_{{ current_mode }}") {
-            const box = document.getElementById("logbox");
-            box.innerHTML = "";   // очищаем окно логов
+          try {
+            data = JSON.parse(event.data);
+          } catch {
             return;
           }
 
-          // 📜 Новые логи (только для текущего профиля)
-          if (data.log_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
-            const box = document.getElementById("logbox");
-            const div = document.createElement("div");
-            let cssClass = "log-entry";
+          const currentUser = "{{ user }}";
 
-            const log = data.log_update;
-
-            if (log.includes("→")) cssClass += " log-donation";       // донаты
-            if (log.includes("🏰")) cssClass += " log-vibration";      // вибрации
-            if (log.includes("🎬")) cssClass += " log-action";         // действия
-            if (log.includes("📥") || log.toLowerCase().includes("вошёл")) 
-              cssClass += " log-login log-entryevent";               // вход/выход
-
-            div.className = cssClass;
-            div.textContent = log;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-          }
-
-
-          // 🔁 Обновление очереди вибраций
-          if (data.queue_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
-            const box = document.getElementById("queuebox");
-            if (data.queue_update.length === 0) {
-              box.innerHTML = "<div>Очередь пуста ✅</div>";
-            } else {
-              box.innerHTML = data.queue_update.map(([strength, duration], i) =>
-                `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-              ).join("");
-            }
-          }
-
-          // 👑 Новые мемберы
-          if (data.entry_update && data.profile_key === "{{ user }}_{{ current_mode }}") {
-            const entry = data.entry_update;
-            const key = `${entry.user_id}-${entry.last_login}`;
-            if (!shownEntries.has(key)) {
-              shownEntries.add(key);
-              let message = entry.visits
-                ? `👑 <strong>${entry.name}</strong><br>
-                   📅 Предыдущий визит: ${formatDate(entry.last_login)}
-                   🔢 Всего визитов: ${entry.visits}<br>
-                   💗 Всего чаевых: ${entry.total_tips}<br>
-                   📝 Заметки: ${entry.notes || "нет"}`
-                : "🆕 Новый мембер!";
-              showEntryPopup(message);
-            }
-          }
-
-          // 🚫 VIP‑обновления
-          if (data.vip_update && data.profile_key === "{{ user }}_{{ current_mode }}" && data.user_id) {
-            refreshVipCard(data.user_id).then(() => {
-              resortCards("{{ request.args.get('sort', 'total') }}");
-            });
-          }
-
-          // 💖 Вибрации
-          if (data.vibration && data.vibration.target === "{{ user }}") {
+          if (data.vibration && data.vibration.target === currentUser) {
             const { strength, duration } = data.vibration;
             startVibrationTimer(duration, strength);
           }
         };
       }
+
       // запускаем подключение
       connectWS();
 
@@ -629,6 +566,15 @@
           toast.className = toast.className.replace("show", "");
         }, 3000);
       }
+
+      // ⏱ Запускаем циклы
+      setInterval(loadLogs, 2000);
+      setInterval(checkNewEntries, 3000);
+      setInterval(loadQueue, 2000);
+      loadLogs();
+      checkNewEntries();
+      loadQueue();
+
         // 🖱️ Перетаскивание entryPopup
         let isDragging = false, offsetX = 0, offsetY = 0;
         const popup = document.getElementById("entryPopup");
@@ -651,11 +597,6 @@
         document.addEventListener("mouseup", () => {
           isDragging = false;
           popup.style.transition = "opacity 0.3s ease";
-        });
-
-        document.addEventListener("DOMContentLoaded", () => {
-          loadQueue();   // сразу подгружаем очередь
-          loadLogs();    // и логи, если нужно
         });
     </script>
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
