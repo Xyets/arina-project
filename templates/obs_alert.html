@@ -42,8 +42,6 @@
     👤 <span id="donator"></span> | 💰 <span id="amount"></span>
   </div>
 
-  <audio id="sound" src="/static/alert.mp3"></audio>
-
   <script>
     let socket;
 
@@ -121,9 +119,6 @@
         const box = document.getElementById("alertBox");
         box.classList.add("show");
         setTimeout(()=>box.classList.remove("show"), 6000);
-
-        // звук
-        document.getElementById("sound").play();
       };
     }
 
