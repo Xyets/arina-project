@@ -24,51 +24,85 @@
     @keyframes fall {
       to { transform: translateY(100vh) rotate(360deg); opacity:0; }
     }
+
+    /* Сердечки */
+    .heart {
+      position: fixed;
+      font-size: 24px;
+      animation: floatUp 3s linear forwards;
+    }
+    @keyframes floatUp {
+      to { transform: translateY(-100vh); opacity:0; }
+    }
   </style>
 </head>
 <body>
   <div class="alert" id="alertBox">
-    🎉 Спасибо за донат, <span id="donator"></span>!  
-    <br> Сумма: <span id="amount"></span>
+    🎉 <span id="eventType"></span><br>
+    👤 <span id="donator"></span> | 💰 <span id="amount"></span>
   </div>
 
   <audio id="sound" src="/static/alert.mp3"></audio>
 
   <script>
-    // Подключение к твоему WebSocket-серверу
     const ws = new WebSocket("ws://localhost:8765");
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
+      // --- Донат (vibration) ---
       if (data.vibration) {
+        document.getElementById("eventType").textContent = "Донат";
         document.getElementById("donator").textContent = data.vibration.target;
         document.getElementById("amount").textContent =
           `сила=${data.vibration.strength}, время=${data.vibration.duration}s`;
+
+        // особая реакция если сумма/сила = 1
+        if (data.vibration.strength === 1) {
+          for (let i=0; i<20; i++) {
+            const heart = document.createElement("div");
+            heart.className = "heart";
+            heart.textContent = "💖";
+            heart.style.left = Math.random()*100 + "vw";
+            heart.style.top = "100vh";
+            document.body.appendChild(heart);
+            setTimeout(()=>heart.remove(), 3000);
+          }
+        } else {
+          for (let i=0; i<30; i++) {
+            const conf = document.createElement("div");
+            conf.className = "confetti";
+            conf.style.left = Math.random()*100 + "vw";
+            conf.style.background = `hsl(${Math.random()*360},100%,50%)`;
+            document.body.appendChild(conf);
+            setTimeout(()=>conf.remove(), 3000);
+          }
+        }
       }
 
+      // --- Вход VIP (entry) ---
       if (data.entry) {
+        document.getElementById("eventType").textContent = "Вход VIP";
         document.getElementById("donator").textContent = data.entry.name;
         document.getElementById("amount").textContent =
           `Входов: ${data.entry.visits}, Донатов: ${data.entry.total_tips}`;
       }
 
+      // --- Обновление VIP (vip_update) ---
+      if (data.vip_update) {
+        document.getElementById("eventType").textContent = "VIP обновлён";
+        document.getElementById("donator").textContent = data.user_id || "";
+        document.getElementById("amount").textContent = "";
+      }
+
+      // показать алерт
       const box = document.getElementById("alertBox");
       box.classList.add("show");
       setTimeout(()=>box.classList.remove("show"), 6000);
 
+      // звук
       document.getElementById("sound").play();
-
-      for (let i=0; i<30; i++) {
-        const conf = document.createElement("div");
-        conf.className = "confetti";
-        conf.style.left = Math.random()*100 + "vw";
-        conf.style.background = `hsl(${Math.random()*360},100%,50%)`;
-        document.body.appendChild(conf);
-        setTimeout(()=>conf.remove(), 3000);
-      }
     };
-
   </script>
 </body>
 </html>
