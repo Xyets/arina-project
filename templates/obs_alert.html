@@ -74,87 +74,58 @@
   </div>
 
   <script>
-    // функция обновления шкалы
     function setStrength(value) {
       const liquid = document.getElementById("liquid");
       liquid.style.height = value + "%";
 
-      // пузырьки
-      for (let i=0; i<3; i++) {
-        const bubble = document.createElement("div");
-        bubble.className = "bubble";
-        const size = 5 + Math.random()*10;
-        bubble.style.width = size+"px";
-        bubble.style.height = size+"px";
-        bubble.style.left = Math.random()*70 + "px";
-        bubble.style.bottom = "0";
-        liquid.appendChild(bubble);
-
-        gsap.to(bubble, {
-          y: -250,
-          x: "+="+(Math.random()*40-20),
-          opacity: 0,
-          duration: 2+Math.random()*2,
-          onComplete: ()=>bubble.remove()
-        });
+      // пузырьки при росте
+      if (value > 0) {
+        for (let i=0; i<3; i++) {
+          const bubble = document.createElement("div");
+          bubble.className = "bubble";
+          const size = 5 + Math.random()*10;
+          bubble.style.width = size+"px";
+          bubble.style.height = size+"px";
+          bubble.style.left = Math.random()*70 + "px";
+          bubble.style.bottom = "0";
+          liquid.appendChild(bubble);
+  
+          gsap.to(bubble, {
+            y: -250,
+            x: "+="+(Math.random()*40-20),
+            opacity: 0,
+            duration: 2+Math.random()*2,
+            onComplete: ()=>bubble.remove()
+          });
+        }
       }
     }
 
+    // WebSocket
     let socket;
     function connectWS() {
       socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
-
-      socket.onopen = () => {
-        console.log("✅ WebSocket подключён");
-        if (socket._pingInterval) clearInterval(socket._pingInterval);
-        socket._pingInterval = setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 30000);
-      };
-
-      socket.onclose = () => {
-        console.log("❌ WebSocket закрыт, переподключение...");
-        if (socket._pingInterval) clearInterval(socket._pingInterval);
-        setTimeout(connectWS, 2000);
-      };
-
+  
       socket.onmessage = (event) => {
         let data;
         try { data = JSON.parse(event.data); } catch { return; }
-
+ 
         if (data.vibration) {
           const { strength, duration, target } = data.vibration;
-          document.getElementById("eventType").textContent = "Донат";
-          document.getElementById("donator").textContent = target;
-          document.getElementById("amount").textContent =
-            `сила=${strength}, время=${duration}s`;
-
-          // обновляем шкалу (0–10 → 0–100%)
-          setStrength(strength * 10);
+          // сила от 1 до 18 → проценты
+          const percent = (strength / 18) * 100;
+ 
+          // поднять шкалу
+          setStrength(percent);
+ 
+          // через duration секунд опустить обратно
+          setTimeout(() => setStrength(0), duration * 1000);
         }
-
-        if (data.entry) {
-          document.getElementById("eventType").textContent = "Вход VIP";
-          document.getElementById("donator").textContent = data.entry.name;
-          document.getElementById("amount").textContent =
-            `Входов: ${data.entry.visits}, Донатов: ${data.entry.total_tips}`;
-        }
-
-        if (data.vip_update) {
-          document.getElementById("eventType").textContent = "VIP обновлён";
-          document.getElementById("donator").textContent = data.user_id || "";
-          document.getElementById("amount").textContent = "";
-        }
-
-        const box = document.getElementById("alertBox");
-        box.classList.add("show");
-        setTimeout(()=>box.classList.remove("show"), 6000);
       };
     }
-
+ 
     connectWS();
   </script>
+
 </body>
 </html>
