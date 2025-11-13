@@ -3,41 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <title>OBS Alert</title>
+  <!-- Animate.css для готовых эффектов -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <!-- GSAP для сложных анимаций -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <style>
     body { margin:0; background:transparent; overflow:hidden; font-family: 'Poppins', sans-serif; }
     .alert {
       position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
       background:rgba(0,0,0,0.7); border-radius:20px; padding:20px 40px;
       font-size:28px; color:#fff; text-shadow:2px 2px 5px #000;
-      opacity:0; transition:opacity 0.5s;
+      opacity:0;
     }
-    .alert.show { opacity:1; animation: fadeOut 6s forwards; }
-    @keyframes fadeOut { 0%{opacity:1;} 100%{opacity:0;} }
+    .alert.show { opacity:1; }
 
-    /* Конфетти */
-    .confetti {
-      position: fixed;
-      width: 10px; height: 10px;
-      background: red;
-      animation: fall 3s linear forwards;
-    }
-    @keyframes fall {
-      to { transform: translateY(100vh) rotate(360deg); opacity:0; }
-    }
-
-    /* Сердечки */
-    .heart {
+    .particle {
       position: fixed;
       font-size: 24px;
-      animation: floatUp 3s linear forwards;
-    }
-    @keyframes floatUp {
-      to { transform: translateY(-100vh); opacity:0; }
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <div class="alert" id="alertBox">
+  <div class="alert animate__animated" id="alertBox">
     🎉 <span id="eventType"></span><br>
     👤 <span id="donator"></span> | 💰 <span id="amount"></span>
   </div>
@@ -48,27 +37,16 @@
     function connectWS() {
       socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
-      socket.onopen = () => {
-        console.log("✅ WebSocket подключён");
-        if (socket._pingInterval) clearInterval(socket._pingInterval);
-        socket._pingInterval = setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 30000);
-      };
-
-      socket.onclose = () => {
-        console.log("❌ WebSocket закрыт, переподключение...");
-        if (socket._pingInterval) clearInterval(socket._pingInterval);
-        setTimeout(connectWS, 2000);
-      };
+      socket.onopen = () => console.log("✅ WebSocket подключён");
+      socket.onclose = () => setTimeout(connectWS, 2000);
 
       socket.onmessage = (event) => {
         let data;
         try { data = JSON.parse(event.data); } catch { return; }
 
-        // --- Донат (vibration) ---
+        const box = document.getElementById("alertBox");
+
+        // --- Донат ---
         if (data.vibration) {
           const { strength, duration, target } = data.vibration;
           document.getElementById("eventType").textContent = "Донат";
@@ -76,49 +54,48 @@
           document.getElementById("amount").textContent =
             `сила=${strength}, время=${duration}s`;
 
+          // Появление алерта с эффектом
+          box.classList.add("show","animate__bounceIn");
+          setTimeout(()=>box.classList.remove("animate__bounceIn"),1000);
+          setTimeout(()=>box.classList.add("animate__fadeOut"),duration*1000);
+
+          // Анимации в зависимости от силы
           if (strength === 1) {
-            // 💖 сердечки
-            for (let i=0; i<20; i++) {
+            // 💖 сердечки с GSAP
+            for (let i=0; i<15; i++) {
               const heart = document.createElement("div");
-              heart.className = "heart";
+              heart.className = "particle";
               heart.textContent = "💖";
               heart.style.left = Math.random()*100 + "vw";
               heart.style.top = "100vh";
               document.body.appendChild(heart);
-              setTimeout(()=>heart.remove(), 3000);
+              gsap.to(heart, {
+                y: -window.innerHeight,
+                duration: 3+Math.random()*2,
+                opacity: 0,
+                onComplete: ()=>heart.remove()
+              });
             }
           } else {
-            // 🎉 конфетти
-            for (let i=0; i<30; i++) {
+            // 🎉 конфетти с GSAP
+            for (let i=0; i<25; i++) {
               const conf = document.createElement("div");
-              conf.className = "confetti";
+              conf.className = "particle";
+              conf.textContent = "🎉";
               conf.style.left = Math.random()*100 + "vw";
-              conf.style.background = `hsl(${Math.random()*360},100%,50%)`;
+              conf.style.top = "-50px";
               document.body.appendChild(conf);
-              setTimeout(()=>conf.remove(), 3000);
+              gsap.to(conf, {
+                y: window.innerHeight+100,
+                x: "+="+(Math.random()*200-100),
+                rotation: 360,
+                duration: 3+Math.random()*2,
+                opacity: 0,
+                onComplete: ()=>conf.remove()
+              });
             }
           }
         }
-
-        // --- Вход VIP (entry) ---
-        if (data.entry) {
-          document.getElementById("eventType").textContent = "Вход VIP";
-          document.getElementById("donator").textContent = data.entry.name;
-          document.getElementById("amount").textContent =
-            `Входов: ${data.entry.visits}, Донатов: ${data.entry.total_tips}`;
-        }
-
-        // --- Обновление VIP (vip_update) ---
-        if (data.vip_update) {
-          document.getElementById("eventType").textContent = "VIP обновлён";
-          document.getElementById("donator").textContent = data.user_id || "";
-          document.getElementById("amount").textContent = "";
-        }
-
-        // показать алерт
-        const box = document.getElementById("alertBox");
-        box.classList.add("show");
-        setTimeout(()=>box.classList.remove("show"), 6000);
       };
     }
 
