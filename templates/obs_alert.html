@@ -57,7 +57,7 @@
         document.getElementById("amount").textContent =
           `сила=${data.vibration.strength}, время=${data.vibration.duration}s`;
 
-        // особая реакция если сумма/сила = 1
+        // особая реакция если сила=1
         if (data.vibration.strength === 1) {
           for (let i=0; i<20; i++) {
             const heart = document.createElement("div");
