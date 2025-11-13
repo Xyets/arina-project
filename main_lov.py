@@ -1141,6 +1141,9 @@ def close_period():
         json.dump({}, f, indent=2, ensure_ascii=False)
 
     return redirect("/stats")
+@app.route("/obs_alert")
+def obs_alert():
+    return render_template("obs_alert.html")
 
 # ---------------- ЗАПУСК ----------------
 def run_flask():

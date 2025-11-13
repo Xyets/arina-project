@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>OBS Alert</title>
+  <style>
+    body { margin:0; background:transparent; overflow:hidden; font-family: 'Poppins', sans-serif; }
+    .alert {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(0,0,0,0.7); border-radius:20px; padding:20px 40px;
+      font-size:28px; color:#fff; text-shadow:2px 2px 5px #000;
+      opacity:0; transition:opacity 0.5s;
+    }
+    .alert.show { opacity:1; animation: fadeOut 6s forwards; }
+    @keyframes fadeOut { 0%{opacity:1;} 100%{opacity:0;} }
+
+    /* Конфетти */
+    .confetti {
+      position: fixed;
+      width: 10px; height: 10px;
+      background: red;
+      animation: fall 3s linear forwards;
+    }
+    @keyframes fall {
+      to { transform: translateY(100vh) rotate(360deg); opacity:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="alert" id="alertBox">
+    🎉 Спасибо за донат, <span id="donator"></span>!  
+    <br> Сумма: <span id="amount"></span>
+  </div>
+
+  <audio id="sound" src="/static/alert.mp3"></audio>
+
+  <script>
+    // Подключение к твоему WebSocket-серверу
+    const ws = new WebSocket("ws://localhost:8765");
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      // Если пришёл донат
+      if (data.vibration || data.vip_update || data.entry) {
+        // Можно обрабатывать разные типы событий
+        console.log("Событие:", data);
+      }
+
+      if (data.donator || data.amount) {
+        document.getElementById("donator").textContent = data.donator || "Аноним";
+        document.getElementById("amount").textContent = data.amount || "";
+      }
+
+      const box = document.getElementById("alertBox");
+      box.classList.add("show");
+      setTimeout(()=>box.classList.remove("show"), 6000);
+
+      // звук
+      document.getElementById("sound").play();
+
+      // конфетти
+      for (let i=0; i<30; i++) {
+        const conf = document.createElement("div");
+        conf.className = "confetti";
+        conf.style.left = Math.random()*100 + "vw";
+        conf.style.background = `hsl(${Math.random()*360},100%,50%)`;
+        document.body.appendChild(conf);
+        setTimeout(()=>conf.remove(), 3000);
+      }
+    };
+  </script>
+</body>
+</html>
