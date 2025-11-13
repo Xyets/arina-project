@@ -41,25 +41,24 @@
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
-      // Если пришёл донат
-      if (data.vibration || data.vip_update || data.entry) {
-        // Можно обрабатывать разные типы событий
-        console.log("Событие:", data);
+      if (data.vibration) {
+        document.getElementById("donator").textContent = data.vibration.target;
+        document.getElementById("amount").textContent =
+          `сила=${data.vibration.strength}, время=${data.vibration.duration}s`;
       }
 
-      if (data.donator || data.amount) {
-        document.getElementById("donator").textContent = data.donator || "Аноним";
-        document.getElementById("amount").textContent = data.amount || "";
+      if (data.entry) {
+        document.getElementById("donator").textContent = data.entry.name;
+        document.getElementById("amount").textContent =
+          `Входов: ${data.entry.visits}, Донатов: ${data.entry.total_tips}`;
       }
 
       const box = document.getElementById("alertBox");
       box.classList.add("show");
       setTimeout(()=>box.classList.remove("show"), 6000);
 
-      // звук
       document.getElementById("sound").play();
 
-      // конфетти
       for (let i=0; i<30; i++) {
         const conf = document.createElement("div");
         conf.className = "confetti";
@@ -69,6 +68,7 @@
         setTimeout(()=>conf.remove(), 3000);
       }
     };
+
   </script>
 </body>
 </html>
