@@ -752,18 +752,6 @@ def error_page():
     return "❌ Ошибка подключения!", 200
 
 
-@app.route("/clear_vip", methods=["POST"])
-@login_required
-def clear_vip():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    with open(vip_file, "w", encoding="utf-8") as f:
-        json.dump({}, f, indent=2, ensure_ascii=False)
-    return redirect("/vip")
-
-
 @app.route("/remove_member", methods=["POST"])
 @login_required
 def remove_member():
