@@ -6,85 +6,119 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg,#fdfbfb,#ebedee); color:#333; margin:0; padding:40px; }
-    h2 { text-align: center; margin-bottom: 30px; color: #444; }
-    .card { background:#fff; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,0.1); padding:20px; margin:20px auto; max-width:900px; }
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg,#fdfbfb,#ebedee);
+      color:#333;
+      margin:0;
+      padding:40px;
+    }
+    h2, h3 { text-align: center; color: #444; }
+    h2 { margin-bottom: 30px; }
+    .card {
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.1);
+      padding:20px;
+      margin:20px auto;
+      max-width:900px;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+      display:block;
+      overflow-x:auto;
+      white-space:nowrap;
+    }
     th, td { padding:10px; text-align:center; }
-    th { background:#a3d8f4; color:white; font-weight:600; }
+    th {
+      background:#a3d8f4;
+      color:white;
+      font-weight:600;
+    }
     tr:nth-child(even){ background:#f9f9f9; }
     a.back, button.close-period {
-      display:inline-block; margin-top:20px; background:#a3d8f4; color:white;
-      padding:10px 20px; border-radius:20px; text-decoration:none; transition:0.3s;
-      border:none; cursor:pointer;
+      display:inline-block;
+      margin-top:20px;
+      background:#a3d8f4;
+      color:white;
+      padding:10px 20px;
+      border-radius:20px;
+      text-decoration:none;
+      transition:0.3s;
+      border:none;
+      cursor:pointer;
     }
     a.back:hover, button.close-period:hover { background:#74c0e3; }
+
+    /* 📱 Адаптивность */
+    @media (max-width: 500px) {
+      body { padding:20px; }
+      .card { padding:15px; }
+      table { font-size:14px; }
+    }
   </style>
 </head>
 <body>
   <h2>📊 Статистика для {{ user }}</h2>
 
   <div class="card">
-    <h3 style="text-align:center;">📊 Итоги за период</h3>
+    <h3>📊 Итоги за период</h3>
     <table>
       <tr>
-        <th>Заработано всего за период</th>
+        <th scope="col">Заработано всего за период</th>
         {% if user == "Irina" %}
-          <th>Процент Арине</th>
+          <th scope="col">Процент Арине</th>
         {% elif user == "Arina" %}
-          <th>Доход от Иры</th>
+          <th scope="col">Доход от Иры</th>
         {% endif %}
       </tr>
       <tr>
-        <td><b>{{ total_income|int }}</b></td>
+        <td><b>{{ summary.total_income|int }}</b></td>
         {% if user in ["Irina","Arina"] %}
-          <td><b>{{ archi_fee|int }}</b></td>
+          <td><b>{{ summary.archi_fee|int }}</b></td>
         {% endif %}
       </tr>
     </table>
   </div>
 
   <div class="card">
-    <h3 style="text-align:center;">📈 Динамика по дням</h3>
+    <h3>📈 Динамика по дням</h3>
     <canvas id="statsChart" height="300"></canvas>
 
     <table>
       <tr>
-        <th>Дата</th>
-        <th>Вибрации</th>
-        <th>Действия</th>
-        <th>Иное</th>
+        <th scope="col">Дата</th>
+        <th scope="col">Вибрации</th>
+        <th scope="col">Действия</th>
+        <th scope="col">Иное</th>
         {% if user == "Irina" %}
-          <th>%Арчи</th>
+          <th scope="col">%Арчи</th>
         {% endif %}
-        <th>Чистый доход</th>
+        <th scope="col">Чистый доход</th>
       </tr>
-      {% for day, data in stats.items() %}
+      {% for day, data in results.items() %}
       <tr>
         <td>{{ day }}</td>
         <td>{{ data.vibrations }}</td>
         <td>{{ data.actions }}</td>
         <td>{{ data.other }}</td>
         {% if user == "Irina" %}
-          <td><b>{{ (data.vibrations * 0.7 * 0.1)|int }}</b></td>
-          <td><b>{{ (data.total * 0.7 - data.vibrations * 0.7 * 0.1)|int }}</b></td>
-        {% else %}
-          <td><b>{{ (data.total * 0.7)|int }}</b></td>
+          <td><b>{{ data.archi_fee|int }}</b></td>
         {% endif %}
+        <td><b>{{ data.net_income|int }}</b></td>
       </tr>
       {% endfor %}
-      <!-- Итоговая строка -->
       <tr style="font-weight:bold; background:#e0f7fa;">
         <td>Итого</td>
-        <td>{{ stats.values()|map(attribute='vibrations')|sum }}</td>
-        <td>{{ stats.values()|map(attribute='actions')|sum }}</td>
-        <td>{{ stats.values()|map(attribute='other')|sum }}</td>
+        <td>{{ summary.sum_vibr }}</td>
+        <td>{{ summary.sum_act }}</td>
+        <td>{{ summary.sum_other }}</td>
         {% if user == "Irina" %}
-          <td>{{ (stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1)|int }}</td>
-          <td>{{ (stats.values()|map(attribute='total')|sum * 0.7 - stats.values()|map(attribute='vibrations')|sum * 0.7 * 0.1)|int }}</td>
-        {% else %}
-          <td>{{ (stats.values()|map(attribute='total')|sum * 0.7)|int }}</td>
+          <td>{{ summary.archi_fee|int }}</td>
         {% endif %}
+        <td>{{ summary.total_income|int }}</td>
       </tr>
     </table>
   </div>
@@ -99,12 +133,12 @@
 
   <!-- 📦 JSON-данные -->
   <script id="stats-data" type="application/json">
-    {{ stats|tojson|safe }}
+    {{ results|tojson|safe }}
   </script>
 
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
-    const labels = Object.keys(stats).sort();
+    const labels = Object.keys(stats); // предполагается, что backend уже сортирует даты
     const vibrations = labels.map(d => stats[d].vibrations);
     const actions = labels.map(d => stats[d].actions);
     const other = labels.map(d => stats[d].other);

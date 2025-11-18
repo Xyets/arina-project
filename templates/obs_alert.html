@@ -59,6 +59,12 @@
       background: rgba(255,255,255,0.8);
       opacity: 0.7;
     }
+
+    /* 📱 Адаптивность */
+    @media (max-width: 500px) {
+      .tank { width: 60px; height: 180px; }
+      .alert { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -89,7 +95,7 @@
           bubble.style.left = Math.random()*70 + "px";
           bubble.style.bottom = "0";
           liquid.appendChild(bubble);
-  
+
           gsap.to(bubble, {
             y: -250,
             x: "+="+(Math.random()*40-20),
@@ -101,31 +107,42 @@
       }
     }
 
+    function showAlert(type, donator, amount) {
+      const alertBox = document.getElementById("alertBox");
+      document.getElementById("eventType").textContent = type || "Событие";
+      document.getElementById("donator").textContent = donator || "Аноним";
+      document.getElementById("amount").textContent = amount || "—";
+      alertBox.classList.add("show");
+      setTimeout(() => alertBox.classList.remove("show"), 6000);
+    }
+
     // WebSocket
     let socket;
     function connectWS() {
-      socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
-  
+      const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
+      socket = new WebSocket(wsUrl);
+
       socket.onmessage = (event) => {
         let data;
         try { data = JSON.parse(event.data); } catch { return; }
- 
+
         if (data.vibration) {
-          const { strength, duration, target } = data.vibration;
-          // сила от 1 до 18 → проценты
+          const { strength, duration, target, donor, amount } = data.vibration;
           const percent = (strength / 18) * 100;
- 
+
           // поднять шкалу
           setStrength(percent);
- 
+
+          // показать алерт
+          showAlert("Вибрация", donor || target, amount || "");
+
           // через duration секунд опустить обратно
           setTimeout(() => setStrength(0), duration * 1000);
         }
       };
     }
- 
+
     connectWS();
   </script>
-
 </body>
 </html>

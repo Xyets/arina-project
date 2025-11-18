@@ -6,20 +6,78 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg,#fdfbfb,#ebedee); color:#333; margin:0; padding:40px; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg,#fdfbfb,#ebedee);
+      color:#333;
+      margin:0;
+      padding:40px;
+    }
     h2 { text-align:center; margin-bottom:30px; color:#444; }
-    .card { background:#fff; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,0.1); padding:20px; margin:20px auto; max-width:900px; }
-    table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+    .card {
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.1);
+      padding:20px;
+      margin:20px auto;
+      max-width:900px;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-bottom:20px;
+      display:block;
+      overflow-x:auto;
+      white-space:nowrap;
+    }
     th,td { padding:10px; text-align:center; }
-    th { background:#a3d8f4; color:white; font-weight:600; }
+    th {
+      background:#a3d8f4;
+      color:white;
+      font-weight:600;
+    }
     tr:nth-child(even){ background:#f9f9f9; }
-    a.back { display:inline-block; margin-top:20px; background:#a3d8f4; color:white; padding:10px 20px; border-radius:20px; text-decoration:none; transition:0.3s; }
+    a.back {
+      display:inline-block;
+      margin-top:20px;
+      background:#a3d8f4;
+      color:white;
+      padding:10px 20px;
+      border-radius:20px;
+      text-decoration:none;
+      transition:0.3s;
+    }
     a.back:hover { background:#74c0e3; }
     form.filter { text-align:center; margin-bottom:20px; }
     form.filter input { padding:5px; margin:0 5px; }
-    form.filter button { padding:5px 15px; border:none; border-radius:10px; background:#a3d8f4; color:white; cursor:pointer; }
-    .summary-row { cursor:pointer; padding:10px; background:#e0f7fa; border-radius:8px; text-align:center; margin-top:15px; }
+    form.filter button {
+      padding:5px 15px;
+      border:none;
+      border-radius:10px;
+      background:#a3d8f4;
+      color:white;
+      cursor:pointer;
+    }
+    .summary-row {
+      cursor:pointer;
+      padding:10px;
+      background:#e0f7fa;
+      border-radius:8px;
+      text-align:center;
+      margin-top:15px;
+      transition:background 0.3s;
+    }
     .summary-row:hover { background:#cceef5; }
+    #details-table {
+      display:none;
+      margin-top:15px;
+    }
+    /* 📱 Адаптивность */
+    @media (max-width: 500px) {
+      body { padding:20px; }
+      .card { padding:15px; }
+      table { font-size:14px; }
+    }
   </style>
 </head>
 <body>
@@ -38,44 +96,39 @@
     <!-- Итоговая строка -->
     <div class="summary-row" onclick="toggleTable()">
       <b>Период:</b> {{ request.args.get('from','') }} – {{ request.args.get('to','') }}
-      | <b>Вибрации:</b> {{ sum_vibr|int }}
-      | <b>Действия:</b> {{ sum_act|int }}
-      | <b>Иное:</b> {{ sum_other|int }}
-      {% if user in ["Irina","Arina"] %}
-        | <b>Арчи:</b> {{ archi_fee|int }}
+      | <b>Вибрации:</b> {{ summary.sum_vibr }}
+      | <b>Действия:</b> {{ summary.sum_act }}
+      | <b>Иное:</b> {{ summary.sum_other }}
+      {% if user == "Irina" %}
+        | <b>Арчи:</b> {{ summary.archi_fee|int }}
       {% endif %}
-      | <b>Доход:</b> {{ total_income|int }}
+      | <b>Доход:</b> {{ summary.total_income|int }}
       <span style="color:#74c0e3;">(нажми, чтобы раскрыть)</span>
     </div>
 
     <!-- Скрытая таблица -->
-    <div id="details-table" style="display:none; margin-top:15px;">
+    <div id="details-table">
       <table>
         <tr>
-          <th>Дата</th>
-          <th>Вибрации</th>
-          <th>Действия</th>
-          <th>Иное</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Вибрации</th>
+          <th scope="col">Действия</th>
+          <th scope="col">Иное</th>
           {% if user == "Irina" %}
-            <th>%Арчи</th>
+            <th scope="col">%Арчи</th>
           {% endif %}
-          <th>Чистый доход</th>
+          <th scope="col">Чистый доход</th>
         </tr>
-        {% for day, data in stats.items() %}
-          {% set income = (data.total * 0.7) %}
-          {% if user == "Irina" %}
-            {% set archi = (data.vibrations * 0.7 * 0.1) %}
-            {% set income = (data.total * 0.7 - data.vibrations * 0.7 * 0.1) %}
-          {% endif %}
+        {% for day, data in results.items() %}
           <tr>
             <td>{{ day }}</td>
-            <td>{{ data.vibrations|int }}</td>
-            <td>{{ data.actions|int }}</td>
-            <td>{{ data.other|int }}</td>
+            <td>{{ data.vibrations }}</td>
+            <td>{{ data.actions }}</td>
+            <td>{{ data.other }}</td>
             {% if user == "Irina" %}
-              <td><b>{{ archi|int }}</b></td>
+              <td><b>{{ data.archi_fee|int }}</b></td>
             {% endif %}
-            <td><b>{{ income|int }}</b></td>
+            <td><b>{{ data.net_income|int }}</b></td>
           </tr>
         {% endfor %}
       </table>
@@ -89,12 +142,12 @@
 
   <!-- Chart.js -->
   <script id="stats-data" type="application/json">
-    {{ stats|tojson|safe }}
+    {{ results|tojson|safe }}
   </script>
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
-    const labels = Object.keys(stats).sort();
-    const income = labels.map(d => Math.floor(stats[d].total * 0.7));
+    const labels = Object.keys(stats); // предполагается, что backend уже сортирует даты
+    const income = labels.map(d => stats[d].net_income);
     const ctx = document.getElementById('historyChart').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
@@ -107,7 +160,7 @@
 
     function toggleTable() {
       const table = document.getElementById("details-table");
-      table.style.display = (table.style.display === "none") ? "block" : "none";
+      table.style.display = (table.style.display === "none" || table.style.display === "") ? "block" : "none";
     }
   </script>
 </body>

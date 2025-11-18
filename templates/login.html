@@ -69,6 +69,13 @@
       color: #f28497; /* розовый акцент для ошибок */
       margin-bottom: 15px;
     }
+    /* 📱 Адаптивность */
+    @media (max-width: 400px) {
+      .login-box {
+        width: 90%;
+        padding: 20px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -76,10 +83,12 @@
     <h2>Авторизация</h2>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     <form method="post">
-      <label>Логин:</label>
-      <input name="username" required>
-      <label>Пароль:</label>
-      <input name="password" type="password" required>
+      <label for="username">Логин:</label>
+      <input id="username" name="username" placeholder="Введите логин" autocomplete="username" required>
+
+      <label for="password">Пароль:</label>
+      <input id="password" name="password" type="password" placeholder="Введите пароль" autocomplete="current-password" required>
+
       <button type="submit">Войти</button>
     </form>
   </div>

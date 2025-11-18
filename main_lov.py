@@ -14,6 +14,10 @@ from functools import wraps
 import uuid
 from datetime import datetime
 import shutil
+from audit import audit_event
+from collections import deque
+RECENT_DONATIONS = deque(maxlen=500)
+
 
 with open("config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
@@ -34,7 +38,12 @@ def handle_donation(profile_key, sender, amount, text):
     sender_name = sender or "Анонимно"
     result = apply_rule(profile_key, amount, text) or ""
     add_log(profile_key, f"{sender_name} → {amount} {result}")
-
+    audit_event(profile_key, CURRENT_MODE["value"], {
+        "type": "donation",
+        "amount": amount,
+        "sender": sender_name,
+        "text": text
+    })
 
 def login_required(f):
     @wraps(f)
@@ -61,7 +70,7 @@ for profile_key in CONFIG["profiles"].keys():
 
 
 def add_log(profile_key, message):
-    ts = datetime.now().strftime("%d-%m-%y %H:%M")
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     entry = f"{ts} | {message}"
 
     log_file = f"donations_{profile_key}.log"
@@ -205,18 +214,25 @@ def apply_rule(profile_key, amount, text):
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
+            audit_event(profile_key, CURRENT_MODE["value"], {
+                "type": "rule",
+                "matched": "action" if rule.get("action") else "vibration",
+                "amount": amount,
+                "strength": rule.get("strength", 1),
+                "duration": rule.get("duration", 5),
+                "text": text
+            })
             if action and action.strip():
-                update_stats(profile_key, "actions", amount)  # см. блок ниже
+                update_stats(profile_key, "actions", 1)  # см. блок ниже
                 return f"🎬 Действие: {action}"
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[profile_key].put_nowait((strength, duration))
-            update_stats(profile_key, "vibrations", amount)
+            update_stats(profile_key, "vibrations", 1)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
     return None
 # ---------------- VIP ----------------
-
 
 def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     profile = CONFIG["profiles"][profile_key]
@@ -224,14 +240,13 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         vip_data = {}
 
     if user_id in vip_data and vip_data[user_id].get("blocked"):
         print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован — пропускаем")
         return vip_data.get(user_id)
 
-    # если новый — создаём
     if user_id not in vip_data:
         vip_data[user_id] = {
             "name": name or "Аноним",
@@ -239,33 +254,36 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
             "total": 0,
             "notes": "",
             "login_count": 0,
-            "last_login": "",   # будет пусто
+            "last_login": "",
             "_previous_login": "",
             "blocked": False,
             "_just_logged_in": True,
         }
 
-    # обновляем имя, если нужно
     if name:
         current_name = vip_data[user_id].get("name", "")
         if not current_name or current_name == "Аноним":
             vip_data[user_id]["name"] = name
 
-    # обновляем сумму
     if amount and amount > 0:
+        audit_event(profile_key, CURRENT_MODE["value"], {
+            "type": "vip_total_increment",
+            "user_id": user_id,
+            "amount": amount
+        })
         vip_data[user_id]["total"] += amount
 
-    # обновляем вход
     if event and event.lower() == "login":
+        audit_event(profile_key, CURRENT_MODE["value"], {
+            "type": "vip_login",
+            "user_id": user_id,
+            "name": name
+        })
         vip_data[user_id]["login_count"] += 1
-
-        # сохраняем старый last_login в _previous_login
         old_login = vip_data[user_id].get("last_login")
         if old_login:
             vip_data[user_id]["_previous_login"] = old_login
-
-        # обновляем last_login на текущее время
-        vip_data[user_id]["last_login"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        vip_data[user_id]["last_login"] = datetime.now().replace(microsecond=0).isoformat(sep=" ")
         vip_data[user_id]["_just_logged_in"] = True
 
         try:
@@ -278,37 +296,20 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         except Exception as e:
             print(f"⚠️ Ошибка рассылки vip_update: {e}")
 
-    # сохраняем файл
-    with open(vip_file, "w", encoding="utf-8") as f:
+    # резервная копия
+    if os.path.exists(vip_file):
+        backup_name = f"{vip_file}.{time.strftime('%Y-%m-%d')}.bak"
+        shutil.copy(vip_file, backup_name)
+
+    # атомарная запись
+    tmp_file = vip_file + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_file, vip_file)
 
     return vip_data[user_id]
-
-
-def update_stats(profile_key, category, amount):
-    stats_file = f"stats_{profile_key}.json"
-    try:
-        with open(stats_file, "r", encoding="utf-8") as f:
-            stats = json.load(f)
-    except FileNotFoundError:
-        stats = {}
-
-    day = datetime.now().strftime("%d-%m-%y")
-    if day not in stats:
-        stats[day] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
-
-    if category == "vibrations":
-        stats[day]["vibrations"] += 1
-    elif category == "actions":
-        stats[day]["actions"] += 1
-    else:
-        stats[day]["other"] += 1
-
-    stats[day]["total"] += 1
-
-    with open(stats_file, "w", encoding="utf-8") as f:
-        json.dump(stats, f, indent=2, ensure_ascii=False)
-
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
 def get_vibration_queue(profile_key):
@@ -326,6 +327,51 @@ def fallback_amount(text, amount):
             return 1
     return amount
 
+def calculate_stats(stats: dict, user: str):
+    """
+    stats: словарь вида { 'YYYY-MM-DD': {'vibrations': int, 'actions': int, 'other': int, 'total': int}, ... }
+    user: имя пользователя ("Irina", "Arina" или другой)
+    """
+    results = {}
+    sum_vibr = sum(data['vibrations'] for data in stats.values())
+    sum_act = sum(data['actions'] for data in stats.values())
+    sum_other = sum(data['other'] for data in stats.values())
+    sum_total = sum(data['total'] for data in stats.values())
+
+    archi_fee = 0
+    total_income = 0
+
+    for day, data in stats.items():
+        base_income = data['total'] * 0.7
+        if user == "Irina":
+            archi = data['vibrations'] * 0.7 * 0.1
+            net_income = base_income - archi
+            results[day] = {
+                **data,
+                "archi_fee": archi,
+                "net_income": net_income
+            }
+            archi_fee += archi
+            total_income += net_income
+        else:
+            results[day] = {
+                **data,
+                "net_income": base_income
+            }
+            total_income += base_income
+
+    summary = {
+        "sum_vibr": sum_vibr,
+        "sum_act": sum_act,
+        "sum_other": sum_other,
+        "sum_total": sum_total,
+        "archi_fee": archi_fee,
+        "total_income": total_income
+    }
+
+    return results, summary
+
+
 
 def try_extract_user_id_from_text(text):
     m_hex = re.search(r"\b([0-9a-f]{32})\b", text, re.IGNORECASE)
@@ -335,6 +381,12 @@ def try_extract_user_id_from_text(text):
     if m_nonopan:
         return m_nonopan.group(1)
     return None
+
+def calculate_archi_fee(stats_data):
+    """
+    Считает archi_fee по формуле vibrations * 0.7 * 0.1
+    """
+    return sum(day.get("vibrations", 0) * 0.7 * 0.1 for day in stats_data.values())
 
 
 # --- список уже обработанных донатов ---
@@ -352,7 +404,8 @@ def build_stats_from_logs(profile_key):
     try:
         with open(log_file, "r", encoding="utf-8") as f:
             for line in f:
-                date = line.split(" | ")[0].strip()
+                # Берём только дату (первые 10 символов формата YYYY-MM-DD)
+                date = line.split(" | ")[0].strip()[:10]
                 if date not in stats:
                     stats[date] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
                 if "🏰" in line:
@@ -363,29 +416,73 @@ def build_stats_from_logs(profile_key):
                     stats[date]["other"] += 1
                 stats[date]["total"] += 1
     except FileNotFoundError:
-        pass
+        print(f"⚠️ Лог-файл {log_file} не найден")
+    except Exception as e:
+        print(f"⚠️ Ошибка чтения {log_file}: {e}")
     return stats
 
-def update_stats(profile_key, category, points):
-    today = time.strftime("%Y-%m-%d")
+RECENT_DONATIONS = deque(maxlen=500)  # хранит последние 500 donation_id
+
+def update_stats(profile_key, category: str, count: int = 1):
+    stats_file = f"stats_{profile_key}.json"
+    try:
+        with open(stats_file, "r", encoding="utf-8") as f:
+            stats = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        stats = {}
+
+    day = datetime.now().strftime("%Y-%m-%d")
+
+    if day not in stats:
+        stats[day] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0, "donations_sum": 0}
+
+    stats[day][category] = stats[day].get(category, 0) + count
+    stats[day]["total"] += count
+
+    # резервная копия
+    if os.path.exists(stats_file):
+        shutil.copy(stats_file, f"{stats_file}.{day}.bak")
+
+    tmp_file = stats_file + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_file, stats_file)
+
+
+def update_donations_sum(profile_key, amount):
+    """
+    Обновляет только сумму донатов за день.
+    Не трогает счётчики событий.
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
     stats_file = f"stats_{profile_key}.json"
     stats = load_stats(profile_key)
 
     if today not in stats:
-        stats[today] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
+        stats[today] = {
+            "vibrations": 0,
+            "actions": 0,
+            "other": 0,
+            "total": 0,
+            "donations_sum": 0
+        }
 
-    stats[today][category] += points
-    stats[today]["total"] += points
+    if "donations_sum" not in stats[today]:
+        stats[today]["donations_sum"] = 0
 
-    # 📂 делаем резервную копию перед записью
-    if os.path.exists(stats_file):
-        backup_name = f"{stats_file}.{today}.bak"
-        shutil.copy(stats_file, backup_name)
+    try:
+        stats[today]["donations_sum"] += float(amount or 0)
+    except Exception as e:
+        print(f"⚠️ Ошибка обновления donations_sum: {e}")
 
-    # безопасная запись через временный файл
+    # атомарная запись
     tmp_file = stats_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
     os.replace(tmp_file, stats_file)
 
 def extract_strength(text):
@@ -404,8 +501,8 @@ async def ws_handler(websocket):
         async for message in websocket:
             try:
                 print("📩 Получено сообщение от WebSocket:", message)
-
                 data = json.loads(message)
+
                 text = data.get("text", "")
                 name = (data.get("name") or "Аноним").strip()
                 user_id = data.get("user_id")
@@ -413,86 +510,71 @@ async def ws_handler(websocket):
                 donation_id = data.get("donation_id")
                 user = data.get("user")
 
-                # 🔐 Проверка профиля
                 if not user:
                     await websocket.send("❌ Не указан профиль")
                     continue
 
-                mode = CURRENT_MODE["value"]  # private / public
+                mode = CURRENT_MODE["value"]
                 profile_key = f"{user}_{mode}"
 
                 if profile_key not in CONFIG.get("profiles", {}):
                     await websocket.send(f"❌ Профиль '{profile_key}' не найден")
                     continue
 
-                # ⚠️ donation_id можно логировать, но не блокировать
-                if not donation_id:
+                if donation_id:
+                    if donation_id in RECENT_DONATIONS:
+                        print(f"⚠️ Повтор доната {donation_id} — пропускаем")
+                        await websocket.send("ℹ️ Донат уже учтён")
+                        continue
+                    RECENT_DONATIONS.append(donation_id)
+                else:
                     print("⚠️ Нет donation_id — может быть тест или ошибка")
 
-                # 🧠 Обработка входа/выхода
                 if "event" in data:
                     event = data["event"]
-                    user_id = data.get("user_id")
-                    name = data.get("name", "Аноним")
-                    text = data.get("text", "")
-
                     profile = update_vip(profile_key, user_id, name=name, event=event)
-
-                    add_log(
-                        profile_key,
-                        f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
-                    )
-
-                    # если это вход и профиль обновился → отправляем карточку на фронт
+                    add_log(profile_key, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
                     if profile and profile.get("_just_logged_in"):
-                        await websocket.send(
-                            json.dumps(
-                                {
-                                    "entry": {
-                                        "user_id": user_id,
-                                        "name": profile["name"],
-                                        "visits": profile["login_count"],
-                                        "last_login": profile["_previous_login"],
-                                        "total_tips": profile["total"],
-                                        "notes": profile["notes"],
-                                    }
-                                }
-                            )
-                        )
-                        profile["_just_logged_in"] = False  # сбрасываем флаг
-
+                        await websocket.send(json.dumps({
+                            "entry": {
+                                "user_id": user_id,
+                                "name": profile["name"],
+                                "visits": profile["login_count"],
+                                "last_login": profile["_previous_login"],
+                                "total_tips": profile["total"],
+                                "notes": profile["notes"],
+                            }
+                        }))
+                        profile["_just_logged_in"] = False
                     await websocket.send(f"✅ Событие {event} обработано")
                     continue
 
-                # 💸 Проверка суммы
                 if not amount or amount <= 0:
                     await websocket.send("ℹ️ Сообщение не содержит донат")
                     continue
 
-                # ✅ Логируем донат + действие
+                audit_event(profile_key, CURRENT_MODE["value"], {
+                    "type": "donation",
+                    "donation_id": donation_id,
+                    "amount": amount,
+                    "name": name,
+                    "user_id": user_id,
+                    "text": text
+                })
+
                 action_text = apply_rule(profile_key, amount, text)
-
                 if action_text:
-                    add_log(
-                        profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}"
-                    )
+                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
                 else:
-                    add_log(
-                        profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия"
-                    )
-                    update_stats(profile_key, "other", amount)
+                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
+                    update_stats(profile_key, "other", 1)
 
-                # 👑 Обновление VIP‑листа
+                update_donations_sum(profile_key, amount)
+
                 if user_id:
                     profile = update_vip(profile_key, user_id, name=name, amount=amount)
-
-                    # рассылаем событие vip_update для обновления карточки
                     try:
-                        msg = json.dumps({
-                            "vip_update": True,
-                            "user_id": user_id,
-                            "profile_key": profile_key
-                        })
+                        msg = json.dumps({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
                         for ws in list(CONNECTED_SOCKETS):
                             try:
                                 asyncio.create_task(ws.send(msg))
@@ -508,7 +590,6 @@ async def ws_handler(websocket):
                 await websocket.send("❌ Ошибка обработки")
 
     finally:
-        # 🔌 Убираем клиента из списка при отключении
         CONNECTED_SOCKETS.discard(websocket)
         print("🔌 WebSocket отключён")
 
@@ -524,8 +605,6 @@ async def ws_server():
     ):
         print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765 (ping каждые 30 сек)")
         await asyncio.Future()  # держим сервер живым
-
-
 
 # ---------------- Flask Routes ----------------
 @app.route("/")
@@ -592,36 +671,26 @@ def test_vibration():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    threading.Thread(target=send_vibration_cloud, args=(profile_key, 1, 5)).start()
+    def safe_vibration():
+        try:
+            send_vibration_cloud(profile_key, 1, 5)
+        except Exception as e:
+            print(f"⚠️ Ошибка тестовой вибрации: {e}")
+
+    threading.Thread(target=safe_vibration).start()
+
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 
 @app.route("/stats")
 @login_required
 def stats():
-    user = session.get("user")
+    user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    stats_data = load_stats(profile_key)  # читаем stats_{profile_key}.json
-
-    # считаем суммы за период
-    total_income = sum(day["total"] * 0.7 for day in stats_data.values())
-
-    # если Arina — берём проценты от Ирины
-    if user == "Arina":
-        irina_stats = load_stats(f"Irina_{mode}")
-        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in irina_stats.values())
-    else:
-        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in stats_data.values())
-
-    return render_template(
-        "stats.html",
-        user=user,
-        stats=stats_data,
-        total_income=round(total_income, 2),
-        archi_fee=round(archi_fee, 2)
-    )
-
+    stats_data = load_stats(profile_key)
+    results, summary = calculate_stats(stats_data, user=user)
+    return render_template("stats.html", user=user, results=results, summary=summary)
 
 @app.route("/stats_history")
 @login_required
@@ -630,58 +699,17 @@ def stats_history():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     archive_file = f"stats_archive_{profile_key}.json"
-
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
     except:
         archive = {}
-
-    # фильтрация по датам
     from_date = request.args.get("from")
     to_date = request.args.get("to")
-
-    filtered = {}
-    for day, data in archive.items():
-        try:
-            d = datetime.strptime(day, "%Y-%m-%d")
-        except:
-            continue
-        if from_date and d < datetime.strptime(from_date, "%Y-%m-%d"):
-            continue
-        if to_date and d > datetime.strptime(to_date, "%Y-%m-%d"):
-            continue
-        filtered[day] = data
-
-    # считаем суммы
-    sum_vibr = sum(day["vibrations"] for day in filtered.values())
-    sum_act = sum(day["actions"] for day in filtered.values())
-    sum_other = sum(day["other"] for day in filtered.values())
-    total_income = sum(day["total"] * 0.7 for day in filtered.values())
-
-    # проценты Арине
-    if user == "Arina":
-        irina_archive_file = f"stats_archive_Irina_{mode}.json"
-        try:
-            with open(irina_archive_file, "r", encoding="utf-8") as f:
-                irina_archive = json.load(f)
-        except:
-            irina_archive = {}
-        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in irina_archive.values())
-    else:
-        archi_fee = sum(day["vibrations"] * 0.7 * 0.1 for day in filtered.values())
-
-    return render_template(
-        "stats_history.html",
-        stats=filtered,
-        user=user,
-        total_income=round(total_income),
-        archi_fee=round(archi_fee),
-        sum_vibr=sum_vibr,
-        sum_act=sum_act,
-        sum_other=sum_other
-    )
-
+    filtered = {day: data for day, data in archive.items()
+                if (not from_date or day >= from_date) and (not to_date or day <= to_date)}
+    results, summary = calculate_stats(filtered, user=user)
+    return render_template("stats_history.html", user=user, results=results, summary=summary)
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required
@@ -733,10 +761,17 @@ def hook():
         if result.returncode != 0:
             print("🔥 Ошибка обновления:", result.stderr)
             return "Internal Server Error", 500
+        
+        audit_event("system", CURRENT_MODE["value"], {
+            "type": "webhook_update",
+            "status": "success" if result.returncode == 0 else "error",
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        })
 
         print("✅ Обновление прошло успешно:", result.stdout)
         return "OK", 200
-
+    
     except Exception as e:
         print("🔥 Ошибка в webhook:", e)
         return "Internal Server Error", 500
@@ -771,8 +806,12 @@ def remove_member():
 
     if user_id in vip_data:
         del vip_data[user_id]
-        with open(vip_file, "w", encoding="utf-8") as f:
+        tmp_file = vip_file + ".tmp"
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(vip_data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, vip_file)
         return {"status": "ok", "message": "Мембер удалён"}
     return {"status": "error", "message": "Мембер не найден"}, 404
 
@@ -805,8 +844,12 @@ def entries_data():
             info["_just_logged_in"] = False
 
     # сохраняем изменения
-    with open(vip_file, "w", encoding="utf-8") as f:
+    tmp_file = vip_file + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_file, vip_file)
 
     return {"entries": entries}
 
@@ -830,10 +873,16 @@ def block_member():
 
     if user_id in vip_data:
         vip_data[user_id]["blocked"] = True
-        with open(vip_file, "w", encoding="utf-8") as f:
+        tmp_file = vip_file + ".tmp"
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(vip_data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, vip_file)
         print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован")
         return jsonify(status="ok", message="Мембер заблокирован")
+    if os.path.exists(vip_file):
+        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
 
     return jsonify(status="error", message="Мембер не найден"), 404
 
@@ -849,7 +898,7 @@ def vip_page():
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         vip_data = {}
 
     if request.method == "POST" and "user_id" in request.form:
@@ -857,28 +906,30 @@ def vip_page():
         if user_id in vip_data:
             vip_data[user_id]["name"] = request.form.get("name", "").strip()
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
-            with open(vip_file, "w", encoding="utf-8") as f:
+
+            # атомарная запись
+            tmp_file = vip_file + ".tmp"
+            with open(tmp_file, "w", encoding="utf-8") as f:
                 json.dump(vip_data, f, indent=2, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_file, vip_file)
 
         # сохраняем параметры сортировки и поиска из формы
         sort_by = request.form.get("sort", "total")
         query = request.form.get("q", "")
         return redirect(url_for("vip_page", sort=sort_by, q=query))
 
-
     # 🔍 Поиск
     query = request.args.get("q", "").strip().lower()
-    filtered = (
-        {
-            uid: info
-            for uid, info in vip_data.items()
-            if query in uid.lower()
-            or query in info.get("name", "").lower()
-            or query in info.get("notes", "").lower()
-        }
-        if query
-        else vip_data
-    )
+    filtered = {
+        uid: info
+        for uid, info in vip_data.items()
+        if not query
+        or query in uid.lower()
+        or query in info.get("name", "").lower()
+        or query in info.get("notes", "").lower()
+    }
 
     # 📋 Сортировка
     sort_by = request.args.get("sort", "total")  # total / login_count / last_login
@@ -929,8 +980,15 @@ def update_name():
 
     vip_data[user_id]["name"] = new_name
 
-    with open(vip_file, "w", encoding="utf-8") as f:
+    tmp_file = vip_file + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_file, vip_file)
+
+    if os.path.exists(vip_file):
+        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
 
     return {"status": "ok"}
 
@@ -1072,9 +1130,17 @@ def clear_logs():
     # очищаем память
     donation_logs[profile_key] = []
 
-    # очищаем файл
+    # атомарная очистка файла
     log_file = f"donations_{profile_key}.log"
-    open(log_file, "w", encoding="utf-8").close()
+    tmp_file = log_file + ".tmp"
+    try:
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            f.write("")  # пустой файл
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, log_file)
+    except Exception as e:
+        print(f"⚠️ Ошибка очистки логов {log_file}: {e}")
 
     return {"status": "ok", "message": "Логи очищены ✅"}
 
@@ -1088,12 +1154,9 @@ def clear_queue():
     q = vibration_queues.get(profile_key)
     if q:
         while not q.empty():
-            try:
-                q.get_nowait()
-                q.task_done()
-            except:
-                break
+            q.get_nowait()
     return {"status": "ok", "message": "Очередь очищена ✅"}
+ 
 
 @app.route("/close_period", methods=["POST"])
 @login_required
@@ -1104,31 +1167,34 @@ def close_period():
     stats_file = f"stats_{profile_key}.json"
     archive_file = f"stats_archive_{profile_key}.json"
 
-    try:
-        with open(stats_file, "r", encoding="utf-8") as f:
-            stats = json.load(f)
-    except:
-        stats = {}
-
+    stats = load_stats(profile_key)
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
     except:
         archive = {}
 
-    # добавляем в архив
-    for day, values in stats.items():
-        if day not in archive:
-            archive[day] = values
+    # обновляем все дни
+    archive.update(stats)
 
-    with open(archive_file, "w", encoding="utf-8") as f:
+    tmp_archive = archive_file + ".tmp"
+    with open(tmp_archive, "w", encoding="utf-8") as f:
         json.dump(archive, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_archive, archive_file)
 
     # очищаем текущую статистику
-    with open(stats_file, "w", encoding="utf-8") as f:
+    tmp_stats = stats_file + ".tmp"
+    with open(tmp_stats, "w", encoding="utf-8") as f:
         json.dump({}, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_stats, stats_file)
 
-    return redirect("/stats")
+    return redirect(url_for("stats"))
+
+
 @app.route("/obs_alert")
 def obs_alert():
     return render_template("obs_alert.html")
@@ -1149,10 +1215,11 @@ def monitor_flag():
     print("🚀 Программа запущена. Ожидание донатов через WebSocket...")
     try:
         while True:
-            # раньше здесь был clear_processed_donations(), но он больше не нужен
+            print("⏳ Сервер работает, ожидание продолжается...")
             time.sleep(60)
     except KeyboardInterrupt:
         print("⏹ Остановка программы")
+
 
 
 if __name__ == "__main__":

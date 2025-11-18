@@ -330,6 +330,9 @@
     <script>
       let shownLogs = new Set();
       let shownEntries = new Set();
+      let lastLogCount = 0;
+
+      // 🔄 Переключение режима
       const modeSwitch = document.getElementById("modeSwitch");
       modeSwitch.addEventListener("change", () => {
         const newMode = modeSwitch.checked ? "private" : "public";
@@ -350,59 +353,48 @@
       });
 
       // 📜 Логи донатов
-      let lastLogCount = 0; // сколько логов уже показано
-
       async function loadLogs() {
-        const res = await fetch("/logs_data");
-        const data = await res.json();
-        const box = document.getElementById("logbox");
+        try {
+          const res = await fetch("/logs_data");
+          const data = await res.json();
+          const box = document.getElementById("logbox");
+          const logs = data.logs || [];
 
-        const logs = data.logs || [];
+          const newLogs = logs.slice(lastLogCount);
+          lastLogCount = logs.length;
 
-        // берём только новые строки
-        const newLogs = logs.slice(lastLogCount);
-        lastLogCount = logs.length;
+          newLogs.forEach(log => {
+            let cssClass = "log-entry";
+            if (log.includes("→")) cssClass += " log-donation";
+            if (log.includes("🏰")) cssClass += " log-vibration";
+            if (log.includes("🎬")) cssClass += " log-action";
+            if (log.includes("📥") || log.toLowerCase().includes("вошёл")) cssClass += " log-event";
 
-        newLogs.forEach(log => {
-          let cssClass = "log-entry";
-          // 💗 Донаты (любая строка с "→")
-          if (log.includes("→")) cssClass += " log-donation";
-
-          // 🏰 Вибрации
-          if (log.includes("🏰")) cssClass += " log-vibration";
-
-          // 🎬 Действия
-          if (log.includes("🎬")) cssClass += " log-action";
-
-          // 📥 События входа/выхода
-          if (log.includes("📥") || log.toLowerCase().includes("вошёл")) 
-              cssClass += " log-entryevent";
-
-          const div = document.createElement("div");
-          div.className = cssClass;
-          div.textContent = log;
-          box.appendChild(div);
-          box.scrollTop = box.scrollHeight;
-        });
+            const div = document.createElement("div");
+            div.className = cssClass;
+            div.textContent = log;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+          });
+        } catch (e) {
+          console.error("⚠️ Ошибка загрузки логов:", e);
+        }
       }
 
-      // 🌐 Подключение к WebSocket с авто‑реконнектом
+      // 🌐 WebSocket с авто‑реконнектом
       let socket;
-
       function connectWS() {
-        socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+        const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
+        socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
           console.log("✅ WebSocket подключён");
-
-          // 🔄 запускаем клиентский keepalive‑пинг
           if (socket._pingInterval) clearInterval(socket._pingInterval);
           socket._pingInterval = setInterval(() => {
             if (socket.readyState === WebSocket.OPEN) {
               socket.send(JSON.stringify({ type: "ping" }));
-              console.log("📤 ping → серверу");
             }
-          }, 30000); // каждые 30 секунд
+          }, 30000);
         };
 
         socket.onclose = () => {
@@ -412,32 +404,23 @@
         };
 
         socket.onmessage = (event) => {
-          let data;
           try {
-            data = JSON.parse(event.data);
+            const data = JSON.parse(event.data);
+            const currentUser = "{{ user }}";
+            if (data.vibration && data.vibration.target === currentUser) {
+              const { strength, duration } = data.vibration;
+              startVibrationTimer(duration, strength);
+            }
           } catch {
-            return;
-          }
-
-          const currentUser = "{{ user }}";
-
-          if (data.vibration && data.vibration.target === currentUser) {
-            const { strength, duration } = data.vibration;
-            startVibrationTimer(duration, strength);
+            console.warn("⚠️ Некорректное сообщение WebSocket");
           }
         };
       }
-
-      // запускаем подключение
       connectWS();
 
-
       // ⏱ Таймер вибрации
-      let vibrationInterval;
-
       function startVibrationTimer(duration, strength = "—") {
         const container = document.getElementById("vibrationTimersContainer");
-
         const box = document.createElement("div");
         box.className = "vibration-timer";
         box.innerHTML = `
@@ -451,6 +434,7 @@
         let remaining = duration;
         const timeSpan = box.querySelector(".time");
         const progressBar = box.querySelector(".progress-bar");
+        progressBar.style.width = "100%";
 
         const interval = setInterval(() => {
           remaining -= 1;
@@ -462,9 +446,6 @@
             progressBar.style.width = `${(remaining / duration) * 100}%`;
           }
         }, 1000);
-
-        // начальная ширина прогресс-бара
-        progressBar.style.width = "100%";
       }
 
       function formatDate(raw) {
@@ -478,54 +459,58 @@
         });
       }
 
-
       // 👑 Новые мемберы
       async function checkNewEntries() {
-        const res = await fetch("/entries_data");
-        const data = await res.json();
+        try {
+          const res = await fetch("/entries_data");
+          const data = await res.json();
+          (data.entries || []).forEach(entry => {
+            const key = `${entry.user_id}-${entry.last_login}`;
+            if (shownEntries.has(key)) return;
+            shownEntries.add(key);
 
-        (data.entries || []).forEach(entry => {
-          const key = `${entry.user_id}-${entry.last_login}`;
-          if (shownEntries.has(key)) return;
-          shownEntries.add(key);
+            let message = entry.visits
+              ? `👑 <strong>${entry.name}</strong><br>
+                📅 Предыдущий визит: ${formatDate(entry._previous_login || entry.last_login)}<br>
+                🔢 Всего визитов: ${entry.visits}<br>
+                💗 Всего чаевых: ${entry.total_tips}<br>
+                📝 Заметки: ${entry.notes || "нет"}`
+              : "🆕 Новый мембер!";
 
-          let message = entry.visits
-            ? `👑 <strong>${entry.name}</strong><br>
-              📅 Предыдущий визит: ${formatDate(entry._previous_login || entry.last_login)}
-              🔢 Всего визитов: ${entry.visits}<br>
-              💗 Всего чаевых: ${entry.total_tips}<br>
-              📝 Заметки: ${entry.notes || "нет"}`
-            : "🆕 Новый мембер!";
-
-          showEntryPopup(message);
-        });
+            showEntryPopup(message);
+          });
+        } catch (e) {
+          console.error("⚠️ Ошибка загрузки entries:", e);
+        }
       }
 
       // 🔁 Очередь вибраций
       async function loadQueue() {
-        const res = await fetch("/queue_data");
-        const data = await res.json();
-        const box = document.getElementById("queuebox");
-        if (data.queue.length === 0) {
-          box.innerHTML = "<div>Очередь пуста ✅</div>";
-        } else {
-          box.innerHTML = data.queue.map(([strength, duration], i) =>
-            `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-          ).join("");
+        try {
+          const res = await fetch("/queue_data");
+          const data = await res.json();
+          const box = document.getElementById("queuebox");
+          if (!data.queue || data.queue.length === 0) {
+            box.innerHTML = "<div>Очередь пуста ✅</div>";
+          } else {
+            box.innerHTML = data.queue.map(([strength, duration], i) =>
+              `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
+            ).join("");
+          }
+        } catch (e) {
+          console.error("⚠️ Ошибка загрузки очереди:", e);
         }
       }
 
       // 🧹 Очистка логов
       document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
         e.preventDefault();
-        lastLogCount = 0; // 👈 сбрасываем счётчик
+        lastLogCount = 0;
         document.getElementById("logbox").innerHTML = "";
         fetch("/clear_logs", { method: "POST" })
           .then(() => showToast("Логи очищены ✅"))
           .catch(() => showToast("❌ Ошибка при очистке логов"));
       });
-
-
 
       // 🧹 Очистка очереди
       document.getElementById("clearQueueBtn").addEventListener("click", () => {
@@ -538,26 +523,24 @@
           .catch(() => showToast("❌ Ошибка при очистке очереди"));
       });
 
-      // 🔔 Всплывающие уведомления
+      // 🔔 Popup
       function showEntryPopup(message) {
         const popup = document.getElementById("entryPopup");
         popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
         popup.style.display = "block";
-        popup.classList.add("show"); // 👈 плавное появление
+        popup.classList.add("show");
         setTimeout(() => {
-          popup.classList.remove("show"); // 👈 плавное исчезновение
+          popup.classList.remove("show");
           popup.style.display = "none";
         }, 8000);
       }
-
       function hideEntryPopup() {
         const popup = document.getElementById("entryPopup");
         popup.classList.remove("show");
         popup.style.display = "none";
       }
 
-
-      // 🔔 Toast‑уведомления
+      // 🔔 Toast
       function showToast(message) {
         const toast = document.getElementById("toast");
         toast.textContent = message;
@@ -567,37 +550,41 @@
         }, 3000);
       }
 
-      // ⏱ Запускаем циклы
+      // ⏱ Циклы обновления
       setInterval(loadLogs, 2000);
-      setInterval(checkNewEntries, 3000);
+      setInterval(checkNewEntries, 2000);
       setInterval(loadQueue, 2000);
       loadLogs();
       checkNewEntries();
       loadQueue();
 
-        // 🖱️ Перетаскивание entryPopup
-        let isDragging = false, offsetX = 0, offsetY = 0;
-        const popup = document.getElementById("entryPopup");
+      // 🖱️ Перетаскивание entryPopup
+      let isDragging = false, offsetX = 0, offsetY = 0;
+      const popup = document.getElementById("entryPopup");
 
-        popup.addEventListener("mousedown", (e) => {
-          isDragging = true;
-          offsetX = e.clientX - popup.offsetLeft;
-          offsetY = e.clientY - popup.offsetTop;
-          popup.style.transition = "none";
-        });
+      popup.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        offsetX = e.clientX - popup.offsetLeft;
+        offsetY = e.clientY - popup.offsetTop;
+        popup.style.transition = "none"; // убираем плавность во время перетаскивания
+      });
 
-        document.addEventListener("mousemove", (e) => {
-          if (isDragging) {
-            popup.style.left = `${e.clientX - offsetX}px`;
-            popup.style.top = `${e.clientY - offsetY}px`;
-            popup.style.transform = "none";
-          }
-        });
+      document.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+          popup.style.left = `${e.clientX - offsetX}px`;
+          popup.style.top = `${e.clientY - offsetY}px`;
+          popup.style.transform = "none"; // отключаем центрирование во время движения
+        }
+      });
 
-        document.addEventListener("mouseup", () => {
+      document.addEventListener("mouseup", () => {
+        if (isDragging) {
           isDragging = false;
-          popup.style.transition = "opacity 0.3s ease";
-        });
+          // возвращаем плавность и центрирование
+          popup.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+          popup.style.transform = "translate(-50%, -50%)";
+        }
+      });
     </script>
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
     <div id="toast" class="toast"></div>
