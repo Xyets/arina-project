@@ -144,31 +144,24 @@
 
   <div class="card">
     <h3>📜 Логи событий</h3>
-    <div class="table-wrapper">
-      <pre id="eventLogs" style="text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
-    </div>
+    <pre id="eventLogs" style="text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
   </div>
 
   <script>
-    async function loadEventLogs() {
-      // получаем логи с сервера (например, отдельный эндпоинт /logs_data)
+    async function loadLogs() {
       const resp = await fetch("{{ url_for('logs_data_stats') }}");
       const data = await resp.json();
       const logBox = document.getElementById("eventLogs");
 
-      data.events.forEach(ev => {
-        // форматируем строку: дата | сумма поинтов + тип
-        const ts = ev.ts_local.split("T")[0] + " " + ev.ts_local.split("T")[1].slice(0,5);
-        const amount = ev.raw.amount || 0;
+      data.logs.forEach(ev => {
+        const ts = ev.ts_local ? ev.ts_local.replace("T"," ").slice(0,16) : "";
         let icon = "🎲 Иное";
         if (ev.type === "vibration") icon = "🏰 Вибрация";
         if (ev.type === "action") icon = "⚡ Действие";
-
-        logBox.textContent += `${ts} | ${amount} поинт ${icon}\n`;
+        logBox.textContent += `${ts} | ${ev.amount} поинт ${icon}\n`;
       });
     }
-
-    loadEventLogs();
+    loadLogs();
   </script>
 
   <div style="text-align:center;">
