@@ -328,11 +328,7 @@ def fallback_amount(text, amount):
             return 1
     return amount
 
-def calculate_stats(stats: dict, user: str):
-    """
-    stats: словарь вида { 'YYYY-MM-DD': {'vibrations': int, 'actions': int, 'other': int, 'total': int}, ... }
-    user: имя пользователя ("Irina", "Arina" или другой)
-    """
+def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
     results = {}
     sum_vibr = sum(data['vibrations'] for data in stats.values())
     sum_act = sum(data['actions'] for data in stats.values())
@@ -347,19 +343,17 @@ def calculate_stats(stats: dict, user: str):
         if user == "Irina":
             archi = data['vibrations'] * 0.7 * 0.1
             net_income = base_income - archi
-            results[day] = {
-                **data,
-                "archi_fee": archi,
-                "net_income": net_income
-            }
+            results[day] = {**data, "archi_fee": archi, "net_income": net_income}
             archi_fee += archi
             total_income += net_income
         else:
-            results[day] = {
-                **data,
-                "net_income": base_income
-            }
-            total_income += base_income
+            net_income = base_income
+            results[day] = {**data, "net_income": net_income}
+            total_income += net_income
+
+    # если это Arina — подтягиваем archi_fee из статистики Ирины
+    if user == "Arina" and irina_stats:
+        archi_fee = sum(d["vibrations"] * 0.7 * 0.1 for d in irina_stats.values())
 
     summary = {
         "sum_vibr": sum_vibr,
@@ -369,7 +363,6 @@ def calculate_stats(stats: dict, user: str):
         "archi_fee": archi_fee,
         "total_income": total_income
     }
-
     return results, summary
 
 
@@ -690,7 +683,8 @@ def stats():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     stats_data = load_stats(profile_key)
-    results, summary = calculate_stats(stats_data, user=user)
+    irina_stats = load_stats(f"Irina_{mode}") if user == "Arina" else None
+    results, summary = calculate_stats(stats_data, user=user, irina_stats=irina_stats)
     return render_template("stats.html", user=user, results=results, summary=summary)
 
 @app.route("/stats_history")
@@ -711,6 +705,16 @@ def stats_history():
                 if (not from_date or day >= from_date) and (not to_date or day <= to_date)}
     results, summary = calculate_stats(filtered, user=user)
     return render_template("stats_history.html", user=user, results=results, summary=summary)
+
+@app.route("/donations_data")
+@login_required
+def donations_data():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    logs = donation_logs.get(profile_key, [])
+    return {"donations": logs[-50:]}  # последние 50 записей
+
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
 @login_required

@@ -131,6 +131,16 @@
     <a href="{{ url_for('index') }}" class="back">⬅ Назад</a>
   </div>
 
+  <div class="card">
+    <h3>📜 Донаты за день</h3>
+    <table id="donationsTable">
+      <tr>
+        <th scope="col">Дата</th>
+        <th scope="col">Событие</th>
+        <th scope="col">Сумма</th>
+      </tr>
+    </table>
+  </div>
   <!-- 📦 JSON-данные -->
   <script id="stats-data" type="application/json">
     {{ results|tojson|safe }}
@@ -166,6 +176,22 @@
         }
       }
     });
+
+    async function loadDonations() {
+      const resp = await fetch("{{ url_for('donations_data') }}");
+      const data = await resp.json();
+      const table = document.getElementById("donationsTable");
+      data.donations.forEach(entry => {
+        // пример строки: "2025-11-18 | Аноним → 500 🏰 Вибрация"
+        const parts = entry.split("|");
+        const date = parts[0].trim();
+        const rest = parts[1] || "";
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${date}</td><td>${rest}</td><td></td>`;
+        table.appendChild(row);
+      });
+    }
+    loadDonations();
   </script>
 </body>
 </html>
