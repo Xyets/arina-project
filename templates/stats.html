@@ -6,6 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    * { box-sizing: border-box; }
+
     body {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg,#fdfbfb,#ebedee);
@@ -13,8 +15,10 @@
       margin:0;
       padding:40px;
     }
+
     h2, h3 { text-align: center; color: #444; }
     h2 { margin-bottom: 30px; }
+
     .card {
       background:#fff;
       border-radius:16px;
@@ -23,21 +27,31 @@
       margin:20px auto;
       max-width:900px;
     }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
     table {
       width:100%;
+      min-width:600px;
       border-collapse:collapse;
       margin-top:20px;
-      display:block;
-      overflow-x:auto;
-      white-space:nowrap;
     }
-    th, td { padding:10px; text-align:center; }
+
+    th, td {
+      padding:10px;
+      text-align:center;
+    }
+
     th {
       background:#a3d8f4;
       color:white;
       font-weight:600;
     }
+
     tr:nth-child(even){ background:#f9f9f9; }
+
     a.back, button.close-period {
       display:inline-block;
       margin-top:20px;
@@ -50,9 +64,9 @@
       border:none;
       cursor:pointer;
     }
+
     a.back:hover, button.close-period:hover { background:#74c0e3; }
 
-    /* 📱 Адаптивность */
     @media (max-width: 500px) {
       body { padding:20px; }
       .card { padding:15px; }
@@ -65,66 +79,70 @@
 
   <div class="card">
     <h3>📊 Итоги за период</h3>
-    <table>
-      <tr>
-        <th scope="col">Заработано всего за период</th>
-        {% if user == "Irina" %}
-          <th scope="col">Процент Арине</th>
-        {% elif user == "Arina" %}
-          <th scope="col">Доход от Иры</th>
-        {% endif %}
-      </tr>
-      <tr>
-        <td><b>{{ summary.total_income|int }}</b></td>
-        {% if user in ["Irina","Arina"] %}
-          <td><b>{{ summary.archi_fee|int }}</b></td>
-        {% endif %}
-      </tr>
-    </table>
+    <div class="table-wrapper">
+      <table>
+        <tr>
+          <th>Заработано всего за период</th>
+          {% if user == "Irina" %}
+            <th>Процент Арине</th>
+          {% elif user == "Arina" %}
+            <th>Доход от Иры</th>
+          {% endif %}
+        </tr>
+        <tr>
+          <td><b>{{ summary.total_income|int }}</b></td>
+          {% if user in ["Irina","Arina"] %}
+            <td><b>{{ summary.archi_fee|int }}</b></td>
+          {% endif %}
+        </tr>
+      </table>
+    </div>
   </div>
 
   <div class="card">
     <h3>📈 Динамика по дням</h3>
     <canvas id="statsChart" height="300"></canvas>
 
-    <table>
-      <tr>
-        <th scope="col">Дата</th>
-        <th scope="col">Вибрации</th>
-        <th scope="col">Действия</th>
-        <th scope="col">Иное</th>
-        {% if user == "Irina" %}
-          <th scope="col">%Арчи</th>
-        {% endif %}
-        <th scope="col">Чистый доход</th>
-      </tr>
-      {% for day, data in results.items() %}
-      <tr>
-        <td>{{ day }}</td>
-        <td>{{ data.vibrations }}</td>
-        <td>{{ data.actions }}</td>
-        <td>{{ data.other }}</td>
-        {% if user == "Irina" %}
-          <td><b>{{ data.archi_fee|int }}</b></td>
-        {% endif %}
-        <td><b>{{ data.net_income|int }}</b></td>
-      </tr>
-      {% endfor %}
-      <tr style="font-weight:bold; background:#e0f7fa;">
-        <td>Итого</td>
-        <td>{{ summary.sum_vibr }}</td>
-        <td>{{ summary.sum_act }}</td>
-        <td>{{ summary.sum_other }}</td>
-        {% if user == "Irina" %}
-          <td>{{ summary.archi_fee|int }}</td>
-        {% endif %}
-        <td>{{ summary.total_income|int }}</td>
-      </tr>
-    </table>
+    <div class="table-wrapper">
+      <table>
+        <tr>
+          <th>Дата</th>
+          <th>Вибрации</th>
+          <th>Действия</th>
+          <th>Иное</th>
+          {% if user == "Irina" %}
+            <th>%Арчи</th>
+          {% endif %}
+          <th>Чистый доход</th>
+        </tr>
+        {% for day, data in results.items() %}
+        <tr>
+          <td>{{ day }}</td>
+          <td>{{ data.vibrations }}</td>
+          <td>{{ data.actions }}</td>
+          <td>{{ data.other }}</td>
+          {% if user == "Irina" %}
+            <td><b>{{ data.archi_fee|int }}</b></td>
+          {% endif %}
+          <td><b>{{ data.net_income|int }}</b></td>
+        </tr>
+        {% endfor %}
+        <tr style="font-weight:bold; background:#e0f7fa;">
+          <td>Итого</td>
+          <td>{{ summary.sum_vibr }}</td>
+          <td>{{ summary.sum_act }}</td>
+          <td>{{ summary.sum_other }}</td>
+          {% if user == "Irina" %}
+            <td>{{ summary.archi_fee|int }}</td>
+          {% endif %}
+          <td>{{ summary.total_income|int }}</td>
+        </tr>
+      </table>
+    </div>
   </div>
 
   <div style="text-align:center;">
-    <form method="POST" action="{{ url_for('close_period') }}">
+    <form id="closePeriodForm" method="POST" action="{{ url_for('close_period') }}">
       <button type="submit" class="close-period">✅ Завершить период</button>
     </form>
     <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
@@ -133,40 +151,40 @@
 
   <div class="card">
     <h3>📜 Донаты за день</h3>
-    <table id="donationsTable">
-      <tr>
-        <th scope="col">Дата</th>
-        <th scope="col">Событие</th>
-        <th scope="col">Сумма</th>
-      </tr>
-    </table>
+    <div class="table-wrapper">
+      <table id="donationsTable">
+        <tr>
+          <th>Дата</th>
+          <th>Событие</th>
+          <th>Сумма</th>
+        </tr>
+      </table>
+    </div>
   </div>
-  <!-- 📦 JSON-данные -->
+
   <script id="stats-data" type="application/json">
     {{ results|tojson|safe }}
   </script>
 
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
-    const labels = Object.keys(stats); // предполагается, что backend уже сортирует даты
+    const labels = Object.keys(stats);
     const vibrations = labels.map(d => stats[d].vibrations);
     const actions = labels.map(d => stats[d].actions);
     const other = labels.map(d => stats[d].other);
     const total = labels.map(d => stats[d].total);
 
-    const data = {
-      labels: labels,
-      datasets: [
-        { label: 'Вибрации', data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
-        { label: 'Действия', data: actions, borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
-        { label: 'Иное', data: other, borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
-        { label: 'Всего', data: total, borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
-      ]
-    };
-
     new Chart(document.getElementById('statsChart'), {
       type: 'line',
-      data: data,
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Вибрации', data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
+          { label: 'Действия', data: actions, borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
+          { label: 'Иное', data: other, borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
+          { label: 'Всего', data: total, borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
+        ]
+      },
       options: {
         responsive: true,
         plugins: { legend: { position: 'top' } },
@@ -177,17 +195,26 @@
       }
     });
 
+    document.getElementById("closePeriodForm").addEventListener("submit", function(e) {
+      if (!confirm("Вы уверены, что хотите завершить период?")) {
+        e.preventDefault();
+      }
+    });
+
     async function loadDonations() {
       const resp = await fetch("{{ url_for('donations_data') }}");
       const data = await resp.json();
       const table = document.getElementById("donationsTable");
+
       data.donations.forEach(entry => {
-        // пример строки: "2025-11-18 | Аноним → 500 🏰 Вибрация"
         const parts = entry.split("|");
         const date = parts[0].trim();
         const rest = parts[1] || "";
+        const match = rest.match(/→\s*(\d+)/);
+        const amount = match ? match[1] : "";
+        const eventText = rest.replace(/→\s*\d+/, "").trim();
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${date}</td><td>${rest}</td><td></td>`;
+        row.innerHTML = `<td>${date}</td><td>${eventText}</td><td>${amount}</td>`;
         table.appendChild(row);
       });
     }

@@ -713,7 +713,12 @@ def donations_data():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     logs = donation_logs.get(profile_key, [])
-    return {"donations": logs[-50:]}  # последние 50 записей
+    donations = []
+    for entry in logs:
+        # оставляем только строки с суммой (→ число)
+        if "→" in entry:
+            donations.append(entry)
+    return {"donations": donations[-50:]}  # последние 50 # последние 50 записей
 
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
