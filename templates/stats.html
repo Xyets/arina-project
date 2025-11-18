@@ -145,13 +145,7 @@
   <div class="card">
     <h3>📜 Логи событий</h3>
     <div class="table-wrapper">
-      <table id="logsTable">
-        <tr>
-          <th>Дата</th>
-          <th>Тип</th>
-          <th>Количество</th>
-        </tr>
-      </table>
+      <pre id="eventLogs" style="text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
     </div>
   </div>
 
@@ -159,33 +153,24 @@
     {{ results|tojson|safe }}
   </script>
 
-
   <script>
     const logs = JSON.parse(document.getElementById("logs-data").textContent);
-    const logsTable = document.getElementById("logsTable");
+    const logBox = document.getElementById("eventLogs");
 
     Object.entries(logs).forEach(([day, data]) => {
-      // только вибрации, действия и другое
-      const events = [
-        { type: "Вибрации", count: data.vibrations || 0 },
-        { type: "Действия", count: data.actions || 0 },
-        { type: "Иное", count: data.other || 0 }
-      ];
-
-      events.forEach(ev => {
-        if (ev.count > 0) {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${day}</td>
-            <td>${ev.type}</td>
-            <td>${ev.count}</td>
-          `;
-          logsTable.appendChild(row);
-        }
-      });
+      // формируем события только для вибраций, действий и иного
+      if (data.vibrations && data.vibrations > 0) {
+        logBox.textContent += `${day} | ${data.vibrations} поинт 🏰 Вибрация\n`;
+      }
+      if (data.actions && data.actions > 0) {
+        logBox.textContent += `${day} | ${data.actions} поинт ⚡ Действие\n`;
+      }
+      if (data.other && data.other > 0) {
+        logBox.textContent += `${day} | ${data.other} поинт 🎲 Иное\n`;
+      }
     });
   </script>
-  
+
   <div style="text-align:center;">
     <a href="{{ url_for('index') }}" class="back">⬅ На главную</a>
     <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
