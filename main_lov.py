@@ -1183,6 +1183,23 @@ def logs_data():
     profile_key = f"{user}_{mode}"
     return {"logs": donation_logs.get(profile_key, [])}
 
+@app.route("/logs_data_stats")
+@login_required
+def logs_data():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    logs = donation_logs.get(profile_key, [])
+    # Приводим к удобному формату
+    formatted = []
+    for ev in logs:
+        formatted.append({
+            "ts_local": ev.get("ts_local"),
+            "amount": ev.get("amount", 0),
+            "type": ev.get("type")
+        })
+    return {"logs": formatted}
+
 
 @app.route("/clear_logs", methods=["POST"])
 @login_required

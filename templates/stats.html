@@ -152,7 +152,7 @@
   <script>
     async function loadEventLogs() {
       // получаем логи с сервера (например, отдельный эндпоинт /logs_data)
-      const resp = await fetch("{{ url_for('logs_data') }}");
+      const resp = await fetch("{{ url_for('logs_data_stats') }}");
       const data = await resp.json();
       const logBox = document.getElementById("eventLogs");
 
