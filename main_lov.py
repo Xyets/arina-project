@@ -359,20 +359,16 @@ def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
         if user == "Irina":
             archi = data.get('vibrations', 0) * 0.7 * 0.1
             net_income = base_income - archi
-            results[day] = {**data,
-                            "archi_fee": archi,
-                            "net_income": net_income}
+            results[day] = {**data, "archi_fee": archi, "net_income": net_income}
             archi_fee += archi
             total_income += net_income
         else:
             net_income = base_income
-            results[day] = {**data,
-                            "net_income": net_income}
+            results[day] = {**data, "net_income": net_income}
             total_income += net_income
 
     if user == "Arina" and irina_stats:
-        archi_fee = sum(d.get("vibrations", 0) * 0.7 * 0.1
-                        for d in irina_stats.values())
+        archi_fee = sum(d.get("vibrations", 0) * 0.7 * 0.1 for d in irina_stats.values())
 
     summary = {
         "sum_vibr": sum_vibr,
@@ -384,7 +380,6 @@ def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
         "total_income": total_income
     }
     return results, summary
-
 
 def try_extract_user_id_from_text(text):
     m_hex = re.search(r"\b([0-9a-f]{32})\b", text, re.IGNORECASE)

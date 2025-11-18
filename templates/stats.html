@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>📜 История статистики</title>
+  <title>📊 Статистика</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -73,10 +73,10 @@
   </style>
 </head>
 <body>
-  <h2>📜 История статистики для {{ user }}</h2>
+  <h2>📊 Статистика для {{ user }}</h2>
 
   <div class="card">
-    <h3>📊 Итоги за выбранный период</h3>
+    <h3>📊 Итоги за период</h3>
     <div class="table-wrapper">
       <table>
         <tr>
@@ -88,9 +88,9 @@
           {% endif %}
         </tr>
         <tr>
-          <td><b>{{ summary.total_income|int }}</b></td>
+          <td><b>{{ summary.total_income|default(0)|int }}</b></td>
           {% if user in ["Irina","Arina"] %}
-            <td><b>{{ summary.archi_fee|int }}</b></td>
+            <td><b>{{ summary.archi_fee|default(0)|int }}</b></td>
           {% endif %}
         </tr>
       </table>
@@ -99,7 +99,7 @@
 
   <div class="card">
     <h3>📈 Динамика по дням</h3>
-    <canvas id="historyChart" height="300"></canvas>
+    <canvas id="statsChart" height="300"></canvas>
 
     <div class="table-wrapper">
       <table>
@@ -117,48 +117,49 @@
         {% for day, data in results.items() %}
         <tr>
           <td>{{ day }}</td>
-          <td>{{ data.vibrations }}</td>
-          <td>{{ data.actions }}</td>
-          <td>{{ data.other }}</td>
-          <td>{{ data.donations_sum|int }}</td>
+          <td>{{ data.vibrations|default(0) }}</td>
+          <td>{{ data.actions|default(0) }}</td>
+          <td>{{ data.other|default(0) }}</td>
+          <td>{{ data.donations_sum|default(0)|int }}</td>
           {% if user == "Irina" %}
-            <td><b>{{ data.archi_fee|int }}</b></td>
+            <td><b>{{ data.archi_fee|default(0)|int }}</b></td>
           {% endif %}
-          <td><b>{{ data.net_income|int }}</b></td>
+          <td><b>{{ data.net_income|default(0)|int }}</b></td>
         </tr>
         {% endfor %}
         <tr style="font-weight:bold; background:#e0f7fa;">
           <td>Итого</td>
-          <td>{{ summary.sum_vibr }}</td>
-          <td>{{ summary.sum_act }}</td>
-          <td>{{ summary.sum_other }}</td>
-          <td>{{ summary.sum_donations|int }}</td>
+          <td>{{ summary.sum_vibr|default(0) }}</td>
+          <td>{{ summary.sum_act|default(0) }}</td>
+          <td>{{ summary.sum_other|default(0) }}</td>
+          <td>{{ summary.sum_donations|default(0)|int }}</td>
           {% if user == "Irina" %}
-            <td>{{ summary.archi_fee|int }}</td>
+            <td>{{ summary.archi_fee|default(0)|int }}</td>
           {% endif %}
-          <td>{{ summary.total_income|int }}</td>
+          <td>{{ summary.total_income|default(0)|int }}</td>
         </tr>
       </table>
     </div>
   </div>
 
   <div style="text-align:center;">
-    <a href="{{ url_for('stats') }}" class="back">⬅ Назад к текущей статистике</a>
+    <a href="{{ url_for('index') }}" class="back">⬅ На главную</a>
+    <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
   </div>
 
-  <script id="history-data" type="application/json">
+  <script id="stats-data" type="application/json">
     {{ results|tojson|safe }}
   </script>
 
   <script>
-    const stats = JSON.parse(document.getElementById("history-data").textContent);
+    const stats = JSON.parse(document.getElementById("stats-data").textContent);
     const labels = Object.keys(stats);
-    const vibrations = labels.map(d => stats[d].vibrations);
-    const actions = labels.map(d => stats[d].actions);
-    const other = labels.map(d => stats[d].other);
-    const donations = labels.map(d => stats[d].donations_sum);
+    const vibrations = labels.map(d => stats[d].vibrations || 0);
+    const actions = labels.map(d => stats[d].actions || 0);
+    const other = labels.map(d => stats[d].other || 0);
+    const donations = labels.map(d => stats[d].donations_sum || 0);
 
-    new Chart(document.getElementById('historyChart'), {
+    new Chart(document.getElementById('statsChart'), {
       type: 'line',
       data: {
         labels: labels,
