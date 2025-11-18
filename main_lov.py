@@ -343,40 +343,47 @@ def fallback_amount(text, amount):
 
 def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
     results = {}
-    sum_vibr = sum(data['vibrations'] for data in stats.values())
-    sum_act = sum(data['actions'] for data in stats.values())
-    sum_other = sum(data['other'] for data in stats.values())
-    sum_total = sum(data['total'] for data in stats.values())
+    sum_vibr = sum(data.get('vibrations', 0) for data in stats.values())
+    sum_act = sum(data.get('actions', 0) for data in stats.values())
+    sum_other = sum(data.get('other', 0) for data in stats.values())
+    sum_total = sum(data.get('total', 0) for data in stats.values())
+    sum_donations = sum(data.get('donations_sum', 0) for data in stats.values())
 
     archi_fee = 0
     total_income = 0
 
     for day, data in stats.items():
-        base_income = (data['vibrations'] + data['actions'] + data['other']) * 0.7
+        base_income = (data.get('vibrations', 0) +
+                       data.get('actions', 0) +
+                       data.get('other', 0)) * 0.7
         if user == "Irina":
-            archi = data['vibrations'] * 0.7 * 0.1
+            archi = data.get('vibrations', 0) * 0.7 * 0.1
             net_income = base_income - archi
-            results[day] = {**data, "archi_fee": archi, "net_income": net_income}
+            results[day] = {**data,
+                            "archi_fee": archi,
+                            "net_income": net_income}
             archi_fee += archi
             total_income += net_income
         else:
             net_income = base_income
-            results[day] = {**data, "net_income": net_income}
+            results[day] = {**data,
+                            "net_income": net_income}
             total_income += net_income
 
     if user == "Arina" and irina_stats:
-        archi_fee = sum(d["vibrations"] * 0.7 * 0.1 for d in irina_stats.values())
+        archi_fee = sum(d.get("vibrations", 0) * 0.7 * 0.1
+                        for d in irina_stats.values())
 
     summary = {
         "sum_vibr": sum_vibr,
         "sum_act": sum_act,
         "sum_other": sum_other,
         "sum_total": sum_total,
+        "sum_donations": sum_donations,
         "archi_fee": archi_fee,
         "total_income": total_income
     }
     return results, summary
-
 
 
 def try_extract_user_id_from_text(text):
@@ -698,6 +705,7 @@ def test_vibration():
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 
+
 @app.route("/stats")
 @login_required
 def stats():
@@ -706,8 +714,14 @@ def stats():
     profile_key = f"{user}_{mode}"
     stats_data = load_stats(profile_key)
     irina_stats = load_stats(f"Irina_{mode}") if user == "Arina" else None
-    results, summary = calculate_stats(stats_data, user=user, irina_stats=irina_stats)
-    return render_template("stats.html", user=user, results=results, summary=summary)
+    results, summary = calculate_stats(stats_data,
+                                       user=user,
+                                       irina_stats=irina_stats)
+    return render_template("stats.html",
+                           user=user,
+                           results=results,
+                           summary=summary)
+
 
 @app.route("/stats_history")
 @login_required
@@ -719,14 +733,22 @@ def stats_history():
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         archive = {}
+
     from_date = request.args.get("from")
     to_date = request.args.get("to")
+
     filtered = {day: data for day, data in archive.items()
-                if (not from_date or day >= from_date) and (not to_date or day <= to_date)}
+                if (not from_date or day >= from_date) and
+                   (not to_date or day <= to_date)}
+
     results, summary = calculate_stats(filtered, user=user)
-    return render_template("stats_history.html", user=user, results=results, summary=summary)
+    return render_template("stats_history.html",
+                           user=user,
+                           results=results,
+                           summary=summary)
+                           
 
 @app.route("/donations_data")
 @login_required
