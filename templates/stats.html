@@ -209,14 +209,18 @@
       data.donations.forEach(entry => {
         const parts = entry.split("|");
         const date = parts[0].trim();
-        const rest = parts[1] || "";
+        const rest = parts[1]?.trim() || "";
 
         // Ищем сумму после "→"
         const amountMatch = rest.match(/→\s*(\d+)/);
         const amount = amountMatch ? amountMatch[1] : "";
 
         // Событие: всё после суммы
-        const eventText = rest.replace(/.*→\s*\d+\s*/, "").trim();
+        let eventText = rest;
+        if (amountMatch) {
+          const indexAfterAmount = amountMatch.index + amountMatch[0].length;
+          eventText = rest.slice(indexAfterAmount).trim();
+        }
 
         const row = document.createElement("tr");
         row.innerHTML = `<td>${date}</td><td>${eventText}</td><td>${amount}</td>`;
