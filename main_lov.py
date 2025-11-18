@@ -1185,7 +1185,7 @@ def logs_data():
 
 @app.route("/logs_data_stats")
 @login_required
-def logs_data():
+def logs_data_stats():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
