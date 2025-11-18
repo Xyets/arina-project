@@ -16,6 +16,7 @@ from datetime import datetime
 import shutil
 from audit import audit_event
 from collections import deque
+from stats_service import calculate_stats, get_stats
 RECENT_DONATIONS = deque(maxlen=500)
 
 
