@@ -487,7 +487,6 @@ def extract_duration(text):
     m = re.search(r"время[:=]\s*(\d+)", text)
     return int(m.group(1)) if m else None
 
-
 async def ws_handler(websocket):
     print("🔌 WebSocket подключён")
     CONNECTED_SOCKETS.add(websocket)
@@ -547,6 +546,7 @@ async def ws_handler(websocket):
                     await websocket.send("ℹ️ Сообщение не содержит донат")
                     continue
 
+                # 📊 Аудит доната
                 audit_event(profile_key, CURRENT_MODE["value"], {
                     "type": "donation",
                     "donation_id": donation_id,
@@ -556,6 +556,7 @@ async def ws_handler(websocket):
                     "text": text
                 })
 
+                # 🧠 Применение правила
                 action_text = apply_rule(profile_key, amount, text)
                 if action_text:
                     add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
@@ -563,8 +564,10 @@ async def ws_handler(websocket):
                     add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
                     update_stats(profile_key, "other", 1)
 
+                # 💰 Всегда учитываем сумму доната
                 update_donations_sum(profile_key, amount)
 
+                # 👤 Обновление VIP
                 if user_id:
                     profile = update_vip(profile_key, user_id, name=name, amount=amount)
                     try:
@@ -587,7 +590,7 @@ async def ws_handler(websocket):
         CONNECTED_SOCKETS.discard(websocket)
         print("🔌 WebSocket отключён")
 
-
+        
 async def ws_server():
     # запускаем воркеры для всех профилей
     for profile_key in CONFIG["profiles"]:
