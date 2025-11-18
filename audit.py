@@ -1,4 +1,3 @@
-# audit.py
 import os
 import json
 import datetime
@@ -14,26 +13,27 @@ def audit_event(profile_key: str, scope: str, event: dict):
     Записывает событие в JSONL (одна строка = одно событие).
     Каталоги: logs/audit/{profile_key}/{scope}/{YYYY-MM-DD}/events.jsonl
     """
-    ts_utc = datetime.datetime.utcnow().isoformat() + "Z"
+    ts_utc = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    ts_local = datetime.datetime.now().replace(microsecond=0).isoformat()
     day = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     folder = AUDIT_ROOT / profile_key / scope / day
-    folder.mkdir(parents=True, exist_ok=True)
-    file_path = folder / "events.jsonl"
 
     record = {
         "ts_utc": ts_utc,
-        "ts_local": datetime.datetime.now().isoformat(),
+        "ts_local": ts_local,
         "profile_key": profile_key,
         "scope": scope,
-        # всегда есть уникальный идентификатор события
-        "event_id": event.get("donation_id") or event.get("id") or str(uuid.uuid4()),
-        "type": event.get("type") or ("donation" if "amount" in event else "vibration"),
+        "event_id": str(uuid.uuid4()),  # всегда уникальный ID
+        "type": event.get("type") or ("donation" if "donation_id" in event or "amount" in event else "system"),
         "raw": event,
     }
 
     line = json.dumps(record, ensure_ascii=False)
+
     with LOCK:
         try:
+            folder.mkdir(parents=True, exist_ok=True)
+            file_path = folder / "events.jsonl"
             with open(file_path, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
                 f.flush()

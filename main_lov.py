@@ -38,13 +38,23 @@ CONNECTED_USERS = {}
 def handle_donation(profile_key, sender, amount, text):
     sender_name = sender or "Анонимно"
     result = apply_rule(profile_key, amount, text) or ""
-    add_log(profile_key, f"{sender_name} → {amount} {result}")
+    user = profile_key.split("_")[0]
+
+    if result:
+        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} {result}")
+    else:
+        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} ℹ️ Без действия")
+        update_stats(profile_key, "other", amount)
+
+    update_donations_sum(profile_key, amount)
+
     audit_event(profile_key, CURRENT_MODE["value"], {
         "type": "donation",
         "amount": amount,
         "sender": sender_name,
         "text": text
     })
+
 
 def login_required(f):
     @wraps(f)
@@ -224,15 +234,16 @@ def apply_rule(profile_key, amount, text):
                 "text": text
             })
             if action and action.strip():
-                update_stats(profile_key, "actions", 1)  # см. блок ниже
+                update_stats(profile_key, "actions", amount)
                 return f"🎬 Действие: {action}"
 
             strength = rule.get("strength", 1)
             duration = rule.get("duration", 5)
             vibration_queues[profile_key].put_nowait((strength, duration))
-            update_stats(profile_key, "vibrations", 1)
+            update_stats(profile_key, "vibrations", amount)
             return f"🏰 Вибрация: сила={strength}, время={duration}"
     return None
+
 # ---------------- VIP ----------------
 
 def update_vip(profile_key, user_id, name=None, amount=0, event=None):
@@ -302,6 +313,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         backup_name = f"{vip_file}.{time.strftime('%Y-%m-%d')}.bak"
         shutil.copy(vip_file, backup_name)
 
+
     # атомарная запись
     tmp_file = vip_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
@@ -311,6 +323,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     os.replace(tmp_file, vip_file)
 
     return vip_data[user_id]
+
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
 def get_vibration_queue(profile_key):
@@ -339,7 +352,7 @@ def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
     total_income = 0
 
     for day, data in stats.items():
-        base_income = data['total'] * 0.7
+        base_income = (data['vibrations'] + data['actions'] + data['other']) * 0.7
         if user == "Irina":
             archi = data['vibrations'] * 0.7 * 0.1
             net_income = base_income - archi
@@ -351,7 +364,6 @@ def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
             results[day] = {**data, "net_income": net_income}
             total_income += net_income
 
-    # если это Arina — подтягиваем archi_fee из статистики Ирины
     if user == "Arina" and irina_stats:
         archi_fee = sum(d["vibrations"] * 0.7 * 0.1 for d in irina_stats.values())
 
@@ -398,17 +410,23 @@ def build_stats_from_logs(profile_key):
     try:
         with open(log_file, "r", encoding="utf-8") as f:
             for line in f:
-                # Берём только дату (первые 10 символов формата YYYY-MM-DD)
                 date = line.split(" | ")[0].strip()[:10]
                 if date not in stats:
-                    stats[date] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0}
+                    stats[date] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0, "donations_sum": 0}
+
+                # ищем сумму после "→"
+                m = re.search(r"→\s*(\d+)", line)
+                amount = int(m.group(1)) if m else 0
+
                 if "🏰" in line:
-                    stats[date]["vibrations"] += 1
+                    stats[date]["vibrations"] += amount
                 elif "🎬" in line:
-                    stats[date]["actions"] += 1
+                    stats[date]["actions"] += amount
                 else:
-                    stats[date]["other"] += 1
-                stats[date]["total"] += 1
+                    stats[date]["other"] += amount
+
+                stats[date]["total"] += amount
+                stats[date]["donations_sum"] += amount
     except FileNotFoundError:
         print(f"⚠️ Лог-файл {log_file} не найден")
     except Exception as e:
@@ -417,7 +435,7 @@ def build_stats_from_logs(profile_key):
 
 RECENT_DONATIONS = deque(maxlen=500)  # хранит последние 500 donation_id
 
-def update_stats(profile_key, category: str, count: int = 1):
+def update_stats(profile_key, category: str, amount: int = 0):
     stats_file = f"stats_{profile_key}.json"
     try:
         with open(stats_file, "r", encoding="utf-8") as f:
@@ -430,8 +448,9 @@ def update_stats(profile_key, category: str, count: int = 1):
     if day not in stats:
         stats[day] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0, "donations_sum": 0}
 
-    stats[day][category] = stats[day].get(category, 0) + count
-    stats[day]["total"] += count
+    stats[day][category] = stats[day].get(category, 0) + amount
+    stats[day]["total"] += amount
+    stats[day]["donations_sum"] += amount
 
     # резервная копия
     if os.path.exists(stats_file):
@@ -562,7 +581,7 @@ async def ws_handler(websocket):
                     add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
                 else:
                     add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
-                    update_stats(profile_key, "other", 1)
+                    update_stats(profile_key, "other", amount)
 
                 # 💰 Всегда учитываем сумму доната
                 update_donations_sum(profile_key, amount)
@@ -590,7 +609,7 @@ async def ws_handler(websocket):
         CONNECTED_SOCKETS.discard(websocket)
         print("🔌 WebSocket отключён")
 
-        
+
 async def ws_server():
     # запускаем воркеры для всех профилей
     for profile_key in CONFIG["profiles"]:
@@ -718,10 +737,11 @@ def donations_data():
     logs = donation_logs.get(profile_key, [])
     donations = []
     for entry in logs:
-        # оставляем только строки с суммой (→ число)
         if "→" in entry:
-            donations.append(entry)
-    return {"donations": donations[-50:]}  # последние 50 # последние 50 записей
+            m = re.search(r"→\s*(\d+)", entry)
+            amount = int(m.group(1)) if m else 0
+            donations.append({"entry": entry, "amount": amount})
+    return {"donations": donations[-50:]}
 
 
 @app.route("/test_rule/<int:rule_index>", methods=["POST"])
@@ -800,6 +820,8 @@ def error_page():
     return "❌ Ошибка подключения!", 200
 
 
+
+
 @app.route("/remove_member", methods=["POST"])
 @login_required
 def remove_member():
@@ -814,11 +836,14 @@ def remove_member():
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         vip_data = {}
 
     if user_id in vip_data:
         del vip_data[user_id]
+        if os.path.exists(vip_file):
+            shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+
         tmp_file = vip_file + ".tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(vip_data, f, indent=2, ensure_ascii=False)
@@ -834,13 +859,12 @@ def entries_data():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    profile = CONFIG["profiles"][profile_key]
-    vip_file = profile["vip_file"]
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         vip_data = {}
 
     entries = []
@@ -856,7 +880,9 @@ def entries_data():
             })
             info["_just_logged_in"] = False
 
-    # сохраняем изменения
+    if os.path.exists(vip_file):
+        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+
     tmp_file = vip_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
@@ -886,6 +912,9 @@ def block_member():
 
     if user_id in vip_data:
         vip_data[user_id]["blocked"] = True
+        if os.path.exists(vip_file):
+            shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+
         tmp_file = vip_file + ".tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(vip_data, f, indent=2, ensure_ascii=False)
@@ -894,8 +923,6 @@ def block_member():
         os.replace(tmp_file, vip_file)
         print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован")
         return jsonify(status="ok", message="Мембер заблокирован")
-    if os.path.exists(vip_file):
-        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
 
     return jsonify(status="error", message="Мембер не найден"), 404
 
@@ -920,7 +947,9 @@ def vip_page():
             vip_data[user_id]["name"] = request.form.get("name", "").strip()
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
 
-            # атомарная запись
+            if os.path.exists(vip_file):
+                shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+
             tmp_file = vip_file + ".tmp"
             with open(tmp_file, "w", encoding="utf-8") as f:
                 json.dump(vip_data, f, indent=2, ensure_ascii=False)
@@ -928,12 +957,10 @@ def vip_page():
                 os.fsync(f.fileno())
             os.replace(tmp_file, vip_file)
 
-        # сохраняем параметры сортировки и поиска из формы
         sort_by = request.form.get("sort", "total")
         query = request.form.get("q", "")
         return redirect(url_for("vip_page", sort=sort_by, q=query))
 
-    # 🔍 Поиск
     query = request.args.get("q", "").strip().lower()
     filtered = {
         uid: info
@@ -944,14 +971,19 @@ def vip_page():
         or query in info.get("notes", "").lower()
     }
 
-    # 📋 Сортировка
-    sort_by = request.args.get("sort", "total")  # total / login_count / last_login
+    sort_by = request.args.get("sort", "total")
 
-    def parse_date(s):
-        try:
-            return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
-        except Exception:
-            return datetime.min
+    def parse_date(s: str):
+        """
+        Универсальный парсер даты для last_login.
+        Поддерживает форматы YYYY-MM-DD HH:MM и YYYY-MM-DD HH:MM:SS.
+        """
+        for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(s, fmt)
+            except Exception:
+                continue
+        return datetime.min
 
     if sort_by == "last_login":
         sorted_members = sorted(
@@ -985,13 +1017,17 @@ def update_name():
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         vip_data = {}
 
     if user_id not in vip_data:
         return {"status": "error", "message": "Мембер не найден"}, 404
 
-    vip_data[user_id]["name"] = new_name
+    vip_data[user_id]["name"] = new_name.strip()
+
+    # резервная копия перед записью
+    if os.path.exists(vip_file):
+        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
 
     tmp_file = vip_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
@@ -1000,10 +1036,8 @@ def update_name():
         os.fsync(f.fileno())
     os.replace(tmp_file, vip_file)
 
-    if os.path.exists(vip_file):
-        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
-
     return {"status": "ok"}
+
 
 @app.route("/vip_data")
 @login_required
@@ -1167,9 +1201,14 @@ def clear_queue():
     q = vibration_queues.get(profile_key)
     if q:
         while not q.empty():
-            q.get_nowait()
+            try:
+                q.get_nowait()
+                q.task_done()
+            except Exception:
+                break
     return {"status": "ok", "message": "Очередь очищена ✅"}
- 
+
+
 
 @app.route("/close_period", methods=["POST"])
 @login_required
@@ -1184,11 +1223,12 @@ def close_period():
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         archive = {}
 
-    # обновляем все дни
-    archive.update(stats)
+    # обновляем архив по дням
+    for day, data in stats.items():
+        archive[day] = data
 
     tmp_archive = archive_file + ".tmp"
     with open(tmp_archive, "w", encoding="utf-8") as f:
@@ -1220,8 +1260,11 @@ def run_flask():
 def run_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(ws_server())
-    loop.run_forever()
+    try:
+        loop.run_until_complete(ws_server())
+        loop.run_forever()
+    except Exception as e:
+        print(f"⚠️ Ошибка WebSocket-сервера: {e}")
 
 
 def monitor_flag():

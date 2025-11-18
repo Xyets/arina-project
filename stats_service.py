@@ -15,19 +15,20 @@ def init_db():
         vibrations INTEGER DEFAULT 0,
         actions INTEGER DEFAULT 0,
         other INTEGER DEFAULT 0,
-        total INTEGER DEFAULT 0
+        total INTEGER DEFAULT 0,
+        donations_sum REAL DEFAULT 0
     )
     """)
     conn.commit()
     conn.close()
 
-def add_stat(day: str, vibrations: int, actions: int, other: int, total: int):
+def add_stat(day: str, vibrations: int, actions: int, other: int, total: int, donations_sum: float):
     """Добавляет запись статистики за день."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO stats (day, vibrations, actions, other, total) VALUES (?, ?, ?, ?, ?)",
-        (day, vibrations, actions, other, total)
+        "INSERT INTO stats (day, vibrations, actions, other, total, donations_sum) VALUES (?, ?, ?, ?, ?, ?)",
+        (day, vibrations, actions, other, total, donations_sum)
     )
     conn.commit()
     conn.close()
@@ -36,7 +37,7 @@ def get_stats(from_date: str = None, to_date: str = None) -> Dict[str, Dict]:
     """Возвращает словарь статистики по датам."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    query = "SELECT day, vibrations, actions, other, total FROM stats"
+    query = "SELECT day, vibrations, actions, other, total, donations_sum FROM stats"
     params = []
     if from_date and to_date:
         query += " WHERE day BETWEEN ? AND ?"
@@ -45,11 +46,19 @@ def get_stats(from_date: str = None, to_date: str = None) -> Dict[str, Dict]:
     rows = cur.fetchall()
     conn.close()
 
-    stats = {day: {"vibrations": v, "actions": a, "other": o, "total": t}
-             for day, v, a, o, t in rows}
+    stats = {
+        day: {
+            "vibrations": v,
+            "actions": a,
+            "other": o,
+            "total": t,
+            "donations_sum": ds
+        }
+        for day, v, a, o, t, ds in rows
+    }
     return stats
 
-def calculate_stats(stats: Dict[str, Dict], user: str) -> Tuple[Dict[str, Dict], Dict[str, int]]:
+def calculate_stats(stats: Dict[str, Dict], user: str, irina_stats: Dict[str, Dict] = None) -> Tuple[Dict[str, Dict], Dict[str, float]]:
     """
     Считает net_income и archi_fee для каждого дня и итоговые суммы.
     Возвращает (results, summary).
@@ -59,12 +68,14 @@ def calculate_stats(stats: Dict[str, Dict], user: str) -> Tuple[Dict[str, Dict],
     sum_act = sum(data['actions'] for data in stats.values())
     sum_other = sum(data['other'] for data in stats.values())
     sum_total = sum(data['total'] for data in stats.values())
+    sum_donations = sum(data.get('donations_sum', 0) for data in stats.values())
 
     archi_fee = 0
     total_income = 0
 
     for day, data in stats.items():
-        base_income = data['total'] * 0.7
+        # считаем чистый доход от суммы поинтов
+        base_income = (data['vibrations'] + data['actions'] + data['other']) * 0.7
         if user == "Irina":
             archi = data['vibrations'] * 0.7 * 0.1
             net_income = base_income - archi
@@ -76,17 +87,23 @@ def calculate_stats(stats: Dict[str, Dict], user: str) -> Tuple[Dict[str, Dict],
             archi_fee += archi
             total_income += net_income
         else:
+            net_income = base_income
             results[day] = {
                 **data,
-                "net_income": base_income
+                "net_income": net_income
             }
-            total_income += base_income
+            total_income += net_income
+
+    # если это Arina — подтягиваем archi_fee из статистики Ирины
+    if user == "Arina" and irina_stats:
+        archi_fee = sum(d["vibrations"] * 0.7 * 0.1 for d in irina_stats.values())
 
     summary = {
         "sum_vibr": sum_vibr,
         "sum_act": sum_act,
         "sum_other": sum_other,
         "sum_total": sum_total,
+        "sum_donations": sum_donations,
         "archi_fee": archi_fee,
         "total_income": total_income
     }

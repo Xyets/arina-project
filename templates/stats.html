@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>📊 Статистика</title>
+  <title>📜 История статистики</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -52,7 +52,7 @@
 
     tr:nth-child(even){ background:#f9f9f9; }
 
-    a.back, button.close-period {
+    a.back {
       display:inline-block;
       margin-top:20px;
       background:#a3d8f4;
@@ -61,11 +61,9 @@
       border-radius:20px;
       text-decoration:none;
       transition:0.3s;
-      border:none;
-      cursor:pointer;
     }
 
-    a.back:hover, button.close-period:hover { background:#74c0e3; }
+    a.back:hover { background:#74c0e3; }
 
     @media (max-width: 500px) {
       body { padding:20px; }
@@ -75,14 +73,14 @@
   </style>
 </head>
 <body>
-  <h2>📊 Статистика для {{ user }}</h2>
+  <h2>📜 История статистики для {{ user }}</h2>
 
   <div class="card">
-    <h3>📊 Итоги за период</h3>
+    <h3>📊 Итоги за выбранный период</h3>
     <div class="table-wrapper">
       <table>
         <tr>
-          <th>Заработано всего за период</th>
+          <th>Заработано всего</th>
           {% if user == "Irina" %}
             <th>Процент Арине</th>
           {% elif user == "Arina" %}
@@ -101,7 +99,7 @@
 
   <div class="card">
     <h3>📈 Динамика по дням</h3>
-    <canvas id="statsChart" height="300"></canvas>
+    <canvas id="historyChart" height="300"></canvas>
 
     <div class="table-wrapper">
       <table>
@@ -110,6 +108,7 @@
           <th>Вибрации</th>
           <th>Действия</th>
           <th>Иное</th>
+          <th>Всего поинтов</th>
           {% if user == "Irina" %}
             <th>%Арчи</th>
           {% endif %}
@@ -121,6 +120,7 @@
           <td>{{ data.vibrations }}</td>
           <td>{{ data.actions }}</td>
           <td>{{ data.other }}</td>
+          <td>{{ data.donations_sum|int }}</td>
           {% if user == "Irina" %}
             <td><b>{{ data.archi_fee|int }}</b></td>
           {% endif %}
@@ -132,6 +132,7 @@
           <td>{{ summary.sum_vibr }}</td>
           <td>{{ summary.sum_act }}</td>
           <td>{{ summary.sum_other }}</td>
+          <td>{{ summary.sum_donations|int }}</td>
           {% if user == "Irina" %}
             <td>{{ summary.archi_fee|int }}</td>
           {% endif %}
@@ -142,39 +143,22 @@
   </div>
 
   <div style="text-align:center;">
-    <form id="closePeriodForm" method="POST" action="{{ url_for('close_period') }}">
-      <button type="submit" class="close-period">✅ Завершить период</button>
-    </form>
-    <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
-    <a href="{{ url_for('index') }}" class="back">⬅ Назад</a>
+    <a href="{{ url_for('stats') }}" class="back">⬅ Назад к текущей статистике</a>
   </div>
 
-  <div class="card">
-    <h3>📜 Донаты за день</h3>
-    <div class="table-wrapper">
-      <table id="donationsTable">
-        <tr>
-          <th>Дата</th>
-          <th>Событие</th>
-          <th>Сумма</th>
-        </tr>
-      </table>
-    </div>
-  </div>
-
-  <script id="stats-data" type="application/json">
+  <script id="history-data" type="application/json">
     {{ results|tojson|safe }}
   </script>
 
   <script>
-    const stats = JSON.parse(document.getElementById("stats-data").textContent);
+    const stats = JSON.parse(document.getElementById("history-data").textContent);
     const labels = Object.keys(stats);
     const vibrations = labels.map(d => stats[d].vibrations);
     const actions = labels.map(d => stats[d].actions);
     const other = labels.map(d => stats[d].other);
-    const total = labels.map(d => stats[d].total);
+    const donations = labels.map(d => stats[d].donations_sum);
 
-    new Chart(document.getElementById('statsChart'), {
+    new Chart(document.getElementById('historyChart'), {
       type: 'line',
       data: {
         labels: labels,
@@ -182,7 +166,7 @@
           { label: 'Вибрации', data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
           { label: 'Действия', data: actions, borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
           { label: 'Иное', data: other, borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
-          { label: 'Всего', data: total, borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
+          { label: 'Всего поинтов', data: donations, borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
         ]
       },
       options: {
@@ -190,45 +174,10 @@
         plugins: { legend: { position: 'top' } },
         scales: {
           x: { title: { display: true, text: 'Дата' } },
-          y: { beginAtZero: true, title: { display: true, text: 'События' } }
+          y: { beginAtZero: true, title: { display: true, text: 'Поинты' } }
         }
       }
     });
-
-    document.getElementById("closePeriodForm").addEventListener("submit", function(e) {
-      if (!confirm("Вы уверены, что хотите завершить период?")) {
-        e.preventDefault();
-      }
-    });
-
-    async function loadDonations() {
-      const resp = await fetch("{{ url_for('donations_data') }}");
-      const data = await resp.json();
-      const table = document.getElementById("donationsTable");
-
-      data.donations.forEach(entry => {
-        const parts = entry.split("|");
-        const date = parts[0].trim();
-        const rest = parts[1]?.trim() || "";
-
-        // Ищем сумму после "→"
-        const amountMatch = rest.match(/→\s*(\d+)/);
-        const amount = amountMatch ? amountMatch[1] : "";
-
-        // Событие: всё после суммы
-        let eventText = rest;
-        if (amountMatch) {
-          const indexAfterAmount = amountMatch.index + amountMatch[0].length;
-          eventText = rest.slice(indexAfterAmount).trim();
-        }
-
-        const row = document.createElement("tr");
-        row.innerHTML = `<td>${date}</td><td>${eventText}</td><td>${amount}</td>`;
-        table.appendChild(row);
-      });
-    }
-
-    loadDonations();
   </script>
 </body>
 </html>
