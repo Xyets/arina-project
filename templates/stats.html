@@ -210,14 +210,20 @@
         const parts = entry.split("|");
         const date = parts[0].trim();
         const rest = parts[1] || "";
-        const match = rest.match(/→\s*(\d+)/);
-        const amount = match ? match[1] : "";
-        const eventText = rest.replace(/→\s*\d+/, "").trim();
+
+        // Ищем сумму после "→"
+        const amountMatch = rest.match(/→\s*(\d+)/);
+        const amount = amountMatch ? amountMatch[1] : "";
+
+        // Событие: всё после суммы
+        const eventText = rest.replace(/.*→\s*\d+\s*/, "").trim();
+
         const row = document.createElement("tr");
         row.innerHTML = `<td>${date}</td><td>${eventText}</td><td>${amount}</td>`;
         table.appendChild(row);
       });
     }
+
     loadDonations();
   </script>
 </body>
