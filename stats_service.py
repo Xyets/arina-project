@@ -1,4 +1,3 @@
-# stats_service.py
 import sqlite3
 from typing import Dict, Tuple
 
@@ -10,8 +9,7 @@ def init_db():
     cur = conn.cursor()
     cur.execute("""
     CREATE TABLE IF NOT EXISTS stats (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        day TEXT NOT NULL,
+        day TEXT PRIMARY KEY,
         vibrations INTEGER DEFAULT 0,
         actions INTEGER DEFAULT 0,
         other INTEGER DEFAULT 0,
@@ -23,13 +21,19 @@ def init_db():
     conn.close()
 
 def add_stat(day: str, vibrations: int, actions: int, other: int, total: int, donations_sum: float):
-    """Добавляет запись статистики за день."""
+    """Добавляет или обновляет запись статистики за день (UPSERT)."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO stats (day, vibrations, actions, other, total, donations_sum) VALUES (?, ?, ?, ?, ?, ?)",
-        (day, vibrations, actions, other, total, donations_sum)
-    )
+    cur.execute("""
+    INSERT INTO stats (day, vibrations, actions, other, total, donations_sum)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(day) DO UPDATE SET
+        vibrations = vibrations + excluded.vibrations,
+        actions = actions + excluded.actions,
+        other = other + excluded.other,
+        total = total + excluded.total,
+        donations_sum = donations_sum + excluded.donations_sum
+    """, (day, vibrations, actions, other, total, donations_sum))
     conn.commit()
     conn.close()
 
@@ -74,27 +78,19 @@ def calculate_stats(stats: Dict[str, Dict], user: str, irina_stats: Dict[str, Di
     total_income = 0
 
     for day, data in stats.items():
-        # считаем чистый доход от суммы поинтов
-        base_income = (data['vibrations'] + data['actions'] + data['other']) * 0.7
+        # чистый доход считаем от total (а не от donations_sum)
+        base_income = data['total'] * 0.7
         if user == "Irina":
             archi = data['vibrations'] * 0.7 * 0.1
             net_income = base_income - archi
-            results[day] = {
-                **data,
-                "archi_fee": archi,
-                "net_income": net_income
-            }
+            results[day] = {**data, "archi_fee": archi, "net_income": net_income}
             archi_fee += archi
             total_income += net_income
         else:
             net_income = base_income
-            results[day] = {
-                **data,
-                "net_income": net_income
-            }
+            results[day] = {**data, "net_income": net_income}
             total_income += net_income
 
-    # если это Arina — подтягиваем archi_fee из статистики Ирины
     if user == "Arina" and irina_stats:
         archi_fee = sum(d["vibrations"] * 0.7 * 0.1 for d in irina_stats.values())
 
