@@ -37,13 +37,22 @@ CONNECTED_USERS = {}
 
 def handle_donation(profile_key, sender, amount, text):
     sender_name = sender or "Анонимно"
-    result = apply_rule(profile_key, amount, text) or ""
     user = profile_key.split("_")[0]
 
-    if result:
-        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} {result}")
+    try:
+        result = apply_rule(profile_key, amount, text)
+    except Exception as e:
+        print(f"⚠️ Ошибка apply_rule: {e}")
+        result = None
+
+    if result and "Действие" in result:
+        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} 🎬 {result}")
+        update_stats(profile_key, "actions", amount)
+    elif result and "Вибрация" in result:
+        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} 🏰 {result}")
+        update_stats(profile_key, "vibrations", amount)
     else:
-        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} ℹ️ Без действия")
+        add_log(profile_key, f"✅ [{user}] Донат | {sender_name} → {amount} 🍀 Без действия")
         update_stats(profile_key, "other", amount)
 
     update_donations_sum(profile_key, amount)
@@ -54,6 +63,7 @@ def handle_donation(profile_key, sender, amount, text):
         "sender": sender_name,
         "text": text
     })
+
 
 
 def login_required(f):
@@ -544,10 +554,17 @@ async def ws_handler(websocket):
                 else:
                     print("⚠️ Нет donation_id — может быть тест или ошибка")
 
+                # 📥 События входа/выхода
                 if "event" in data:
-                    event = data["event"]
+                    event = data["event"].lower()
                     profile = update_vip(profile_key, user_id, name=name, event=event)
-                    add_log(profile_key, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+                    if event == "login":
+                        add_log(profile_key, f"🔵 LOGIN | {name} ({user_id})")
+                    elif event == "logout":
+                        add_log(profile_key, f"🔵 LOGOUT | {name} ({user_id})")
+                    else:
+                        add_log(profile_key, f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}")
+
                     if profile and profile.get("_just_logged_in"):
                         await websocket.send(json.dumps({
                             "entry": {
@@ -563,11 +580,11 @@ async def ws_handler(websocket):
                     await websocket.send(f"✅ Событие {event} обработано")
                     continue
 
+                # 📊 Донаты
                 if not amount or amount <= 0:
                     await websocket.send("ℹ️ Сообщение не содержит донат")
                     continue
 
-                # 📊 Аудит доната
                 audit_event(profile_key, CURRENT_MODE["value"], {
                     "type": "donation",
                     "donation_id": donation_id,
@@ -577,16 +594,7 @@ async def ws_handler(websocket):
                     "text": text
                 })
 
-                # 🧠 Применение правила
-                action_text = apply_rule(profile_key, amount, text)
-                if action_text:
-                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} {action_text}")
-                else:
-                    add_log(profile_key, f"✅ [{user}] Донат | {name} → {amount} ℹ️ Без действия")
-                    update_stats(profile_key, "other", amount)
-
-                # 💰 Всегда учитываем сумму доната
-                update_donations_sum(profile_key, amount)
+                handle_donation(profile_key, name, amount, text)
 
                 # 👤 Обновление VIP
                 if user_id:
@@ -595,7 +603,7 @@ async def ws_handler(websocket):
                         msg = json.dumps({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
                         for ws in list(CONNECTED_SOCKETS):
                             try:
-                                asyncio.create_task(ws.send(msg))
+                                await ws.send(msg)
                             except:
                                 CONNECTED_SOCKETS.discard(ws)
                     except Exception as e:

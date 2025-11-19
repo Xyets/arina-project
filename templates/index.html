@@ -208,19 +208,27 @@
         animation: fadeIn 0.3s ease;
       }
 
-      /* Типы событий */
-      .log-donation {
-        background: #b4eebe;
+      /* Вибрации */
+      .log-vibration {
+        background: #fff4cc; /* мягкий жёлтый */
         color: #333;
       }
 
-      .log-login {
-        background: #d9f7ef;
-        color: #333;
-      }
-
+      /* Действия */
       .log-action {
-        background: #e7d0ec;
+        background: #f7a8b8; /* нежно-розовый */
+        color: #333;
+      }
+
+      /* LOGIN / LOGOUT */
+      .log-loginout {
+        background: #a3d8f4; /* пастельно-голубой */
+        color: #333;
+      }
+
+      /* Донат без действия */
+      .log-donation-plain {
+        background: #b4eebe; /* светло-зелёный */
         color: #333;
       }
 
@@ -365,10 +373,12 @@
 
           newLogs.forEach(log => {
             let cssClass = "log-entry";
-            if (log.includes("→")) cssClass += " log-donation";
-            if (log.includes("🏰")) cssClass += " log-vibration";
-            if (log.includes("🎬")) cssClass += " log-action";
-            if (log.includes("📥") || log.toLowerCase().includes("вошёл")) cssClass += " log-event";
+              if (log.includes("🏰")) cssClass += " log-vibration";   // жёлтый
+              else if (log.includes("🎬")) cssClass += " log-action"; // розовый
+              else if (log.includes("LOGIN") || log.includes("LOGOUT") || log.includes("🔵")) cssClass += " log-loginout"; // голубой
+              else if (log.includes("🍀")) cssClass += " log-donation-plain"; // зелёный
+
+
 
             const div = document.createElement("div");
             div.className = cssClass;
