@@ -320,8 +320,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
 
     # резервная копия
     if os.path.exists(vip_file):
-        backup_name = f"{vip_file}.{time.strftime('%Y-%m-%d')}.bak"
-        shutil.copy(vip_file, backup_name)
+        shutil.copy(vip_file, vip_file + ".bak")
 
 
     # атомарная запись
@@ -859,7 +858,7 @@ def remove_member():
     if user_id in vip_data:
         del vip_data[user_id]
         if os.path.exists(vip_file):
-            shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+            shutil.copy(vip_file, vip_file + ".bak")
 
         tmp_file = vip_file + ".tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
@@ -898,7 +897,7 @@ def entries_data():
             info["_just_logged_in"] = False
 
     if os.path.exists(vip_file):
-        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+        shutil.copy(vip_file, vip_file + ".bak")
 
     tmp_file = vip_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
@@ -930,7 +929,7 @@ def block_member():
     if user_id in vip_data:
         vip_data[user_id]["blocked"] = True
         if os.path.exists(vip_file):
-            shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+            shutil.copy(vip_file, vip_file + ".bak")
 
         tmp_file = vip_file + ".tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
@@ -965,7 +964,7 @@ def vip_page():
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
 
             if os.path.exists(vip_file):
-                shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+                shutil.copy(vip_file, vip_file + ".bak")
 
             tmp_file = vip_file + ".tmp"
             with open(tmp_file, "w", encoding="utf-8") as f:
@@ -1044,7 +1043,7 @@ def update_name():
 
     # резервная копия перед записью
     if os.path.exists(vip_file):
-        shutil.copy(vip_file, f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak")
+        shutil.copy(vip_file, vip_file + ".bak")
 
     tmp_file = vip_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
