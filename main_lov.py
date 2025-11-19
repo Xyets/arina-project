@@ -363,9 +363,8 @@ def calculate_stats(stats: dict, user: str, irina_stats: dict = None):
     total_income = 0
 
     for day, data in stats.items():
-        base_income = (data.get('vibrations', 0) +
-                       data.get('actions', 0) +
-                       data.get('other', 0)) * 0.7
+        # чистый доход считаем от total (а не от donations_sum)
+        base_income = data.get('total', 0) * 0.7
         if user == "Irina":
             archi = data.get('vibrations', 0) * 0.7 * 0.1
             net_income = base_income - archi
@@ -460,9 +459,9 @@ def update_stats(profile_key, category: str, amount: int = 0):
     if day not in stats:
         stats[day] = {"vibrations": 0, "actions": 0, "other": 0, "total": 0, "donations_sum": 0}
 
+    # увеличиваем только категорию и общий total
     stats[day][category] = stats[day].get(category, 0) + amount
     stats[day]["total"] += amount
-    stats[day]["donations_sum"] += amount
 
     # резервная копия
     if os.path.exists(stats_file):
@@ -479,7 +478,7 @@ def update_stats(profile_key, category: str, amount: int = 0):
 def update_donations_sum(profile_key, amount):
     """
     Обновляет только сумму донатов за день.
-    Не трогает счётчики событий.
+    Не трогает счётчики событий и total.
     """
     today = datetime.now().strftime("%Y-%m-%d")
     stats_file = f"stats_{profile_key}.json"
@@ -494,15 +493,8 @@ def update_donations_sum(profile_key, amount):
             "donations_sum": 0
         }
 
-    if "donations_sum" not in stats[today]:
-        stats[today]["donations_sum"] = 0
+    stats[today]["donations_sum"] = stats[today].get("donations_sum", 0) + float(amount or 0)
 
-    try:
-        stats[today]["donations_sum"] += float(amount or 0)
-    except Exception as e:
-        print(f"⚠️ Ошибка обновления donations_sum: {e}")
-
-    # атомарная запись
     tmp_file = stats_file + ".tmp"
     with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
@@ -1198,14 +1190,33 @@ def logs_data_stats():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     logs = donation_logs.get(profile_key, [])
-    # Приводим к удобному формату
     formatted = []
-    for ev in logs:
-        formatted.append({
-            "ts_local": ev.get("ts_local"),
-            "amount": ev.get("amount", 0),
-            "type": ev.get("type")
-        })
+
+    for line in logs:
+        # строка вида: "2025-11-19 14:20 | ✅ [Arina] Донат | Иван → 500 🏰 Вибрация"
+        ts = line.split(" | ")[0]  # дата и время
+        m = re.search(r"→\s*(\d+)", line)
+        amount = int(m.group(1)) if m else 0
+
+        if "🏰" in line:
+            type = "vibration"
+        elif "🎬" in line:
+            type = "action"
+        elif "🍀" in line:
+            type = "plain"
+        elif "LOGIN" in line or "LOGOUT" in line or "🔵" in line:
+            type = "loginout"
+        else:
+            type = "other"
+
+        # фильтруем: в статистику добавляем только донаты
+        if "→" in line:
+            formatted.append({
+                "ts_local": ts,
+                "amount": amount,
+                "type": type
+            })
+
     return {"logs": formatted}
 
 
