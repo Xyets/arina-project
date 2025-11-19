@@ -26,9 +26,6 @@
       width:100%;
       border-collapse:collapse;
       margin-bottom:20px;
-      display:block;
-      overflow-x:auto;
-      white-space:nowrap;
     }
     th,td { padding:10px; text-align:center; }
     th {
@@ -58,21 +55,6 @@
       color:white;
       cursor:pointer;
     }
-    .summary-row {
-      cursor:pointer;
-      padding:10px;
-      background:#e0f7fa;
-      border-radius:8px;
-      text-align:center;
-      margin-top:15px;
-      transition:background 0.3s;
-    }
-    .summary-row:hover { background:#cceef5; }
-    #details-table {
-      display:none;
-      margin-top:15px;
-    }
-    /* 📱 Адаптивность */
     @media (max-width: 500px) {
       body { padding:20px; }
       .card { padding:15px; }
@@ -91,48 +73,49 @@
   </form>
 
   <div class="card">
+    <h3>📈 Динамика дохода</h3>
     <canvas id="historyChart" height="200"></canvas>
+  </div>
 
-    <!-- Итоговая строка -->
-    <div class="summary-row" onclick="toggleTable()">
-      <b>Период:</b> {{ request.args.get('from','') }} – {{ request.args.get('to','') }}
-      | <b>Вибрации:</b> {{ summary.sum_vibr }}
-      | <b>Действия:</b> {{ summary.sum_act }}
-      | <b>Иное:</b> {{ summary.sum_other }}
-      {% if user == "Irina" %}
-        | <b>Арчи:</b> {{ summary.archi_fee|int }}
-      {% endif %}
-      | <b>Доход:</b> {{ summary.total_income|int }}
-      <span style="color:#74c0e3;">(нажми, чтобы раскрыть)</span>
-    </div>
-
-    <!-- Скрытая таблица -->
-    <div id="details-table">
-      <table>
+  <div class="card">
+    <h3>📊 Таблица архивных периодов</h3>
+    <table>
+      <tr>
+        <th>Дата</th>
+        <th>Вибрации</th>
+        <th>Действия</th>
+        <th>Иное</th>
+        <th>Всего</th>
+        {% if user == "Irina" %}
+          <th>%Арчи</th>
+        {% endif %}
+        <th>Чистый доход</th>
+      </tr>
+      {% for day, data in results.items() %}
         <tr>
-          <th scope="col">Дата</th>
-          <th scope="col">Вибрации</th>
-          <th scope="col">Действия</th>
-          <th scope="col">Иное</th>
+          <td>{{ day }}</td>
+          <td>{{ data.vibrations }}</td>
+          <td>{{ data.actions }}</td>
+          <td>{{ data.other }}</td>
+          <td>{{ data.total }}</td>
           {% if user == "Irina" %}
-            <th scope="col">%Арчи</th>
+            <td>{{ data.archi_fee|int }}</td>
           {% endif %}
-          <th scope="col">Чистый доход</th>
+          <td><b>{{ data.net_income|int }}</b></td>
         </tr>
-        {% for day, data in results.items() %}
-          <tr>
-            <td>{{ day }}</td>
-            <td>{{ data.vibrations }}</td>
-            <td>{{ data.actions }}</td>
-            <td>{{ data.other }}</td>
-            {% if user == "Irina" %}
-              <td><b>{{ data.archi_fee|int }}</b></td>
-            {% endif %}
-            <td><b>{{ data.net_income|int }}</b></td>
-          </tr>
-        {% endfor %}
-      </table>
-    </div>
+      {% endfor %}
+      <tr style="font-weight:bold; background:#e0f7fa;">
+        <td>Итого</td>
+        <td>{{ summary.sum_vibr }}</td>
+        <td>{{ summary.sum_act }}</td>
+        <td>{{ summary.sum_other }}</td>
+        <td>{{ summary.sum_total }}</td>
+        {% if user == "Irina" %}
+          <td>{{ summary.archi_fee|int }}</td>
+        {% endif %}
+        <td>{{ summary.total_income|int }}</td>
+      </tr>
+    </table>
   </div>
 
   <div style="text-align:center;">
@@ -146,7 +129,7 @@
   </script>
   <script>
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
-    const labels = Object.keys(stats); // предполагается, что backend уже сортирует даты
+    const labels = Object.keys(stats);
     const income = labels.map(d => stats[d].net_income);
     const ctx = document.getElementById('historyChart').getContext('2d');
     new Chart(ctx, {
@@ -157,11 +140,6 @@
       },
       options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
     });
-
-    function toggleTable() {
-      const table = document.getElementById("details-table");
-      table.style.display = (table.style.display === "none" || table.style.display === "") ? "block" : "none";
-    }
   </script>
 </body>
 </html>

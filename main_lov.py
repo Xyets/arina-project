@@ -724,25 +724,22 @@ def stats_history():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     archive_file = f"stats_archive_{profile_key}.json"
+
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
-            archive = json.load(f)
+            stats = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        archive = {}
+        stats = {}
 
+    # фильтрация по датам
     from_date = request.args.get("from")
     to_date = request.args.get("to")
+    if from_date and to_date:
+        stats = {day: data for day, data in stats.items() if from_date <= day <= to_date}
 
-    filtered = {day: data for day, data in archive.items()
-                if (not from_date or day >= from_date) and
-                   (not to_date or day <= to_date)}
+    results, summary = calculate_stats(stats, user)
+    return render_template("stats_history.html", user=user, results=results, summary=summary)
 
-    results, summary = calculate_stats(filtered, user=user)
-    return render_template("stats_history.html",
-                           user=user,
-                           results=results,
-                           summary=summary)
-                           
 
 @app.route("/donations_data")
 @login_required
@@ -1271,17 +1268,21 @@ def close_period():
     stats_file = f"stats_{profile_key}.json"
     archive_file = f"stats_archive_{profile_key}.json"
 
+    # загружаем текущую статистику
     stats = load_stats(profile_key)
+
+    # загружаем архив
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         archive = {}
 
-    # обновляем архив по дням
+    # добавляем все дни из текущей статистики в архив
     for day, data in stats.items():
         archive[day] = data
 
+    # сохраняем архив
     tmp_archive = archive_file + ".tmp"
     with open(tmp_archive, "w", encoding="utf-8") as f:
         json.dump(archive, f, indent=2, ensure_ascii=False)
@@ -1289,15 +1290,13 @@ def close_period():
         os.fsync(f.fileno())
     os.replace(tmp_archive, archive_file)
 
-    # очищаем текущую статистику
-    tmp_stats = stats_file + ".tmp"
-    with open(tmp_stats, "w", encoding="utf-8") as f:
-        json.dump({}, f, indent=2, ensure_ascii=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_stats, stats_file)
+    # удаляем текущий stats-файл (чтобы не плодить мусор)
+    try:
+        os.remove(stats_file)
+    except FileNotFoundError:
+        pass
 
-    return redirect(url_for("stats"))
+    return redirect(url_for("stats_history"))
 
 
 @app.route("/obs_alert")

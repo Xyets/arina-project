@@ -28,9 +28,7 @@
       max-width:900px;
     }
 
-    .table-wrapper {
-      overflow-x: auto;
-    }
+    .table-wrapper { overflow-x: auto; }
 
     table {
       width:100%;
@@ -39,31 +37,62 @@
       margin-top:20px;
     }
 
-    th, td {
-      padding:10px;
-      text-align:center;
-    }
-
+    th, td { padding:10px; text-align:center; }
     th {
       background:#a3d8f4;
       color:white;
       font-weight:600;
     }
-
     tr:nth-child(even){ background:#f9f9f9; }
 
-    a.back {
+    a.back, button.back {
       display:inline-block;
-      margin-top:20px;
+      margin:10px;
       background:#a3d8f4;
       color:white;
       padding:10px 20px;
       border-radius:20px;
       text-decoration:none;
       transition:0.3s;
+      border:none;
+      cursor:pointer;
+      font-family:'Poppins',sans-serif;
     }
+    a.back:hover, button.back:hover { background:#74c0e3; }
 
-    a.back:hover { background:#74c0e3; }
+    /* Модальное окно */
+    #modalOverlay {
+      display:none;
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.5);
+      z-index:9998;
+    }
+    #confirmModal {
+      display:none;
+      position:fixed;
+      top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      background:#fff;
+      padding:20px;
+      border-radius:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.2);
+      text-align:center;
+      z-index:9999;
+      max-width:300px;
+    }
+    #confirmModal p { margin-bottom:20px; font-size:16px; }
+    #confirmModal button {
+      margin:5px;
+      padding:8px 16px;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:14px;
+    }
+    #confirmYes { background:#a3d8f4; color:#fff; }
+    #confirmNo { background:#f28497; color:#fff; }
 
     @media (max-width: 500px) {
       body { padding:20px; }
@@ -75,6 +104,7 @@
 <body>
   <h2>📊 Статистика для {{ user }}</h2>
 
+  <!-- карточки и таблицы -->
   <div class="card">
     <h3>📊 Итоги за период</h3>
     <div class="table-wrapper">
@@ -100,7 +130,7 @@
   <div class="card">
     <h3>📈 Динамика по дням</h3>
     <canvas id="statsChart" height="300"></canvas>
-
+    <!-- таблица по дням -->
     <div class="table-wrapper">
       <table>
         <tr>
@@ -167,29 +197,46 @@
   <div style="text-align:center;">
     <a href="{{ url_for('index') }}" class="back">⬅ На главную</a>
     <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
+    <form id="closePeriodForm" action="{{ url_for('close_period') }}" method="post" style="display:inline;">
+      <button type="button" class="back" onclick="showConfirm()">📦 Завершить период</button>
+    </form>
+  </div>
+
+  <!-- затемнение фона -->
+  <div id="modalOverlay"></div>
+  <!-- модальное окно -->
+  <div id="confirmModal">
+    <p>Вы уверены, что хотите завершить период?</p>
+    <button id="confirmYes" onclick="submitClosePeriod()">Да</button>
+    <button id="confirmNo" onclick="hideConfirm()">Нет</button>
   </div>
 
   <script id="stats-data" type="application/json">
     {{ results|tojson|safe }}
   </script>
 
+
+
   <script>
+    // Данные для графика
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
     const labels = Object.keys(stats);
     const vibrations = labels.map(d => stats[d].vibrations || 0);
-    const actions = labels.map(d => stats[d].actions || 0);
-    const other = labels.map(d => stats[d].other || 0);
-    const donations = labels.map(d => stats[d].donations_sum || 0);
+    const actions    = labels.map(d => stats[d].actions || 0);
+    const other      = labels.map(d => stats[d].other || 0);
+    const donations  = labels.map(d => stats[d].donations_sum || 0);
 
-    new Chart(document.getElementById('statsChart'), {
+    // Инициализация графика
+    const chartCtx = document.getElementById('statsChart').getContext('2d');
+    new Chart(chartCtx, {
       type: 'line',
       data: {
-        labels: labels,
+        labels,
         datasets: [
-          { label: 'Вибрации', data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
-          { label: 'Действия', data: actions, borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
-          { label: 'Иное', data: other, borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
-          { label: 'Всего поинтов', data: donations, borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
+          { label: 'Вибрации',     data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
+          { label: 'Действия',     data: actions,    borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
+          { label: 'Иное',         data: other,      borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
+          { label: 'Всего поинтов',data: donations,  borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
         ]
       },
       options: {
@@ -200,6 +247,25 @@
           y: { beginAtZero: true, title: { display: true, text: 'Поинты' } }
         }
       }
+    });
+
+    // Модальное окно: показать/скрыть/подтвердить
+    function showConfirm() {
+      document.getElementById('modalOverlay').style.display = 'block';
+      document.getElementById('confirmModal').style.display = 'block';
+    }
+    function hideConfirm() {
+      document.getElementById('confirmModal').style.display = 'none';
+      document.getElementById('modalOverlay').style.display = 'none';
+    }
+    function submitClosePeriod() {
+      hideConfirm();
+      document.getElementById('closePeriodForm').submit();
+    }
+
+    // ESC для закрытия модалки
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideConfirm();
     });
   </script>
 </body>
