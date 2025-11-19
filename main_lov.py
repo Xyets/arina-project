@@ -18,6 +18,7 @@ from audit import audit_event
 from collections import deque
 from stats_service import calculate_stats, get_stats
 
+
 RECENT_DONATIONS = deque(maxlen=500)
 
 
@@ -279,15 +280,18 @@ def apply_rule(profile_key, amount, text):
 
 # ---------------- VIP ----------------
 
+LOCK = threading.Lock()
 
 def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     profile = CONFIG["profiles"][profile_key]
     vip_file = profile["vip_file"]
+
     try:
         with open(vip_file, "r", encoding="utf-8") as f:
             vip_data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
+        print(f"⚠️ Ошибка чтения {vip_file}, отмена обновления")
+        return None
 
     if user_id in vip_data and vip_data[user_id].get("blocked"):
         print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован — пропускаем")
@@ -297,7 +301,7 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         vip_data[user_id] = {
             "name": name or "Аноним",
             "alias": "",
-            "total": 0,
+            "total": 0.0,
             "notes": "",
             "login_count": 0,
             "last_login": "",
@@ -312,52 +316,35 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
             vip_data[user_id]["name"] = name
 
     if amount and amount > 0:
-        audit_event(
-            profile_key,
-            CURRENT_MODE["value"],
-            {"type": "vip_total_increment", "user_id": user_id, "amount": amount},
-        )
-        vip_data[user_id]["total"] += amount
+        audit_event(profile_key, CURRENT_MODE["value"],
+            {"type": "vip_total_increment", "user_id": user_id, "amount": amount})
+        vip_data[user_id]["total"] = float(vip_data[user_id].get("total", 0.0)) + float(amount)
 
     if event and event.lower() == "login":
-        audit_event(
-            profile_key,
-            CURRENT_MODE["value"],
-            {"type": "vip_login", "user_id": user_id, "name": name},
-        )
+        audit_event(profile_key, CURRENT_MODE["value"],
+            {"type": "vip_login", "user_id": user_id, "name": name})
         vip_data[user_id]["login_count"] += 1
         old_login = vip_data[user_id].get("last_login")
         if old_login:
             vip_data[user_id]["_previous_login"] = old_login
-        vip_data[user_id]["last_login"] = (
-            datetime.now().replace(microsecond=0).isoformat(sep=" ")
-        )
+        vip_data[user_id]["last_login"] = datetime.now().replace(microsecond=0).isoformat(sep=" ")
         vip_data[user_id]["_just_logged_in"] = True
 
-        try:
-            msg = json.dumps({"vip_update": True, "user_id": user_id})
-            for ws in list(CONNECTED_SOCKETS):
-                try:
-                    asyncio.create_task(ws.send(msg))
-                except:
-                    CONNECTED_SOCKETS.discard(ws)
-        except Exception as e:
-            print(f"⚠️ Ошибка рассылки vip_update: {e}")
-
-    # резервная копия
+    # резервная копия с датой
     if os.path.exists(vip_file):
-        shutil.copy(vip_file, vip_file + ".bak")
+        backup_file = f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak"
+        shutil.copy(vip_file, backup_file)
 
-    # атомарная запись
+    # атомарная запись с блокировкой
     tmp_file = vip_file + ".tmp"
-    with open(tmp_file, "w", encoding="utf-8") as f:
-        json.dump(vip_data, f, indent=2, ensure_ascii=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_file, vip_file)
+    with LOCK:
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(vip_data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, vip_file)
 
     return vip_data[user_id]
-
 
 # ---------------- ВСПОМОГАТЕЛЬНОЕ ----------------
 def get_vibration_queue(profile_key):
@@ -891,34 +878,57 @@ def error_page():
     return "❌ Ошибка подключения!", 200
 
 
+import threading, shutil, os, json
+from datetime import datetime
+from flask import request, jsonify, redirect, url_for, render_template, session
+
+LOCK = threading.Lock()
+
+def load_vip_file(vip_file: str) -> dict:
+    """Безопасная загрузка VIP-файла"""
+    try:
+        with open(vip_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return {}
+
+def save_vip_file(vip_file: str, vip_data: dict):
+    """Атомарная запись VIP-файла с резервной копией"""
+    if not vip_data:
+        print("⚠️ vip_data пустой, отмена записи")
+        return
+    if os.path.exists(vip_file):
+        backup_file = f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak"
+        shutil.copy(vip_file, backup_file)
+    tmp_file = vip_file + ".tmp"
+    with LOCK:
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(vip_data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, vip_file)
+
+
 @app.route("/remove_member", methods=["POST"])
 @login_required
 def remove_member():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
         return {"status": "error", "message": "Нет user_id"}, 400
 
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
+    vip_data = load_vip_file(vip_file)
+    if not vip_data:
+        return {"status": "error", "message": "Ошибка чтения VIP‑файла"}, 500
 
     if user_id in vip_data:
         del vip_data[user_id]
-        if os.path.exists(vip_file):
-            shutil.copy(vip_file, vip_file + ".bak")
-
-        tmp_file = vip_file + ".tmp"
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(vip_data, f, indent=2, ensure_ascii=False)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp_file, vip_file)
+        save_vip_file(vip_file, vip_data)
         return {"status": "ok", "message": "Мембер удалён"}
     return {"status": "error", "message": "Мембер не найден"}, 404
 
@@ -926,73 +936,48 @@ def remove_member():
 @app.route("/entries_data")
 @login_required
 def entries_data():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
+    vip_data = load_vip_file(vip_file)
+    if not vip_data:
+        return {"entries": []}
 
     entries = []
     for user_id, info in vip_data.items():
         if info.get("_just_logged_in"):
-            entries.append(
-                {
-                    "user_id": user_id,
-                    "name": info.get("name", "Аноним"),
-                    "last_login": info.get("_previous_login", info.get("last_login")),
-                    "visits": info.get("login_count", 0),
-                    "total_tips": info.get("total", 0),
-                    "notes": info.get("notes", ""),
-                }
-            )
+            entries.append({
+                "user_id": user_id,
+                "name": info.get("name", "Аноним"),
+                "last_login": info.get("_previous_login", info.get("last_login")),
+                "visits": info.get("login_count", 0),
+                "total_tips": int(info.get("total", 0)),
+                "notes": info.get("notes", ""),
+            })
             info["_just_logged_in"] = False
 
-    if os.path.exists(vip_file):
-        shutil.copy(vip_file, vip_file + ".bak")
-
-    tmp_file = vip_file + ".tmp"
-    with open(tmp_file, "w", encoding="utf-8") as f:
-        json.dump(vip_data, f, indent=2, ensure_ascii=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_file, vip_file)
-
+    save_vip_file(vip_file, vip_data)
     return {"entries": entries}
 
 
 @app.route("/block_member", methods=["POST"])
 @login_required
 def block_member():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
         return jsonify(status="error", message="Нет user_id"), 400
 
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
+    vip_data = load_vip_file(vip_file)
+    if not vip_data:
+        return jsonify(status="error", message="Ошибка чтения VIP‑файла"), 500
 
     if user_id in vip_data:
         vip_data[user_id]["blocked"] = True
-        if os.path.exists(vip_file):
-            shutil.copy(vip_file, vip_file + ".bak")
-
-        tmp_file = vip_file + ".tmp"
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(vip_data, f, indent=2, ensure_ascii=False)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp_file, vip_file)
+        save_vip_file(vip_file, vip_data)
         print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован")
         return jsonify(status="ok", message="Мембер заблокирован")
 
@@ -1002,32 +987,18 @@ def block_member():
 @app.route("/vip", methods=["GET", "POST"])
 @login_required
 def vip_page():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
+    vip_data = load_vip_file(vip_file)
 
     if request.method == "POST" and "user_id" in request.form:
         user_id = request.form.get("user_id")
         if user_id in vip_data:
             vip_data[user_id]["name"] = request.form.get("name", "").strip()
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
-
-            if os.path.exists(vip_file):
-                shutil.copy(vip_file, vip_file + ".bak")
-
-            tmp_file = vip_file + ".tmp"
-            with open(tmp_file, "w", encoding="utf-8") as f:
-                json.dump(vip_data, f, indent=2, ensure_ascii=False)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp_file, vip_file)
+            save_vip_file(vip_file, vip_data)
 
         sort_by = request.form.get("sort", "total")
         query = request.form.get("q", "")
@@ -1035,8 +1006,7 @@ def vip_page():
 
     query = request.args.get("q", "").strip().lower()
     filtered = {
-        uid: info
-        for uid, info in vip_data.items()
+        uid: info for uid, info in vip_data.items()
         if not query
         or query in uid.lower()
         or query in info.get("name", "").lower()
@@ -1046,10 +1016,6 @@ def vip_page():
     sort_by = request.args.get("sort", "total")
 
     def parse_date(s: str):
-        """
-        Универсальный парсер даты для last_login.
-        Поддерживает форматы YYYY-MM-DD HH:MM и YYYY-MM-DD HH:MM:SS.
-        """
         for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
             try:
                 return datetime.strptime(s, fmt)
@@ -1074,8 +1040,7 @@ def vip_page():
 @app.route("/update_name", methods=["POST"])
 @login_required
 def update_name():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     new_name = request.form.get("name")
@@ -1084,45 +1049,26 @@ def update_name():
         return {"status": "error", "message": "Недостаточно данных"}, 400
 
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
+    vip_data = load_vip_file(vip_file)
+    if not vip_data:
+        return {"status": "error", "message": "Ошибка чтения VIP‑файла"}, 500
 
     if user_id not in vip_data:
         return {"status": "error", "message": "Мембер не найден"}, 404
 
     vip_data[user_id]["name"] = new_name.strip()
-
-    # резервная копия перед записью
-    if os.path.exists(vip_file):
-        shutil.copy(vip_file, vip_file + ".bak")
-
-    tmp_file = vip_file + ".tmp"
-    with open(tmp_file, "w", encoding="utf-8") as f:
-        json.dump(vip_data, f, indent=2, ensure_ascii=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_file, vip_file)
-
+    save_vip_file(vip_file, vip_data)
     return {"status": "ok"}
 
 
 @app.route("/vip_data")
 @login_required
 def vip_data():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
-    try:
-        with open(vip_file, "r", encoding="utf-8") as f:
-            vip_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        vip_data = {}
-
+    vip_data = load_vip_file(vip_file)
     return {"members": vip_data}
 
 
