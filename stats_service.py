@@ -10,18 +10,21 @@ def init_db():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS stats (
         day TEXT PRIMARY KEY,
-        vibrations INTEGER DEFAULT 0,
-        actions INTEGER DEFAULT 0,
-        other INTEGER DEFAULT 0,
-        total INTEGER DEFAULT 0,
+        vibrations REAL DEFAULT 0,
+        actions REAL DEFAULT 0,
+        other REAL DEFAULT 0,
+        total REAL DEFAULT 0,
         donations_sum REAL DEFAULT 0
     )
     """)
     conn.commit()
     conn.close()
 
-def add_stat(day: str, vibrations: int, actions: int, other: int, total: int, donations_sum: float):
-    """Добавляет или обновляет запись статистики за день (UPSERT)."""
+def add_stat(day: str, vibrations: float, actions: float, other: float, donations_sum: float):
+    """
+    Добавляет или обновляет запись статистики за день (UPSERT).
+    total всегда пересчитывается как сумма категорий.
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
@@ -31,9 +34,11 @@ def add_stat(day: str, vibrations: int, actions: int, other: int, total: int, do
         vibrations = vibrations + excluded.vibrations,
         actions = actions + excluded.actions,
         other = other + excluded.other,
-        total = total + excluded.total,
-        donations_sum = donations_sum + excluded.donations_sum
-    """, (day, vibrations, actions, other, total, donations_sum))
+        donations_sum = donations_sum + excluded.donations_sum,
+        total = (vibrations + excluded.vibrations) +
+                (actions + excluded.actions) +
+                (other + excluded.other)
+    """, (day, vibrations, actions, other, vibrations+actions+other, donations_sum))
     conn.commit()
     conn.close()
 
@@ -52,11 +57,11 @@ def get_stats(from_date: str = None, to_date: str = None) -> Dict[str, Dict]:
 
     stats = {
         day: {
-            "vibrations": v,
-            "actions": a,
-            "other": o,
-            "total": t,
-            "donations_sum": ds
+            "vibrations": float(v),
+            "actions": float(a),
+            "other": float(o),
+            "total": float(t),
+            "donations_sum": float(ds)
         }
         for day, v, a, o, t, ds in rows
     }
@@ -68,20 +73,19 @@ def calculate_stats(stats: Dict[str, Dict], user: str, irina_stats: Dict[str, Di
     Возвращает (results, summary).
     """
     results = {}
-    sum_vibr = sum(data['vibrations'] for data in stats.values())
-    sum_act = sum(data['actions'] for data in stats.values())
-    sum_other = sum(data['other'] for data in stats.values())
-    sum_total = sum(data['total'] for data in stats.values())
-    sum_donations = sum(data.get('donations_sum', 0) for data in stats.values())
+    sum_vibr = sum(float(data['vibrations']) for data in stats.values())
+    sum_act = sum(float(data['actions']) for data in stats.values())
+    sum_other = sum(float(data['other']) for data in stats.values())
+    sum_total = sum(float(data['total']) for data in stats.values())
+    sum_donations = sum(float(data.get('donations_sum', 0.0)) for data in stats.values())
 
-    archi_fee = 0
-    total_income = 0
+    archi_fee = 0.0
+    total_income = 0.0
 
     for day, data in stats.items():
-        # чистый доход считаем от total (а не от donations_sum)
-        base_income = data['total'] * 0.7
+        base_income = float(data['total']) * 0.7
         if user == "Irina":
-            archi = data['vibrations'] * 0.7 * 0.1
+            archi = float(data['vibrations']) * 0.7 * 0.1
             net_income = base_income - archi
             results[day] = {**data, "archi_fee": archi, "net_income": net_income}
             archi_fee += archi
@@ -92,7 +96,7 @@ def calculate_stats(stats: Dict[str, Dict], user: str, irina_stats: Dict[str, Di
             total_income += net_income
 
     if user == "Arina" and irina_stats:
-        archi_fee = sum(d["vibrations"] * 0.7 * 0.1 for d in irina_stats.values())
+        archi_fee = sum(float(d["vibrations"]) * 0.7 * 0.1 for d in irina_stats.values())
 
     summary = {
         "sum_vibr": sum_vibr,

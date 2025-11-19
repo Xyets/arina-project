@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
-
     body {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg,#fdfbfb,#ebedee);
@@ -15,10 +14,8 @@
       margin:0;
       padding:40px;
     }
-
     h2, h3 { text-align: center; color: #444; }
     h2 { margin-bottom: 30px; }
-
     .card {
       background:#fff;
       border-radius:16px;
@@ -27,16 +24,13 @@
       margin:20px auto;
       max-width:900px;
     }
-
     .table-wrapper { overflow-x: auto; }
-
     table {
       width:100%;
       min-width:600px;
       border-collapse:collapse;
       margin-top:20px;
     }
-
     th, td { padding:10px; text-align:center; }
     th {
       background:#a3d8f4;
@@ -44,7 +38,6 @@
       font-weight:600;
     }
     tr:nth-child(even){ background:#f9f9f9; }
-
     a.back, button.back {
       display:inline-block;
       margin:10px;
@@ -59,41 +52,24 @@
       font-family:'Poppins',sans-serif;
     }
     a.back:hover, button.back:hover { background:#74c0e3; }
-
-    /* Модальное окно */
     #modalOverlay {
-      display:none;
-      position:fixed;
-      top:0; left:0;
-      width:100%; height:100%;
-      background:rgba(0,0,0,0.5);
-      z-index:9998;
+      display:none; position:fixed; top:0; left:0;
+      width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998;
     }
     #confirmModal {
-      display:none;
-      position:fixed;
-      top:50%; left:50%;
+      display:none; position:fixed; top:50%; left:50%;
       transform:translate(-50%,-50%);
-      background:#fff;
-      padding:20px;
-      border-radius:12px;
+      background:#fff; padding:20px; border-radius:12px;
       box-shadow:0 6px 18px rgba(0,0,0,0.2);
-      text-align:center;
-      z-index:9999;
-      max-width:300px;
+      text-align:center; z-index:9999; max-width:300px;
     }
     #confirmModal p { margin-bottom:20px; font-size:16px; }
     #confirmModal button {
-      margin:5px;
-      padding:8px 16px;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:14px;
+      margin:5px; padding:8px 16px; border:none;
+      border-radius:8px; cursor:pointer; font-size:14px;
     }
     #confirmYes { background:#a3d8f4; color:#fff; }
     #confirmNo { background:#f28497; color:#fff; }
-
     @media (max-width: 500px) {
       body { padding:20px; }
       .card { padding:15px; }
@@ -104,7 +80,7 @@
 <body>
   <h2>📊 Статистика для {{ user }}</h2>
 
-  <!-- карточки и таблицы -->
+  <!-- Итоги -->
   <div class="card">
     <h3>📊 Итоги за период</h3>
     <div class="table-wrapper">
@@ -127,10 +103,10 @@
     </div>
   </div>
 
+  <!-- Динамика -->
   <div class="card">
     <h3>📈 Динамика по дням</h3>
     <canvas id="statsChart" height="300"></canvas>
-    <!-- таблица по дням -->
     <div class="table-wrapper">
       <table>
         <tr>
@@ -147,9 +123,9 @@
         {% for day, data in results.items() %}
         <tr>
           <td>{{ day }}</td>
-          <td>{{ data.vibrations|default(0) }}</td>
-          <td>{{ data.actions|default(0) }}</td>
-          <td>{{ data.other|default(0) }}</td>
+          <td>{{ data.vibrations|default(0)|int }}</td>
+          <td>{{ data.actions|default(0)|int }}</td>
+          <td>{{ data.other|default(0)|int }}</td>
           <td>{{ data.donations_sum|default(0)|int }}</td>
           {% if user == "Irina" %}
             <td><b>{{ data.archi_fee|default(0)|int }}</b></td>
@@ -159,9 +135,9 @@
         {% endfor %}
         <tr style="font-weight:bold; background:#e0f7fa;">
           <td>Итого</td>
-          <td>{{ summary.sum_vibr|default(0) }}</td>
-          <td>{{ summary.sum_act|default(0) }}</td>
-          <td>{{ summary.sum_other|default(0) }}</td>
+          <td>{{ summary.sum_vibr|default(0)|int }}</td>
+          <td>{{ summary.sum_act|default(0)|int }}</td>
+          <td>{{ summary.sum_other|default(0)|int }}</td>
           <td>{{ summary.sum_donations|default(0)|int }}</td>
           {% if user == "Irina" %}
             <td>{{ summary.archi_fee|default(0)|int }}</td>
@@ -172,6 +148,7 @@
     </div>
   </div>
 
+  <!-- Логи -->
   <div class="card">
     <h3>📜 Логи событий</h3>
     <pre id="eventLogs" style="text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
@@ -182,13 +159,12 @@
       const resp = await fetch("{{ url_for('logs_data_stats') }}");
       const data = await resp.json();
       const logBox = document.getElementById("eventLogs");
-
       data.logs.forEach(ev => {
         const ts = ev.ts_local ? ev.ts_local.replace("T"," ").slice(0,16) : "";
         let icon = "🎲 Иное";
         if (ev.type === "vibration") icon = "🏰 Вибрация";
         if (ev.type === "action") icon = "⚡ Действие";
-        logBox.textContent += `${ts} | ${ev.amount} поинт ${icon}\n`;
+        logBox.textContent += `${ts} | ${parseInt(ev.amount)} поинт ${icon}\n`;
       });
     }
     loadLogs();
@@ -202,9 +178,7 @@
     </form>
   </div>
 
-  <!-- затемнение фона -->
   <div id="modalOverlay"></div>
-  <!-- модальное окно -->
   <div id="confirmModal">
     <p>Вы уверены, что хотите завершить период?</p>
     <button id="confirmYes" onclick="submitClosePeriod()">Да</button>
@@ -215,18 +189,15 @@
     {{ results|tojson|safe }}
   </script>
 
-
-
   <script>
-    // Данные для графика
+    // Данные для графика: приводим к целым только для отображения
     const stats = JSON.parse(document.getElementById("stats-data").textContent);
     const labels = Object.keys(stats);
-    const vibrations = labels.map(d => stats[d].vibrations || 0);
-    const actions    = labels.map(d => stats[d].actions || 0);
-    const other      = labels.map(d => stats[d].other || 0);
-    const donations  = labels.map(d => stats[d].donations_sum || 0);
+    const vibrations = labels.map(d => parseInt(stats[d].vibrations || 0));
+    const actions    = labels.map(d => parseInt(stats[d].actions || 0));
+    const other      = labels.map(d => parseInt(stats[d].other || 0));
+    const donations  = labels.map(d => parseInt(stats[d].donations_sum || 0));
 
-    // Инициализация графика
     const chartCtx = document.getElementById('statsChart').getContext('2d');
     new Chart(chartCtx, {
       type: 'line',
@@ -241,15 +212,30 @@
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'top' } },
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              // во всплывающих подсказках тоже показываем целые
+              label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)}`
+            }
+          }
+        },
         scales: {
           x: { title: { display: true, text: 'Дата' } },
-          y: { beginAtZero: true, title: { display: true, text: 'Поинты' } }
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Поинты' },
+            ticks: {
+              // ось Y целочисленная
+              callback: (v) => parseInt(v)
+            }
+          }
         }
       }
     });
 
-    // Модальное окно: показать/скрыть/подтвердить
+    // Модальное окно
     function showConfirm() {
       document.getElementById('modalOverlay').style.display = 'block';
       document.getElementById('confirmModal').style.display = 'block';
@@ -262,8 +248,6 @@
       hideConfirm();
       document.getElementById('closePeriodForm').submit();
     }
-
-    // ESC для закрытия модалки
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') hideConfirm();
     });
