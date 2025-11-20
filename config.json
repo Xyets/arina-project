@@ -34,18 +34,18 @@
       "rules_file": "rules_irina_public.json",
       "vip_file": "vip_irina_public.json"
     },
-    "Proverka_gfhjkm_111111_private": {
+    "Proverka_private": {
       "DEVELOPER_TOKEN": "новый_токен",
       "uid": "proverka_001",
-      "uname": "Proverka gfhjkm 111111",
+      "uname": "Proverka",
       "rules_file": "rules_proverka.json",
       "vip_file": "vip_proverka.json"
     },
-    "Proverka_gfhjkm_111111_public": {
+    "Proverka_public": {
       "DEVELOPER_TOKEN": "новый_токен",
       "uid": "proverka_pub",
-      "uname": "Proverka gfhjkm 111111 (Общий чат)",
-      "rules_file": "rules_proverka_public.json",
+      "uname": "Proverka (Общий чат)",
+      "rules_file": "rules_proverka.json",
       "vip_file": "vip_proverka_public.json"
     }
   },
