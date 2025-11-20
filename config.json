@@ -2,7 +2,8 @@
   "secret_key": "G7{nOqJKBaAnS6BWw9Cl2{Nn~S~78x|m",
   "users": {
     "Arina": "89068993567fA1!",
-    "Irina": "1122334455fA!"
+    "Irina": "1122334455fA!",
+    "Proverka": "123456789"
   },
   "profiles": {
     "Arina_private": {
@@ -32,6 +33,20 @@
       "uname": "Irina (Общий чат)",
       "rules_file": "rules_irina_public.json",
       "vip_file": "vip_irina_public.json"
+    },
+    "Proverka_gfhjkm_111111_private": {
+      "DEVELOPER_TOKEN": "новый_токен",
+      "uid": "proverka_001",
+      "uname": "Proverka gfhjkm 111111",
+      "rules_file": "rules_proverka.json",
+      "vip_file": "vip_proverka.json"
+    },
+    "Proverka_gfhjkm_111111_public": {
+      "DEVELOPER_TOKEN": "новый_токен",
+      "uid": "proverka_pub",
+      "uname": "Proverka gfhjkm 111111 (Общий чат)",
+      "rules_file": "rules_proverka_public.json",
+      "vip_file": "vip_proverka_public.json"
     }
   },
   
