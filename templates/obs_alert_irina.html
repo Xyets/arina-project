@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>OBS Alert Irina</title>
   <style>
-    body { margin:0; background:transparent; overflow:hidden; text-align:center; font-family:sans-serif; color:#339; }
+    body { margin:0; background:transparent; overflow:hidden; text-align:center; font-family:sans-serif; color:#933; }
     .vibration-gif { width:200px; height:auto; display:inline; transition: transform 0.3s ease, filter 0.3s ease; }
     .vibration-info { margin-top:10px; font-size:16px; font-weight:bold; }
     @keyframes pulse {
@@ -27,7 +27,7 @@
       const { strength, duration } = vibrationQueue.shift();
       isPlaying = true;
 
-      const gif = document.getElementById("gifIrina");
+      const gif = document.getElementById("gifirina");
       const info = document.getElementById("vibrationInfo");
 
       if (!gif || !info) { isPlaying = false; playNext(); return; }
@@ -35,19 +35,23 @@
       if (isNaN(strength) || strength < 1) strength = 1;
       if (strength > 20) strength = 20;
 
-      const glowSize = strength * 2;
-      const glowOpacity = 0.3 + strength / 30;
+      const glowSize = strength * 3;
+      const glowOpacity = 0.4 + strength / 25;
 
-      info.textContent = `💙 Вибрация! Сила: ${strength}, Время: ${duration}s`;
+      // скорость анимации зависит от силы (от 1.5s до 0.3s)
+      let speed = 1.5 - (strength * 0.06);
+      if (speed < 0.3) speed = 0.3;
 
-      gif.style.animation = `pulse 1s ease-in-out infinite`;
-      gif.style.transform = `scale(${1 + strength/20})`;
-      gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(30,144,255,${glowOpacity}))`;
+      info.textContent = `💖 Вибрация! Сила: ${strength}, Время: ${duration}s`;
+
+      gif.style.animation = `pulse ${speed}s ease-in-out infinite`;
+      gif.style.transform = `scale(${1 + strength / 10})`;
+      gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(255,105,180,${glowOpacity}))`;
 
       setTimeout(() => {
         gif.style.animation = "";
         gif.style.transform = "scale(1)";
-        gif.style.filter = "drop-shadow(0 0 10px rgba(30,144,255,0.5))";
+        gif.style.filter = "drop-shadow(0 0 10px rgba(255,105,180,0.5))";
         info.textContent = "Ожидание вибрации…";
         isPlaying = false;
         playNext();
