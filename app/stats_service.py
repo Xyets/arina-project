@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Dict, Tuple
 
-DB_PATH = "stats.db"
+DB_PATH = "data/stats/stats.db"
 
 def init_db():
     """Создаёт таблицу статистики, если её ещё нет."""

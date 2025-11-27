@@ -14,9 +14,9 @@ from functools import wraps
 import uuid
 from datetime import datetime
 import shutil
-from audit import audit_event
+from app.audit import audit_event
 from collections import deque
-from stats_service import calculate_stats, get_stats
+from app.stats_service import calculate_stats, get_stats
 
 
 RECENT_DONATIONS = deque(maxlen=500)
@@ -86,7 +86,7 @@ def login_required(f):
 
 
 def load_logs_from_file(profile_key):
-    log_file = f"donations_{profile_key}.log"
+    log_file = f"data/donations/donations_{profile_key}.log"
     try:
         with open(log_file, "r", encoding="utf-8") as f:
             return [line.strip() for line in f.readlines()]
@@ -105,7 +105,7 @@ def add_log(profile_key, message):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     entry = f"{ts} | {message}"
 
-    log_file = f"donations_{profile_key}.log"
+    log_file = f"data/donations/donations_{profile_key}.log"
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(entry + "\n")
 
@@ -422,7 +422,7 @@ def calculate_archi_fee(stats_data):
 
 # --- список уже обработанных донатов ---
 def load_stats(profile_key):
-    stats_file = f"stats_{profile_key}.json"
+    stats_file = f"data/stats/stats_{profile_key}.json"
     try:
         with open(stats_file, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -432,7 +432,7 @@ def load_stats(profile_key):
 
 def build_stats_from_logs(profile_key):
     stats = {}
-    log_file = f"donations_{profile_key}.log"
+    log_file = f"data/donations/donations_{profile_key}.log"
     try:
         with open(log_file, "r", encoding="utf-8") as f:
             for line in f:
@@ -470,7 +470,7 @@ RECENT_DONATIONS = deque(maxlen=500)  # хранит последние 500 dona
 
 
 def update_stats(profile_key, category: str, amount: float = 0.0):
-    stats_file = f"stats_{profile_key}.json"
+    stats_file = f"data/stats/stats_{profile_key}.json"
     try:
         with open(stats_file, "r", encoding="utf-8") as f:
             stats = json.load(f)
@@ -506,7 +506,7 @@ def update_stats(profile_key, category: str, amount: float = 0.0):
 
 def update_donations_sum(profile_key, amount: float = 0.0):
     today = datetime.now().strftime("%Y-%m-%d")
-    stats_file = f"stats_{profile_key}.json"
+    stats_file = f"data/stats/stats_{profile_key}.json"
     stats = load_stats(profile_key)
 
     if today not in stats:
@@ -759,7 +759,7 @@ def stats_history():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    archive_file = f"stats_archive_{profile_key}.json"
+    archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
@@ -1225,7 +1225,7 @@ def clear_logs():
     donation_logs[profile_key] = []
 
     # атомарная очистка файла
-    log_file = f"donations_{profile_key}.log"
+    log_file = f"data/donations/donations_{profile_key}.log"
     tmp_file = log_file + ".tmp"
     try:
         with open(tmp_file, "w", encoding="utf-8") as f:
@@ -1262,8 +1262,8 @@ def close_period():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    stats_file = f"stats_{profile_key}.json"
-    archive_file = f"stats_archive_{profile_key}.json"
+    stats_file = f"data/stats/stats_{profile_key}.json"
+    archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
     # загружаем текущую статистику
     stats = load_stats(profile_key)
