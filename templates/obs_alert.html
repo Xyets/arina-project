@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>OBS Alert</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <style>
-    body { margin:0; background:transparent; overflow:hidden; font-family: 'Poppins', sans-serif; }
+    body {
+      margin:0; background:transparent; overflow:hidden;
+      font-family: 'Poppins', sans-serif; color: white; text-align: center;
+    }
 
     .alert {
       position:absolute; top:10%; left:50%; transform:translateX(-50%);
@@ -16,55 +18,22 @@
     .alert.show { opacity:1; animation: fadeOut 6s forwards; }
     @keyframes fadeOut { 0%{opacity:1;} 100%{opacity:0;} }
 
-    /* Шкала */
-    .tank {
-      position:absolute;
-      bottom:10%; left:50%; transform:translateX(-50%);
-      width: 80px; height: 250px;
-      border: 4px solid #fff;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.1);
-      overflow: hidden;
-      box-shadow: 0 0 20px rgba(255,105,180,0.6);
+    .gif-container { display:inline-block; position:relative; margin-top:80px; }
+
+    .vibration-gif {
+      width:200px; height:auto;
+      transition: transform 0.3s ease, filter 0.3s ease;
     }
 
-    .liquid {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 0%;
-      background: linear-gradient(to top, #ff69b4, #ffc0cb);
-      box-shadow: 0 0 30px #ff69b4;
-      transition: height 0.5s ease;
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      25%  { transform: scale(1.2); }
+      50%  { transform: scale(0.9); }
+      75%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
     }
 
-    .wave {
-      position: absolute;
-      bottom: 0;
-      width: 200%;
-      height: 40px;
-      background: rgba(255,182,193,0.7);
-      border-radius: 50%;
-      animation: waveMove 4s linear infinite;
-    }
-    @keyframes waveMove {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-
-    .bubble {
-      position: absolute;
-      bottom: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.8);
-      opacity: 0.7;
-    }
-
-    /* 📱 Адаптивность */
-    @media (max-width: 500px) {
-      .tank { width: 60px; height: 180px; }
-      .alert { font-size: 16px; }
-    }
+    .value { font-size:20px; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -73,38 +42,35 @@
     👤 <span id="donator"></span> | 💰 <span id="amount"></span>
   </div>
 
-  <div class="tank">
-    <div class="liquid" id="liquid">
-      <div class="wave"></div>
-    </div>
+  <div class="gif-container">
+    <img src="vibration.gif" class="vibration-gif" id="vibrationGif" />
+    <div class="value" id="value">Сила: 10</div>
   </div>
 
   <script>
-    function setStrength(value) {
-      const liquid = document.getElementById("liquid");
-      liquid.style.height = value + "%";
+    function updateVibration(strength) {
+      const gif = document.getElementById("vibrationGif");
+      const value = document.getElementById("value");
 
-      // пузырьки при росте
-      if (value > 0) {
-        for (let i=0; i<3; i++) {
-          const bubble = document.createElement("div");
-          bubble.className = "bubble";
-          const size = 5 + Math.random()*10;
-          bubble.style.width = size+"px";
-          bubble.style.height = size+"px";
-          bubble.style.left = Math.random()*70 + "px";
-          bubble.style.bottom = "0";
-          liquid.appendChild(bubble);
+      if (isNaN(strength) || strength < 1) strength = 1;
+      if (strength > 20) strength = 20;
 
-          gsap.to(bubble, {
-            y: -250,
-            x: "+="+(Math.random()*40-20),
-            opacity: 0,
-            duration: 2+Math.random()*2,
-            onComplete: ()=>bubble.remove()
-          });
-        }
-      }
+      value.textContent = "Сила: " + strength;
+
+      const amplitude = 1 + strength / 20;
+      const cycles = Math.ceil(strength / 5);
+      const glowSize = strength * 2;
+      const glowOpacity = 0.3 + strength / 30;
+
+      gif.style.animation = `pulse 1s ease-in-out ${cycles}`;
+      gif.style.transform = `scale(${amplitude})`;
+      gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(255,105,180,${glowOpacity}))`;
+
+      setTimeout(() => {
+        gif.style.animation = "";
+        gif.style.transform = "scale(1)";
+        gif.style.filter = "drop-shadow(0 0 10px rgba(255,105,180,0.5))";
+      }, cycles * 1000);
     }
 
     function showAlert(type, donator, amount) {
@@ -119,7 +85,7 @@
     // WebSocket
     let socket;
     function connectWS() {
-      const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
+      const wsUrl = "wss://arinairina.duckdns.org/ws/"; // укажи свой сервер
       socket = new WebSocket(wsUrl);
 
       socket.onmessage = (event) => {
@@ -127,17 +93,16 @@
         try { data = JSON.parse(event.data); } catch { return; }
 
         if (data.vibration) {
-          const { strength, duration, target, donor, amount } = data.vibration;
-          const percent = (strength / 18) * 100;
+          const { strength, duration, donor, amount } = data.vibration;
 
-          // поднять шкалу
-          setStrength(percent);
+          // запустить вибрацию
+          updateVibration(strength);
 
           // показать алерт
-          showAlert("Вибрация", donor || target, amount || "");
+          showAlert("Вибрация", donor, amount);
 
-          // через duration секунд опустить обратно
-          setTimeout(() => setStrength(0), duration * 1000);
+          // сбросить через duration секунд
+          setTimeout(() => updateVibration(0), duration * 1000);
         }
       };
     }
