@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>OBS Alert Arina</title>
+  <style>
+    body { margin:0; background:transparent; overflow:hidden; text-align:center; }
+    .vibration-gif { width:200px; height:auto; display:none; }
+    @keyframes pulse {
+      0%{transform:scale(1);}25%{transform:scale(1.2);}
+      50%{transform:scale(0.9);}75%{transform:scale(1.15);}
+      100%{transform:scale(1);}
+    }
+  </style>
+</head>
+<body>
+  <img src="arina.gif" class="vibration-gif" id="gifArina" />
+  <script>
+    function updateVibration(strength) {
+      const gif = document.getElementById("gifArina");
+      gif.style.display = "inline";
+      if (isNaN(strength) || strength < 1) strength = 1;
+      if (strength > 20) strength = 20;
+      const cycles = Math.ceil(strength/5);
+      gif.style.animation = `pulse 1s ease-in-out ${cycles}`;
+      setTimeout(()=>{ gif.style.display="none"; gif.style.animation=""; }, cycles*1000);
+    }
+    let socket = new WebSocket("wss://arinairina.duckdns.org:8765/");
+    socket.onmessage = (event)=>{
+      let data; try{data=JSON.parse(event.data);}catch{return;}
+      if(data.vibration && data.vibration.target==="Arina"){
+        updateVibration(data.vibration.strength);
+      }
+    };
+  </script>
+</body>
+</html>

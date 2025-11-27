@@ -1296,9 +1296,13 @@ def close_period():
     return redirect(url_for("stats_history"))
 
 
-@app.route("/obs_alert")
-def obs_alert():
-    return render_template("obs_alert.html")
+@app.route("/obs_alert_arina")
+def obs_alert_arina():
+    return render_template("obs_alert_arina.html")
+
+@app.route("/obs_alert_irina")
+def obs_alert_irina():
+    return render_template("obs_alert_irina.html")
 
 
 # ---------------- ЗАПУСК ----------------
