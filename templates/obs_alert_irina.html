@@ -80,15 +80,41 @@
       playNext();
     }
 
-    let socket = new WebSocket("wss://arinairina.duckdns.org:8765/");
-    socket.onmessage = (event) => {
-      let data;
-      try { data = JSON.parse(event.data); } catch { return; }
-      console.log("📡 Получено сообщение:", data);
-      if (data.vibration && data.vibration.target === "Irina") {
-        enqueueVibration(data.vibration.strength, data.vibration.duration);
-      }
-    };
+    // 🌐 WebSocket с авто‑реконнектом и пингами
+    let socket;
+    function connectWS() {
+      const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        console.log("✅ WebSocket подключён");
+        if (socket._pingInterval) clearInterval(socket._pingInterval);
+        socket._pingInterval = setInterval(() => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30000);
+      };
+
+      socket.onclose = () => {
+        console.log("❌ WebSocket закрыт, пробуем переподключиться...");
+        if (socket._pingInterval) clearInterval(socket._pingInterval);
+        setTimeout(connectWS, 2000);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("📡 Получено сообщение:", data);
+          if (data.vibration && data.vibration.target === "Irina") {
+            enqueueVibration(data.vibration.strength, data.vibration.duration);
+          }
+        } catch {
+          console.warn("⚠️ Некорректное сообщение WebSocket");
+        }
+      };
+    }
+    connectWS();
   </script>
 </body>
 </html>
