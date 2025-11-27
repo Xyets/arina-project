@@ -60,7 +60,6 @@
       const glowSize = strength * 3;
       const glowOpacity = 0.4 + strength / 25;
 
-      info.textContent = `💙 Вибрация! Сила: ${strength}, Время: ${duration}s`;
 
       gif.style.animation = `pulse ${speed}s ease-in-out infinite`;
       gif.style.transform = `scale(${1 + strength / 10})`;
@@ -70,7 +69,6 @@
         gif.style.animation = "";
         gif.style.transform = "scale(1)";
         gif.style.filter = "drop-shadow(0 0 10px rgba(30,144,255,0.5))";
-        info.textContent = "Ожидание вибрации…";
         isPlaying = false;
         playNext();
       }, duration * 1000);
