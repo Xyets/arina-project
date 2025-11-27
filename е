@@ -577,3 +577,21 @@ function connectWS()
     isDragging = true;
     offsetX = e.clientX - popup.offsetLeft;
     offsetY = e.clientY -
+
+
+    @app.route("/test_vibration", methods=["POST"])
+    @login_required
+    def test_vibration():
+        user = session["user"]
+        mode = CURRENT_MODE["value"]
+        profile_key = f"{user}_{mode}"
+
+        def safe_vibration():
+            try:
+                send_vibration_cloud(profile_key, 1, 5)
+            except Exception as e:
+                print(f"⚠️ Ошибка тестовой вибрации: {e}")
+
+        threading.Thread(target=safe_vibration).start()
+
+        return {"status": "ok", "message": "Вибрация отправлена ✅"}
