@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <img src="arina.gif" class="vibration-gif" id="gifArina" />
+  <img src="{{ url_for('static', filename='arina.gif') }}" />
   <script>
     function updateVibration(strength, duration) {
       const gif = document.getElementById("gifArina");
