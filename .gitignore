@@ -16,3 +16,4 @@ logs/
 venv/
 *.bak
 *.log
+vip_arina.json.*
