@@ -9,8 +9,6 @@
       background: transparent;
       overflow: hidden;
       text-align: center;
-      font-family: sans-serif;
-      color: #339;
     }
     .vibration-gif {
       width: 200px;
@@ -18,14 +16,9 @@
       display: inline;
       transition: transform 0.3s ease, filter 0.3s ease;
     }
-    .vibration-info {
-      margin-top: 10px;
-      font-size: 16px;
-      font-weight: bold;
-    }
     @keyframes pulse {
       0% { transform: scale(1); }
-      25% { transform: scale(1.2); }
+      25% { transform: scale(1.25); } /* чуть больше амплитуда */
       50% { transform: scale(0.9); }
       75% { transform: scale(1.15); }
       100% { transform: scale(1); }
@@ -45,29 +38,29 @@
       isPlaying = true;
 
       const gif = document.getElementById("gifIrina");
-      const info = document.getElementById("vibrationInfo");
+      if (!gif) { isPlaying = false; playNext(); return; }
 
-      if (!gif || !info) { isPlaying = false; playNext(); return; }
-
-      if (isNaN(strength) || strength < 1) strength = 1;
-      if (strength > 20) strength = 20;
+      let s = strength;
+      if (isNaN(s) || s < 1) s = 1;
+      if (s > 20) s = 20;
 
       // ✨ Чем выше сила, тем быстрее пульс
-      let speed = 1.5 - (strength * 0.06);
-      if (speed < 0.3) speed = 0.3;
+      let speed = 1.5 - (s * 0.06);
+      if (speed < 0.25) speed = 0.25; // минимум
 
-      const glowSize = strength * 3;
-      const glowOpacity = 0.4 + strength / 25;
-
+      // ✨ Масштаб и свечение усиливаются даже при силе 1
+      const scale = 1 + (s / 8); // заметнее
+      const glowSize = s * 4;    // ярче
+      const glowOpacity = 0.5 + s / 20;
 
       gif.style.animation = `pulse ${speed}s ease-in-out infinite`;
-      gif.style.transform = `scale(${1 + strength / 10})`;
+      gif.style.transform = `scale(${scale})`;
       gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(30,144,255,${glowOpacity}))`;
 
       setTimeout(() => {
         gif.style.animation = "";
         gif.style.transform = "scale(1)";
-        gif.style.filter = "drop-shadow(0 0 10px rgba(30,144,255,0.5))";
+        gif.style.filter = "drop-shadow(0 0 8px rgba(30,144,255,0.4))";
         isPlaying = false;
         playNext();
       }, duration * 1000);
