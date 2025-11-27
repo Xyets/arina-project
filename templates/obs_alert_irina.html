@@ -5,7 +5,11 @@
   <title>OBS Alert Irina</title>
   <style>
     body { margin:0; background:transparent; overflow:hidden; text-align:center; }
-    .vibration-gif { width:200px; height:auto; display:none; }
+    .vibration-gif {
+      width:200px; height:auto;
+      display:inline; /* всегда видна */
+      transition: transform 0.3s ease, filter 0.3s ease;
+    }
     @keyframes pulse {
       0%{transform:scale(1);}25%{transform:scale(1.2);}
       50%{transform:scale(0.9);}75%{transform:scale(1.15);}
@@ -16,20 +20,33 @@
 <body>
   <img src="irina.gif" class="vibration-gif" id="gifIrina" />
   <script>
-    function updateVibration(strength) {
+    function updateVibration(strength, duration) {
       const gif = document.getElementById("gifIrina");
-      gif.style.display = "inline";
+      if (!gif) return;
+
       if (isNaN(strength) || strength < 1) strength = 1;
       if (strength > 20) strength = 20;
-      const cycles = Math.ceil(strength/5);
-      gif.style.animation = `pulse 1s ease-in-out ${cycles}`;
-      setTimeout(()=>{ gif.style.display="none"; gif.style.animation=""; }, cycles*1000);
+
+      const glowSize = strength * 2;
+      const glowOpacity = 0.3 + strength / 30;
+
+      gif.style.animation = `pulse 1s ease-in-out infinite`;
+      gif.style.transform = `scale(${1 + strength/20})`;
+      gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(30,144,255,${glowOpacity}))`; // голубой оттенок
+
+      // Останавливаем через duration секунд
+      setTimeout(() => {
+        gif.style.animation = "";
+        gif.style.transform = "scale(1)";
+        gif.style.filter = "drop-shadow(0 0 10px rgba(30,144,255,0.5))";
+      }, duration * 1000);
     }
+
     let socket = new WebSocket("wss://arinairina.duckdns.org:8765/");
     socket.onmessage = (event)=>{
       let data; try{data=JSON.parse(event.data);}catch{return;}
       if(data.vibration && data.vibration.target==="Irina"){
-        updateVibration(data.vibration.strength);
+        updateVibration(data.vibration.strength, data.vibration.duration);
       }
     };
   </script>
