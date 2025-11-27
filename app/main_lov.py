@@ -28,7 +28,11 @@ with open("config/config.json", "r", encoding="utf-8") as f:
 # 🔑 глобальная переменная для режима работы
 CURRENT_MODE = {"value": "private"}  # может быть "private" или "public"
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(os.path.dirname(__file__), "../templates"),
+    static_folder=os.path.join(os.path.dirname(__file__), "../static")
+)
 app.secret_key = CONFIG["secret_key"]
 USERS = CONFIG["users"]
 
