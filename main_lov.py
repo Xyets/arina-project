@@ -22,7 +22,7 @@ from stats_service import calculate_stats, get_stats
 RECENT_DONATIONS = deque(maxlen=500)
 
 
-with open("config.json", "r", encoding="utf-8") as f:
+with open("config/config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
 # 🔑 глобальная переменная для режима работы
