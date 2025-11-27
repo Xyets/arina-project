@@ -9,3 +9,10 @@ vibration_queue.json
 # Кэш Python
 __pycache__/
 *.pyc
+# Игнорируем временные и локальные файлы
+backup_*.tar.gz
+data/
+logs/
+venv/
+*.bak
+*.log
