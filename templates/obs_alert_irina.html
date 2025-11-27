@@ -20,9 +20,16 @@
 <body>
   <img src="{{ url_for('static', filename='irina.png') }}" id="gifIrina" class="vibration-gif" />
   <script>
-    function updateVibration(strength, duration) {
+    let vibrationQueue = [];
+    let isPlaying = false;
+
+    function playNext() {
+      if (isPlaying || vibrationQueue.length === 0) return;
+      const { strength, duration } = vibrationQueue.shift();
+      isPlaying = true;
+
       const gif = document.getElementById("gifIrina");
-      if (!gif) return;
+      if (!gif) { isPlaying = false; playNext(); return; }
 
       if (isNaN(strength) || strength < 1) strength = 1;
       if (strength > 20) strength = 20;
@@ -32,21 +39,27 @@
 
       gif.style.animation = `pulse 1s ease-in-out infinite`;
       gif.style.transform = `scale(${1 + strength/20})`;
-      gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(30,144,255,${glowOpacity}))`; // голубой оттенок
+      gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(30,144,255,${glowOpacity}))`;
 
-      // Останавливаем через duration секунд
       setTimeout(() => {
         gif.style.animation = "";
         gif.style.transform = "scale(1)";
         gif.style.filter = "drop-shadow(0 0 10px rgba(30,144,255,0.5))";
+        isPlaying = false;
+        playNext();
       }, duration * 1000);
     }
 
+    function enqueueVibration(strength, duration) {
+      vibrationQueue.push({ strength, duration });
+      playNext();
+    }
+
     let socket = new WebSocket("wss://arinairina.duckdns.org:8765/");
-    socket.onmessage = (event)=>{
-      let data; try{data=JSON.parse(event.data);}catch{return;}
-      if(data.vibration && data.vibration.target==="Irina"){
-        updateVibration(data.vibration.strength, data.vibration.duration);
+    socket.onmessage = (event) => {
+      let data; try { data = JSON.parse(event.data); } catch { return; }
+      if (data.vibration && data.vibration.target === "Irina") {
+        enqueueVibration(data.vibration.strength, data.vibration.duration);
       }
     };
   </script>

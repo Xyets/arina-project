@@ -730,31 +730,15 @@ def test_vibration():
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
 
-    # формируем тестовое событие
-    test_event = {
-        "strength": 1,
-        "duration": 5,
-        "target": user,          # например "Arina" или "Irina"
-        "donor": "Тест",         # чтобы было видно, что это тест
-        "amount": 0,
-        "action": "vibration",
-        "profile": profile_key
-    }
+    def safe_vibration():
+        try:
+            send_vibration_cloud(profile_key, 1, 5)
+        except Exception as e:
+            print(f"⚠️ Ошибка тестовой вибрации: {e}")
 
-    try:
-        # читаем очередь
-        with open("vibration_queue.json", "r+", encoding="utf-8") as f:
-            queue = json.load(f)
-            queue.append(test_event)
-            f.seek(0)
-            json.dump(queue, f, ensure_ascii=False, indent=2)
-            f.truncate()
+    threading.Thread(target=safe_vibration).start()
 
-        return {"status": "ok", "message": "Тестовая вибрация добавлена в очередь ✅"}
-    except Exception as e:
-        print(f"⚠️ Ошибка добавления тестовой вибрации: {e}")
-        return {"status": "error", "message": "Ошибка при добавлении вибрации ❌"}
-
+    return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 
 @app.route("/stats")
