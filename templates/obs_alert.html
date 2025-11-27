@@ -21,7 +21,7 @@
     .gif-container { display:inline-block; position:relative; margin-top:80px; }
 
     .vibration-gif {
-      width:200px; height:auto;
+      width:200px; height:auto; display:none;
       transition: transform 0.3s ease, filter 0.3s ease;
     }
 
@@ -43,19 +43,23 @@
   </div>
 
   <div class="gif-container">
-    <img src="vibration.gif" class="vibration-gif" id="vibrationGif" />
-    <div class="value" id="value">Сила: 10</div>
+    <!-- разные гифки для Arina и Irina -->
+    <img src="arina.gif" class="vibration-gif" id="gifArina" />
+    <img src="irina.gif" class="vibration-gif" id="gifIrina" />
+    <div class="value" id="value">Сила: 0</div>
   </div>
 
   <script>
-    function updateVibration(strength) {
-      const gif = document.getElementById("vibrationGif");
-      const value = document.getElementById("value");
+    function updateVibration(gifId, strength) {
+      const gif = document.getElementById(gifId);
+      if (!gif) return;
+
+      gif.style.display = "inline";
 
       if (isNaN(strength) || strength < 1) strength = 1;
       if (strength > 20) strength = 20;
 
-      value.textContent = "Сила: " + strength;
+      document.getElementById("value").textContent = "Сила: " + strength;
 
       const amplitude = 1 + strength / 20;
       const cycles = Math.ceil(strength / 5);
@@ -70,6 +74,7 @@
         gif.style.animation = "";
         gif.style.transform = "scale(1)";
         gif.style.filter = "drop-shadow(0 0 10px rgba(255,105,180,0.5))";
+        gif.style.display = "none";
       }, cycles * 1000);
     }
 
@@ -85,7 +90,7 @@
     // WebSocket
     let socket;
     function connectWS() {
-      const wsUrl = "wss://arinairina.duckdns.org/ws/"; // укажи свой сервер
+      const wsUrl = "wss://arinairina.duckdns.org/ws/"; // твой сервер
       socket = new WebSocket(wsUrl);
 
       socket.onmessage = (event) => {
@@ -93,16 +98,20 @@
         try { data = JSON.parse(event.data); } catch { return; }
 
         if (data.vibration) {
-          const { strength, duration, donor, amount } = data.vibration;
+          const { strength, duration, target, donor, amount } = data.vibration;
 
-          // запустить вибрацию
-          updateVibration(strength);
+          if (target === "Arina") {
+            updateVibration("gifArina", strength);
+          } else if (target === "Irina") {
+            updateVibration("gifIrina", strength);
+          }
 
-          // показать алерт
-          showAlert("Вибрация", donor, amount);
+          showAlert("Вибрация", donor || target, amount || "");
 
-          // сбросить через duration секунд
-          setTimeout(() => updateVibration(0), duration * 1000);
+          setTimeout(() => {
+            if (target === "Arina") updateVibration("gifArina", 0);
+            if (target === "Irina") updateVibration("gifIrina", 0);
+          }, duration * 1000);
         }
       };
     }
