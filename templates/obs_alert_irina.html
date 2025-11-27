@@ -4,31 +4,13 @@
   <meta charset="UTF-8">
   <title>OBS Alert Irina</title>
   <style>
-    body {
-      margin: 0;
-      background: transparent;
-      overflow: hidden;
-      text-align: center;
-      font-family: sans-serif;
-      color: #339;
-    }
-    .vibration-gif {
-      width: 200px;
-      height: auto;
-      display: inline;
-      transition: transform 0.3s ease, filter 0.3s ease;
-    }
-    .vibration-info {
-      margin-top: 10px;
-      font-size: 16px;
-      font-weight: bold;
-    }
+    body { margin:0; background:transparent; overflow:hidden; text-align:center; font-family:sans-serif; color:#339; }
+    .vibration-gif { width:200px; height:auto; display:inline; transition: transform 0.3s ease, filter 0.3s ease; }
+    .vibration-info { margin-top:10px; font-size:16px; font-weight:bold; }
     @keyframes pulse {
-      0% { transform: scale(1); }
-      25% { transform: scale(1.2); }
-      50% { transform: scale(0.9); }
-      75% { transform: scale(1.15); }
-      100% { transform: scale(1); }
+      0%{transform:scale(1);}25%{transform:scale(1.2);}
+      50%{transform:scale(0.9);}75%{transform:scale(1.15);}
+      100%{transform:scale(1);}
     }
   </style>
 </head>
@@ -56,12 +38,10 @@
       const glowSize = strength * 2;
       const glowOpacity = 0.3 + strength / 30;
 
-      // Обновляем текст
       info.textContent = `💙 Вибрация! Сила: ${strength}, Время: ${duration}s`;
 
-      // Анимация
       gif.style.animation = `pulse 1s ease-in-out infinite`;
-      gif.style.transform = `scale(${1 + strength / 20})`;
+      gif.style.transform = `scale(${1 + strength/20})`;
       gif.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(30,144,255,${glowOpacity}))`;
 
       setTimeout(() => {
@@ -80,7 +60,7 @@
       playNext();
     }
 
-    // 🌐 WebSocket с авто‑реконнектом и пингами
+    // 🌐 WebSocket с авто‑реконнектом
     let socket;
     function connectWS() {
       const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
@@ -106,11 +86,16 @@
         try {
           const data = JSON.parse(event.data);
           console.log("📡 Получено сообщение:", data);
+
           if (data.vibration && data.vibration.target === "Irina") {
             enqueueVibration(data.vibration.strength, data.vibration.duration);
+          } else if (data.vip_update) {
+            console.log("🔔 VIP обновление:", data);
+          } else {
+            console.log("ℹ️ Неизвестный тип сообщения:", data);
           }
-        } catch {
-          console.warn("⚠️ Некорректное сообщение WebSocket");
+        } catch (e) {
+          console.warn("⚠️ Ошибка обработки сообщения:", e);
         }
       };
     }
