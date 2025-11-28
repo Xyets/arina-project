@@ -591,6 +591,17 @@ async def ws_handler(websocket):
                             profile_key,
                             f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
                         )
+                    # рассылаем фронту обновление VIP
+                    msg = json.dumps({
+                        "vip_update": True,
+                        "user_id": user_id,
+                        "profile_key": profile_key,
+                    })
+                    for ws in list(CONNECTED_SOCKETS):
+                        try:
+                            await ws.send(msg)
+                        except:
+                            CONNECTED_SOCKETS.discard(ws)
 
                     if profile and profile.get("_just_logged_in"):
                         await websocket.send(
@@ -676,14 +687,14 @@ def index():
     profile_key = f"{user}_{mode}"
     profile = CONFIG["profiles"][profile_key]
     queue = get_vibration_queue(profile_key)
-    logs = donation_logs.get(profile_key, [])
+    logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     return render_template(
         "index.html",
         user=user,
         profile=profile,
         queue=queue,
         logs=logs,
-        current_mode=mode,  # 👈 передаём в шаблон
+        current_mode=mode,
     )
 
 
@@ -849,25 +860,26 @@ def hook():
             [
                 "bash",
                 "-lc",
-                "cd /root/arina-project && git pull && /root/arina-project/venv/bin/pip install -r requirements.txt"
+                "cd /root/arina-project && "
+                "git pull && "
+                "source venv/bin/activate && "
+                "pip install -r requirements.txt && "
+                "sudo systemctl restart arina.service && "
+                "sudo systemctl restart arina-ws.service"
             ],
             capture_output=True,
-            text=True,
+            text=True
         )
 
-        if result.returncode != 0:
-            print("🔥 Ошибка обновления:", result.stderr)
-            return "❌ Ошибка обновления", 500
+        print("🔧 Результат обновления:\n", result.stdout)
+        if result.stderr:
+            print("⚠️ Ошибки:\n", result.stderr)
 
-        # перезапуск сервисов
-        subprocess.run(["sudo", "systemctl", "restart", "arina.service"])
-        subprocess.run(["sudo", "systemctl", "restart", "arina-ws.service"])
-
-        return "✅ Обновление завершено", 200
+        return "✅ Hook обработан", 200
 
     except Exception as e:
         print("⚠️ Ошибка hook:", e)
-        return "❌ Ошибка hook", 500
+        return "Internal Server Error", 500
 
 
 @app.route("/Success", methods=["GET"])
@@ -1161,7 +1173,8 @@ def logs_page():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    return render_template("logs.html", logs=donation_logs.get(profile_key, []))
+    logs = load_logs_from_file(profile_key)   # ← читаем файл заново
+    return render_template("logs.html", logs=logs)
 
 
 @app.route("/set_mode", methods=["POST"])
@@ -1182,7 +1195,8 @@ def logs_data():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    return {"logs": donation_logs.get(profile_key, [])}
+    logs = load_logs_from_file(profile_key)   # ← читаем файл заново
+    return jsonify({"logs": logs})
 
 
 @app.route("/logs_data_stats")
@@ -1191,7 +1205,7 @@ def logs_data_stats():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    logs = donation_logs.get(profile_key, [])
+    logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     formatted = []
 
     for line in logs:

@@ -237,6 +237,9 @@
   </div>
 
   <script>
+    // текущий режим сортировки берём из URL при загрузке
+    let currentSort = new URL(window.location.href).searchParams.get("sort") || "total";
+
     // AJAX‑сохранение карточки
     async function saveMember(form) {
       const formData = new FormData(form);
@@ -332,10 +335,7 @@
 
         if (data.vip_update && data.user_id) {
           console.log("🔄 Обновляем карточку:", data.user_id);
-          refreshVipCard(data.user_id).then(() => {
-            resortCards("{{ request.args.get('sort', 'total') }}");
-
-          });
+          refreshVipCard(data.user_id); // сортировка вызовется внутри функции
         }
       };
     }
@@ -390,16 +390,11 @@
         newCard.className = "vip-card" + (info.blocked ? " blocked" : "");
         newCard.id = "card_" + userId;
 
-        // сохраняем дату в data-last-login для сортировки
-        const rawDate = info.last_login;
-        const d = new Date(rawDate.replace(" ", "T"));
-        const formattedDate = !isNaN(d.getTime())
-          ? d.toLocaleString("ru-RU", {
-              day: "numeric",
-              month: "long",
-              hour: "2-digit",
-              minute: "2-digit"
-            })
+        // формируем форматированную дату для отображения, но raw сохраняем в data-атрибут
+        const rawDate = info.last_login || "";
+        const d = rawDate ? new Date(rawDate.replace(" ", "T")) : null;
+        const formattedDate = d && !isNaN(d.getTime())
+          ? d.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
           : rawDate;
 
         newCard.innerHTML = `
@@ -426,8 +421,8 @@
           document.querySelector(".card-grid").appendChild(newCard);
         }
 
-        // пересортировать список после обновления карточки
-        resortCards("{{ request.args.get('sort', 'total') }}");
+        // после обновления карточки — пересортировка по текущему режиму
+        resortCards(currentSort);
       } catch (e) {
         console.warn("⚠️ Ошибка обновления карточки:", e);
       }
@@ -440,24 +435,27 @@
 
       cards.sort((a, b) => {
         if (sortBy === "last_login") {
-          const dateA = new Date(a.querySelector(".date")?.dataset.lastLogin || 0);
-          const dateB = new Date(b.querySelector(".date")?.dataset.lastLogin || 0);
+          const dateA = new Date(a.querySelector(".date")?.dataset.lastLogin?.replace(" ", "T") || 0);
+          const dateB = new Date(b.querySelector(".date")?.dataset.lastLogin?.replace(" ", "T") || 0);
           return dateB - dateA;
         }
+
         if (sortBy === "login_count") {
           const textA = a.querySelector(".meta").textContent;
           const textB = b.querySelector(".meta").textContent;
-          const numA = parseInt(textA.match(/(\d+) вход/));
-          const numB = parseInt(textB.match(/(\d+) вход/));
+          const numA = parseInt((textA.match(/📅\s*(\d+)\s*вход/) || [])[1]);
+          const numB = parseInt((textB.match(/📅\s*(\d+)\s*вход/) || [])[1]);
           return (numB || 0) - (numA || 0);
         }
+
         if (sortBy === "total") {
           const textA = a.querySelector(".meta").textContent;
           const textB = b.querySelector(".meta").textContent;
-          const numA = parseInt(textA.match(/💗\s*(\d+)/));
-          const numB = parseInt(textB.match(/💗\s*(\d+)/));
+          const numA = parseFloat((textA.match(/💗\s*([\d\.]+)/) || [])[1]);
+          const numB = parseFloat((textB.match(/💗\s*([\d\.]+)/) || [])[1]);
           return (numB || 0) - (numA || 0);
         }
+
         return 0;
       });
 
