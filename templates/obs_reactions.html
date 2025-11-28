@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>OBS Reactions Debug</title>
+  <title>OBS Reactions</title>
   <style>
     body {
       margin:0;
@@ -21,16 +21,15 @@
     }
   </style>
 </head>
-<body>
+<body data-profile="{{ profile_key }}">
   <div id="reactionArea"></div>
 
   <script>
     const reactionArea = document.getElementById("reactionArea");
+    const profileKey = document.body.dataset.profile;  // ← надёжно берём profile_key
     const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
-    socket.onopen = () => {
-      console.log("🔌 WebSocket подключён");
-    };
+    socket.onopen = () => console.log("🔌 WebSocket подключён");
 
     socket.onmessage = (event) => {
       console.log("📩 WS raw:", event.data);
@@ -39,9 +38,9 @@
         console.error("⚠️ Ошибка парсинга:", e);
         return;
       }
-      console.log("📩 WS parsed:", data, "profile_key:", "{{ profile_key }}");
+      console.log("📩 WS parsed:", data, "profileKey:", profileKey);
 
-      if (data.reaction && data.profile === "{{ profile_key }}") {
+      if (data.reaction && data.profile === profileKey) {
         console.log("✅ Reaction matched:", data.reaction);
         fetch(`/reaction_image/${data.profile}/${data.reaction}`)
           .then(res => res.json())
@@ -68,9 +67,7 @@
       }
     };
 
-    socket.onclose = () => {
-      console.log("🔌 WebSocket отключён");
-    };
+    socket.onclose = () => console.log("🔌 WebSocket отключён");
   </script>
 </body>
 </html>
