@@ -42,7 +42,7 @@ vibration_queues = {
 CONNECTED_USERS = {}
 
 RULES_DIR = "data/rules"
-REACTIONS_DIR = "static/reactions"
+REACTIONS_DIR = os.path.join("static", "reactions")
 os.makedirs(REACTIONS_DIR, exist_ok=True)
 # ---------------- LOVENSE ----------------
 
