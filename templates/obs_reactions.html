@@ -2,17 +2,13 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>OBS Reactions</title>
+  <title>OBS Reactions Debug</title>
   <style>
-    body {
-      margin: 0;
-      background: transparent;
-      text-align: center;
-    }
+    body { margin:0; background:transparent; text-align:center; }
     #reactionArea img {
-      max-width: 400px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      max-width:400px;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
     }
   </style>
 </head>
@@ -23,20 +19,45 @@
     const reactionArea = document.getElementById("reactionArea");
     const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
+    socket.onopen = () => {
+      console.log("🔌 WebSocket подключён");
+    };
+
     socket.onmessage = (event) => {
+      console.log("📩 WS message raw:", event.data);
       let data;
-      try { data = JSON.parse(event.data); } catch { return; }
+      try { data = JSON.parse(event.data); } catch(e) {
+        console.error("⚠️ Ошибка парсинга:", e);
+        return;
+      }
+
+      console.log("📩 WS parsed:", data);
 
       if (data.reaction && data.profile === "{{ profile_key }}") {
+        console.log("✅ Получена реакция:", data.reaction, "для профиля:", data.profile);
+
         fetch(`/reaction_image/${data.profile}/${data.reaction}`)
           .then(res => res.json())
           .then(info => {
+            console.log("📥 Ответ reaction_image:", info);
             if (info.image) {
               reactionArea.innerHTML = `<img src="/static/${info.image}" alt="Reaction">`;
-              setTimeout(() => reactionArea.innerHTML = "", 5000);
+              setTimeout(() => {
+                reactionArea.innerHTML = "";
+                console.log("🧹 Очистка реакции");
+              }, 5000);
+            } else {
+              console.warn("❌ Нет картинки для реакции");
             }
-          });
+          })
+          .catch(err => console.error("⚠️ Ошибка запроса reaction_image:", err));
+      } else {
+        console.log("ℹ️ Сообщение не для этого профиля или без reaction");
       }
+    };
+
+    socket.onclose = () => {
+      console.log("🔌 WebSocket отключён");
     };
   </script>
 </body>
