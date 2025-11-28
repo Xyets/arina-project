@@ -895,18 +895,14 @@ def test_reaction():
     if not rule_id:
         return jsonify({"status": "error", "message": "rule_id отсутствует"}), 400
 
-    # допустим, у тебя есть текущий профиль
-    mode = CURRENT_MODE["value"]
-    profile_key = f"Arina_private_{mode}"  # или другой ключ, который OBS слушает
-
     # формируем событие
     event = {
         "reaction": rule_id,
-        "profile": profile_key
+        "profile": "Arina_private"
     }
+    msg = json.dumps(event)
 
     # рассылаем всем подключённым сокетам
-    msg = json.dumps(event)
     for ws in list(CONNECTED_SOCKETS):
         try:
             asyncio.create_task(ws.send(msg))
