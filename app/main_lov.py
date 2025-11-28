@@ -899,15 +899,22 @@ def test_reaction():
 
     event = {"reaction": rule_id, "profile": profile_key}
     msg = json.dumps(event)
+    print("📡 Отправляем событие:", msg)
 
-    for ws in list(CONNECTED_SOCKETS):
+    async def send_ws():
         try:
-            asyncio.create_task(ws.send(msg))
-        except:
-            CONNECTED_SOCKETS.discard(ws)
+            # подключаемся к локальному WebSocket-серверу
+            uri = "ws://127.0.0.1:8765"
+            async with websockets.connect(uri) as ws:
+                await ws.send(msg)
+                print("✅ Событие отправлено в ws-сервер")
+        except Exception as e:
+            print("❌ Ошибка отправки в ws-сервер:", e)
+
+    # запускаем асинхронную отправку
+    asyncio.run(send_ws())
 
     return jsonify({"status": "ok", "message": "Reaction sent"})
-
 
 
 @app.route("/reaction_image/<profile_key>/<rule_id>")
