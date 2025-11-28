@@ -815,12 +815,13 @@ def reactions_page():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    rules = load_reaction_rules(profile_key)
+    rules = load_reaction_rules(profile_key, reactions=True)  # отдельная функция для реакций
     profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
     return render_template("reactions.html",
                            profile=profile,
                            profile_key=profile_key,
                            reactions=rules)
+
 
 
 @app.route("/upload_reaction_image", methods=["POST"])
