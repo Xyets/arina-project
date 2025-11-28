@@ -850,6 +850,7 @@ def test_reaction():
     for ws in list(CONNECTED_SOCKETS):
         try:
             asyncio.create_task(ws.send(msg))
+
         except:
             CONNECTED_SOCKETS.discard(ws)
 
@@ -863,6 +864,9 @@ def reaction_image(profile_key, rule_id):
         return jsonify({"image": rules[rule_id]["image"]})
     return jsonify({"error": "no image"}), 404
 
+@app.route("/obs_reactions/<profile_key>")
+def obs_reactions(profile_key):
+    return render_template("obs_reactions.html", profile_key=profile_key)
 
 @app.route("/donations_data")
 @login_required

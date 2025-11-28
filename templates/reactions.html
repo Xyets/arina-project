@@ -3,21 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <title>Реакции — {{ profile.uname }}</title>
+
+  <!-- Шрифт -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: sans-serif; margin:20px; }
-    .reaction-card {
-      border:1px solid #ccc; padding:15px; margin-bottom:15px;
-      border-radius:8px; background:#f9f9f9;
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      color: #333;
+      margin: 0;
+      padding: 40px;
     }
-    .reaction-card h3 { margin-top:0; }
-    .preview { margin-top:10px; }
-    .preview img { max-width:200px; }
-    .actions button { margin-right:10px; }
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #444;
+      margin: 0;
+    }
+    .obs-link {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 20px auto;
+      max-width: 600px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+      font-size: 16px;
+    }
+    .obs-link code {
+      background: #f7f7f7;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      color: #444;
+    }
+    .reaction-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 600px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .reaction-card h3 {
+      margin-top: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #444;
+    }
+    .reaction-card p {
+      margin: 5px 0;
+      color: #555;
+    }
+    .preview {
+      margin-top: 10px;
+    }
+    .preview img {
+      max-width: 200px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    form button, .actions button {
+      margin-top: 10px;
+      background: #a3d8f4;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    form button:hover, .actions button:hover {
+      background: #74c0e3;
+    }
   </style>
 </head>
 <body>
-  <h1>Реакции — {{ profile.uname }}</h1>
+  <header>
+    <h1>🎭 Реакции — {{ profile.uname }}</h1>
+  </header>
 
+  <!-- Ссылка для OBS -->
+  <div class="obs-link">
+    <p>🔗 Ссылка для OBS (скопируй и вставь в браузер‑источник):</p>
+    <code>https://arinairina.duckdns.org/obs_reactions/{{ profile_key }}</code>
+  </div>
+
+  <!-- Список правил -->
   <div id="reaction-list">
     {% for rule_id, rule in reactions.items() %}
       <div class="reaction-card" id="reaction_{{ rule_id }}">

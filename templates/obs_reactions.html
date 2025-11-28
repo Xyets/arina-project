@@ -14,12 +14,11 @@
   <script>
     const reactionArea = document.getElementById("reactionArea");
     let socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
-
     socket.onmessage = (event) => {
-      let data; try { data = JSON.parse(event.data); } catch { return; }
-      if (data.reaction) {
+    let data; try { data = JSON.parse(event.data); } catch { return; }
+    if (data.reaction && data.profile === "{{ profile_key }}") {
         showReaction(data.profile, data.reaction);
-      }
+    }
     };
 
     function showReaction(profileKey, ruleId) {
