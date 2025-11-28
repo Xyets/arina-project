@@ -927,8 +927,8 @@ def reaction_image(profile_key, rule_id):
     return jsonify({"error": "no image"}), 404
 
 @app.route("/obs_reactions/<profile_key>")
-def obs_reactions(profile_key):
-    profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
+def obs_reactions_page(profile_key):
+    profile = CONFIG["profiles"].get(profile_key, {})
     reactions = load_reaction_rules(profile_key)
     return render_template(
         "obs_reactions.html",
