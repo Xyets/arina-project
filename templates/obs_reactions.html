@@ -32,7 +32,8 @@
     const socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
     socket.onopen = () => console.log("🔌 WebSocket подключён");
-
+    socket.onerror = (err) => console.error("⚠️ WebSocket error:", err);
+    socket.onclose = (event) => console.log("🔌 WebSocket закрыт:", event.code, event.reason);
     socket.onmessage = (event) => {
       console.log("📩 WS raw:", event.data);
       let data;
