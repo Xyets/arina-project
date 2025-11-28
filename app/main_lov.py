@@ -41,6 +41,9 @@ vibration_queues = {
 }
 CONNECTED_USERS = {}
 
+RULES_DIR = "data/rules"
+REACTIONS_DIR = "static/reactions"
+os.makedirs(REACTIONS_DIR, exist_ok=True)
 # ---------------- LOVENSE ----------------
 
 
@@ -281,6 +284,17 @@ def apply_rule(profile_key, amount, text):
                 return {"kind": "vibration", "strength": strength, "duration": duration}
     return None
 
+def load_reaction_rules(profile_key):
+    path = os.path.join(RULES_DIR, f"rules_{profile_key}.json")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_reaction_rules(profile_key, rules):
+    path = os.path.join(RULES_DIR, f"rules_{profile_key}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(rules, f, ensure_ascii=False, indent=2)
 
 # ---------------- VIP ----------------
 
@@ -794,6 +808,60 @@ def stats_history():
     return render_template(
         "stats_history.html", user=user, results=results, summary=summary
     )
+
+@app.route("/reactions/<profile_key>")
+@login_required
+def reactions(profile_key):
+    rules = load_reaction_rules(profile_key)
+    profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
+    return render_template("reactions.html",
+                           profile=profile,
+                           profile_key=profile_key,
+                           reactions=rules)
+
+@app.route("/upload_reaction_image", methods=["POST"])
+@login_required
+def upload_reaction_image():
+    profile_key = request.form["profile_key"]
+    rule_id = request.form["rule_id"]
+    file = request.files["image"]
+
+    if file:
+        filename = f"{profile_key}_{rule_id}_{file.filename}"
+        path = os.path.join(REACTIONS_DIR, filename)
+        file.save(path)
+
+        rules = load_reaction_rules(profile_key)
+        if rule_id in rules:
+            rules[rule_id]["image"] = f"reactions/{filename}"
+            save_reaction_rules(profile_key, rules)
+
+        return redirect(url_for("reactions", profile_key=profile_key))
+    return "Ошибка загрузки", 400
+
+@app.route("/test_reaction", methods=["POST"])
+@login_required
+def test_reaction():
+    profile_key = request.form["profile_key"]
+    rule_id = request.form["rule_id"]
+
+    event = {"reaction": rule_id, "profile": profile_key}
+    msg = json.dumps(event)
+    for ws in list(CONNECTED_SOCKETS):
+        try:
+            asyncio.create_task(ws.send(msg))
+        except:
+            CONNECTED_SOCKETS.discard(ws)
+
+    return jsonify({"status": "ok", "message": "Reaction sent"})
+
+@app.route("/reaction_image/<profile_key>/<rule_id>")
+@login_required
+def reaction_image(profile_key, rule_id):
+    rules = load_reaction_rules(profile_key)
+    if rule_id in rules and "image" in rules[rule_id]:
+        return jsonify({"image": rules[rule_id]["image"]})
+    return jsonify({"error": "no image"}), 404
 
 
 @app.route("/donations_data")

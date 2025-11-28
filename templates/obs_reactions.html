@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>OBS Reactions</title>
+  <style>
+    body { margin:0; background:transparent; text-align:center; }
+    #reactionArea img { max-width:400px; }
+  </style>
+</head>
+<body>
+  <div id="reactionArea"></div>
+
+  <script>
+    const reactionArea = document.getElementById("reactionArea");
+    let socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+    socket.onmessage = (event) => {
+      let data; try { data = JSON.parse(event.data); } catch { return; }
+      if (data.reaction) {
+        showReaction(data.profile, data.reaction);
+      }
+    };
+
+    function showReaction(profileKey, ruleId) {
+      fetch(`/reaction_image/${profileKey}/${ruleId}`)
+        .then(res => res.json())
+        .then(info => {
+          if (info.image) {
+            reactionArea.innerHTML = `<img src="/static/${info.image}" />`;
+            setTimeout(() => reactionArea.innerHTML = "", 5000);
+          }
+        });
+    }
+  </script>
+</body>
+</html>

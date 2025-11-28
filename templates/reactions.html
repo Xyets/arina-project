@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Реакции — {{ profile.uname }}</title>
+  <style>
+    body { font-family: sans-serif; margin:20px; }
+    .reaction-card {
+      border:1px solid #ccc; padding:15px; margin-bottom:15px;
+      border-radius:8px; background:#f9f9f9;
+    }
+    .reaction-card h3 { margin-top:0; }
+    .preview { margin-top:10px; }
+    .preview img { max-width:200px; }
+    .actions button { margin-right:10px; }
+  </style>
+</head>
+<body>
+  <h1>Реакции — {{ profile.uname }}</h1>
+
+  <div id="reaction-list">
+    {% for rule_id, rule in reactions.items() %}
+      <div class="reaction-card" id="reaction_{{ rule_id }}">
+        <h3>{{ rule.name }}</h3>
+        <p>Условие: {{ rule.condition }}</p>
+        <p>Действие: {{ rule.action }}</p>
+
+        <div class="preview">
+          {% if rule.image %}
+            <img src="{{ url_for('static', filename=rule.image) }}" alt="Reaction image">
+          {% else %}
+            <em>Нет картинки</em>
+          {% endif %}
+        </div>
+
+        <form action="/upload_reaction_image" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="profile_key" value="{{ profile_key }}">
+          <input type="hidden" name="rule_id" value="{{ rule_id }}">
+          <input type="file" name="image" accept="image/*">
+          <button type="submit">Загрузить / Заменить</button>
+        </form>
+
+        <div class="actions">
+          <button type="button" onclick="testReaction('{{ rule_id }}')">🔔 Тест</button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function testReaction(ruleId) {
+      fetch("/test_reaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "profile_key={{ profile_key }}&rule_id=" + encodeURIComponent(ruleId)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") {
+          alert("✅ Тест реакции отправлен в OBS");
+        } else {
+          alert("❌ Ошибка: " + data.message);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
