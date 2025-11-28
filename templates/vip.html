@@ -334,6 +334,7 @@
           console.log("🔄 Обновляем карточку:", data.user_id);
           refreshVipCard(data.user_id).then(() => {
             resortCards("{{ request.args.get('sort', 'total') }}");
+
           });
         }
       };
