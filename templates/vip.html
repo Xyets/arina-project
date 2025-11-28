@@ -258,7 +258,7 @@
           await refreshVipCard(userId);
 
           // пересортируем список после обновления
-          resortCards("{{ request.args.get('sort', 'total') }}");
+          resortCards(currentSort);
         } else {
           alert("❌ Ошибка сохранения");
         }
@@ -278,6 +278,8 @@
       .then(data => {
         if (data.status === "ok") {
           document.getElementById("card_" + userId)?.remove();
+          // после удаления пересортируем
+          resortCards(currentSort);
         } else {
           alert("❌ " + data.message);
         }
@@ -295,6 +297,7 @@
       .then(data => {
         if (data.status === "ok") {
           document.getElementById("card_" + userId)?.classList.add("blocked");
+          resortCards(currentSort);
         } else {
           alert("❌ " + data.message);
         }
@@ -302,7 +305,7 @@
       .catch(() => alert("❌ Ошибка блокировки"));
     }
 
-    // форматируем дату
+    // форматируем дату для уже отрисованных элементов
     document.querySelectorAll(".date").forEach(el => {
       const raw = el.textContent.trim();
       if (!raw) return;
@@ -353,6 +356,13 @@
           const card = document.createElement("div");
           card.className = "vip-card" + (info.blocked ? " blocked" : "");
           card.id = "card_" + user_id;
+
+          const rawDate = info.last_login || "";
+          const d = rawDate ? new Date(rawDate.replace(" ", "T")) : null;
+          const formattedDate = d && !isNaN(d.getTime())
+            ? d.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
+            : rawDate;
+
           card.innerHTML = `
             <form onsubmit="event.preventDefault(); saveMember(this)">
               <input type="hidden" name="user_id" value="${user_id}">
@@ -360,7 +370,7 @@
               <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
               <div class="meta">
                 💗 ${info.total} | 📅 ${info.login_count} входов<br>
-                🕒 Последний визит: ${info.last_login}<br>
+                🕒 Последний визит: <span class="date" data-last-login="${rawDate}">${formattedDate}</span><br>
                 🆔 ID: <code>${user_id}</code>
               </div>
               <div class="actions">
@@ -372,6 +382,9 @@
           `;
           grid.appendChild(card);
         });
+
+        // пересортируем сразу после загрузки списка
+        resortCards(currentSort);
       } catch (e) {
         console.warn("⚠️ Ошибка обновления VIP‑листа:", e);
       }
@@ -390,7 +403,6 @@
         newCard.className = "vip-card" + (info.blocked ? " blocked" : "");
         newCard.id = "card_" + userId;
 
-        // формируем форматированную дату для отображения, но raw сохраняем в data-атрибут
         const rawDate = info.last_login || "";
         const d = rawDate ? new Date(rawDate.replace(" ", "T")) : null;
         const formattedDate = d && !isNaN(d.getTime())
@@ -421,7 +433,6 @@
           document.querySelector(".card-grid").appendChild(newCard);
         }
 
-        // после обновления карточки — пересортировка по текущему режиму
         resortCards(currentSort);
       } catch (e) {
         console.warn("⚠️ Ошибка обновления карточки:", e);
@@ -469,14 +480,17 @@
       localStorage.setItem("vip_scroll", window.scrollY);
     });
 
-    // восстанавливаем позицию после загрузки
+    // восстанавливаем позицию после загрузки и подгружаем список
     window.addEventListener("load", () => {
       const y = localStorage.getItem("vip_scroll");
       if (y) {
         window.scrollTo(0, parseInt(y));
       }
+      // первичная загрузка списка, чтобы сортировка работала сразу
+      refreshVipList();
     });
   </script>
+
 
 </body>
 </html>
