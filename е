@@ -3,3 +3,4 @@ sudo systemctl restart arina-ws.service
 
 sudo journalctl -u arina.service -f
 sudo journalctl -u arina-ws.service -f
+ а
