@@ -12,8 +12,26 @@
       margin: 0;
       padding: 40px;
     }
-    header { text-align: center; margin-bottom: 30px; }
+    header { text-align: center; margin-bottom: 20px; }
     header h1 { font-size: 28px; font-weight: 600; color: #444; margin: 0; }
+
+    .obs-link {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 20px auto;
+      max-width: 600px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+      font-size: 16px;
+    }
+    .obs-link code {
+      background: #f7f7f7;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      color: #444;
+    }
 
     .reaction-card {
       background: #fff;
@@ -55,12 +73,35 @@
       border-radius: 8px;
       margin: 5px;
     }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .back-link a {
+      background: #f7a8b8;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+    .back-link a:hover { background: #f28497; }
   </style>
 </head>
 <body>
   <header>
     <h1>🎭 Реакции — {{ profile.uname }}</h1>
   </header>
+
+  <!-- Ссылка для OBS -->
+  <div class="obs-link">
+    <p>🔗 Ссылка для OBS (скопируй и вставь в браузер‑источник):</p>
+    <code>https://arinairina.duckdns.org/obs_reactions/{{ profile_key }}</code>
+  </div>
 
   <!-- Список правил -->
   <div id="reaction-list">
@@ -92,6 +133,11 @@
       Картинка/гифка: <input type="file" name="image" accept="image/*"><br>
       <button type="submit" name="add_reaction_rule">Добавить</button>
     </form>
+  </div>
+
+  <!-- Кнопка назад -->
+  <div class="back-link">
+    <a href="/">⬅ Назад к главной</a>
   </div>
 
   <script>
