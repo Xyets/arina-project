@@ -904,8 +904,9 @@ def test_reaction():
 @login_required
 def reaction_image(profile_key, rule_id):
     rules = load_reaction_rules(profile_key)
-    if rule_id in rules and "image" in rules[rule_id]:
-        return jsonify({"image": rules[rule_id]["image"]})
+    for r in rules.get("rules", []):
+        if r["id"] == rule_id and "image" in r:
+            return jsonify({"image": r["image"]})
     return jsonify({"error": "no image"}), 404
 
 @app.route("/obs_reactions/<profile_key>")
