@@ -890,8 +890,10 @@ def test_reaction():
     profile_key = f"{user}_{mode}"
     rule_id = request.form["rule_id"]
 
+    # Формируем событие для OBS
     event = {"reaction": rule_id, "profile": profile_key}
     msg = json.dumps(event)
+
     for ws in list(CONNECTED_SOCKETS):
         try:
             asyncio.create_task(ws.send(msg))
@@ -899,6 +901,7 @@ def test_reaction():
             CONNECTED_SOCKETS.discard(ws)
 
     return jsonify({"status": "ok", "message": "Reaction sent"})
+
 
 @app.route("/reaction_image/<profile_key>/<rule_id>")
 @login_required
