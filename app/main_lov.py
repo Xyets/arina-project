@@ -42,8 +42,7 @@ vibration_queues = {
 CONNECTED_USERS = {}
 
 RULES_DIR = "data/rules"
-REACTIONS_DIR = os.path.join("static", "reactions")
-os.makedirs(REACTIONS_DIR, exist_ok=True)
+
 # ---------------- LOVENSE ----------------
 
 
@@ -283,23 +282,6 @@ def apply_rule(profile_key, amount, text):
                 # ⚠️ здесь тоже НЕ вызываем update_stats
                 return {"kind": "vibration", "strength": strength, "duration": duration}
     return None
-
-def load_reaction_rules(profile_key):
-    path = f"data/reactions/reactions_{profile_key}.json"
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {"rules": []}
-
-def save_reaction_rules(profile_key, rules):
-    path = f"data/reactions/reactions_{profile_key}.json"
-    tmp_file = path + ".tmp"
-    with open(tmp_file, "w", encoding="utf-8") as f:
-        json.dump(rules, f, indent=2, ensure_ascii=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_file, path)
 
 # ---------------- VIP ----------------
 
@@ -814,168 +796,6 @@ def stats_history():
         "stats_history.html", user=user, results=results, summary=summary
     )
 
-@app.route("/reactions", methods=["GET", "POST"])
-
-
-@app.route("/reactions", methods=["GET", "POST"])
-@login_required
-def reactions_page():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-
-    # Загружаем правила реакций
-    rules = load_reaction_rules(profile_key)
-    profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
-
-    # Обработка добавления нового правила
-    if request.method == "POST" and "add_reaction_rule" in request.form:
-        min_points = int(request.form["min_points"])
-        max_points = int(request.form["max_points"])
-        duration = int(request.form["duration"])
-        file = request.files.get("image")
-
-        image_path = None
-        if file and file.filename:
-            safe_name = secure_filename(file.filename)   # убираем пробелы и спецсимволы
-            filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
-            path = os.path.join(REACTIONS_DIR, filename)
-            file.save(path)
-            image_path = f"reactions/{filename}"
-
-        new_rule = {
-            "id": str(uuid.uuid4()),
-            "min_points": min_points,
-            "max_points": max_points,
-            "duration": duration,
-            "image": image_path
-        }
-        rules["rules"].append(new_rule)
-        save_reaction_rules(profile_key, rules)
-
-        return redirect(url_for("reactions_page"))
-
-    return render_template("reactions.html",
-                           profile=profile,
-                           profile_key=profile_key,
-                           reactions=rules)
-
-
-
-@app.route("/upload_reaction_image", methods=["POST"])
-@login_required
-def upload_reaction_image():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    rule_id = request.form["rule_id"]
-    file = request.files["image"]
-
-    if file and file.filename:
-        safe_name = secure_filename(file.filename)   # убираем пробелы и спецсимволы
-        filename = f"{profile_key}_{rule_id}_{safe_name}"
-        path = os.path.join(REACTIONS_DIR, filename)
-        file.save(path)
-
-        rules = load_reaction_rules(profile_key)
-        for r in rules["rules"]:
-            if r["id"] == rule_id:
-                r["image"] = f"reactions/{filename}"
-                break
-        save_reaction_rules(profile_key, rules)
-
-        return redirect(url_for("reactions_page"))
-    return "Ошибка загрузки", 400
-
-@app.route("/test_reaction", methods=["POST"])
-def test_reaction():
-    data = request.get_json()
-    rule_id = data.get("rule_id")
-
-    if not rule_id:
-        return jsonify({"status": "error", "message": "rule_id отсутствует"}), 400
-
-    # формируем событие
-    event = {
-        "reaction": rule_id,
-        "profile": "Arina_private"
-    }
-    msg = json.dumps(event)
-
-    # рассылаем всем подключённым сокетам
-    for ws in list(CONNECTED_SOCKETS):
-        try:
-            asyncio.create_task(ws.send(msg))
-        except:
-            CONNECTED_SOCKETS.discard(ws)
-
-    return jsonify({"status": "ok"})
-
-@app.route("/reaction_image/<profile_key>/<rule_id>")
-def reaction_image(profile_key, rule_id):
-    rules = load_reaction_rules(profile_key)
-    for rule in rules.get("rules", []):
-        if rule.get("id") == rule_id:
-            return jsonify({
-                "image": rule.get("image"),
-                "duration": rule.get("duration", 5)  # ← добавляем длительность
-            })
-    return jsonify({"error": "no image"}), 404
-
-
-@app.route("/obs_reactions/<profile_key>")
-def obs_reactions_page(profile_key):
-    profile = CONFIG["profiles"].get(profile_key, {})
-    reactions = load_reaction_rules(profile_key)
-    return render_template(
-        "obs_reactions.html",
-        profile=profile,
-        profile_key=profile_key,
-        reactions=reactions
-    )
-
-@app.route("/delete_reaction_rule", methods=["POST"])
-@login_required
-def delete_reaction_rule():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    rule_id = request.form["rule_id"]
-
-    rules = load_reaction_rules(profile_key)
-    rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
-    save_reaction_rules(profile_key, rules)
-
-    return redirect(url_for("reactions_page"))
-
-
-@app.route("/edit_reaction_rule", methods=["POST"])
-@login_required
-def edit_reaction_rule():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    rule_id = request.form["rule_id"]
-
-    rules = load_reaction_rules(profile_key)
-    for r in rules["rules"]:
-        if r["id"] == rule_id:
-            r["min_points"] = int(request.form["min_points"])
-            r["max_points"] = int(request.form["max_points"])
-            r["duration"] = int(request.form["duration"])
-
-            file = request.files.get("image")
-            if file and file.filename:
-                from werkzeug.utils import secure_filename
-                safe_name = secure_filename(file.filename)
-                filename = f"{profile_key}_{rule_id}_{safe_name}"
-                path = os.path.join(REACTIONS_DIR, filename)
-                file.save(path)
-                r["image"] = f"reactions/{filename}"
-            break
-
-    save_reaction_rules(profile_key, rules)
-    return redirect(url_for("reactions_page"))
 
 @app.route("/donations_data")
 @login_required
