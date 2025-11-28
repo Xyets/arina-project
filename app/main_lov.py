@@ -843,33 +843,30 @@ def hook():
         data = request.get_json(silent=True)
         print("📩 Пришёл webhook:", data)
 
+        # обновление проекта и зависимостей через pip
         result = subprocess.run(
-            ["bash", "-lc", "cd /root/arina-project && git pull && poetry install"],
+            [
+                "bash",
+                "-lc",
+                "cd /root/arina-project && git pull && /root/arina-project/venv/bin/pip install -r requirements.txt"
+            ],
             capture_output=True,
             text=True,
         )
 
         if result.returncode != 0:
             print("🔥 Ошибка обновления:", result.stderr)
-            return "Internal Server Error", 500
+            return "❌ Ошибка обновления", 500
 
-        audit_event(
-            "system",
-            CURRENT_MODE["value"],
-            {
-                "type": "webhook_update",
-                "status": "success" if result.returncode == 0 else "error",
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            },
-        )
+        # перезапуск сервисов
+        subprocess.run(["sudo", "systemctl", "restart", "arina.service"])
+        subprocess.run(["sudo", "systemctl", "restart", "arina-ws.service"])
 
-        print("✅ Обновление прошло успешно:", result.stdout)
-        return "OK", 200
+        return "✅ Обновление завершено", 200
 
     except Exception as e:
-        print("🔥 Ошибка в webhook:", e)
-        return "Internal Server Error", 500
+        print("⚠️ Ошибка hook:", e)
+        return "❌ Ошибка hook", 500
 
 
 @app.route("/Success", methods=["GET"])
