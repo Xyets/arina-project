@@ -118,6 +118,18 @@
         </div>
         <div class="actions">
           <button type="button" onclick="testReaction('{{ rule.id }}')">🔔 Тест</button>
+          <form method="POST" action="/delete_reaction_rule" style="display:inline;">
+            <input type="hidden" name="rule_id" value="{{ rule.id }}">
+            <button type="submit">🗑 Удалить</button>
+          </form>
+          <form method="POST" action="/edit_reaction_rule" enctype="multipart/form-data" style="display:inline;">
+            <input type="hidden" name="rule_id" value="{{ rule.id }}">
+            Мин: <input type="number" name="min_points" value="{{ rule.min_points }}" style="width:60px;">
+            Макс: <input type="number" name="max_points" value="{{ rule.max_points }}" style="width:60px;">
+            Время: <input type="number" name="duration" value="{{ rule.duration }}" style="width:60px;">
+            <input type="file" name="image" accept="image/*">
+            <button type="submit">✏ Изменить</button>
+          </form>
         </div>
       </div>
     {% endfor %}

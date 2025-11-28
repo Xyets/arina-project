@@ -17,7 +17,7 @@ import shutil
 from app.audit import audit_event
 from collections import deque
 from app.stats_service import calculate_stats, get_stats
-
+from werkzeug.utils import secure_filename
 
 RECENT_DONATIONS = deque(maxlen=500)
 
@@ -815,6 +815,9 @@ def stats_history():
     )
 
 @app.route("/reactions", methods=["GET", "POST"])
+
+
+@app.route("/reactions", methods=["GET", "POST"])
 @login_required
 def reactions_page():
     user = session["user"]
@@ -834,7 +837,8 @@ def reactions_page():
 
         image_path = None
         if file and file.filename:
-            filename = f"{profile_key}_{uuid.uuid4()}_{file.filename}"
+            safe_name = secure_filename(file.filename)   # убираем пробелы и спецсимволы
+            filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
             path = os.path.join(REACTIONS_DIR, filename)
             file.save(path)
             image_path = f"reactions/{filename}"
@@ -867,8 +871,9 @@ def upload_reaction_image():
     rule_id = request.form["rule_id"]
     file = request.files["image"]
 
-    if file:
-        filename = f"{profile_key}_{rule_id}_{file.filename}"
+    if file and file.filename:
+        safe_name = secure_filename(file.filename)   # убираем пробелы и спецсимволы
+        filename = f"{profile_key}_{rule_id}_{safe_name}"
         path = os.path.join(REACTIONS_DIR, filename)
         file.save(path)
 
@@ -924,6 +929,49 @@ def obs_reactions(profile_key):
         profile_key=profile_key,
         reactions=reactions
     )
+
+@app.route("/delete_reaction_rule", methods=["POST"])
+@login_required
+def delete_reaction_rule():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    rule_id = request.form["rule_id"]
+
+    rules = load_reaction_rules(profile_key)
+    rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
+    save_reaction_rules(profile_key, rules)
+
+    return redirect(url_for("reactions_page"))
+
+
+@app.route("/edit_reaction_rule", methods=["POST"])
+@login_required
+def edit_reaction_rule():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+    rule_id = request.form["rule_id"]
+
+    rules = load_reaction_rules(profile_key)
+    for r in rules["rules"]:
+        if r["id"] == rule_id:
+            r["min_points"] = int(request.form["min_points"])
+            r["max_points"] = int(request.form["max_points"])
+            r["duration"] = int(request.form["duration"])
+
+            file = request.files.get("image")
+            if file and file.filename:
+                from werkzeug.utils import secure_filename
+                safe_name = secure_filename(file.filename)
+                filename = f"{profile_key}_{rule_id}_{safe_name}"
+                path = os.path.join(REACTIONS_DIR, filename)
+                file.save(path)
+                r["image"] = f"reactions/{filename}"
+            break
+
+    save_reaction_rules(profile_key, rules)
+    return redirect(url_for("reactions_page"))
 
 @app.route("/donations_data")
 @login_required
