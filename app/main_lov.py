@@ -285,16 +285,21 @@ def apply_rule(profile_key, amount, text):
     return None
 
 def load_reaction_rules(profile_key):
-    path = os.path.join(RULES_DIR, f"rules_{profile_key}.json")
-    if os.path.exists(path):
+    path = f"data/reactions/reactions_{profile_key}.json"
+    try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"rules": []}
 
 def save_reaction_rules(profile_key, rules):
-    path = os.path.join(RULES_DIR, f"rules_{profile_key}.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
+    path = f"data/reactions/reactions_{profile_key}.json"
+    tmp_file = path + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
+        json.dump(rules, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_file, path)
 
 # ---------------- VIP ----------------
 
