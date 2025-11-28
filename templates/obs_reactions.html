@@ -45,18 +45,28 @@
       if (data.reaction && data.profile === profileKey) {
         console.log("✅ Reaction matched:", data.reaction);
         fetch(`/reaction_image/${data.profile}/${data.reaction}`)
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+          })
           .then(info => {
             console.log("📥 reaction_image:", info);
             if (info.image) {
               reactionArea.innerHTML = `<img src="/static/${info.image}" alt="Reaction">`;
               const img = reactionArea.querySelector("img");
+              if (!img) return;
+
+              // плавное появление
               setTimeout(() => img.classList.add("show"), 50);
+
+              // берём duration из JSON, по умолчанию 5 секунд
+              const durationMs = (info.duration || 5) * 1000;
+
               setTimeout(() => {
                 img.classList.remove("show");
                 setTimeout(() => reactionArea.innerHTML = "", 1000);
-                console.log("🧹 Очистка реакции");
-              }, 5000);
+                console.log("🧹 Очистка реакции (duration:", durationMs, "ms)");
+              }, durationMs);
             } else {
               console.warn("❌ Нет картинки для реакции");
             }

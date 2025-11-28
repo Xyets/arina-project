@@ -918,13 +918,16 @@ def test_reaction():
 
 
 @app.route("/reaction_image/<profile_key>/<rule_id>")
-@login_required
 def reaction_image(profile_key, rule_id):
     rules = load_reaction_rules(profile_key)
-    for r in rules.get("rules", []):
-        if r["id"] == rule_id and "image" in r:
-            return jsonify({"image": r["image"]})
+    for rule in rules.get("rules", []):
+        if rule.get("id") == rule_id:
+            return jsonify({
+                "image": rule.get("image"),
+                "duration": rule.get("duration", 5)  # ← добавляем длительность
+            })
     return jsonify({"error": "no image"}), 404
+
 
 @app.route("/obs_reactions/<profile_key>")
 def obs_reactions_page(profile_key):
