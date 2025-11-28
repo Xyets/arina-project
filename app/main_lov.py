@@ -888,34 +888,32 @@ def upload_reaction_image():
     return "Ошибка загрузки", 400
 
 @app.route("/test_reaction", methods=["POST"])
-@login_required
 def test_reaction():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-
     data = request.get_json()
     rule_id = data.get("rule_id")
 
-    event = {"reaction": rule_id, "profile": profile_key}
+    if not rule_id:
+        return jsonify({"status": "error", "message": "rule_id отсутствует"}), 400
+
+    # допустим, у тебя есть текущий профиль
+    mode = CURRENT_MODE["value"]
+    profile_key = f"Arina_private_{mode}"  # или другой ключ, который OBS слушает
+
+    # формируем событие
+    event = {
+        "reaction": rule_id,
+        "profile": profile_key
+    }
+
+    # рассылаем всем подключённым сокетам
     msg = json.dumps(event)
-    print("📡 Отправляем событие:", msg)
-
-    async def send_ws():
+    for ws in list(CONNECTED_SOCKETS):
         try:
-            # подключаемся к локальному WebSocket-серверу
-            uri = "ws://127.0.0.1:8765"
-            async with websockets.connect(uri) as ws:
-                await ws.send(msg)
-                print("✅ Событие отправлено в ws-сервер")
-        except Exception as e:
-            print("❌ Ошибка отправки в ws-сервер:", e)
+            asyncio.create_task(ws.send(msg))
+        except:
+            CONNECTED_SOCKETS.discard(ws)
 
-    # запускаем асинхронную отправку
-    asyncio.run(send_ws())
-
-    return jsonify({"status": "ok", "message": "Reaction sent"})
-
+    return jsonify({"status": "ok"})
 
 @app.route("/reaction_image/<profile_key>/<rule_id>")
 def reaction_image(profile_key, rule_id):
