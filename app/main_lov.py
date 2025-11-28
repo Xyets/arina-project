@@ -809,14 +809,43 @@ def stats_history():
         "stats_history.html", user=user, results=results, summary=summary
     )
 
-@app.route("/reactions")
+@app.route("/reactions", methods=["GET", "POST"])
 @login_required
 def reactions_page():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    rules = load_reaction_rules(profile_key, reactions=True)  # отдельная функция для реакций
+
+    # Загружаем правила реакций
+    rules = load_reaction_rules(profile_key, reactions=True)
     profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
+
+    # Обработка добавления нового правила
+    if request.method == "POST" and "add_reaction_rule" in request.form:
+        min_points = int(request.form["min_points"])
+        max_points = int(request.form["max_points"])
+        duration = int(request.form["duration"])
+        file = request.files.get("image")
+
+        image_path = None
+        if file and file.filename:
+            filename = f"{profile_key}_{uuid.uuid4()}_{file.filename}"
+            path = os.path.join(REACTIONS_DIR, filename)
+            file.save(path)
+            image_path = f"reactions/{filename}"
+
+        new_rule = {
+            "id": str(uuid.uuid4()),
+            "min_points": min_points,
+            "max_points": max_points,
+            "duration": duration,
+            "image": image_path
+        }
+        rules["rules"].append(new_rule)
+        save_reaction_rules(profile_key, rules)
+
+        return redirect(url_for("reactions_page"))
+
     return render_template("reactions.html",
                            profile=profile,
                            profile_key=profile_key,
@@ -827,7 +856,9 @@ def reactions_page():
 @app.route("/upload_reaction_image", methods=["POST"])
 @login_required
 def upload_reaction_image():
-    profile_key = request.form["profile_key"]
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
     rule_id = request.form["rule_id"]
     file = request.files["image"]
 
@@ -836,18 +867,22 @@ def upload_reaction_image():
         path = os.path.join(REACTIONS_DIR, filename)
         file.save(path)
 
-        rules = load_reaction_rules(profile_key)
-        if rule_id in rules:
-            rules[rule_id]["image"] = f"reactions/{filename}"
-            save_reaction_rules(profile_key, rules)
+        rules = load_reaction_rules(profile_key, reactions=True)
+        for r in rules["rules"]:
+            if r["id"] == rule_id:
+                r["image"] = f"reactions/{filename}"
+                break
+        save_reaction_rules(profile_key, rules)
 
-        return redirect(url_for("reactions", profile_key=profile_key))
+        return redirect(url_for("reactions_page"))
     return "Ошибка загрузки", 400
 
 @app.route("/test_reaction", methods=["POST"])
 @login_required
 def test_reaction():
-    profile_key = request.form["profile_key"]
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
     rule_id = request.form["rule_id"]
 
     event = {"reaction": rule_id, "profile": profile_key}
@@ -855,7 +890,6 @@ def test_reaction():
     for ws in list(CONNECTED_SOCKETS):
         try:
             asyncio.create_task(ws.send(msg))
-
         except:
             CONNECTED_SOCKETS.discard(ws)
 
