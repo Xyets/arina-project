@@ -36,11 +36,15 @@
     socket.onmessage = (event) => {
       console.log("📩 WS raw:", event.data);
       let data;
-      try { data = JSON.parse(event.data); } catch(e) {
+      try { 
+        data = JSON.parse(event.data); 
+        console.log("📩 WS parsed:", data);
+      } catch(e) {
         console.error("⚠️ Ошибка парсинга:", e);
         return;
       }
-      console.log("📩 WS parsed:", data, "profileKey:", profileKey);
+
+      console.log("🔍 Сравнение:", data.profile, "===", profileKey);
 
       if (data.reaction && data.profile === profileKey) {
         console.log("✅ Reaction matched:", data.reaction);
@@ -54,7 +58,10 @@
             if (info.image) {
               reactionArea.innerHTML = `<img src="/static/${info.image}" alt="Reaction">`;
               const img = reactionArea.querySelector("img");
-              if (!img) return;
+              if (!img) {
+                console.error("⚠️ img элемент не найден");
+                return;
+              }
 
               // плавное появление
               setTimeout(() => img.classList.add("show"), 50);
