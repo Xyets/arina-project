@@ -831,6 +831,7 @@ def test_rule(rule_index):
 @app.route("/hook", methods=["POST"])
 def hook():
     try:
+        # проверка подписи от GitHub
         signature = request.headers.get("X-Hub-Signature-256")
         secret = CONFIG["webhook_secret"].encode()
         body = request.data
@@ -843,7 +844,7 @@ def hook():
         data = request.get_json(silent=True)
         print("📩 Пришёл webhook:", data)
 
-        # обновление проекта и зависимостей через pip
+        # обновление проекта и зависимостей
         result = subprocess.run(
             [
                 "bash",
