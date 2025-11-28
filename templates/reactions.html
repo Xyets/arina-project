@@ -144,8 +144,8 @@
     function testReaction(ruleId) {
       fetch("/test_reaction", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "profile_key={{ profile_key }}&rule_id=" + encodeURIComponent(ruleId)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rule_id: ruleId })
       })
       .then(res => res.json())
       .then(data => {

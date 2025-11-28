@@ -888,9 +888,10 @@ def test_reaction():
     user = session["user"]
     mode = CURRENT_MODE["value"]
     profile_key = f"{user}_{mode}"
-    rule_id = request.form["rule_id"]
 
-    # Формируем событие для OBS
+    data = request.get_json()
+    rule_id = data.get("rule_id")
+
     event = {"reaction": rule_id, "profile": profile_key}
     msg = json.dumps(event)
 
@@ -901,6 +902,7 @@ def test_reaction():
             CONNECTED_SOCKETS.discard(ws)
 
     return jsonify({"status": "ok", "message": "Reaction sent"})
+
 
 
 @app.route("/reaction_image/<profile_key>/<rule_id>")
