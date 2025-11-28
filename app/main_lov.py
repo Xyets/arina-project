@@ -822,7 +822,7 @@ def reactions_page():
     profile_key = f"{user}_{mode}"
 
     # Загружаем правила реакций
-    rules = load_reaction_rules(profile_key, reactions=True)
+    rules = load_reaction_rules(profile_key)
     profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
 
     # Обработка добавления нового правила
@@ -872,7 +872,7 @@ def upload_reaction_image():
         path = os.path.join(REACTIONS_DIR, filename)
         file.save(path)
 
-        rules = load_reaction_rules(profile_key, reactions=True)
+        rules = load_reaction_rules(profile_key)
         for r in rules["rules"]:
             if r["id"] == rule_id:
                 r["image"] = f"reactions/{filename}"
