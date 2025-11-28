@@ -4,11 +4,20 @@
   <meta charset="UTF-8">
   <title>OBS Reactions Debug</title>
   <style>
-    body { margin:0; background:transparent; text-align:center; }
+    body {
+      margin:0;
+      background:transparent;
+      text-align:center;
+    }
     #reactionArea img {
       max-width:400px;
       border-radius:12px;
       box-shadow:0 4px 12px rgba(0,0,0,0.2);
+      opacity:0;
+      transition: opacity 1s ease-in-out;
+    }
+    #reactionArea img.show {
+      opacity:1;
     }
   </style>
 </head>
@@ -24,26 +33,29 @@
     };
 
     socket.onmessage = (event) => {
-      console.log("📩 WS message raw:", event.data);
+      console.log("📩 WS raw:", event.data);
       let data;
       try { data = JSON.parse(event.data); } catch(e) {
         console.error("⚠️ Ошибка парсинга:", e);
         return;
       }
-
-      console.log("📩 WS parsed:", data);
+      console.log("📩 WS parsed:", data, "profile_key:", "{{ profile_key }}");
 
       if (data.reaction && data.profile === "{{ profile_key }}") {
-        console.log("✅ Получена реакция:", data.reaction, "для профиля:", data.profile);
-
+        console.log("✅ Reaction matched:", data.reaction);
         fetch(`/reaction_image/${data.profile}/${data.reaction}`)
           .then(res => res.json())
           .then(info => {
-            console.log("📥 Ответ reaction_image:", info);
+            console.log("📥 reaction_image:", info);
             if (info.image) {
               reactionArea.innerHTML = `<img src="/static/${info.image}" alt="Reaction">`;
+              const img = reactionArea.querySelector("img");
+              // плавное появление
+              setTimeout(() => img.classList.add("show"), 50);
+              // плавное исчезновение через 5 секунд
               setTimeout(() => {
-                reactionArea.innerHTML = "";
+                img.classList.remove("show");
+                setTimeout(() => reactionArea.innerHTML = "", 1000);
                 console.log("🧹 Очистка реакции");
               }, 5000);
             } else {
@@ -52,7 +64,7 @@
           })
           .catch(err => console.error("⚠️ Ошибка запроса reaction_image:", err));
       } else {
-        console.log("ℹ️ Сообщение не для этого профиля или без reaction");
+        console.warn("⚠️ Reaction ignored: profile mismatch or no reaction");
       }
     };
 
