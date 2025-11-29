@@ -18,9 +18,8 @@ from app.audit import audit_event
 from collections import deque
 from app.stats_service import calculate_stats, get_stats
 from werkzeug.utils import secure_filename
-import redis
+import redis # type: ignore
 
-RECENT_DONATIONS = deque(maxlen=500)
 
 
 with open("config/config.json", "r", encoding="utf-8") as f:
