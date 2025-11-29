@@ -36,7 +36,8 @@
 
   <script>
     const profileKey = "{{ profile_key }}"; // передаётся из Flask
-    const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+    const ws = new WebSocket("wss://arinairina.duckdns.org:8765");
+
 
     ws.onmessage = (event) => {
       try {
