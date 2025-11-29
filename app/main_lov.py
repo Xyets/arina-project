@@ -852,6 +852,7 @@ def reactions_page():
     profile_key = f"{user}_{mode}"
 
     rules = load_reaction_rules(profile_key)
+    STATIC_REACTIONS_DIR = "/var/www/arina-project/static/reactions"
 
     if request.method == "POST":
         if "add_reaction_rule" in request.form:
@@ -866,8 +867,9 @@ def reactions_page():
             if file and file.filename:
                 safe_name = secure_filename(file.filename)
                 filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
-                file.save(os.path.join("static/reactions", filename))
-                new_rule["image"] = f"reactions/{filename}"
+                file.save(os.path.join(STATIC_REACTIONS_DIR, filename))
+                new_rule["image"] = f"reactions/{filename}"  # путь относительно /static/
+
             rules["rules"].append(new_rule)
             save_reaction_rules(profile_key, rules)
 
@@ -887,16 +889,19 @@ def reactions_page():
                     if file and file.filename:
                         safe_name = secure_filename(file.filename)
                         filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
-                        file.save(os.path.join("static/reactions", filename))
-                        r["image"] = f"reactions/{filename}"
+                        file.save(os.path.join(STATIC_REACTIONS_DIR, filename))
+                        r["image"] = f"reactions/{filename}"  # ← исправлено
+
             save_reaction_rules(profile_key, rules)
 
     profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
     return render_template("reactions.html", profile=profile, reactions=rules, profile_key=profile_key)
 
+
 @app.route("/obs_reactions/<profile_key>")
 def obs_reactions(profile_key):
     return render_template("obs_reactions.html", profile_key=profile_key)
+
 
 @app.route("/test_reaction", methods=["POST"])
 def test_reaction():
