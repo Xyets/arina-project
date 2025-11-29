@@ -38,21 +38,31 @@
     const profileKey = "{{ profile_key }}"; // передаётся из Flask
     const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
+    ws.onopen = () => {
+    console.log("🔌 WebSocket подключён");
+    };
 
+    ws.onerror = (err) => {
+    console.error("❌ Ошибка WebSocket:", err);
+    };
+
+    ws.onclose = () => {
+    console.warn("⚠️ WebSocket закрыт");
+    };
 
     ws.onmessage = (event) => {
-      try {
+    try {
         const data = JSON.parse(event.data);
         console.log("📩 WS raw:", data);
 
-        // проверяем реакцию
         if (data.reaction && data.profile === profileKey) {
-          showReaction(data.image, data.duration || 5);
+        showReaction(data.image, data.duration || 5);
         }
-      } catch (e) {
+    } catch (e) {
         console.error("Ошибка обработки WS:", e);
-      }
+    }
     };
+
 
     function showReaction(imagePath, duration) {
       const container = document.getElementById("reaction");
