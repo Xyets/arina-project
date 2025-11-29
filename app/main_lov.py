@@ -157,14 +157,13 @@ def get_qr_code(profile_key):
 def send_vibration_cloud(profile_key, strength, duration):
     profile = CONFIG["profiles"][profile_key]
     uid = profile["uid"]
+
     raw = redis_client.hget("connected_users", uid)
     if not raw:
         print(f"❌ [{profile_key}] Нет данных из callback — игрушка не подключена")
         return None
     user_data = json.loads(raw)
-    if not user_data:
-        print(f"❌ [{profile_key}] Нет данных из callback — игрушка не подключена")
-        return None
+
     utoken = user_data.get("utoken")
     if not utoken:
         print(f"❌ [{profile_key}] utoken пустой — пересканируй QR‑код")
