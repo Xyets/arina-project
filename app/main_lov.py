@@ -157,7 +157,11 @@ def get_qr_code(profile_key):
 def send_vibration_cloud(profile_key, strength, duration):
     profile = CONFIG["profiles"][profile_key]
     uid = profile["uid"]
-    user_data = CONNECTED_USERS.get(uid)
+    raw = redis_client.hget("connected_users", uid)
+    if not raw:
+        print(f"❌ [{profile_key}] Нет данных из callback — игрушка не подключена")
+        return None
+    user_data = json.loads(raw)
     if not user_data:
         print(f"❌ [{profile_key}] Нет данных из callback — игрушка не подключена")
         return None
@@ -192,15 +196,12 @@ def lovense_callback():
 
     uid = data.get("uid")
     if uid:
-        CONNECTED_USERS[uid] = {
+        payload = {
             "utoken": data.get("utoken"),
             "toys": data.get("toys", {}),
         }
-        # 🔍 Отладка: выводим текущее состояние CONNECTED_USERS
-        print(
-            "🔐 CONNECTED_USERS сейчас:",
-            json.dumps(CONNECTED_USERS, indent=2, ensure_ascii=False),
-        )
+        redis_client.hset("connected_users", uid, json.dumps(payload, ensure_ascii=False))
+        print("🔐 CONNECTED_USERS (Redis) обновлён:", uid)
         return "✅ Callback принят", 200
     return "❌ Нет uid", 400
 
