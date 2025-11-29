@@ -18,6 +18,7 @@ from app.audit import audit_event
 from collections import deque
 from app.stats_service import calculate_stats, get_stats
 from werkzeug.utils import secure_filename
+import redis
 
 RECENT_DONATIONS = deque(maxlen=500)
 
@@ -43,7 +44,7 @@ CONNECTED_USERS = {}
 
 RULES_DIR = "data/rules"
 WS_EVENT_LOOP = None
-
+redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
 # ---------------- LOVENSE ----------------
 
 
@@ -715,18 +716,33 @@ async def ws_handler(websocket):
         print("🔌 WebSocket отключён")
 
 
+async def redis_listener():
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe("obs_reactions")
+    print("🔔 Redis listener запущен")
+
+    loop = asyncio.get_event_loop()
+    while True:
+        message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
+        if message:
+            data = message["data"].decode("utf-8")
+            print(f"📩 Получено из Redis: {data}")
+            for ws in list(CONNECTED_SOCKETS):
+                try:
+                    await ws.send(data)
+                except:
+                    CONNECTED_SOCKETS.discard(ws)
+        await asyncio.sleep(0.1)
+
+
 async def ws_server():
-    # запускаем воркеры для всех профилей
     for profile_key in CONFIG["profiles"]:
         asyncio.create_task(vibration_worker(profile_key))
 
-    # включаем пинг каждые 30 секунд
-    async with websockets.serve(
-        ws_handler, "0.0.0.0", 8765, origins=None, ping_interval=30
-    ):
-        print("🚀 WebSocket‑сервер запущен на ws://0.0.0.0:8765 (ping каждые 30 сек)")
-        await asyncio.Future()  # держим сервер живым
-
+    await asyncio.gather(
+        websockets.serve(ws_handler, "0.0.0.0", 8765),
+        redis_listener()
+    )
 
 # ---------------- Flask Routes ----------------
 @app.route("/")
@@ -910,12 +926,9 @@ def test_reaction():
     rule_id = data.get("rule_id")
     profile_key = data.get("profile_key")
 
-    print("🧪 /test_reaction вызван", rule_id, profile_key)
-
     rules = load_reaction_rules(profile_key)
     rule = next((r for r in rules["rules"] if r["id"] == rule_id), None)
     if not rule:
-        print("❌ Правило не найдено")
         return jsonify({"status": "error", "message": "Правило не найдено"}), 404
 
     event = {
@@ -926,19 +939,10 @@ def test_reaction():
     }
     msg = json.dumps(event)
 
-    sent = 0
-    for ws in list(CONNECTED_SOCKETS):
-        try:
-            if WS_EVENT_LOOP is not None:
-                asyncio.run_coroutine_threadsafe(ws.send(msg), WS_EVENT_LOOP)
-                sent += 1
-            else:
-                print("⚠️ WS_EVENT_LOOP не инициализирован")
-        except Exception as e:
-            print(f"⚠️ Ошибка отправки в WS: {e}")
-            CONNECTED_SOCKETS.discard(ws)
+    # публикуем в Redis
+    redis_client.publish("obs_reactions", msg)
 
-    print(f"📡 Тест-евент отправлен — получателей: {sent}")
+    print(f"📡 Тест-евент отправлен в Redis: {msg}")
     return jsonify({"status": "ok"})
 
 
