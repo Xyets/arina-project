@@ -5,91 +5,20 @@
   <title>Реакции — {{ profile.uname }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #fdfbfb, #ebedee);
-      color: #333;
-      margin: 0;
-      padding: 40px;
-    }
-    header { text-align: center; margin-bottom: 20px; }
-    header h1 { font-size: 28px; font-weight: 600; color: #444; margin: 0; }
-
-    .obs-link {
-      background: #fff;
-      border-radius: 12px;
-      padding: 15px;
-      margin: 20px auto;
-      max-width: 600px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      text-align: center;
-      font-size: 16px;
-    }
-    .obs-link code {
-      background: #f7f7f7;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-family: monospace;
-      color: #444;
-    }
-
-    .reaction-card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      padding: 20px;
-      margin: 20px auto;
-      max-width: 600px;
-    }
-    .reaction-card h3 { margin-top: 0; font-size: 20px; font-weight: 600; color: #444; }
-    .reaction-card p { margin: 5px 0; color: #555; }
-    .preview img { max-width: 200px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-
-    .actions button, form button {
-      margin-top: 10px;
-      background: #a3d8f4;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .actions button:hover, form button:hover { background: #74c0e3; }
-
-    .add-rule {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      padding: 20px;
-      margin-top: 30px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    input {
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin: 5px;
-    }
-
-    .back-link {
-      display: block;
-      text-align: center;
-      margin-top: 30px;
-    }
-    .back-link a {
-      background: #f7a8b8;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
-      color: white;
-      text-decoration: none;
-      font-size: 16px;
-      transition: 0.3s;
-    }
-    .back-link a:hover { background: #f28497; }
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg,#fdfbfb,#ebedee); color:#333; margin:0; padding:40px; }
+    header { text-align:center; margin-bottom:20px; }
+    header h1 { font-size:28px; font-weight:600; color:#444; margin:0; }
+    .obs-link, .reaction-card, .add-rule { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); padding:20px; margin:20px auto; max-width:600px; }
+    .reaction-card h3 { margin-top:0; font-size:20px; font-weight:600; color:#444; }
+    .reaction-card p { margin:5px 0; color:#555; }
+    .preview img { max-width:200px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    button { background:#a3d8f4; border:none; padding:8px 16px; border-radius:20px; color:white; cursor:pointer; transition:0.3s; margin-top:10px; }
+    button:hover { background:#74c0e3; }
+    .delete { background:#f7a8b8; } .delete:hover { background:#f28497; }
+    input { padding:6px; border:1px solid #ddd; border-radius:8px; margin:5px; }
+    .back-link { text-align:center; margin-top:30px; }
+    .back-link a { background:#f7a8b8; padding:10px 20px; border-radius:20px; color:white; text-decoration:none; font-size:16px; transition:0.3s; }
+    .back-link a:hover { background:#f28497; }
   </style>
 </head>
 <body>
@@ -104,36 +33,39 @@
   </div>
 
   <!-- Список правил -->
-  <div id="reaction-list">
-    {% for rule in reactions["rules"] %}
-      <div class="reaction-card">
-        <h3>Диапазон: {{ rule.min_points }} – {{ rule.max_points }}</h3>
-        <p>Длительность: {{ rule.duration }}s</p>
-        <div class="preview">
-          {% if rule.image %}
-            <img src="{{ url_for('static', filename=rule.image) }}" alt="Reaction image">
-          {% else %}
-            <em>Нет картинки</em>
-          {% endif %}
-        </div>
-        <div class="actions">
-          <button type="button" onclick="testReaction('{{ rule.id }}')">🔔 Тест</button>
-          <form method="POST" action="/delete_reaction_rule" style="display:inline;">
-            <input type="hidden" name="rule_id" value="{{ rule.id }}">
-            <button type="submit">🗑 Удалить</button>
-          </form>
-          <form method="POST" action="/edit_reaction_rule" enctype="multipart/form-data" style="display:inline;">
-            <input type="hidden" name="rule_id" value="{{ rule.id }}">
-            Мин: <input type="number" name="min_points" value="{{ rule.min_points }}" style="width:60px;">
-            Макс: <input type="number" name="max_points" value="{{ rule.max_points }}" style="width:60px;">
-            Время: <input type="number" name="duration" value="{{ rule.duration }}" style="width:60px;">
-            <input type="file" name="image" accept="image/*">
-            <button type="submit">✏ Изменить</button>
-          </form>
-        </div>
+  {% for rule in reactions["rules"] %}
+    <div class="reaction-card">
+      <h3>Диапазон: {{ rule.min_points }} – {{ rule.max_points }}</h3>
+      <p>Длительность: {{ rule.duration }}s</p>
+      <div class="preview">
+        {% if rule.image %}
+          <img src="{{ url_for('static', filename=rule.image) }}" alt="Reaction image">
+        {% else %}
+          <em>Нет картинки</em>
+        {% endif %}
       </div>
-    {% endfor %}
-  </div>
+      <div class="actions">
+        <!-- Тест -->
+        <button type="button" onclick="testReaction('{{ rule.id }}','{{ profile_key }}')">🔔 Тест</button>
+
+        <!-- Удалить -->
+        <form method="POST" style="display:inline;">
+          <input type="hidden" name="delete_reaction_rule" value="{{ rule.id }}">
+          <button type="submit" class="delete">🗑 Удалить</button>
+        </form>
+
+        <!-- Редактировать -->
+        <form method="POST" enctype="multipart/form-data" style="display:inline;">
+          <input type="hidden" name="edit_reaction_rule" value="{{ rule.id }}">
+          Мин: <input type="number" name="min_points" value="{{ rule.min_points }}" style="width:60px;">
+          Макс: <input type="number" name="max_points" value="{{ rule.max_points }}" style="width:60px;">
+          Время: <input type="number" name="duration" value="{{ rule.duration }}" style="width:60px;">
+          <input type="file" name="image" accept="image/*">
+          <button type="submit">✏ Изменить</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
 
   <!-- Добавить новое правило -->
   <div class="add-rule">
@@ -153,11 +85,11 @@
   </div>
 
   <script>
-    function testReaction(ruleId) {
+    function testReaction(ruleId, profileKey) {
       fetch("/test_reaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rule_id: ruleId })
+        body: JSON.stringify({ rule_id: ruleId, profile_key: profileKey })
       })
       .then(res => res.json())
       .then(data => {

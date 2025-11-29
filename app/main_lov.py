@@ -283,6 +283,44 @@ def apply_rule(profile_key, amount, text):
                 return {"kind": "vibration", "strength": strength, "duration": duration}
     return None
 
+def load_reaction_rules(profile_key):
+    path = f"data/reactions/reactions_{profile_key}.json"
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"rules": []}
+
+
+def save_reaction_rules(profile_key, rules):
+    path = f"data/reactions/reactions_{profile_key}.json"
+    tmp_file = path + ".tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
+        json.dump(rules, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_file, path)
+
+
+def apply_reaction_rule(profile_key, amount):
+    """
+    Проверяет сумму доната против правил реакций.
+    Если совпадает — возвращает событие для OBS.
+    """
+    rules = load_reaction_rules(profile_key)
+    for rule in rules.get("rules", []):
+        if rule["min_points"] <= amount <= rule["max_points"]:
+            # формируем событие
+            event = {
+                "reaction": rule["id"],
+                "profile": profile_key,
+                "duration": rule.get("duration", 5),
+                "image": rule.get("image")
+            }
+            return event
+    return None
+
+
 # ---------------- VIP ----------------
 
 LOCK = threading.Lock()
@@ -655,6 +693,16 @@ async def ws_handler(websocket):
                     except Exception as e:
                         print(f"⚠️ Ошибка рассылки vip_update (donation): {e}")
 
+                # 🎭 Проверка правил реакций
+                reaction_event = apply_reaction_rule(profile_key, amount)
+                if reaction_event:
+                    msg = json.dumps(reaction_event)
+                    for ws in list(CONNECTED_SOCKETS):
+                        try:
+                            await ws.send(msg)
+                        except:
+                            CONNECTED_SOCKETS.discard(ws)
+
                 await websocket.send("✅ Донат принят")
 
             except Exception as e:
@@ -795,6 +843,86 @@ def stats_history():
     return render_template(
         "stats_history.html", user=user, results=results, summary=summary
     )
+
+@app.route("/reactions", methods=["GET", "POST"])
+@login_required
+def reactions_page():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+
+    rules = load_reaction_rules(profile_key)
+
+    if request.method == "POST":
+        if "add_reaction_rule" in request.form:
+            new_rule = {
+                "id": str(uuid.uuid4()),
+                "min_points": int(request.form["min_points"]),
+                "max_points": int(request.form["max_points"]),
+                "duration": int(request.form["duration"]),
+                "image": None
+            }
+            file = request.files.get("image")
+            if file and file.filename:
+                safe_name = secure_filename(file.filename)
+                filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
+                file.save(os.path.join("static/reactions", filename))
+                new_rule["image"] = f"reactions/{filename}"
+            rules["rules"].append(new_rule)
+            save_reaction_rules(profile_key, rules)
+
+        elif "delete_reaction_rule" in request.form:
+            rule_id = request.form["delete_reaction_rule"]
+            rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
+            save_reaction_rules(profile_key, rules)
+
+        elif "edit_reaction_rule" in request.form:
+            rule_id = request.form["edit_reaction_rule"]
+            for r in rules["rules"]:
+                if r["id"] == rule_id:
+                    r["min_points"] = int(request.form["min_points"])
+                    r["max_points"] = int(request.form["max_points"])
+                    r["duration"] = int(request.form["duration"])
+                    file = request.files.get("image")
+                    if file and file.filename:
+                        safe_name = secure_filename(file.filename)
+                        filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
+                        file.save(os.path.join("static/reactions", filename))
+                        r["image"] = f"reactions/{filename}"
+            save_reaction_rules(profile_key, rules)
+
+    profile = CONFIG["profiles"].get(profile_key, {"uname": profile_key})
+    return render_template("reactions.html", profile=profile, reactions=rules, profile_key=profile_key)
+
+@app.route("/obs_reactions/<profile_key>")
+def obs_reactions(profile_key):
+    return render_template("obs_reactions.html", profile_key=profile_key)
+
+@app.route("/test_reaction", methods=["POST"])
+def test_reaction():
+    data = request.get_json()
+    rule_id = data.get("rule_id")
+    profile_key = data.get("profile_key")
+
+    rules = load_reaction_rules(profile_key)
+    rule = next((r for r in rules["rules"] if r["id"] == rule_id), None)
+    if not rule:
+        return jsonify({"status": "error", "message": "Правило не найдено"}), 404
+
+    event = {
+        "reaction": rule["id"],
+        "profile": profile_key,
+        "duration": rule.get("duration", 5),
+        "image": rule.get("image")
+    }
+    msg = json.dumps(event)
+    for ws in list(CONNECTED_SOCKETS):
+        try:
+            asyncio.create_task(ws.send(msg))
+        except:
+            CONNECTED_SOCKETS.discard(ws)
+
+    return jsonify({"status": "ok"})
 
 
 @app.route("/donations_data")
