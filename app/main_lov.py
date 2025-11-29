@@ -42,6 +42,7 @@ vibration_queues = {
 CONNECTED_USERS = {}
 
 RULES_DIR = "data/rules"
+WS_EVENT_LOOP = None
 
 # ---------------- LOVENSE ----------------
 
@@ -909,9 +910,12 @@ def test_reaction():
     rule_id = data.get("rule_id")
     profile_key = data.get("profile_key")
 
+    print("🧪 /test_reaction вызван", rule_id, profile_key)
+
     rules = load_reaction_rules(profile_key)
     rule = next((r for r in rules["rules"] if r["id"] == rule_id), None)
     if not rule:
+        print("❌ Правило не найдено")
         return jsonify({"status": "error", "message": "Правило не найдено"}), 404
 
     event = {
@@ -921,12 +925,20 @@ def test_reaction():
         "image": rule.get("image")
     }
     msg = json.dumps(event)
+
+    sent = 0
     for ws in list(CONNECTED_SOCKETS):
         try:
-            asyncio.create_task(ws.send(msg))
-        except:
+            if WS_EVENT_LOOP is not None:
+                asyncio.run_coroutine_threadsafe(ws.send(msg), WS_EVENT_LOOP)
+                sent += 1
+            else:
+                print("⚠️ WS_EVENT_LOOP не инициализирован")
+        except Exception as e:
+            print(f"⚠️ Ошибка отправки в WS: {e}")
             CONNECTED_SOCKETS.discard(ws)
 
+    print(f"📡 Тест-евент отправлен — получателей: {sent}")
     return jsonify({"status": "ok"})
 
 
@@ -1461,7 +1473,9 @@ def run_flask():
 
 
 def run_websocket():
+    global WS_EVENT_LOOP
     loop = asyncio.new_event_loop()
+    WS_EVENT_LOOP = loop
     asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(ws_server())

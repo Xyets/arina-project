@@ -89,6 +89,7 @@
       fetch("/test_reaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ rule_id: ruleId, profile_key: profileKey })
       })
       .then(res => res.json())
@@ -98,8 +99,10 @@
         } else {
           alert("❌ Ошибка: " + data.message);
         }
-      });
+      })
+      .catch(() => alert("❌ Запрос не удался"));
     }
+
   </script>
 </body>
 </html>
