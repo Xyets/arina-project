@@ -439,12 +439,17 @@
           <div>Сила: ${strength}</div>
           <div>⏳ Осталось: <span class="time">${Math.ceil(duration)}</span> сек</div>
           <div class="progress"><div class="progress-bar"></div></div>
+          <button class="stop-vibration-btn"
+                  style="margin-top:8px; background:#ff4d4d; border:none; padding:6px 12px; border-radius:12px; color:white; cursor:pointer; font-size:12px;">
+            ⛔ Остановить
+          </button>
         `;
         container.appendChild(box);
 
         let remaining = duration;
         const timeSpan = box.querySelector(".time");
         const progressBar = box.querySelector(".progress-bar");
+        const stopBtn = box.querySelector(".stop-vibration-btn");
         progressBar.style.width = "100%";
 
         const interval = setInterval(() => {
@@ -457,7 +462,28 @@
             progressBar.style.width = `${(remaining / duration) * 100}%`;
           }
         }, 1000);
+
+        // ⛔ Обработчик остановки вибрации
+        stopBtn.addEventListener("click", async () => {
+          try {
+            const res = await fetch("/stop_vibration", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.status === "ok") {
+              clearInterval(interval);
+              box.remove();
+              if (typeof showToast === "function") {
+                showToast("Вибрация остановлена");
+              }
+            }
+          } catch (e) {
+            console.error("Ошибка остановки вибрации:", e);
+          }
+        });
       }
+
 
       function formatDate(raw) {
         if (!raw) return "—";

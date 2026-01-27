@@ -187,6 +187,39 @@ def send_vibration_cloud(profile_key, strength, duration):
         print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
         return None
 
+def stop_vibration_cloud(profile_key):
+    profile = CONFIG["profiles"][profile_key]
+    uid = profile["uid"]
+
+    raw = redis_client.hget("connected_users", uid)
+    if not raw:
+        print(f"❌ [{profile_key}] Нет данных из callback — игрушка не подключена")
+        return None
+    user_data = json.loads(raw)
+
+    utoken = user_data.get("utoken")
+    if not utoken:
+        print(f"❌ [{profile_key}] utoken пустой — пересканируй QR‑код")
+        return None
+
+    url = "https://api.lovense.com/api/lan/v2/command"
+    payload = {
+        "token": profile["DEVELOPER_TOKEN"],
+        "uid": uid,
+        "utoken": utoken,
+        "command": "Function",
+        "action": "Stop",
+    }
+
+    try:
+        print(f"⛔ [{profile_key}] Остановка вибрации → {payload}")
+        r = requests.post(url, json=payload, timeout=10)
+        print(f"📥 [{profile_key}] Ответ Cloud API: {r.text}")
+        return r.json()
+    except Exception as e:
+        print(f"❌ [{profile_key}] Ошибка остановки вибрации:", e)
+        return None
+
 
 @app.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
@@ -1459,6 +1492,17 @@ def close_period():
         pass
 
     return redirect(url_for("stats_history"))
+
+@app.route("/stop_vibration", methods=["POST"])
+@login_required
+def stop_vibration():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+
+    result = stop_vibration_cloud(profile_key)
+    return {"status": "ok" if result else "error"}
+
 
 
 @app.route("/obs_alert_arina")
