@@ -235,9 +235,6 @@
     {% endfor %}
   </div>
 
-  <h3>🚫 Заблокированные мемберы</h3>
-  <div id="blockedList" class="card-grid"></div>
-
   <script>
     // текущий режим сортировки берём из URL при загрузке
     let currentSort = new URL(window.location.href).searchParams.get("sort") || "total";
@@ -289,23 +286,6 @@
       .catch(() => alert("❌ Ошибка удаления"));
     }
 
-    function blockMember(userId) {
-      fetch("/block_member", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "user_id=" + encodeURIComponent(userId)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "ok") {
-          document.getElementById("card_" + userId)?.classList.add("blocked");
-          resortCards(currentSort);
-        } else {
-          alert("❌ " + data.message);
-        }
-      })
-      .catch(() => alert("❌ Ошибка блокировки"));
-    }
 
     // форматируем дату для уже отрисованных элементов
     document.querySelectorAll(".date").forEach(el => {

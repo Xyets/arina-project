@@ -1157,43 +1157,6 @@ def entries_data():
     return {"entries": entries}
 
 
-@app.route("/block_member", methods=["POST"])
-@login_required
-def block_member():
-    user = session["user"]; mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-    user_id = request.form.get("user_id")
-    if not user_id:
-        return jsonify(status="error", message="Нет user_id"), 400
-
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    vip_data = load_vip_file(vip_file)
-    if not vip_data:
-        return jsonify(status="error", message="Ошибка чтения VIP‑файла"), 500
-
-    if user_id in vip_data:
-        vip_data[user_id]["blocked"] = True
-        save_vip_file(vip_file, vip_data)
-        print(f"🚫 [{profile_key}] Мембер {user_id} заблокирован")
-        return jsonify(status="ok", message="Мембер заблокирован")
-
-    return jsonify(status="error", message="Мембер не найден"), 404
-
-@app.route("/unblock_member", methods=["POST"])
-@login_required
-def unblock_member():
-    user = session["user"]
-    mode = CURRENT_MODE["value"]
-    profile_key = f"{user}_{mode}"
-
-    user_id = request.json.get("user_id")
-    if not user_id:
-        return {"status": "error", "message": "user_id missing"}, 400
-
-    redis_client.srem(f"blocked:{profile_key}", user_id)
-    return {"status": "ok"}
-
-
 @app.route("/vip", methods=["GET", "POST"])
 @login_required
 def vip_page():
