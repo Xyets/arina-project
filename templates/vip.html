@@ -229,12 +229,14 @@
         <div class="actions">
           <button type="submit">💾</button>
           <button type="button" onclick="removeMember('{{ user_id }}')">🗑️</button>
-          <button type="button" onclick="blockMember('{{ user_id }}')">🚫</button>
         </div>
       </form>
     </div>
     {% endfor %}
   </div>
+
+  <h3>🚫 Заблокированные мемберы</h3>
+  <div id="blockedList" class="card-grid"></div>
 
   <script>
     // текущий режим сортировки берём из URL при загрузке
@@ -376,7 +378,6 @@
               <div class="actions">
                 <button type="submit">💾</button>
                 <button type="button" onclick="removeMember('${user_id}')">🗑️</button>
-                <button type="button" onclick="blockMember('${user_id}')">🚫</button>
               </div>
             </form>
           `;

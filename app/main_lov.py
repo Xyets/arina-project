@@ -1179,6 +1179,20 @@ def block_member():
 
     return jsonify(status="error", message="Мембер не найден"), 404
 
+@app.route("/unblock_member", methods=["POST"])
+@login_required
+def unblock_member():
+    user = session["user"]
+    mode = CURRENT_MODE["value"]
+    profile_key = f"{user}_{mode}"
+
+    user_id = request.json.get("user_id")
+    if not user_id:
+        return {"status": "error", "message": "user_id missing"}, 400
+
+    redis_client.srem(f"blocked:{profile_key}", user_id)
+    return {"status": "ok"}
+
 
 @app.route("/vip", methods=["GET", "POST"])
 @login_required
