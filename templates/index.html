@@ -497,21 +497,43 @@
 
       // 🔁 Очередь вибраций
       async function loadQueue() {
-        try {
-          const res = await fetch("/queue_data");
-          const data = await res.json();
-          const box = document.getElementById("queuebox");
-          if (!data.queue || data.queue.length === 0) {
-            box.innerHTML = "<div>Очередь пуста ✅</div>";
-          } else {
-            box.innerHTML = data.queue.map(([strength, duration], i) =>
-              `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-            ).join("");
+          try {
+              const res = await fetch("/queue_data");
+              const data = await res.json();
+              const box = document.getElementById("queuebox");
+
+              const items = data.queue || [];
+
+              // Если очередь пуста
+              if (items.length === 0) {
+                  // Если уже стоит надпись — ничего не делаем
+                  if (box.dataset.state !== "empty") {
+                      box.dataset.state = "empty";
+                      box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
+                  }
+                  return;
+              }
+
+              // Если есть элементы очереди
+              box.dataset.state = "filled";
+
+              const newHtml = items
+                  .map(([strength, duration], i) =>
+                      `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
+                  )
+                  .join("");
+
+              // Обновляем только если содержимое изменилось
+              if (box.innerHTML !== newHtml) {
+                  box.innerHTML = newHtml;
+                  box.scrollTop = box.scrollHeight;
+              }
+
+          } catch (e) {
+              console.error("⚠️ Ошибка загрузки очереди:", e);
           }
-        } catch (e) {
-          console.error("⚠️ Ошибка загрузки очереди:", e);
-        }
       }
+
 
       // 🧹 Очистка логов
       document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
@@ -604,31 +626,6 @@
         const clearBtn = document.getElementById("clearQueueBtn");
 
         // 🔁 Загружаем очередь вибраций
-
-        async function loadQueue() {
-            try {
-                const res = await fetch("/queue_data");
-                const data = await res.json();
-
-                const items = data.queue || [];
-
-                if (items.length === 0) {
-                    // Если очередь пустая — показываем стабильную надпись
-                    queueBox.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста</div>`;
-                    return;
-                }
-
-                // Если есть вибрации — выводим их
-                queueBox.innerHTML = items
-                    .map((item, idx) => `<div>${idx + 1}. ${item}</div>`)
-                    .join("");
-
-                queueBox.scrollTop = queueBox.scrollHeight;
-
-            } catch (e) {
-                console.error("Ошибка загрузки очереди:", e);
-            }
-        }
 
 
         // 🧹 Очистка очереди
