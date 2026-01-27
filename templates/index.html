@@ -597,6 +597,54 @@
         }
       });
     </script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const queueBox = document.getElementById("queuebox");
+        const clearBtn = document.getElementById("clearQueueBtn");
+
+        // 🔁 Загружаем очередь вибраций
+        async function loadQueue() {
+            try {
+                const res = await fetch("/queue_data");
+                const data = await res.json();
+
+                const items = data.queue || [];
+
+                queueBox.innerHTML = items
+                    .map((item, idx) => `<div>${idx + 1}. ${item}</div>`)
+                    .join("");
+
+                queueBox.scrollTop = queueBox.scrollHeight;
+            } catch (e) {
+                console.error("Ошибка загрузки очереди:", e);
+            }
+        }
+
+        // 🧹 Очистка очереди
+        clearBtn.addEventListener("click", async () => {
+            try {
+                const res = await fetch("/clear_queue", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({})
+                });
+
+                const data = await res.json();
+                console.log(data.message);
+
+                queueBox.innerHTML = "";
+            } catch (e) {
+                console.error("Ошибка очистки очереди:", e);
+            }
+        });
+
+        // Автообновление каждые 2 секунды
+        loadQueue();
+        setInterval(loadQueue, 2000);
+    });
+    </script>
+
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>
