@@ -604,6 +604,7 @@
         const clearBtn = document.getElementById("clearQueueBtn");
 
         // 🔁 Загружаем очередь вибраций
+
         async function loadQueue() {
             try {
                 const res = await fetch("/queue_data");
@@ -611,15 +612,24 @@
 
                 const items = data.queue || [];
 
+                if (items.length === 0) {
+                    // Если очередь пустая — показываем стабильную надпись
+                    queueBox.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста</div>`;
+                    return;
+                }
+
+                // Если есть вибрации — выводим их
                 queueBox.innerHTML = items
                     .map((item, idx) => `<div>${idx + 1}. ${item}</div>`)
                     .join("");
 
                 queueBox.scrollTop = queueBox.scrollHeight;
+
             } catch (e) {
                 console.error("Ошибка загрузки очереди:", e);
             }
         }
+
 
         // 🧹 Очистка очереди
         clearBtn.addEventListener("click", async () => {
