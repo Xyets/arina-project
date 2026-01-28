@@ -1092,20 +1092,33 @@ def load_vip_file(vip_file: str) -> dict:
     return {}
 
 def save_vip_file(vip_file: str, vip_data: dict):
-    """Атомарная запись VIP-файла с резервной копией"""
-    if not vip_data:
-        print("⚠️ vip_data пустой, отмена записи")
+    """Атомарная запись VIP-файла с защитой от повреждений"""
+    if not isinstance(vip_data, dict):
+        print("❌ vip_data не словарь — отмена записи")
         return
+
+    # Создаём резервную копию только один раз в день
     if os.path.exists(vip_file):
         backup_file = f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak"
-        shutil.copy(vip_file, backup_file)
+        if not os.path.exists(backup_file):
+            shutil.copy(vip_file, backup_file)
+
     tmp_file = vip_file + ".tmp"
+
     with LOCK:
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(vip_data, f, indent=2, ensure_ascii=False)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp_file, vip_file)
+        try:
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(vip_data, f, indent=2, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(tmp_file, vip_file)
+
+        except Exception as e:
+            print("❌ Ошибка записи VIP-файла:", e)
+            if os.path.exists(tmp_file):
+                os.remove(tmp_file)
+
 
 
 @app.route("/remove_member", methods=["POST"])
