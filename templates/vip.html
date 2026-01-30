@@ -228,7 +228,7 @@
         </div>
         <div class="actions">
           <button type="submit">💾</button>
-          <button type="button" onclick="removeMember('{{ user_id }}')">🗑️</button>
+          <button type="button" onclick="openDeleteModal('{{ user_id }}')">🗑️</button>
         </div>
       </form>
     </div>
@@ -346,7 +346,7 @@
             : rawDate;
 
           card.innerHTML = `
-            <form onsubmit="event.preventDefault(); saveMember(this)">
+            <form id="deleteForm_{{ user_id }}" onsubmit="event.preventDefault(); saveMember(this)">
               <input type="hidden" name="user_id" value="${user_id}">
               <h3><input type="text" name="name" value="${info.name}"></h3>
               <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
@@ -470,8 +470,74 @@
       // первичная загрузка списка, чтобы сортировка работала сразу
       refreshVipList();
     });
+
+  </script>
+  <script>
+  let deleteId = null;
+
+  function openDeleteModal(id) {
+    deleteId = id;
+    document.getElementById("modalOverlay").style.display = "block";
+    document.getElementById("confirmModal").style.display = "block";
+  }
+
+  function closeDeleteModal() {
+    document.getElementById("modalOverlay").style.display = "none";
+    document.getElementById("confirmModal").style.display = "none";
+    deleteId = null;
+  }
+
+  document.getElementById("confirmYes").onclick = function() {
+    if (deleteId) {
+      document.getElementById("deleteForm_" + deleteId).submit();
+    }
+  };
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDeleteModal();
+  });
   </script>
 
+  <div id="modalOverlay" style="
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4);
+    z-index:1000;">
+  </div>
+
+  <div id="confirmModal" style="
+    display:none;
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%, -50%);
+    background:white;
+    padding:20px 30px;
+    border-radius:12px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.2);
+    z-index:1001;
+    text-align:center;">
+    
+    <p style="margin-bottom:20px; font-size:18px;">Удалить VIP?</p>
+
+    <button id="confirmYes" style="
+      background:#f28497;
+      color:white;
+      padding:8px 20px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      margin-right:10px;">Да</button>
+
+    <button onclick="closeDeleteModal()" style="
+      background:#a3d8f4;
+      color:white;
+      padding:8px 20px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;">Нет</button>
+  </div>
 
 </body>
 </html>
