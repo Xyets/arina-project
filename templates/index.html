@@ -500,18 +500,47 @@
             const data = JSON.parse(event.data);
             const currentUser = "{{ user }}";
 
+            // 🛑 1. Остановка вибрации
+            if (data.stop && data.target.toLowerCase().startsWith(currentUser.toLowerCase())) {
+              console.log("🛑 Остановка вибрации");
+
+              vibrationQueue = [];
+              isPlaying = false;
+
+              const gif = document.getElementById("gif" + currentUser);
+              if (gif) {
+                gif.style.animation = "";
+                gif.style.transform = "scale(1)";
+                gif.style.filter = "drop-shadow(0 0 8px rgba(30,144,255,0.4))";
+              }
+
+              return;
+            }
+
+            // 🔄 2. Обновление режима (public/private)
+            if (data.mode_update && data.user === currentUser) {
+              const modeSwitch = document.getElementById("modeSwitch");
+              if (modeSwitch) {
+                modeSwitch.checked = (data.mode_update === "private");
+              }
+              console.log("🔄 Режим обновлён:", data.mode_update);
+              return;
+            }
+
+            // 💥 3. Вибрация
             if (data.vibration &&
                 data.vibration.target.toLowerCase().startsWith(currentUser.toLowerCase())) {
 
               const { strength, duration } = data.vibration;
               startVibrationTimer(duration, strength);
+              return;
             }
 
           } catch {
             console.warn("⚠️ Некорректное сообщение WebSocket");
           }
         };
-      }   // ← ЭТОЙ СКОБКИ НЕ ХВАТАЛО
+      }
 
       connectWS();
 
@@ -564,7 +593,7 @@
               // 🔥 ДОБАВЛЯЕМ ЭТО — отправляем команду STOP в WebSocket
               socket.send(JSON.stringify({
                 type: "stop",
-                user: "Arina"   // ← если профиль Irina — меняешь на "Irina"
+                user:  currentUser   // ← если профиль Irina — меняешь на "Irina"
               }));
 
               clearInterval(interval);

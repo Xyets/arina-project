@@ -715,7 +715,27 @@ async def ws_handler(websocket):
                         await websocket.send(json.dumps({"error": "invalid_mode"}))
 
                     continue
+                if data.get("type") == "set_mode":
+                    user = data.get("user")
+                    mode = data.get("mode")
+                    if user in USER_MODES:
+                        USER_MODES[user] = mode
+                        print(f"🔄 {user} переключил режим на: {mode}")
 
+                        await websocket.send(
+                            json.dumps({"status": "ok", "mode": USER_MODES[user]})
+                        )
+                        # 🔥 Рассылаем обновление режима всем клиентам
+                        msg = json.dumps({
+                            "mode_update": USER_MODES[user],
+                            "user": user
+                        })
+                        for ws in list(CONNECTED_SOCKETS):
+                            try:
+                                await ws.send(msg)
+                            except:
+                                CONNECTED_SOCKETS.discard(ws)
+                       
                 # ---------------------------------------------------------
                 # 🛑 1.1. Остановка вибрации (команда от панели)
                 # ---------------------------------------------------------
