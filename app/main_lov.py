@@ -712,7 +712,8 @@ async def ws_handler(websocket):
                         )
 
                     else:
-                        await websocket.send("❌ Неверный режим")
+                        await websocket.send(json.dumps({"error": "invalid_mode"}))
+
                     continue
 
                 # ---------------------------------------------------------
@@ -720,7 +721,8 @@ async def ws_handler(websocket):
                 # ---------------------------------------------------------
                 user = data.get("user")
                 if not user:
-                    await websocket.send("❌ Не указан профиль")
+                    await websocket.send(json.dumps({"error": "no_profile"}))
+
                     continue
 
                 # 🔥 Используем текущий режим, выбранный в панели
@@ -728,7 +730,7 @@ async def ws_handler(websocket):
                 profile_key = f"{user}_{mode}"
 
                 if profile_key not in CONFIG.get("profiles", {}):
-                    await websocket.send(f"❌ Профиль '{profile_key}' не найден")
+                    await websocket.send(json.dumps({"error": "profile_not_found", "profile": profile_key}))
                     continue
 
                 text = data.get("text", "")
@@ -780,7 +782,7 @@ async def ws_handler(websocket):
                         }))
                         profile["_just_logged_in"] = False
 
-                    await websocket.send(f"✅ Событие {event} обработано")
+                    await websocket.send(json.dumps({"status": "event_ok", "event": event}))
                     continue
 
                 # ---------------------------------------------------------
@@ -792,14 +794,14 @@ async def ws_handler(websocket):
                     amount = 0.0
 
                 if amount <= 0:
-                    await websocket.send("ℹ️ Сообщение не содержит донат")
+                    await websocket.send(json.dumps({"info": "no_donation"}))
                     continue
 
                 # Защита от повторов
                 if donation_id:
                     if donation_id in RECENT_DONATIONS:
                         print(f"⚠️ Повтор доната {donation_id} — пропускаем")
-                        await websocket.send("ℹ️ Донат уже учтён")
+                        await websocket.send(json.dumps({"info": "duplicate_donation"}))
                         continue
                     RECENT_DONATIONS.append(donation_id)
 
@@ -831,11 +833,10 @@ async def ws_handler(websocket):
                         except:
                             CONNECTED_SOCKETS.discard(ws)
 
-                await websocket.send("✅ Донат принят")
-
+                await websocket.send(json.dumps({"status": "donation_ok"}))
             except Exception as e:
                 print("⚠️ Ошибка обработки:", e)
-                await websocket.send("❌ Ошибка обработки")
+                await websocket.send(json.dumps({"error": "processing_error"}))
 
     finally:
         CONNECTED_SOCKETS.discard(websocket)
