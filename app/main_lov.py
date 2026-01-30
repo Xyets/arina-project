@@ -25,8 +25,8 @@ import redis # type: ignore
 with open("config/config.json", "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
-# 🔑 глобальная переменная для режима работы
-CURRENT_MODE = {"value": "private"}  # может быть "private" или "public"
+def get_current_mode():
+    return session.get("mode", "private")
 
 app = Flask(
     __name__,
@@ -75,9 +75,8 @@ def handle_donation(profile_key, sender, amount, text):
 
     update_donations_sum(profile_key, amount)
 
-    audit_event(
-        profile_key,
-        CURRENT_MODE["value"],
+    mode = profile_key.split("_")[1] 
+    audit_event( profile_key, mode,
         {"type": "donation", "amount": amount, "sender": sender_name, "text": text},
     )
 
@@ -259,7 +258,7 @@ async def vibration_worker(profile_key):
                     "vibration": {
                         "strength": strength,
                         "duration": duration,
-                        "target": target_user,  # ← совпадает с {{ user }} на фронте
+                        "target": profile_key,  # ← совпадает с {{ user }} на фронте
                     }
                 }
             )
@@ -294,9 +293,8 @@ def apply_rule(profile_key, amount, text):
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
             action = rule.get("action")
-            audit_event(
-                profile_key,
-                CURRENT_MODE["value"],
+            mode = profile_key.split("_")[1] 
+            audit_event( profile_key, mode,
                 {
                     "type": "rule",
                     "matched": "action" if action else "vibration",
@@ -393,12 +391,14 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
             vip_data[user_id]["name"] = name
 
     if amount and amount > 0:
-        audit_event(profile_key, CURRENT_MODE["value"],
+        mode = profile_key.split("_")[1] 
+        audit_event( profile_key, mode,
             {"type": "vip_total_increment", "user_id": user_id, "amount": amount})
         vip_data[user_id]["total"] = float(vip_data[user_id].get("total", 0.0)) + float(amount)
-
+        
     if event and event.lower() == "login":
-        audit_event(profile_key, CURRENT_MODE["value"],
+        mode = profile_key.split("_")[1] 
+        audit_event( profile_key, mode,
             {"type": "vip_login", "user_id": user_id, "name": name})
         vip_data[user_id]["login_count"] += 1
         old_login = vip_data[user_id].get("last_login")
@@ -635,7 +635,7 @@ async def ws_handler(websocket):
                     await websocket.send("❌ Не указан профиль")
                     continue
 
-                mode = CURRENT_MODE["value"]
+                mode = session.get("mode", "private")
                 profile_key = f"{user}_{mode}"
 
                 if profile_key not in CONFIG.get("profiles", {}):
@@ -781,7 +781,7 @@ async def ws_server():
 @login_required
 def index():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     profile = CONFIG["profiles"][profile_key]
     queue = get_vibration_queue(profile_key)
@@ -800,7 +800,7 @@ def index():
 @login_required
 def qrcode_page():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     qr_url = get_qr_code(profile_key)
     if not qr_url:
@@ -824,7 +824,7 @@ def login():
 @login_required
 def queue_data():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     q = vibration_queues.get(profile_key)
     return {"queue": list(q._queue) if q else []}
@@ -840,7 +840,7 @@ def logout():
 @login_required
 def test_vibration():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
 
     def safe_vibration():
@@ -858,7 +858,7 @@ def test_vibration():
 @login_required
 def stats():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     stats_data = load_stats(profile_key)
     irina_stats = load_stats(f"Irina_{mode}") if user == "Arina" else None
@@ -870,7 +870,7 @@ def stats():
 @login_required
 def stats_history():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
@@ -897,7 +897,7 @@ def stats_history():
 @login_required
 def reactions_page():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
 
     rules = load_reaction_rules(profile_key)
@@ -982,7 +982,7 @@ def test_reaction():
 @login_required
 def donations_data():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     logs = donation_logs.get(profile_key, [])
     donations = []
@@ -999,7 +999,7 @@ def donations_data():
 @login_required
 def test_rule(rule_index):
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     rules = load_rules(profile_key)
 
@@ -1124,7 +1124,7 @@ def save_vip_file(vip_file: str, vip_data: dict):
 @app.route("/remove_member", methods=["POST"])
 @login_required
 def remove_member():
-    user = session["user"]; mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
@@ -1145,7 +1145,7 @@ def remove_member():
 @app.route("/entries_data")
 @login_required
 def entries_data():
-    user = session["user"]; mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
@@ -1173,7 +1173,7 @@ def entries_data():
 @app.route("/vip", methods=["GET", "POST"])
 @login_required
 def vip_page():
-    user = session["user"]; mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
@@ -1226,7 +1226,7 @@ def vip_page():
 @app.route("/update_name", methods=["POST"])
 @login_required
 def update_name():
-    user = session["user"]; mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     new_name = request.form.get("name")
@@ -1250,7 +1250,7 @@ def update_name():
 @app.route("/vip_data")
 @login_required
 def vip_data():
-    user = session["user"]; mode = CURRENT_MODE["value"]
+    user = session["user"]; mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
@@ -1262,7 +1262,7 @@ def vip_data():
 @login_required
 def rules():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     rules_file = CONFIG["profiles"][profile_key]["rules_file"]
 
@@ -1343,7 +1343,7 @@ def rules():
 @login_required
 def logs_page():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     return render_template("logs.html", logs=logs)
@@ -1354,18 +1354,21 @@ def logs_page():
 def set_mode():
     data = request.get_json(force=True)
     mode = data.get("mode")
+
     if mode in ("private", "public"):
-        CURRENT_MODE["value"] = mode
+        session["mode"] = mode
         print(f"🔄 Режим переключен на {mode}")
         return {"status": "ok", "mode": mode}
+
     return {"status": "error", "message": "Неверный режим"}, 400
+
 
 
 @app.route("/logs_data")
 @login_required
 def logs_data():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     return jsonify({"logs": logs})
@@ -1375,7 +1378,7 @@ def logs_data():
 @login_required
 def logs_data_stats():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     formatted = []
@@ -1406,7 +1409,7 @@ def logs_data_stats():
 @login_required
 def clear_logs():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
 
     # очищаем память
@@ -1431,7 +1434,7 @@ def clear_logs():
 @login_required
 def clear_queue():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     q = vibration_queues.get(profile_key)
     if q:
@@ -1448,7 +1451,7 @@ def clear_queue():
 @login_required
 def close_period():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
     stats_file = f"data/stats/stats_{profile_key}.json"
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
@@ -1487,7 +1490,7 @@ def close_period():
 @login_required
 def stop_vibration():
     user = session["user"]
-    mode = CURRENT_MODE["value"]
+    mode = get_current_mode()
     profile_key = f"{user}_{mode}"
 
     result = stop_vibration_cloud(profile_key)
