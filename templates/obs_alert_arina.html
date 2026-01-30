@@ -99,7 +99,7 @@
           const data = JSON.parse(event.data);
           console.log("📡 Получено сообщение:", data);
 
-          if (data.vibration && data.vibration.target === "Arina") {
+          if (data.vibration && data.vibration.target.includes("arina")) {
             enqueueVibration(data.vibration.strength, data.vibration.duration);
           } else if (data.vip_update) {
             console.log("🔔 VIP обновление:", data);

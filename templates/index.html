@@ -418,7 +418,7 @@
           try {
             const data = JSON.parse(event.data);
             const currentUser = "{{ user }}";
-            if (data.vibration && data.vibration.target.includes(currentUser.toLowerCase()))
+            if (data.vibration && data.vibration.target.startsWith(currentUser.toLowerCase()))
 
            {
               const { strength, duration } = data.vibration;

@@ -1496,38 +1496,74 @@ def close_period():
     user = session["user"]
     mode = get_current_mode()
     profile_key = f"{user}_{mode}"
+
     stats_file = f"data/stats/stats_{profile_key}.json"
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
-    # загружаем текущую статистику
+    # Загружаем текущую статистику (дни)
     stats = load_stats(profile_key)
 
-    # загружаем архив
+    if not stats:
+        return redirect(url_for("stats_history"))
+
+    # Загружаем архив периодов
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        archive = {}
+        archive = {"periods": []}
 
-    # добавляем все дни из текущей статистики в архив
+    # Определяем границы периода
+    days_sorted = sorted(stats.keys())
+    start_day = days_sorted[0]
+    end_day = days_sorted[-1]
+
+    # Считаем суммы
+    total_income = 0
+    total_vibrations = 0
+    total_actions = 0
+    total_other = 0
+    total_archi_fee = 0
+
     for day, data in stats.items():
-        archive[day] = data
+        total_income += data.get("net_income", 0)
+        total_vibrations += data.get("vibrations", 0)
+        total_actions += data.get("actions", 0)
+        total_other += data.get("other", 0)
+        total_archi_fee += data.get("archi_fee", 0)
 
-    # сохраняем архив
-    tmp_archive = archive_file + ".tmp"
-    with open(tmp_archive, "w", encoding="utf-8") as f:
+    # Создаём новый период
+    new_period = {
+        "id": len(archive["periods"]) + 1,
+        "start": start_day,
+        "end": end_day,
+        "total_income": total_income,
+        "vibrations": total_vibrations,
+        "actions": total_actions,
+        "other": total_other,
+        "archi_fee": total_archi_fee,
+        "days": stats
+    }
+
+    # Добавляем в архив
+    archive["periods"].append(new_period)
+
+    # Сохраняем архив
+    tmp = archive_file + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(archive, f, indent=2, ensure_ascii=False)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tmp_archive, archive_file)
+    os.replace(tmp, archive_file)
 
-    # удаляем текущий stats-файл (чтобы не плодить мусор)
+    # Удаляем текущую статистику
     try:
         os.remove(stats_file)
     except FileNotFoundError:
         pass
 
     return redirect(url_for("stats_history"))
+
 
 @app.route("/stop_vibration", methods=["POST"])
 @login_required
