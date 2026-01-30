@@ -352,7 +352,10 @@
 
     <!-- Приветствие -->
     <h2>👋 Привет, {{ user }}</h2>
-    
+    <script>
+        const CURRENT_USER = "{{ user }}";  
+    </script>
+        
     <div class="mode-toggle">
       <span>🌐 Публичный</span>
       <label class="switch">
@@ -420,7 +423,7 @@
         if (socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: "set_mode",
-            user: "{{ user }}",   // ← ВАЖНО! Arina или Irina
+            user: CURRENT_USER,   // ← ВАЖНО! Arina или Irina
             mode: newMode
           }));
         }
@@ -498,7 +501,7 @@
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            const currentUser = "{{ user }}";
+            const currentUser = CURRENT_USER;
 
             // 🛑 1. Остановка вибрации
             if (data.stop && data.target.toLowerCase().startsWith(currentUser.toLowerCase())) {
@@ -593,7 +596,7 @@
               // 🔥 ДОБАВЛЯЕМ ЭТО — отправляем команду STOP в WebSocket
               socket.send(JSON.stringify({
                 type: "stop",
-                user:  currentUser   // ← если профиль Irina — меняешь на "Irina"
+                user: CURRENT_USER   // ← если профиль Irina — меняешь на "Irina"
               }));
 
               clearInterval(interval);

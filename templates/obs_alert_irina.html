@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>OBS Alert Irina</title>
+
   <style>
     body {
       margin: 0;
@@ -10,15 +11,17 @@
       overflow: hidden;
       text-align: center;
     }
+
     .vibration-gif {
       width: 200px;
       height: auto;
       display: inline;
       transition: transform 0.3s ease, filter 0.3s ease;
     }
+
     @keyframes pulse {
       0% { transform: scale(1); }
-      25% { transform: scale(1.25); } /* чуть больше амплитуда */
+      25% { transform: scale(1.25); }
       50% { transform: scale(0.9); }
       75% { transform: scale(1.15); }
       100% { transform: scale(1); }
@@ -26,31 +29,36 @@
   </style>
 </head>
 <body>
+
+  <!-- 🔥 GIF АринЫ -->
   <img src="{{ url_for('static', filename='irina.png') }}" id="gifIrina" class="vibration-gif" />
 
   <script>
+    /* ---------------------------------------------------------
+       🔧 1. Текущий пользователь (фиксировано для этой страницы)
+    --------------------------------------------------------- */
+    const CURRENT_USER = "Irina";
+
+    /* ---------------------------------------------------------
+       🔥 2. Очередь вибраций
+    --------------------------------------------------------- */
     let vibrationQueue = [];
     let isPlaying = false;
 
     function playNext() {
       if (isPlaying || vibrationQueue.length === 0) return;
+
       const { strength, duration } = vibrationQueue.shift();
       isPlaying = true;
 
       const gif = document.getElementById("gifIrina");
       if (!gif) { isPlaying = false; playNext(); return; }
 
-      let s = strength;
-      if (isNaN(s) || s < 1) s = 1;
-      if (s > 20) s = 20;
+      let s = Math.max(1, Math.min(Number(strength) || 1, 20));
 
-      // ✨ Чем выше сила, тем быстрее пульс
-      let speed = 1.5 - (s * 0.06);
-      if (speed < 0.25) speed = 0.25; // минимум
-
-      // ✨ Масштаб и свечение усиливаются даже при силе 1
-      const scale = 1 + (s / 8); // заметнее
-      const glowSize = s * 4;    // ярче
+      let speed = Math.max(0.25, 1.5 - s * 0.06);
+      const scale = 1 + s / 8;
+      const glowSize = s * 4;
       const glowOpacity = 0.5 + s / 20;
 
       gif.style.animation = `pulse ${speed}s ease-in-out infinite`;
@@ -61,25 +69,29 @@
         gif.style.animation = "";
         gif.style.transform = "scale(1)";
         gif.style.filter = "drop-shadow(0 0 8px rgba(30,144,255,0.4))";
+
         isPlaying = false;
         playNext();
       }, duration * 1000);
     }
 
     function enqueueVibration(strength, duration) {
-      console.log("📩 В очередь:", strength, duration);
       vibrationQueue.push({ strength, duration });
       playNext();
     }
 
-    // 🌐 WebSocket с авто‑реконнектом и пингами
+    /* ---------------------------------------------------------
+       🌐 3. WebSocket с авто‑реконнектом
+    --------------------------------------------------------- */
     let socket;
+
     function connectWS() {
       const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
       socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
         console.log("✅ WebSocket подключён");
+
         if (socket._pingInterval) clearInterval(socket._pingInterval);
         socket._pingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
@@ -89,7 +101,7 @@
       };
 
       socket.onclose = () => {
-        console.log("❌ WebSocket закрыт, пробуем переподключиться...");
+        console.log("❌ WebSocket закрыт, переподключение...");
         if (socket._pingInterval) clearInterval(socket._pingInterval);
         setTimeout(connectWS, 2000);
       };
@@ -99,12 +111,16 @@
         try {
           data = JSON.parse(event.data);
         } catch {
-          console.warn("Получено не‑JSON сообщение, пропускаю:", event.data);
+          console.warn("⚠️ Некорректный JSON:", event.data);
           return;
         }
 
         console.log("📡 Получено сообщение:", data);
-        if (data.stop && data.target.toLowerCase().includes("irina")) {
+
+        /* ---------------------------------------------------------
+           🛑 STOP — остановка вибрации
+        --------------------------------------------------------- */
+        if (data.stop && data.target.toLowerCase().includes(CURRENT_USER.toLowerCase())) {
           console.log("🛑 Остановка вибрации");
 
           vibrationQueue = [];
@@ -118,20 +134,30 @@
           return;
         }
 
+        /* ---------------------------------------------------------
+           💥 Вибрация
+        --------------------------------------------------------- */
         if (data.vibration &&
-            data.vibration.target.toLowerCase().includes("irina")) {
+            data.vibration.target.toLowerCase().includes(CURRENT_USER.toLowerCase())) {
 
           enqueueVibration(data.vibration.strength, data.vibration.duration);
-
-        } else if (data.vip_update) {
-          console.log("🔔 VIP обновление:", data);
-
-        } else {
-          console.log("ℹ️ Неизвестный тип сообщения:", data);
+          return;
         }
+
+        /* ---------------------------------------------------------
+           👑 VIP обновления
+        --------------------------------------------------------- */
+        if (data.vip_update) {
+          console.log("🔔 VIP обновление:", data);
+          return;
+        }
+
+        console.log("ℹ️ Неизвестный тип сообщения:", data);
       };
     }
+
     connectWS();
   </script>
+
 </body>
 </html>
