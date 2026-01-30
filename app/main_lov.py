@@ -59,8 +59,6 @@ def cleanup_all_backups(base_dir=".", keep=2):
                     print(f"⚠️ Не удалось удалить {old}: {e}")
 
 
-CURRENT_MODE = "private"
-
 app = Flask(
     __name__,
     template_folder=os.path.join(os.path.dirname(__file__), "../templates"),
@@ -73,6 +71,7 @@ vibration_queues = {
     profile_key: asyncio.Queue() for profile_key in CONFIG["profiles"].keys()
 }
 CONNECTED_USERS = {}
+USER_MODES = { "Arina": "private", "Irina": "private" }
 
 def ws_send(data):
     message = json.dumps(data)
@@ -701,13 +700,16 @@ async def ws_handler(websocket):
                 # 🔄 1. Переключение режима (команда от панели)
                 # ---------------------------------------------------------
                 if data.get("type") == "set_mode":
-                    new_mode = data.get("mode")
-                    if new_mode in ("public", "private"):
-                        CURRENT_MODE = new_mode
-                        print(f"🔄 Режим переключён на: {CURRENT_MODE}")
+                    user = data.get("user")
+                    mode = data.get("mode")
+                    if user in USER_MODES:
+                        USER_MODES[user] = mode
+                        print(f"🔄 {user} переключил режим на: {mode}")
+
                         await websocket.send(
-                            json.dumps({"status": "ok", "mode": CURRENT_MODE})
+                            json.dumps({"status": "ok", "mode": USER_MODES[user]})
                         )
+
                     else:
                         await websocket.send("❌ Неверный режим")
                     continue
@@ -721,7 +723,8 @@ async def ws_handler(websocket):
                     continue
 
                 # 🔥 Используем текущий режим, выбранный в панели
-                profile_key = f"{user}_{CURRENT_MODE}"
+                mode = USER_MODES.get(user, "private") 
+                profile_key = f"{user}_{mode}"
 
                 if profile_key not in CONFIG.get("profiles", {}):
                     await websocket.send(f"❌ Профиль '{profile_key}' не найден")

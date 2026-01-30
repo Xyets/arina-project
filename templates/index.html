@@ -420,6 +420,7 @@
         if (socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: "set_mode",
+            user: "{{ user }}",   // ← ВАЖНО! Arina или Irina
             mode: newMode
           }));
         }
