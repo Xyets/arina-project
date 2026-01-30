@@ -264,7 +264,8 @@ def stop_vibration_cloud(profile_key):
         "uid": uid,
         "utoken": utoken,
         "command": "Function",
-        "action": "Stop",
+        "action": "Vibrate:0",
+        "timeSec": 1
     }
 
     try:
