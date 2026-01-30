@@ -363,7 +363,7 @@
 
     <!-- Меню -->
     <div class="menu">
-      <a href="{{ url_for('qrcode_page') }}"><button>📱 QR‑код</button></a>
+      <a href="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}"> <button>📱 QR‑код</button> </a>
       <a href="{{ url_for('stats') }}"><button>📊 Статистика</button></a>
       <a href="{{ url_for('rules') }}"><button>⚙️ Правила</button></a>
       <a href="{{ url_for('reactions_page') }}"><button>🎭 Реакции</button></a>

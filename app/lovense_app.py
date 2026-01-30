@@ -4,6 +4,25 @@ import json
 from services.lovense_service import redis_client
 
 lovense_bp = Blueprint("lovense", __name__)
+from flask import render_template
+from services.lovense_service import get_qr_code_for_profile
+from config import CONFIG
+
+@lovense_bp.route("/qrcode/<profile_key>")
+def qrcode_page(profile_key):
+    profile = CONFIG["profiles"].get(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    qr_url = get_qr_code_for_profile(profile)
+    if not qr_url:
+        return "Не удалось получить QR‑код", 500
+
+    return render_template(
+        "qrcode.html",
+        user=profile["uname"],
+        qr_url=qr_url
+    )
 
 
 @lovense_bp.route("/lovense/callback", methods=["POST"])
