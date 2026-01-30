@@ -717,6 +717,29 @@ async def ws_handler(websocket):
                     continue
 
                 # ---------------------------------------------------------
+                # 🛑 1.1. Остановка вибрации (команда от панели)
+                # ---------------------------------------------------------
+                if data.get("type") == "stop":
+                    user = data.get("user")
+                    if user:
+                        mode = USER_MODES.get(user, "private")
+                        profile_key = f"{user}_{mode}"
+
+                        msg = json.dumps({
+                            "stop": True,
+                            "target": profile_key
+                        })
+
+                        for ws in list(CONNECTED_SOCKETS):
+                            try:
+                                await ws.send(msg)
+                            except:
+                                CONNECTED_SOCKETS.discard(ws)
+
+                    continue
+
+
+                # ---------------------------------------------------------
                 # 🔧 2. Общие данные
                 # ---------------------------------------------------------
                 user = data.get("user")

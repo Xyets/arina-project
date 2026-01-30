@@ -104,6 +104,20 @@
         }
 
         console.log("📡 Получено сообщение:", data);
+        
+        if (data.stop && data.target.toLowerCase().includes("arina")) {
+          console.log("🛑 Остановка вибрации");
+
+          vibrationQueue = [];
+          isPlaying = false;
+
+          const gif = document.getElementById("gifArina");
+          gif.style.animation = "";
+          gif.style.transform = "scale(1)";
+          gif.style.filter = "drop-shadow(0 0 8px rgba(30,144,255,0.4))";
+
+          return;
+        }
 
         if (data.vibration &&
             data.vibration.target.toLowerCase().includes("arina")) {
