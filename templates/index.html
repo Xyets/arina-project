@@ -558,9 +558,18 @@
               headers: { "Content-Type": "application/json" }
             });
             const data = await res.json();
+
             if (data.status === "ok") {
+
+              // 🔥 ДОБАВЛЯЕМ ЭТО — отправляем команду STOP в WebSocket
+              socket.send(JSON.stringify({
+                type: "stop",
+                user: "Arina"   // ← если профиль Irina — меняешь на "Irina"
+              }));
+
               clearInterval(interval);
               box.remove();
+
               if (typeof showToast === "function") {
                 showToast("Вибрация остановлена");
               }
@@ -569,6 +578,7 @@
             console.error("Ошибка остановки вибрации:", e);
           }
         });
+
       }
 
 
