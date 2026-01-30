@@ -1,7 +1,6 @@
 # services/lovense_service.py
 
 import json
-import hashlib
 import requests
 import redis
 from typing import Optional, Dict, Any
@@ -11,20 +10,21 @@ from config import CONFIG
 # ---------------- REDIS ----------------
 
 redis_client = redis.StrictRedis(
-    host=CONFIG["redis_host"],
-    port=CONFIG["redis_port"],
+    host=CONFIG.get("redis_host", "localhost"),
+    port=CONFIG.get("redis_port", 6379),
     db=0
 )
 
 
 # ---------------- УТИЛИТЫ ----------------
 
-def generate_utoken(uid: str, secret: str = CONFIG["lovense_secret"]) -> str:
+def generate_utoken(uid: str) -> str:
     """
-    Генерирует utoken для Lovense Cloud.
+    В НОВОЙ версии utoken НЕ генерируется вручную.
+    Он приходит из callback Lovense Cloud.
+    Поэтому возвращаем пустую строку.
     """
-    raw = uid + secret
-    return hashlib.md5(raw.encode("utf-8")).hexdigest()
+    return ""
 
 
 # ---------------- QR-КОД ----------------
@@ -36,14 +36,14 @@ def get_qr_code_for_profile(profile: Dict[str, Any]) -> Optional[str]:
     url = "https://api.lovense.com/api/lan/getQrCode"
 
     uid = profile["uid"]
-    utoken = generate_utoken(uid)
+    utoken = ""  # utoken приходит из callback
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
         "uname": profile["uname"],
         "utoken": utoken,
-        "callbackUrl": CONFIG["lovense_callback_url"],
+        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
         "v": 2,
     }
 
