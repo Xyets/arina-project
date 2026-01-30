@@ -117,9 +117,9 @@
               <td>{{ data.other }}</td>
               <td>{{ data.donations_sum }}</td>
               {% if user == "Irina" %}
-                <td>{{ data.archi_fee|int }}</td>
+                <td>{{ data.archi_fee|default(0)|int }}</td>
               {% endif %}
-              <td><b>{{ data.net_income|int }}</b></td>
+              <td><b>{{ data.net_income|default(data.total)|int }}</b></td>
             </tr>
           {% endfor %}
         </table>
