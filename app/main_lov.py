@@ -73,18 +73,17 @@ vibration_queues = {
 }
 CONNECTED_USERS = {}
 
-async def ws_send(data):
+def ws_send(data):
     message = json.dumps(data)
-    dead = []
+
+    # получаем event loop, который запустил run_websocket
+    loop = asyncio.get_event_loop()
 
     for ws in list(CONNECTED_SOCKETS):
         try:
-            await ws.send(message)
+            asyncio.run_coroutine_threadsafe(ws.send(message), loop)
         except:
-            dead.append(ws)
-
-    for ws in dead:
-        CONNECTED_SOCKETS.discard(ws)
+            CONNECTED_SOCKETS.discard(ws)
 
 
 RULES_DIR = "data/rules"
