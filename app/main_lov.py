@@ -852,9 +852,14 @@ def index():
     user = session["user"]
     mode = get_current_mode()
     profile_key = f"{user}_{mode}"
+
     profile = CONFIG["profiles"][profile_key]
     queue = get_vibration_queue(profile_key)
-    logs = load_logs_from_file(profile_key)   # ← читаем файл заново
+    logs = load_logs_from_file(profile_key)
+
+    # 🔥 ДОБАВЛЯЕМ ЭТО
+    goal = load_goal(profile_key)
+
     return render_template(
         "index.html",
         user=user,
@@ -862,6 +867,7 @@ def index():
         queue=queue,
         logs=logs,
         current_mode=mode,
+        goal=goal,   # 🔥 И ЭТО
     )
 
 

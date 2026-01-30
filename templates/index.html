@@ -743,7 +743,8 @@
     </script>
 
     <script>
-    let goal = JSON.parse(`{{ goal|tojson|safe }}`);
+    let goal = JSON.parse(`{{ goal|tojson|safe or '{"title":"","target":0,"current":0}' }}`);
+
 
 
     function updateGoalUI() {

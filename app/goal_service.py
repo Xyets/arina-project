@@ -8,12 +8,13 @@ def goal_path(profile_key):
     return f"{GOAL_DIR}/{profile_key}.json"
 
 def load_goal(profile_key):
-    path = goal_path(profile_key)
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
+    path = f"data/goals/{profile_key}.json"
+    if not os.path.exists(path):
         return {"title": "", "target": 0, "current": 0}
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 
 def save_goal(profile_key, goal):
     path = goal_path(profile_key)
