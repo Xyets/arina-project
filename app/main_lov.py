@@ -874,7 +874,7 @@ async def ws_server():
 @login_required
 def index():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     profile = CONFIG["profiles"][profile_key]
@@ -899,7 +899,7 @@ def index():
 @login_required
 def qrcode_page():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     qr_url = get_qr_code(profile_key)
     if not qr_url:
@@ -923,7 +923,7 @@ def login():
 @login_required
 def queue_data():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     q = vibration_queues.get(profile_key)
     return {"queue": list(q._queue) if q else []}
@@ -939,7 +939,7 @@ def logout():
 @login_required
 def test_vibration():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     def safe_vibration():
@@ -957,7 +957,7 @@ def test_vibration():
 @login_required
 def stats():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     stats_data = load_stats(profile_key)
     irina_stats = load_stats(f"Irina_{mode}") if user == "Arina" else None
@@ -969,7 +969,7 @@ def stats():
 @login_required
 def stats_history():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
@@ -997,7 +997,7 @@ def stats_history():
 @login_required
 def reactions_page():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     rules = load_reaction_rules(profile_key)
@@ -1082,7 +1082,7 @@ def test_reaction():
 @login_required
 def donations_data():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     logs = donation_logs.get(profile_key, [])
     donations = []
@@ -1099,7 +1099,7 @@ def donations_data():
 @login_required
 def test_rule(rule_index):
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     rules = load_rules(profile_key)
 
@@ -1224,7 +1224,7 @@ def save_vip_file(vip_file: str, vip_data: dict):
 @app.route("/remove_member", methods=["POST"])
 @login_required
 def remove_member():
-    user = session["user"]; mode = get_current_mode()
+    user = session["user"]; mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     if not user_id:
@@ -1245,7 +1245,7 @@ def remove_member():
 @app.route("/entries_data")
 @login_required
 def entries_data():
-    user = session["user"]; mode = get_current_mode()
+    user = session["user"]; mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
@@ -1273,7 +1273,7 @@ def entries_data():
 @app.route("/vip", methods=["GET", "POST"])
 @login_required
 def vip_page():
-    user = session["user"]; mode = get_current_mode()
+    user = session["user"]; mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
@@ -1326,7 +1326,7 @@ def vip_page():
 @app.route("/update_name", methods=["POST"])
 @login_required
 def update_name():
-    user = session["user"]; mode = get_current_mode()
+    user = session["user"]; mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     user_id = request.form.get("user_id")
     new_name = request.form.get("name")
@@ -1350,7 +1350,7 @@ def update_name():
 @app.route("/vip_data")
 @login_required
 def vip_data():
-    user = session["user"]; mode = get_current_mode()
+    user = session["user"]; mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
 
@@ -1362,7 +1362,7 @@ def vip_data():
 @login_required
 def rules():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     rules_file = CONFIG["profiles"][profile_key]["rules_file"]
 
@@ -1443,7 +1443,7 @@ def rules():
 @login_required
 def logs_page():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     return render_template("logs.html", logs=logs)
@@ -1468,7 +1468,7 @@ def set_mode():
 @login_required
 def logs_data():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     return jsonify({"logs": logs})
@@ -1478,7 +1478,7 @@ def logs_data():
 @login_required
 def logs_data_stats():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     logs = load_logs_from_file(profile_key)   # ← читаем файл заново
     formatted = []
@@ -1509,7 +1509,7 @@ def logs_data_stats():
 @login_required
 def clear_logs():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     # очищаем память
@@ -1534,7 +1534,7 @@ def clear_logs():
 @login_required
 def clear_queue():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
     q = vibration_queues.get(profile_key)
     if q:
@@ -1551,7 +1551,7 @@ def clear_queue():
 @login_required
 def close_period():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     stats_file = f"data/stats/stats_{profile_key}.json"
@@ -1626,7 +1626,7 @@ def close_period():
 @login_required
 def stop_vibration():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     result = stop_vibration_cloud(profile_key)
@@ -1646,7 +1646,7 @@ def obs_alert_irina():
 @login_required
 def goal_data():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     goal = load_goal(profile_key)
@@ -1656,7 +1656,7 @@ def goal_data():
 @login_required
 def goal_new():
     user = session["user"]
-    mode = get_current_mode()
+    mode = USER_MODES.get(user, "private")
     profile_key = f"{user}_{mode}"
 
     title = request.form.get("title", "")

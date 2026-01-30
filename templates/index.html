@@ -499,18 +499,22 @@
           try {
             const data = JSON.parse(event.data);
             const currentUser = "{{ user }}";
-            if (data.vibration && data.vibration.target.startsWith(currentUser.toLowerCase()))
 
-           {
+            if (data.vibration &&
+                data.vibration.target.toLowerCase().startsWith(currentUser.toLowerCase())) {
+
               const { strength, duration } = data.vibration;
               startVibrationTimer(duration, strength);
             }
+
           } catch {
             console.warn("⚠️ Некорректное сообщение WebSocket");
           }
         };
-      }
+      }   // ← ЭТОЙ СКОБКИ НЕ ХВАТАЛО
+
       connectWS();
+
 
       // ⏱ Таймер вибрации
       function startVibrationTimer(duration, strength = "—") {
@@ -765,14 +769,6 @@
       document.getElementById("goalTarget").textContent = goal.target;
     }
 
-    // WebSocket обновление
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.goal_update) {
-        goal = data.goal;
-        updateGoalUI();
-      }
-    };
 
     updateGoalUI();
     </script>
