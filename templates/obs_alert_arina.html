@@ -35,9 +35,9 @@
 
   <script>
     /* ---------------------------------------------------------
-       🔧 1. Текущий пользователь (фиксировано для этой страницы)
+       🔧 1. Профиль OBS (передаётся сервером)
     --------------------------------------------------------- */
-    const CURRENT_USER = "Arina";
+    const PROFILE_KEY = "{{ profile_key }}";
 
     /* ---------------------------------------------------------
        🔥 2. Очередь вибраций
@@ -83,15 +83,22 @@
     /* ---------------------------------------------------------
        🌐 3. WebSocket с авто‑реконнектом
     --------------------------------------------------------- */
-    let socket;
+    let socket = null;
 
     function connectWS() {
-      const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/`;
-      socket = new WebSocket(wsUrl);
+      socket = new WebSocket(`ws://${location.hostname}:8765/`);
 
       socket.onopen = () => {
         console.log("✅ WebSocket подключён");
 
+        // Идентификация OBS
+        socket.send(JSON.stringify({
+          type: "hello",
+          role: "obs",
+          profile_key: PROFILE_KEY
+        }));
+
+        // PING
         if (socket._pingInterval) clearInterval(socket._pingInterval);
         socket._pingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
@@ -120,8 +127,8 @@
         /* ---------------------------------------------------------
            🛑 STOP — остановка вибрации
         --------------------------------------------------------- */
-        if (data.stop && data.target.toLowerCase().includes(CURRENT_USER.toLowerCase())) {
-          console.log("🛑 Остановка вибрации");
+        if (data.stop && data.target === PROFILE_KEY) {
+          console.log("🛑 STOP получен");
 
           vibrationQueue = [];
           isPlaying = false;
@@ -137,22 +144,19 @@
         /* ---------------------------------------------------------
            💥 Вибрация
         --------------------------------------------------------- */
-        if (data.vibration &&
-            data.vibration.target.toLowerCase().includes(CURRENT_USER.toLowerCase())) {
-
+        if (data.vibration && data.vibration.target === PROFILE_KEY) {
           enqueueVibration(data.vibration.strength, data.vibration.duration);
           return;
         }
 
         /* ---------------------------------------------------------
-           👑 VIP обновления
+           🎭 Реакции OBS
         --------------------------------------------------------- */
-        if (data.vip_update) {
-          console.log("🔔 VIP обновление:", data);
+        if (data.reaction && data.profile === PROFILE_KEY) {
+          console.log("🎭 Реакция:", data);
+          // здесь можно добавить отображение картинки реакции
           return;
         }
-
-        console.log("ℹ️ Неизвестный тип сообщения:", data);
       };
     }
 

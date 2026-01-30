@@ -1,0 +1,169 @@
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+from functools import wraps
+
+from config import CONFIG, USERS
+from services.vibration_manager import get_vibration_queue
+from services.logs_service import load_logs_from_file, clear_logs_file
+from services.goal_service import load_goal
+from services.stats_service import load_entries
+from services.vip_service import load_vip
+from services.audit import audit_event
+
+panel_bp = Blueprint("panel", __name__)
+
+
+# -------------------- AUTH --------------------
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            return redirect(url_for("panel.login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@panel_bp.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        user = request.form.get("username")
+        pwd = request.form.get("password")
+
+        if user in USERS and USERS[user] == pwd:
+            session["user"] = user
+            session["mode"] = "private"   # режим по умолчанию
+            audit_event(user, "LOGIN")
+            return redirect(url_for("panel.index"))
+
+        return render_template("login.html", error="Неверный логин или пароль")
+
+    return render_template("login.html")
+
+
+@panel_bp.route("/logout")
+def logout():
+    user = session.get("user")
+    if user:
+        audit_event(user, "LOGOUT")
+
+    session.clear()
+    return redirect(url_for("panel.login"))
+
+
+# -------------------- ПАНЕЛЬ --------------------
+
+@panel_bp.route("/")
+@login_required
+def index():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    profile = CONFIG["profiles"][profile_key]
+    queue = get_vibration_queue(profile_key)
+    logs = load_logs_from_file(profile_key)
+    goal = load_goal(profile_key)
+
+    return render_template(
+        "index.html",
+        user=user,
+        profile=profile,
+        queue=list(queue.queue) if queue else [],
+        logs=logs,
+        current_mode=mode,
+        goal=goal
+    )
+
+
+# -------------------- AJAX: смена режима --------------------
+
+@panel_bp.route("/set_mode", methods=["POST"])
+@login_required
+def set_mode():
+    data = request.get_json()
+    mode = data.get("mode")
+
+    if mode not in ("public", "private"):
+        return {"status": "error", "message": "Неверный режим"}
+
+    session["mode"] = mode
+    return {"status": "ok", "mode": mode}
+
+
+# -------------------- AJAX: логи --------------------
+
+@panel_bp.route("/logs_data")
+@login_required
+def logs_data():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    logs = load_logs_from_file(profile_key)
+    return jsonify({"logs": logs})
+
+
+@panel_bp.route("/clear_logs", methods=["POST"])
+@login_required
+def clear_logs():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    clear_logs_file(profile_key)
+    return {"status": "ok"}
+
+
+# -------------------- AJAX: очередь вибраций --------------------
+
+@panel_bp.route("/queue_data")
+@login_required
+def queue_data():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    queue = get_vibration_queue(profile_key)
+    items = list(queue.queue) if queue else []
+
+    return jsonify({"queue": items})
+
+
+@panel_bp.route("/clear_queue", methods=["POST"])
+@login_required
+def clear_queue():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    queue = get_vibration_queue(profile_key)
+    if queue:
+        queue.queue.clear()
+
+    return {"status": "ok", "message": "Очередь очищена"}
+
+
+# -------------------- AJAX: новые мемберы --------------------
+
+@panel_bp.route("/entries_data")
+@login_required
+def entries_data():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    entries = load_entries(profile_key)
+    return jsonify({"entries": entries})
+
+
+# -------------------- AJAX: VIP --------------------
+
+@panel_bp.route("/vip_data")
+@login_required
+def vip_data():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    vip = load_vip(profile_key)
+    return jsonify({"vip": vip})

@@ -237,22 +237,7 @@
   <p style="text-align:center;"><a href="/">⬅ Назад</a></p>
 
   <script>
-    function openModal(id) {
-      document.getElementById("modal-" + id).style.display = "block";
-    }
-    function closeModal(id) {
-      document.getElementById("modal-" + id).style.display = "none";
-    }
-    // Закрытие по клику вне окна
-    window.onclick = function(event) {
-      document.querySelectorAll('.modal').forEach(m => {
-        if (event.target === m) m.style.display = "none";
-      });
-    }
-  </script>
-
-  <script>
-    // Общая проверка
+    // Проверка вибрации
     document.getElementById("testVibrationBtn").addEventListener("click", () => {
       fetch("/test_vibration", { method: "POST" })
         .then(r => r.json())
@@ -260,7 +245,7 @@
         .catch(() => showToast("Ошибка при проверке ❌"));
     });
 
-    // Проверка правил
+    // Проверка конкретного правила
     document.querySelectorAll(".testRuleBtn").forEach(btn => {
       btn.addEventListener("click", () => {
         const ruleIndex = btn.getAttribute("data-index");
@@ -278,6 +263,20 @@
       toast.className = "toast show";
       setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
+
+    // Модалки
+    function openModal(id) {
+      document.getElementById("modal-" + id).style.display = "block";
+    }
+    function closeModal(id) {
+      document.getElementById("modal-" + id).style.display = "none";
+    }
+    window.onclick = function(event) {
+      document.querySelectorAll('.modal').forEach(m => {
+        if (event.target === m) m.style.display = "none";
+      });
+    }
   </script>
+
 </body>
 </html>
