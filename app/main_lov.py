@@ -917,24 +917,25 @@ def stats_history():
     profile_key = f"{user}_{mode}"
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
+    # Загружаем архив периодов
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
-            stats = json.load(f)
+            archive = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        stats = {}
+        archive = {"periods": []}
 
-    # фильтрация по датам
+    # Фильтрация по датам (если нужно)
     from_date = request.args.get("from")
     to_date = request.args.get("to")
-    if from_date and to_date:
-        stats = {
-            day: data for day, data in stats.items() if from_date <= day <= to_date
-        }
 
-    results, summary = calculate_stats(stats, user)
-    return render_template(
-        "stats_history.html", user=user, results=results, summary=summary
-    )
+    if from_date and to_date:
+        filtered_periods = []
+        for p in archive.get("periods", []):
+            if p["start"] >= from_date and p["end"] <= to_date:
+                filtered_periods.append(p)
+        archive = {"periods": filtered_periods}
+
+    return render_template("stats_history.html", user=user, archive=archive)
 
 @app.route("/reactions", methods=["GET", "POST"])
 @login_required
