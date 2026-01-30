@@ -19,7 +19,7 @@ from collections import deque
 from app.stats_service import calculate_stats, get_stats
 from werkzeug.utils import secure_filename
 import redis # type: ignore
-
+import glob
 
 
 with open("config/config.json", "r", encoding="utf-8") as f:
@@ -27,6 +27,37 @@ with open("config/config.json", "r", encoding="utf-8") as f:
 
 def get_current_mode():
     return session.get("mode", "private")
+
+def cleanup_all_backups(base_dir=".", keep=2):
+    """
+    Удаляет старые .bak файлы во всём проекте.
+    Оставляет только N последних для каждого оригинального файла.
+    """
+    # Ищем ВСЕ .bak файлы
+    all_bak = glob.glob(os.path.join(base_dir, "**", "*.bak"), recursive=True)
+
+    # Группируем по имени оригинального файла
+    groups = {}
+    for bak in all_bak:
+        # Оригинальный файл = всё до первой точки даты
+        original = bak.split(".")[0]
+        groups.setdefault(original, []).append(bak)
+
+    # Чистим каждую группу
+    for original, files in groups.items():
+        # сортируем по дате изменения
+        files_sorted = sorted(files, key=os.path.getmtime)
+
+        # если файлов больше чем нужно — удаляем старые
+        if len(files_sorted) > keep:
+            for old in files_sorted[:-keep]:
+                try:
+                    os.remove(old)
+                    print(f"🗑 Удалён старый backup: {old}")
+                except Exception as e:
+                    print(f"⚠️ Не удалось удалить {old}: {e}")
+
+
 
 app = Flask(
     __name__,
@@ -45,6 +76,18 @@ RULES_DIR = "data/rules"
 WS_EVENT_LOOP = None
 redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
 # ---------------- LOVENSE ----------------
+
+def daily_backup_cleanup():
+    while True:
+        try:
+            print("🧹 Ежедневная очистка .bak файлов...")
+            cleanup_all_backups("data")
+            print("✔ Очистка завершена")
+        except Exception as e:
+            print(f"⚠ Ошибка очистки .bak: {e}")
+
+        # ждать 24 часа
+        time.sleep(24 * 60 * 60)
 
 
 def handle_donation(profile_key, sender, amount, text):
@@ -355,8 +398,6 @@ def apply_reaction_rule(profile_key, amount):
 
 # ---------------- VIP ----------------
 
-LOCK = threading.Lock()
-
 def update_vip(profile_key, user_id, name=None, amount=0, event=None):
     profile = CONFIG["profiles"][profile_key]
     vip_file = profile["vip_file"]
@@ -408,9 +449,11 @@ def update_vip(profile_key, user_id, name=None, amount=0, event=None):
         vip_data[user_id]["_just_logged_in"] = True
 
     # резервная копия с датой
+
     if os.path.exists(vip_file):
         backup_file = f"{vip_file}.{datetime.now().strftime('%Y-%m-%d')}.bak"
         shutil.copy(vip_file, backup_file)
+        cleanup_all_backups("data")
 
     # атомарная запись с блокировкой
     tmp_file = vip_file + ".tmp"
@@ -1533,6 +1576,9 @@ def monitor_flag():
     except KeyboardInterrupt:
         print("⏹ Остановка программы")
 
+# --- запуск ежедневной очистки .bak ---
+cleanup_thread = threading.Thread(target=daily_backup_cleanup, daemon=True) 
+cleanup_thread.start()
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()

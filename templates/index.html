@@ -418,7 +418,9 @@
           try {
             const data = JSON.parse(event.data);
             const currentUser = "{{ user }}";
-            if (data.vibration && data.vibration.target === currentUser) {
+            if (data.vibration && data.vibration.target.includes(currentUser.toLowerCase()))
+
+           {
               const { strength, duration } = data.vibration;
               startVibrationTimer(duration, strength);
             }
@@ -588,10 +590,16 @@
         popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
         popup.style.display = "block";
         popup.classList.add("show");
-        setTimeout(() => {
-          popup.classList.remove("show");
-          popup.style.display = "none";
-        }, 8000);
+        let hideTimer = setTimeout(hidePopup, 8000);
+
+        popup.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+        popup.addEventListener("mouseleave", () => hideTimer = setTimeout(hidePopup, 8000));
+
+        function hidePopup() {
+            popup.classList.remove("show");
+            popup.style.display = "none";
+        }
+
       }
       function hideEntryPopup() {
         const popup = document.getElementById("entryPopup");
@@ -612,10 +620,8 @@
       // ⏱ Циклы обновления
       setInterval(loadLogs, 2000);
       setInterval(checkNewEntries, 2000);
-      setInterval(loadQueue, 2000);
       loadLogs();
       checkNewEntries();
-      loadQueue();
 
       // 🖱️ Перетаскивание entryPopup
       let isDragging = false, offsetX = 0, offsetY = 0;
@@ -655,21 +661,9 @@
 
 
         // 🧹 Очистка очереди
-        clearBtn.addEventListener("click", async () => {
-            try {
-                const res = await fetch("/clear_queue", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({})
-                });
-
-                const data = await res.json();
-                console.log(data.message);
-
-                queueBox.innerHTML = "";
-            } catch (e) {
-                console.error("Ошибка очистки очереди:", e);
-            }
+        document.getElementById("clearQueueBtn").addEventListener("click", async () => {
+            await fetch("/clear_queue", { method: "POST" });
+            loadQueue();
         });
 
         // Автообновление каждые 2 секунды
