@@ -857,7 +857,7 @@ def index():
     queue = get_vibration_queue(profile_key)
     logs = load_logs_from_file(profile_key)
 
-    # 🔥 ДОБАВЛЯЕМ ЭТО
+    # загружаем цель
     goal = load_goal(profile_key)
 
     return render_template(
@@ -867,8 +867,10 @@ def index():
         queue=queue,
         logs=logs,
         current_mode=mode,
-        goal=goal,   # 🔥 И ЭТО
+        mode=mode,      # ← ВАЖНО
+        goal=goal       # ← ВАЖНО
     )
+
 
 
 @app.route("/qrcode")
