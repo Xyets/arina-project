@@ -20,6 +20,7 @@ from app.stats_service import calculate_stats, get_stats
 from werkzeug.utils import secure_filename
 import redis # type: ignore
 import glob
+from app.goal_service import load_goal, save_goal
 
 
 with open("config/config.json", "r", encoding="utf-8") as f:
@@ -71,6 +72,20 @@ vibration_queues = {
     profile_key: asyncio.Queue() for profile_key in CONFIG["profiles"].keys()
 }
 CONNECTED_USERS = {}
+
+async def ws_send(data):
+    message = json.dumps(data)
+    dead = []
+
+    for ws in list(CONNECTED_SOCKETS):
+        try:
+            await ws.send(message)
+        except:
+            dead.append(ws)
+
+    for ws in dead:
+        CONNECTED_SOCKETS.discard(ws)
+
 
 RULES_DIR = "data/rules"
 WS_EVENT_LOOP = None
@@ -656,6 +671,18 @@ def extract_strength(text):
 def extract_duration(text):
     m = re.search(r"время[:=]\s*(\d+)", text)
     return int(m.group(1)) if m else None
+
+def update_goal(profile_key, amount):
+    goal = load_goal(profile_key)
+    goal["current"] += amount
+    save_goal(profile_key, goal)
+
+    # отправляем WS
+    asyncio.create_task(ws_send({
+        "goal_update": True,
+        "goal": goal
+    }))
+
 
 
 async def ws_handler(websocket):
@@ -1585,6 +1612,37 @@ def obs_alert_arina():
 @app.route("/obs_alert_irina")
 def obs_alert_irina():
     return render_template("obs_alert_irina.html")
+
+@app.route("/goal_data")
+@login_required
+def goal_data():
+    user = session["user"]
+    mode = get_current_mode()
+    profile_key = f"{user}_{mode}"
+
+    goal = load_goal(profile_key)
+    return goal
+
+@app.route("/goal_new", methods=["POST"])
+@login_required
+def goal_new():
+    user = session["user"]
+    mode = get_current_mode()
+    profile_key = f"{user}_{mode}"
+
+    title = request.form.get("title", "")
+    target = int(request.form.get("target", 0))
+
+    goal = {"title": title, "target": target, "current": 0}
+    save_goal(profile_key, goal)
+
+    asyncio.create_task(ws_send({
+        "goal_update": True,
+        "goal": goal
+    }))
+
+    return {"status": "ok"}
+
 
 
 # ---------------- ЗАПУСК ----------------

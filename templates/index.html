@@ -287,6 +287,59 @@
         background: linear-gradient(90deg, #ff99cc, #ff66aa);
         transition: width 0.1s linear;
       }
+      .goal-card {
+        background:#fff;
+        padding:20px;
+        border-radius:16px;
+        box-shadow:0 6px 18px rgba(0,0,0,0.1);
+        max-width:600px;
+        margin:20px auto;
+        text-align:center;
+      }
+
+      .goal-bar {
+        width:100%;
+        height:25px;
+        background:#eee;
+        border-radius:12px;
+        overflow:hidden;
+        margin:15px 0;
+      }
+
+      #goalFill {
+        height:100%;
+        width:0%;
+        background:linear-gradient(90deg,#74c0e3,#a3d8f4);
+        transition:0.4s;
+      }
+
+      .new-goal-btn {
+        background:#a3d8f4;
+        color:white;
+        padding:10px 20px;
+        border:none;
+        border-radius:12px;
+        cursor:pointer;
+      }
+      .modal {
+        display:none;
+        position:fixed;
+        top:0; left:0;
+        width:100%; height:100%;
+        background:rgba(0,0,0,0.5);
+        z-index:9998;
+      }
+
+      .modal-content {
+        background:#fff;
+        padding:20px;
+        border-radius:12px;
+        width:300px;
+        margin:150px auto;
+        box-shadow:0 6px 18px rgba(0,0,0,0.2);
+        text-align:center;
+      }
+
 
     </style>
 </head>
@@ -318,6 +371,23 @@
       <a href="{{ url_for('vip_page') }}"><button>👑 VIP‑лист</button></a>
       <a href="{{ url_for('logout') }}"><button>🚪 Выйти</button></a>
     </div>
+
+    {% if mode == "public" %}
+    <div class="goal-card">
+      <h3>🎯 {{ goal.title or "Цель не установлена" }}</h3>
+
+      <div class="goal-bar">
+        <div id="goalFill"></div>
+      </div>
+
+      <div class="goal-text">
+        <span id="goalCurrent">{{ goal.current }}</span> /
+        <span id="goalTarget">{{ goal.target }}</span>
+      </div>
+
+      <button class="new-goal-btn" onclick="openGoalModal()">Начать новую цель</button>
+    </div>
+    {% endif %}
 
     <!-- Логи -->
     <h3>📜 Логи донатов</h3>
@@ -672,8 +742,54 @@
     });
     </script>
 
+    <script>
+    let goal = JSON.parse(`{{ goal|tojson|safe }}`);
+
+
+    function updateGoalUI() {
+      const percent = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
+      document.getElementById("goalFill").style.width = Math.min(percent, 100) + "%";
+      document.getElementById("goalCurrent").textContent = goal.current;
+      document.getElementById("goalTarget").textContent = goal.target;
+    }
+
+    // WebSocket обновление
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.goal_update) {
+        goal = data.goal;
+        updateGoalUI();
+      }
+    };
+
+    updateGoalUI();
+    </script>
+
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
     <div id="toast" class="toast"></div>
     <div id="entryPopup" style="display:none;"></div>
+    <div id="goalModal" class="modal">
+      <div class="modal-content">
+        <h3>Новая цель</h3>
+        <form id="goalForm">
+          <input name="title" placeholder="Название цели">
+          <input name="target" placeholder="Сколько нужно" type="number">
+          <button type="submit">Сохранить</button>
+        </form>
+      </div>
+    </div>
+    <script>
+    function openGoalModal() {
+      document.getElementById("goalModal").style.display = "block";
+    }
+
+    document.getElementById("goalForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      await fetch("/goal_new", { method:"POST", body:formData });
+      document.getElementById("goalModal").style.display = "none";
+    };
+    </script>
+
 </body>
 </html>
