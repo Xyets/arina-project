@@ -59,6 +59,7 @@ def cleanup_all_backups(base_dir=".", keep=2):
                     print(f"⚠️ Не удалось удалить {old}: {e}")
 
 
+CURRENT_MODE = "private"
 
 app = Flask(
     __name__,
@@ -685,45 +686,60 @@ def update_goal(profile_key, amount):
 
 
 async def ws_handler(websocket):
+    global CURRENT_MODE
+
     print("🔌 WebSocket подключён")
     CONNECTED_SOCKETS.add(websocket)
+
     try:
         async for message in websocket:
             try:
                 print("📩 Получено сообщение от WebSocket:", message)
                 data = json.loads(message)
 
-                text = data.get("text", "")
-                name = (data.get("name") or "Аноним").strip()
-                user_id = data.get("user_id")
-                amount = data.get("amount")
-                donation_id = data.get("donation_id")
-                user = data.get("user")
+                # ---------------------------------------------------------
+                # 🔄 1. Переключение режима (команда от панели)
+                # ---------------------------------------------------------
+                if data.get("type") == "set_mode":
+                    new_mode = data.get("mode")
+                    if new_mode in ("public", "private"):
+                        CURRENT_MODE = new_mode
+                        print(f"🔄 Режим переключён на: {CURRENT_MODE}")
+                        await websocket.send(
+                            json.dumps({"status": "ok", "mode": CURRENT_MODE})
+                        )
+                    else:
+                        await websocket.send("❌ Неверный режим")
+                    continue
 
+                # ---------------------------------------------------------
+                # 🔧 2. Общие данные
+                # ---------------------------------------------------------
+                user = data.get("user")
                 if not user:
                     await websocket.send("❌ Не указан профиль")
                     continue
 
-                mode = session.get("mode", "private")
-                profile_key = f"{user}_{mode}"
+                # 🔥 Используем текущий режим, выбранный в панели
+                profile_key = f"{user}_{CURRENT_MODE}"
 
                 if profile_key not in CONFIG.get("profiles", {}):
                     await websocket.send(f"❌ Профиль '{profile_key}' не найден")
                     continue
 
-                if donation_id:
-                    if donation_id in RECENT_DONATIONS:
-                        print(f"⚠️ Повтор доната {donation_id} — пропускаем")
-                        await websocket.send("ℹ️ Донат уже учтён")
-                        continue
-                    RECENT_DONATIONS.append(donation_id)
-                else:
-                    print("⚠️ Нет donation_id — может быть тест или ошибка")
+                text = data.get("text", "")
+                name = (data.get("name") or "Аноним").strip()
+                user_id = data.get("user_id")
+                donation_id = data.get("donation_id")
 
-                # 📥 События входа/выхода
+                # ---------------------------------------------------------
+                # 👤 3. События входа/выхода
+                # ---------------------------------------------------------
                 if "event" in data:
                     event = data["event"].lower()
+
                     profile = update_vip(profile_key, user_id, name=name, event=event)
+
                     if event == "login":
                         add_log(profile_key, f"🔵 LOGIN | {name} ({user_id})")
                     elif event == "logout":
@@ -733,7 +749,8 @@ async def ws_handler(websocket):
                             profile_key,
                             f"📥 Событие: {event.upper()} | {name} ({user_id}) → {text}",
                         )
-                    # рассылаем фронту обновление VIP
+
+                    # Рассылка обновления VIP
                     msg = json.dumps({
                         "vip_update": True,
                         "user_id": user_id,
@@ -745,58 +762,62 @@ async def ws_handler(websocket):
                         except:
                             CONNECTED_SOCKETS.discard(ws)
 
+                    # Отправляем данные о входе
                     if profile and profile.get("_just_logged_in"):
-                        await websocket.send(
-                            json.dumps(
-                                {
-                                    "entry": {
-                                        "user_id": user_id,
-                                        "name": profile["name"],
-                                        "visits": profile["login_count"],
-                                        "last_login": profile["_previous_login"],
-                                        "total_tips": profile["total"],
-                                        "notes": profile["notes"],
-                                    }
-                                }
-                            )
-                        )
+                        await websocket.send(json.dumps({
+                            "entry": {
+                                "user_id": user_id,
+                                "name": profile["name"],
+                                "visits": profile["login_count"],
+                                "last_login": profile["_previous_login"],
+                                "total_tips": profile["total"],
+                                "notes": profile["notes"],
+                            }
+                        }))
                         profile["_just_logged_in"] = False
+
                     await websocket.send(f"✅ Событие {event} обработано")
                     continue
 
-                # 📊 Донаты
+                # ---------------------------------------------------------
+                # 💸 4. Донаты
+                # ---------------------------------------------------------
                 try:
                     amount = float(data.get("amount") or 0)
-                except (TypeError, ValueError):
+                except:
                     amount = 0.0
 
                 if amount <= 0:
                     await websocket.send("ℹ️ Сообщение не содержит донат")
                     continue
 
-                # аудит лучше оставить только в handle_donation
+                # Защита от повторов
+                if donation_id:
+                    if donation_id in RECENT_DONATIONS:
+                        print(f"⚠️ Повтор доната {donation_id} — пропускаем")
+                        await websocket.send("ℹ️ Донат уже учтён")
+                        continue
+                    RECENT_DONATIONS.append(donation_id)
+
+                # Запись доната
                 handle_donation(profile_key, name, amount, text)
 
-                # 👤 Обновление VIP
+                # Обновление VIP
                 if user_id:
                     profile = update_vip(profile_key, user_id, name=name, amount=amount)
-                    try:
-                        msg = json.dumps(
-                            {
-                                "vip_update": True,
-                                "user_id": user_id,
-                                "profile_key": profile_key,
-                            }
-                        )
-                        for ws in list(CONNECTED_SOCKETS):
-                            try:
-                                await ws.send(msg)
-                            except:
-                                CONNECTED_SOCKETS.discard(ws)
-                    except Exception as e:
-                        print(f"⚠️ Ошибка рассылки vip_update (donation): {e}")
 
-                # 🎭 Проверка правил реакций
+                    msg = json.dumps({
+                        "vip_update": True,
+                        "user_id": user_id,
+                        "profile_key": profile_key,
+                    })
+                    for ws in list(CONNECTED_SOCKETS):
+                        try:
+                            await ws.send(msg)
+                        except:
+                            CONNECTED_SOCKETS.discard(ws)
+
+                # Реакции
                 reaction_event = apply_reaction_rule(profile_key, amount)
                 if reaction_event:
                     msg = json.dumps(reaction_event)
@@ -856,8 +877,6 @@ def index():
     profile = CONFIG["profiles"][profile_key]
     queue = get_vibration_queue(profile_key)
     logs = load_logs_from_file(profile_key)
-
-    # загружаем цель
     goal = load_goal(profile_key)
 
     return render_template(
@@ -867,8 +886,8 @@ def index():
         queue=queue,
         logs=logs,
         current_mode=mode,
-        mode=mode,      # ← ВАЖНО
-        goal=goal       # ← ВАЖНО
+        mode=mode,
+        goal=goal
     )
 
 
