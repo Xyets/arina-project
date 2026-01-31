@@ -82,19 +82,19 @@ def handle_donation(profile_key, name, amount, text):
     if rule_result and rule_result["kind"] == "action":
         add_log(
             profile_key,
-            f"💸 DONATION | {name} → {amount} 🎬 Действие: {rule_result['action_text']}"
+            f"💸  | {name} → {amount} 🎬 Действие: {rule_result['action_text']}"
         )
 
     elif rule_result and rule_result["kind"] == "vibration":
         add_log(
             profile_key,
-            f"💸 DONATION | {name} → {amount} 🏰 Вибрация: сила={rule_result['strength']}, время={rule_result['duration']}"
+            f"💸  | {name} → {amount} 🏰 Вибрация: сила={rule_result['strength']}, время={rule_result['duration']}"
         )
 
     else:
         add_log(
             profile_key,
-            f"💸 DONATION | {name} → {amount} 🍀 Без действия"
+            f"💸  | {name} → {amount} 🍀 Без действия"
         )
 
     # 3. Аудит
