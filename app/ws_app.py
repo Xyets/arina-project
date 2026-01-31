@@ -6,7 +6,6 @@ import redis
 from config import CONFIG
 from services.goal_service import load_goal
 
-
 from services.vibration_manager import (
     init_vibration_queues,
     get_vibration_queue,
@@ -36,18 +35,15 @@ def ws_send(data, role=None, profile_key=None):
 
     for ws in list(CONNECTED_SOCKETS):
         try:
-            # фильтр по роли
             if role and CLIENT_TYPES.get(ws) != role:
                 continue
 
-            # фильтр по профилю (только OBS)
             if profile_key and CLIENT_PROFILES.get(ws) != profile_key:
                 continue
 
             asyncio.run_coroutine_threadsafe(ws.send(message), WS_EVENT_LOOP)
 
         except Exception:
-            # удаляем мёртвый сокет
             CONNECTED_SOCKETS.discard(ws)
             CLIENT_TYPES.pop(ws, None)
             CLIENT_PROFILES.pop(ws, None)
@@ -57,9 +53,6 @@ def ws_send(data, role=None, profile_key=None):
 # ---------------- ВИБРАЦИИ ----------------
 
 async def vibration_worker(profile_key):
-    """
-    Берёт вибрации из очереди и шлёт их OBS для этого профиля.
-    """
     q = get_vibration_queue(profile_key)
     if not q:
         return
@@ -95,9 +88,7 @@ async def redis_listener():
             try:
                 data = json.loads(msg["data"].decode("utf-8"))
                 profile_key = data.get("profile")
-
                 ws_send(data, role="obs", profile_key=profile_key)
-
             except Exception:
                 pass
 
@@ -118,7 +109,7 @@ async def ws_handler(websocket):
                 continue
 
             msg_type = data.get("type")
-            # Если это донат от расширения (нет type, но есть amount)
+
             if msg_type is None and "amount" in data:
                 msg_type = "donation"
 
@@ -159,37 +150,20 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
-                # режим
                 mode = redis_client.hget("user_modes", user)
                 mode = mode.decode() if mode else "private"
                 profile_key = f"{user}_{mode}"
 
-                # обработка доната (лог, VIP, цель, статистика, правила, реакции)
                 from services.donation_service import handle_donation
                 result = handle_donation(profile_key, name, amount, text)
 
-                # отправляем панели обновление цели
+                # обновление цели
                 ws_send({"goal_update": True, "goal": result["goal"]}, role="panel")
 
-                # отправляем панели лог доната
-                ws_send({
-                    "type": "donation",
-                    "user": user,
-                    "name": name,
-                    "amount": amount,
-                    "text": text
-                }, role="panel")
+                # 🔥 главное изменение — панель сама обновит лог
+                ws_send({"type": "refresh_logs"}, role="panel")
 
-                # если было правило — отправляем панели
-                if result["rule"]:
-                    ws_send({
-                        "type": "rule",
-                        "rule": result["rule"],
-                        "user": user
-                    }, role="panel")
-
-
-                await websocket.send(json.dumps({"status": "donation_ok"}))
+                # если было правило — панель сама увидит его в JSON
                 continue
 
             # ---------- STOP ----------
@@ -220,21 +194,13 @@ async def ws_handler(websocket):
             if msg_type == "vip_update":
                 user = data.get("user")
 
-                # читаем режим из Redis
                 mode = redis_client.hget("user_modes", user)
-                if mode:
-                    mode = mode.decode()
-                else:
-                    mode = "private"
-
+                mode = mode.decode() if mode else "private"
                 profile_key = f"{user}_{mode}"
 
-                # добавляем profile_key в сообщение
                 data["profile_key"] = profile_key
-
                 ws_send(data, role="panel")
                 continue
-
 
             # ---------- GOAL UPDATE ----------
             if msg_type == "goal_update":
@@ -264,7 +230,6 @@ async def ws_handler(websocket):
                 continue
 
     finally:
-        # корректное удаление сокета
         CONNECTED_SOCKETS.discard(websocket)
         CLIENT_TYPES.pop(websocket, None)
         CLIENT_PROFILES.pop(websocket, None)
@@ -277,22 +242,15 @@ async def ws_server(profile_keys):
     global WS_EVENT_LOOP
     WS_EVENT_LOOP = asyncio.get_running_loop()
 
-    # Инициализация вибрационных очередей
     init_vibration_queues(profile_keys)
 
-    # Фоновые задачи
     asyncio.create_task(redis_listener())
     for key in profile_keys:
         asyncio.create_task(vibration_worker(key))
 
-    # Запускаем WebSocket‑сервер
     server = await websockets.serve(ws_handler, "127.0.0.1", 8765)
-
-    # Держим сервер живым
     await server.wait_closed()
 
 
 def run_websocket_server(profile_keys):
     asyncio.run(ws_server(profile_keys))
-
-
