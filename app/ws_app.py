@@ -224,17 +224,21 @@ async def ws_server(profile_keys):
     global WS_EVENT_LOOP
     WS_EVENT_LOOP = asyncio.get_running_loop()
 
+    # Инициализируем очереди вибраций
     init_vibration_queues(profile_keys)
 
+    # Фоновые задачи
+    asyncio.create_task(redis_listener())
     for key in profile_keys:
         asyncio.create_task(vibration_worker(key))
 
-    await websockets.serve(ws_handler, "0.0.0.0", 8765)
-    asyncio.create_task(redis_listener())
+    # Поднимаем WebSocket‑сервер
+    server = await websockets.serve(ws_handler, "127.0.0.1", 8765)
+
+    # Ждём, пока сервер жив
+    await server.wait_closed()
 
 
 def run_websocket_server(profile_keys):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(ws_server(profile_keys))
-    loop.run_forever()
+    asyncio.run(ws_server(profile_keys))
+
