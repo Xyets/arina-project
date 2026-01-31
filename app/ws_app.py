@@ -2,6 +2,8 @@ import asyncio
 import json
 import websockets
 import redis
+from services.vip_service import update_vip
+from services.logs_service import add_log
 
 from config import CONFIG
 from services.goal_service import load_goal
@@ -135,6 +137,28 @@ async def ws_handler(websocket):
                     continue
 
                 await websocket.send(json.dumps({"error": "unknown_role"}))
+                continue
+            # ---------- VIEWER LOGIN / LOGOUT ----------
+            if "event" in data:
+                event = data["event"].lower()
+                user_id = data.get("user_id")
+                name = data.get("name", "Анонимно")
+                text = data.get("text", "")
+
+                # VIP обновление
+                profile = update_vip(profile_key, user_id, name=name, event=event)
+
+                # Логирование
+                if event == "login":
+                    add_log(profile_key, f"🔵 LOGIN | {name} ({user_id})")
+                elif event == "logout":
+                    add_log(profile_key, f"🔴 LOGOUT | {name} ({user_id})")
+                else:
+                    add_log(profile_key, f"📥 EVENT | {event.upper()} | {name} ({user_id}) → {text}")
+
+                # Обновление панели
+                ws_send({"type": "refresh_logs"}, role="panel")
+
                 continue
 
             # ---------- DONATION ----------

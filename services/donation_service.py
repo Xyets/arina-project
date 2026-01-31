@@ -70,15 +70,34 @@ def apply_rule(profile_key, amount, text):
 def handle_donation(profile_key, name, amount, text):
     """
     Главная функция обработки доната.
-    Полностью повторяет старую логику.
+    Полностью повторяет старую красивую логику.
     """
 
     mode = profile_key.split("_")[1]
 
-    # 1. Лог
-    add_log(profile_key, f"💸 DONATION | {name} → {amount} | {text}")
+    # 1. Применяем правила
+    rule_result = apply_rule(profile_key, amount, text)
 
-    # 2. Аудит
+    # 2. Логируем красиво
+    if rule_result and rule_result["kind"] == "action":
+        add_log(
+            profile_key,
+            f"💸 DONATION | {name} → {amount} 🎬 Действие: {rule_result['action_text']}"
+        )
+
+    elif rule_result and rule_result["kind"] == "vibration":
+        add_log(
+            profile_key,
+            f"💸 DONATION | {name} → {amount} 🏰 Вибрация: сила={rule_result['strength']}, время={rule_result['duration']}"
+        )
+
+    else:
+        add_log(
+            profile_key,
+            f"💸 DONATION | {name} → {amount} 🍀 Без действия"
+        )
+
+    # 3. Аудит
     audit_event(
         profile_key,
         mode,
@@ -90,40 +109,31 @@ def handle_donation(profile_key, name, amount, text):
         },
     )
 
-    # 3. VIP
+    # 4. VIP
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     update_vip(vip_file, user_id=name, name=name, amount=amount)
 
-    # 4. Цель
+    # 5. Цель
     goal_file = CONFIG["profiles"][profile_key]["goal_file"]
     goal = load_goal(goal_file)
     goal["current"] += amount
     save_goal(goal_file, goal)
 
-    # 5. Статистика
+    # 6. Статистика
     stats_file = CONFIG["profiles"][profile_key]["stats_file"]
-    update_donations_sum(stats_file, amount)
-
-    # 6. Правила
-    rule_result = apply_rule(profile_key, amount, text)
 
     if rule_result and rule_result["kind"] == "action":
-        add_log(profile_key, f"🎬 ACTION | {rule_result['action_text']}")
         update_stats(stats_file, "actions", amount)
-        return {"goal": goal, "rule": rule_result}
-
-    if rule_result and rule_result["kind"] == "vibration":
+    elif rule_result and rule_result["kind"] == "vibration":
         update_stats(stats_file, "vibrations", amount)
-        return {"goal": goal, "rule": rule_result}
+    else:
+        update_stats(stats_file, "other", amount)
 
-    # 7. OTHER
-    update_stats(stats_file, "other", amount)
-
-    # 8. Реакции OBS
+    # 7. Реакции OBS
     reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
     reaction_event = apply_reaction_rule(reactions_file, amount)
 
     if reaction_event:
         redis_client.publish("obs_reactions", json.dumps(reaction_event))
 
-    return {"goal": goal, "rule": None}
+    return {"goal": goal, "rule": rule_result}
