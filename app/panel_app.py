@@ -101,9 +101,15 @@ def set_mode():
 
     if mode not in ("public", "private"):
         return {"status": "error", "message": "Неверный режим"}
-
+    
     session["mode"] = mode
+
+    # 🔥 Добавляем сохранение режима в Redis
+    from services.lovense_service import redis_client
+    redis_client.hset("user_modes", session["user"], mode)
+
     return {"status": "ok", "mode": mode}
+
 
 
 # -------------------- AJAX: логи --------------------
