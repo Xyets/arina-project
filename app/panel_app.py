@@ -24,21 +24,24 @@ def login_required(f):
 @panel_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form.get("username")
-        pwd = request.form.get("password")
+        user = request.form.get("username", "").strip()
+        pwd = request.form.get("password", "").strip()
 
-        if user in USERS and USERS[user] == pwd:
-            session["user"] = user
+        # нормализуем имя пользователя
+        user_key = None
+        for u in USERS:
+            if u.lower() == user.lower():
+                user_key = u
+                break
+
+        if user_key and USERS[user_key] == pwd:
+            session["user"] = user_key
             session["mode"] = "private"
 
-            profile_key = f"{user}_private"
-
-            # безопасный вызов
+            profile_key = f"{user_key}_private"
             audit_event(profile_key, "auth", {"type": "login"})
 
             return redirect(url_for("panel.index"))
-
-
 
         return render_template("login.html", error="Неверный логин или пароль")
 
