@@ -86,7 +86,8 @@ def index():
         queue=list(queue.queue) if queue else [],
         logs=logs,
         current_mode=mode,
-        goal=goal
+        goal=goal,
+        current_profile=profile_key 
     )
 
 
