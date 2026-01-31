@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request
 from functools import wraps
 import json
-
+import os
 from config import CONFIG
 from services.stats_service import load_stats, calculate_stats
 
@@ -77,3 +77,80 @@ def stats_history():
         user=user,
         archive=archive
     )
+
+@stats_bp.route("/close_period", methods=["POST"])
+@login_required
+def close_period():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    # Пути к файлам из config.json
+    profile_cfg = CONFIG["profiles"].get(profile_key)
+    if not profile_cfg:
+        return f"Профиль {profile_key} не найден", 500
+
+    stats_file = profile_cfg["stats_file"]
+    archive_file = f"data/stats/stats_archive_{profile_key}.json"
+
+    # Загружаем текущую статистику
+    stats = load_stats(stats_file)
+
+    if not stats:
+        return redirect(url_for("stats.stats_history"))
+
+    # Загружаем архив
+    try:
+        with open(archive_file, "r", encoding="utf-8") as f:
+            archive = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        archive = {"periods": []}
+
+    # Определяем границы периода
+    days_sorted = sorted(stats.keys())
+    start_day = days_sorted[0]
+    end_day = days_sorted[-1]
+
+    # Считаем суммы
+    total_income = 0
+    total_vibrations = 0
+    total_actions = 0
+    total_other = 0
+    total_archi_fee = 0
+
+    for day, data in stats.items():
+        total_income += data.get("net_income", 0)
+        total_vibrations += data.get("vibrations", 0)
+        total_actions += data.get("actions", 0)
+        total_other += data.get("other", 0)
+        total_archi_fee += data.get("archi_fee", 0)
+
+    # Создаём новый период
+    new_period = {
+        "id": len(archive["periods"]) + 1,
+        "start": start_day,
+        "end": end_day,
+        "total_income": total_income,
+        "vibrations": total_vibrations,
+        "actions": total_actions,
+        "other": total_other,
+        "archi_fee": total_archi_fee,
+        "days": stats
+    }
+
+    archive["periods"].append(new_period)
+
+    # Сохраняем архив
+    tmp = archive_file + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(archive, f, indent=2, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, archive_file)
+
+    # Очищаем текущую статистику
+    with open(stats_file, "w", encoding="utf-8") as f:
+        json.dump({}, f)
+
+    return redirect(url_for("stats.stats_history"))
+
