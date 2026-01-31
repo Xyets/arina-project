@@ -54,12 +54,6 @@ if __name__ == "__main__":
         daemon=True
     ).start()
 
-    # 🔥 Запускаем WebSocket‑сервер в отдельном потоке
-    threading.Thread(
-        target=run_websocket_server,
-        args=(profile_keys,),
-        daemon=True
-    ).start()
 
     # 🔥 Запускаем Flask
     run_flask()
