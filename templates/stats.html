@@ -171,7 +171,7 @@
   </script>
 
   <div style="text-align:center;">
-    <a href="{{ url_for('index') }}" class="back">⬅ На главную</a>
+    <a href="{{ url_for('panel.index') }}" class="back">⬅ На главную</a>
     <a href="{{ url_for('stats_history') }}" class="back">📜 История</a>
     <form id="closePeriodForm" action="{{ url_for('close_period') }}" method="post" style="display:inline;">
       <button type="button" class="back" onclick="showConfirm()">📦 Завершить период</button>
