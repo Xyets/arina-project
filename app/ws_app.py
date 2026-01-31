@@ -166,11 +166,10 @@ async def ws_handler(websocket):
 
                 # обработка доната (лог, VIP, цель, статистика, правила, реакции)
                 from services.donation_service import handle_donation
-                handle_donation(profile_key, name, amount, text)
+                result = handle_donation(profile_key, name, amount, text)
 
                 # отправляем панели обновление цели
-                goal = load_goal(CONFIG["profiles"][profile_key]["goal_file"])
-                ws_send({"goal_update": True, "goal": goal}, role="panel")
+                ws_send({"goal_update": True, "goal": result["goal"]}, role="panel")
 
                 # отправляем панели лог доната
                 ws_send({
@@ -180,6 +179,15 @@ async def ws_handler(websocket):
                     "amount": amount,
                     "text": text
                 }, role="panel")
+
+                # если было правило — отправляем панели
+                if result["rule"]:
+                    ws_send({
+                        "type": "rule",
+                        "rule": result["rule"],
+                        "user": user
+                    }, role="panel")
+
 
                 await websocket.send(json.dumps({"status": "donation_ok"}))
                 continue

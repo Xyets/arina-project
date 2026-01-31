@@ -14,7 +14,6 @@ from services.logs_service import add_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal, save_goal
 
-
 redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
 
 
@@ -55,10 +54,8 @@ def apply_rule(profile_key, amount, text):
                 return {"kind": "action", "action_text": action.strip()}
 
             # VIBRATION
-            profile = CONFIG["profiles"][profile_key]
-
             # Cloud
-            send_vibration_cloud(profile, strength, duration)
+            send_vibration_cloud(profile_key, strength, duration)
 
             # OBS
             enqueue_vibration(profile_key, strength, duration)
@@ -73,6 +70,7 @@ def apply_rule(profile_key, amount, text):
 def handle_donation(profile_key, name, amount, text):
     """
     Главная функция обработки доната.
+    Полностью повторяет старую логику.
     """
 
     mode = profile_key.split("_")[1]
@@ -112,11 +110,11 @@ def handle_donation(profile_key, name, amount, text):
     if rule_result and rule_result["kind"] == "action":
         add_log(profile_key, f"🎬 ACTION | {rule_result['action_text']}")
         update_stats(stats_file, "actions", amount)
-        return
+        return {"goal": goal, "rule": rule_result}
 
     if rule_result and rule_result["kind"] == "vibration":
         update_stats(stats_file, "vibrations", amount)
-        return
+        return {"goal": goal, "rule": rule_result}
 
     # 7. OTHER
     update_stats(stats_file, "other", amount)
@@ -127,3 +125,5 @@ def handle_donation(profile_key, name, amount, text):
 
     if reaction_event:
         redis_client.publish("obs_reactions", json.dumps(reaction_event))
+
+    return {"goal": goal, "rule": None}
