@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from functools import wraps
 
-from config import CONFIG, USERS
+from config import CONFIG
 from services.vibration_manager import get_vibration_queue
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
@@ -27,14 +27,18 @@ def login():
         user = request.form.get("username", "").strip()
         pwd = request.form.get("password", "").strip()
 
+        # USERS теперь берём из config.json
+        users_cfg = CONFIG.get("USERS", {})
+
         # нормализуем имя пользователя
         user_key = None
-        for u in USERS:
+        for u in users_cfg:
             if u.lower() == user.lower():
                 user_key = u
                 break
 
-        if user_key and USERS[user_key] == pwd:
+        # проверяем пароль
+        if user_key and users_cfg.get(user_key) == pwd:
             session["user"] = user_key
             session["mode"] = "private"
 
@@ -56,7 +60,6 @@ def logout():
     if user:
         profile_key = f"{user}_{mode}"
         audit_event(profile_key, mode, {"type": "logout"})
-
 
     session.clear()
     return redirect(url_for("panel.login"))
