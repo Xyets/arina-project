@@ -422,412 +422,413 @@
         🧹 Очистить очередь
       </button>
     </div>
-    
-    <script>
     <!-- JS -->
-    /* ---------------------------------------------------------
-      🔧 1. Текущий пользователь
-    --------------------------------------------------------- */
-    const CURRENT_USER = "{{ user }}";
-    let lastLogCount = 0;
-    const shownEntries = new Set();
+    <script>
 
-    /* ---------------------------------------------------------
-      🌐 2. WebSocket с авто‑реконнектом
-    --------------------------------------------------------- */
-    let socket = null;
+      /* ---------------------------------------------------------
+        🔧 1. Текущий пользователь
+      --------------------------------------------------------- */
+      const CURRENT_USER = "{{ user }}";
+      let lastLogCount = 0;
+      const shownEntries = new Set();
 
-    function connectWS() {
-        const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+      /* ---------------------------------------------------------
+        🌐 2. WebSocket с авто‑реконнектом
+      --------------------------------------------------------- */
+      let socket = null;
 
-        socket = new WebSocket(wsUrl);
+      function connectWS() {
+          const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
 
-        socket.onopen = () => {
-            console.log("✅ Панель подключена к WebSocket");
+          socket = new WebSocket(wsUrl);
 
-            socket.send(JSON.stringify({
-                type: "hello",
-                role: "panel",
-                user: CURRENT_USER
-            }));
+          socket.onopen = () => {
+              console.log("✅ Панель подключена к WebSocket");
 
-            if (socket._pingInterval) clearInterval(socket._pingInterval);
-            socket._pingInterval = setInterval(() => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: "ping" }));
-                }
-            }, 30000);
-        };
+              socket.send(JSON.stringify({
+                  type: "hello",
+                  role: "panel",
+                  user: CURRENT_USER
+              }));
 
-        socket.onclose = () => {
-            console.log("❌ WebSocket закрыт, переподключение...");
-            if (socket._pingInterval) clearInterval(socket._pingInterval);
-            setTimeout(connectWS, 2000);
-        };
+              if (socket._pingInterval) clearInterval(socket._pingInterval);
+              socket._pingInterval = setInterval(() => {
+                  if (socket.readyState === WebSocket.OPEN) {
+                      socket.send(JSON.stringify({ type: "ping" }));
+                  }
+              }, 30000);
+          };
 
-        socket.onmessage = (event) => {
-            let data;
-            try { data = JSON.parse(event.data); }
-            catch { return; }
+          socket.onclose = () => {
+              console.log("❌ WebSocket закрыт, переподключение...");
+              if (socket._pingInterval) clearInterval(socket._pingInterval);
+              setTimeout(connectWS, 2000);
+          };
 
-            console.log("📡 Панель получила:", data);
+          socket.onmessage = (event) => {
+              let data;
+              try { data = JSON.parse(event.data); }
+              catch { return; }
 
-            // ---------- DONATION ----------
-            if (data.type === "donation") {
-                const box = document.getElementById("logbox");
-                const div = document.createElement("div");
-                div.className = "log-entry log-donation-plain";
-                div.textContent = `${data.name}: ${data.amount} pt — ${data.text}`;
-                box.appendChild(div);
-                box.scrollTop = box.scrollHeight;
-                return;
-            }
+              console.log("📡 Панель получила:", data);
 
-            // ---------- RULE ----------
-            if (data.rule) {
-                const box = document.getElementById("logbox");
-                const div = document.createElement("div");
+              // ---------- DONATION ----------
+              if (data.type === "donation") {
+                  const box = document.getElementById("logbox");
+                  const div = document.createElement("div");
+                  div.className = "log-entry log-donation-plain";
+                  div.textContent = `${data.name}: ${data.amount} pt — ${data.text}`;
+                  box.appendChild(div);
+                  box.scrollTop = box.scrollHeight;
+                  return;
+              }
 
-                if (data.rule.kind === "action") {
-                    div.className = "log-entry log-action";
-                    div.textContent = `🎬 Действие: ${data.rule.action_text}`;
-                } else if (data.rule.kind === "vibration") {
-                    div.className = "log-entry log-vibration";
-                    div.textContent = `🏰 Вибрация: сила=${data.rule.strength}, время=${data.rule.duration}`;
-                    startVibrationTimer(data.rule.duration, data.rule.strength);
-                }
+              // ---------- RULE ----------
+              if (data.rule) {
+                  const box = document.getElementById("logbox");
+                  const div = document.createElement("div");
 
-                box.appendChild(div);
-                box.scrollTop = box.scrollHeight;
-                return;
-            }
+                  if (data.rule.kind === "action") {
+                      div.className = "log-entry log-action";
+                      div.textContent = `🎬 Действие: ${data.rule.action_text}`;
+                  } else if (data.rule.kind === "vibration") {
+                      div.className = "log-entry log-vibration";
+                      div.textContent = `🏰 Вибрация: сила=${data.rule.strength}, время=${data.rule.duration}`;
+                      startVibrationTimer(data.rule.duration, data.rule.strength);
+                  }
 
-            // ---------- VIBRATION (от OBS) ----------
-            if (data.vibration) {
-                const v = data.vibration;
-                startVibrationTimer(v.duration, v.strength);
-                return;
-            }
+                  box.appendChild(div);
+                  box.scrollTop = box.scrollHeight;
+                  return;
+              }
 
-            // ---------- GOAL UPDATE ----------
-            if (data.goal_update) {
-                updateGoalUI(data.goal);
-                return;
-            }
+              // ---------- VIBRATION (от OBS) ----------
+              if (data.vibration) {
+                  const v = data.vibration;
+                  startVibrationTimer(v.duration, v.strength);
+                  return;
+              }
 
-            // ---------- VIP UPDATE ----------
-            if (data.vip_update) {
-                loadVIP();
-                return;
-            }
+              // ---------- GOAL UPDATE ----------
+              if (data.goal_update) {
+                  updateGoalUI(data.goal);
+                  return;
+              }
 
-            // ---------- MODE UPDATE ----------
-            if (data.mode_update && data.user === CURRENT_USER) {
-                location.reload();
-                return;
-            }
-        
-        };
-        window.addEventListener("beforeunload", () => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.close(1000, "page unload");
-            }
-        });
+              // ---------- VIP UPDATE ----------
+              if (data.vip_update) {
+                  loadVIP();
+                  return;
+              }
 
-    }
-
-    connectWS();
-
-    /* ---------------------------------------------------------
-      🔄 Переключение режима
-    --------------------------------------------------------- */
-    const modeSwitch = document.getElementById("modeSwitch");
-
-    modeSwitch.addEventListener("change", () => {
-        const newMode = modeSwitch.checked ? "private" : "public";
-
-        // 🔥 Отправляем команду WebSocket-серверу
-        socket.send(JSON.stringify({
-            type: "set_mode",
-            user: CURRENT_USER,
-            mode: newMode
-        }));
-
-        // 🔥 Сообщаем Flask (для сохранения в сессии)
-        fetch("/set_mode", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode: newMode })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === "ok") {
-                showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
-            } else {
-                showToast("❌ Ошибка переключения режима");
-            }
-        })
-        .catch(() => showToast("❌ Ошибка соединения с сервером"));
-    });
-
-    /* ---------------------------------------------------------
-      🛑 Остановка вибрации
-    --------------------------------------------------------- */
-    function sendStop() {
-        socket.send(JSON.stringify({
-            type: "stop",
-            user: CURRENT_USER
-        }));
-    }
+              // ---------- MODE UPDATE ----------
+              if (data.mode_update && data.user === CURRENT_USER) {
+                  location.reload();
+                  return;
+              }
+          
+          };
 
 
-    // 📜 Логи донатов
-    async function loadLogs() {
-        try {
-            const res = await fetch("/logs_data");
-            const data = await res.json();
-            const box = document.getElementById("logbox");
-            const logs = data.logs || [];
+      }
 
-            const newLogs = logs.slice(lastLogCount);
-            lastLogCount = logs.length;
+      connectWS();
 
-            newLogs.forEach(log => {
-                let cssClass = "log-entry";
-                if (log.includes("🏰")) cssClass += " log-vibration";
-                else if (log.includes("🎬")) cssClass += " log-action";
-                else if (log.includes("LOGIN") || log.includes("LOGOUT") || log.includes("🔵")) cssClass += " log-loginout";
-                else if (log.includes("🍀")) cssClass += " log-donation-plain";
+      /* ---------------------------------------------------------
+        🔄 Переключение режима
+      --------------------------------------------------------- */
+      const modeSwitch = document.getElementById("modeSwitch");
 
-                const div = document.createElement("div");
-                div.className = cssClass;
-                div.textContent = log;
-                box.appendChild(div);
-                box.scrollTop = box.scrollHeight;
-            });
-        } catch (e) {
-            console.error("⚠️ Ошибка загрузки логов:", e);
-        }
-    }
+      modeSwitch.addEventListener("change", () => {
+          const newMode = modeSwitch.checked ? "private" : "public";
 
+          // 🔥 Отправляем команду WebSocket-серверу
+          socket.send(JSON.stringify({
+              type: "set_mode",
+              user: CURRENT_USER,
+              mode: newMode
+          }));
 
-    // ⏱ Таймер вибрации
-    function startVibrationTimer(duration, strength = "—") {
-        const container = document.getElementById("vibrationTimersContainer");
-        const box = document.createElement("div");
-        box.className = "vibration-timer";
-        box.innerHTML = `
-          <div><span class="emoji-bounce">💖</span> Вибрация!</div>
-          <div>Сила: ${strength}</div>
-          <div>⏳ Осталось: <span class="time">${Math.ceil(duration)}</span> сек</div>
-          <div class="progress"><div class="progress-bar"></div></div>
-          <button class="stop-vibration-btn"
-                  style="margin-top:8px; background:#ff4d4d; border:none; padding:6px 12px; border-radius:12px; color:white; cursor:pointer; font-size:12px;">
-            ⛔ Остановить
-          </button>
-        `;
-        container.appendChild(box);
-
-        let remaining = duration;
-        const timeSpan = box.querySelector(".time");
-        const progressBar = box.querySelector(".progress-bar");
-        const stopBtn = box.querySelector(".stop-vibration-btn");
-        progressBar.style.width = "100%";
-
-        const interval = setInterval(() => {
-            remaining -= 1;
-            if (remaining <= 0) {
-                clearInterval(interval);
-                box.remove();
-            } else {
-                timeSpan.textContent = Math.ceil(remaining);
-                progressBar.style.width = `${(remaining / duration) * 100}%`;
-            }
-        }, 1000);
-
-        // ⛔ Остановка вибрации — ТОЛЬКО через WebSocket
-        stopBtn.addEventListener("click", () => {
-            sendStop();
-            clearInterval(interval);
-            box.remove();
-            if (typeof showToast === "function") showToast("Вибрация остановлена");
-        });
-    }
-
-
-    function formatDate(raw) {
-        if (!raw) return "—";
-        const d = new Date(raw);
-        return d.toLocaleString("ru-RU", {
-            day: "numeric",
-            month: "long",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
-    }
-
-
-    // 👑 Новые мемберы
-    async function checkNewEntries() {
-        try {
-            const res = await fetch("/entries_data");
-            const data = await res.json();
-            (data.entries || []).forEach(entry => {
-                const key = `${entry.user_id}-${entry.last_login}`;
-                if (shownEntries.has(key)) return;
-                shownEntries.add(key);
-
-                let message = entry.visits
-                  ? `👑 <strong>${entry.name}</strong><br>
-                    📅 Предыдущий визит: ${formatDate(entry._previous_login || entry.last_login)}<br>
-                    🔢 Всего визитов: ${entry.visits}<br>
-                    💗 Всего чаевых: ${entry.total_tips}<br>
-                    📝 Заметки: ${entry.notes || "нет"}`
-                  : "🆕 Новый мембер!";
-
-                showEntryPopup(message);
-            });
-        } catch (e) {
-            console.error("⚠️ Ошибка загрузки entries:", e);
-        }
-    }
-
-
-    // 🔁 Очередь вибраций
-    async function loadQueue() {
-        try {
-            const res = await fetch("/queue_data");
-            const data = await res.json();
-            const box = document.getElementById("queuebox");
-
-            const items = data.queue || [];
-
-            if (items.length === 0) {
-                if (box.dataset.state !== "empty") {
-                    box.dataset.state = "empty";
-                    box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
-                }
-                return;
-            }
-
-            box.dataset.state = "filled";
-
-            const newHtml = items
-                .map(([strength, duration], i) =>
-                    `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-                )
-                .join("");
-
-            if (box.innerHTML !== newHtml) {
-                box.innerHTML = newHtml;
-                box.scrollTop = box.scrollHeight;
-            }
-
-        } catch (e) {
-            console.error("⚠️ Ошибка загрузки очереди:", e);
-        }
-    }
-
-    // 🔁 Очередь вибраций
-    async function loadQueue() {
-        try {
-            const res = await fetch("/queue_data");
-            const data = await res.json();
-            const box = document.getElementById("queuebox");
-
-            const items = data.queue || [];
-
-            if (items.length === 0) {
-                if (box.dataset.state !== "empty") {
-                    box.dataset.state = "empty";
-                    box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
-                }
-                return;
-            }
-
-            box.dataset.state = "filled";
-
-            const newHtml = items
-                .map(([strength, duration], i) =>
-                    `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-                )
-                .join("");
-
-            if (box.innerHTML !== newHtml) {
-                box.innerHTML = newHtml;
-                box.scrollTop = box.scrollHeight;
-            }
-
-        } catch (e) {
-            console.error("⚠️ Ошибка загрузки очереди:", e);
-        }
-    }
-
-
-    // 🧹 Очистка логов
-    document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
-        e.preventDefault();
-        lastLogCount = 0;
-        document.getElementById("logbox").innerHTML = "";
-        fetch("/clear_logs", { method: "POST" })
-          .then(() => showToast("Логи очищены ✅"))
-          .catch(() => showToast("❌ Ошибка при очистке логов"));
-    });
-
-
-    // 🧹 Очистка очереди
-    document.getElementById("clearQueueBtn").addEventListener("click", () => {
-        fetch("/clear_queue", { method: "POST" })
+          // 🔥 Сообщаем Flask (для сохранения в сессии)
+          fetch("/set_mode", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mode: newMode })
+          })
           .then(r => r.json())
           .then(data => {
-            showToast(data.message || "Очередь очищена ✅");
-            loadQueue();
+              if (data.status === "ok") {
+                  showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
+              } else {
+                  showToast("❌ Ошибка переключения режима");
+              }
           })
-          .catch(() => showToast("❌ Ошибка при очистке очереди"));
-    });
+          .catch(() => showToast("❌ Ошибка соединения с сервером"));
+      });
+
+      /* ---------------------------------------------------------
+        🛑 Остановка вибрации
+      --------------------------------------------------------- */
+      function sendStop() {
+          socket.send(JSON.stringify({
+              type: "stop",
+              user: CURRENT_USER
+          }));
+      }
 
 
-    // 🔔 Popup
-    function showEntryPopup(message) {
-        const popup = document.getElementById("entryPopup");
-        popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
-        popup.style.display = "block";
-        popup.classList.add("show");
-        let hideTimer = setTimeout(hidePopup, 8000);
+      // 📜 Логи донатов
+      async function loadLogs() {
+          try {
+              const res = await fetch("/logs_data");
+              const data = await res.json();
+              const box = document.getElementById("logbox");
+              const logs = data.logs || [];
 
-        popup.addEventListener("mouseenter", () => clearTimeout(hideTimer));
-        popup.addEventListener("mouseleave", () => hideTimer = setTimeout(hidePopup, 8000));
+              const newLogs = logs.slice(lastLogCount);
+              lastLogCount = logs.length;
 
-        function hidePopup() {
-            popup.classList.remove("show");
-            popup.style.display = "none";
-        }
-    }
+              newLogs.forEach(log => {
+                  let cssClass = "log-entry";
+                  if (log.includes("🏰")) cssClass += " log-vibration";
+                  else if (log.includes("🎬")) cssClass += " log-action";
+                  else if (log.includes("LOGIN") || log.includes("LOGOUT") || log.includes("🔵")) cssClass += " log-loginout";
+                  else if (log.includes("🍀")) cssClass += " log-donation-plain";
 
-    function hideEntryPopup() {
-        const popup = document.getElementById("entryPopup");
-        popup.classList.remove("show");
-        popup.style.display = "none";
-    }
-
-
-    // 🔔 Toast
-    function showToast(message) {
-        const toast = document.getElementById("toast");
-        toast.textContent = message;
-        toast.className = "toast show";
-        setTimeout(() => {
-          toast.className = toast.className.replace("show", "");
-        }, 3000);
-    }
+                  const div = document.createElement("div");
+                  div.className = cssClass;
+                  div.textContent = log;
+                  box.appendChild(div);
+                  box.scrollTop = box.scrollHeight;
+              });
+          } catch (e) {
+              console.error("⚠️ Ошибка загрузки логов:", e);
+          }
+      }
 
 
-    // ⏱ Циклы обновления
-    setInterval(loadLogs, 2000);
-    setInterval(loadQueue, 2000);
+      // ⏱ Таймер вибрации
+      function startVibrationTimer(duration, strength = "—") {
+          const container = document.getElementById("vibrationTimersContainer");
+          const box = document.createElement("div");
+          box.className = "vibration-timer";
+          box.innerHTML = `
+            <div><span class="emoji-bounce">💖</span> Вибрация!</div>
+            <div>Сила: ${strength}</div>
+            <div>⏳ Осталось: <span class="time">${Math.ceil(duration)}</span> сек</div>
+            <div class="progress"><div class="progress-bar"></div></div>
+            <button class="stop-vibration-btn"
+                    style="margin-top:8px; background:#ff4d4d; border:none; padding:6px 12px; border-radius:12px; color:white; cursor:pointer; font-size:12px;">
+              ⛔ Остановить
+            </button>
+          `;
+          container.appendChild(box);
 
-    loadLogs();
-    loadQueue();
+          let remaining = duration;
+          const timeSpan = box.querySelector(".time");
+          const progressBar = box.querySelector(".progress-bar");
+          const stopBtn = box.querySelector(".stop-vibration-btn");
+          progressBar.style.width = "100%";
+
+          const interval = setInterval(() => {
+              remaining -= 1;
+              if (remaining <= 0) {
+                  clearInterval(interval);
+                  box.remove();
+              } else {
+                  timeSpan.textContent = Math.ceil(remaining);
+                  progressBar.style.width = `${(remaining / duration) * 100}%`;
+              }
+          }, 1000);
+
+          // ⛔ Остановка вибрации — ТОЛЬКО через WebSocket
+          stopBtn.addEventListener("click", () => {
+              sendStop();
+              clearInterval(interval);
+              box.remove();
+              if (typeof showToast === "function") showToast("Вибрация остановлена");
+          });
+      }
+
+
+      function formatDate(raw) {
+          if (!raw) return "—";
+          const d = new Date(raw);
+          return d.toLocaleString("ru-RU", {
+              day: "numeric",
+              month: "long",
+              hour: "2-digit",
+              minute: "2-digit"
+          });
+      }
+
+
+      // 👑 Новые мемберы
+      async function checkNewEntries() {
+          try {
+              const res = await fetch("/entries_data");
+              const data = await res.json();
+              (data.entries || []).forEach(entry => {
+                  const key = `${entry.user_id}-${entry.last_login}`;
+                  if (shownEntries.has(key)) return;
+                  shownEntries.add(key);
+
+                  let message = entry.visits
+                    ? `👑 <strong>${entry.name}</strong><br>
+                      📅 Предыдущий визит: ${formatDate(entry._previous_login || entry.last_login)}<br>
+                      🔢 Всего визитов: ${entry.visits}<br>
+                      💗 Всего чаевых: ${entry.total_tips}<br>
+                      📝 Заметки: ${entry.notes || "нет"}`
+                    : "🆕 Новый мембер!";
+
+                  showEntryPopup(message);
+              });
+          } catch (e) {
+              console.error("⚠️ Ошибка загрузки entries:", e);
+          }
+      }
+
+
+      // 🔁 Очередь вибраций
+      async function loadQueue() {
+          try {
+              const res = await fetch("/queue_data");
+              const data = await res.json();
+              const box = document.getElementById("queuebox");
+
+              const items = data.queue || [];
+
+              if (items.length === 0) {
+                  if (box.dataset.state !== "empty") {
+                      box.dataset.state = "empty";
+                      box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
+                  }
+                  return;
+              }
+
+              box.dataset.state = "filled";
+
+              const newHtml = items
+                  .map(([strength, duration], i) =>
+                      `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
+                  )
+                  .join("");
+
+              if (box.innerHTML !== newHtml) {
+                  box.innerHTML = newHtml;
+                  box.scrollTop = box.scrollHeight;
+              }
+
+          } catch (e) {
+              console.error("⚠️ Ошибка загрузки очереди:", e);
+          }
+      }
+
+      // 🔁 Очередь вибраций
+      async function loadQueue() {
+          try {
+              const res = await fetch("/queue_data");
+              const data = await res.json();
+              const box = document.getElementById("queuebox");
+
+              const items = data.queue || [];
+
+              if (items.length === 0) {
+                  if (box.dataset.state !== "empty") {
+                      box.dataset.state = "empty";
+                      box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
+                  }
+                  return;
+              }
+
+              box.dataset.state = "filled";
+
+              const newHtml = items
+                  .map(([strength, duration], i) =>
+                      `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
+                  )
+                  .join("");
+
+              if (box.innerHTML !== newHtml) {
+                  box.innerHTML = newHtml;
+                  box.scrollTop = box.scrollHeight;
+              }
+
+          } catch (e) {
+              console.error("⚠️ Ошибка загрузки очереди:", e);
+          }
+      }
+
+
+      // 🧹 Очистка логов
+      document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
+          e.preventDefault();
+          lastLogCount = 0;
+          document.getElementById("logbox").innerHTML = "";
+          fetch("/clear_logs", { method: "POST" })
+            .then(() => showToast("Логи очищены ✅"))
+            .catch(() => showToast("❌ Ошибка при очистке логов"));
+      });
+
+
+      // 🧹 Очистка очереди
+      document.getElementById("clearQueueBtn").addEventListener("click", () => {
+          fetch("/clear_queue", { method: "POST" })
+            .then(r => r.json())
+            .then(data => {
+              showToast(data.message || "Очередь очищена ✅");
+              loadQueue();
+            })
+            .catch(() => showToast("❌ Ошибка при очистке очереди"));
+      });
+
+
+      // 🔔 Popup
+      function showEntryPopup(message) {
+          const popup = document.getElementById("entryPopup");
+          popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
+          popup.style.display = "block";
+          popup.classList.add("show");
+          let hideTimer = setTimeout(hidePopup, 8000);
+
+          popup.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+          popup.addEventListener("mouseleave", () => hideTimer = setTimeout(hidePopup, 8000));
+
+          function hidePopup() {
+              popup.classList.remove("show");
+              popup.style.display = "none";
+          }
+      }
+
+      function hideEntryPopup() {
+          const popup = document.getElementById("entryPopup");
+          popup.classList.remove("show");
+          popup.style.display = "none";
+      }
+
+
+      // 🔔 Toast
+      function showToast(message) {
+          const toast = document.getElementById("toast");
+          toast.textContent = message;
+          toast.className = "toast show";
+          setTimeout(() => {
+            toast.className = toast.className.replace("show", "");
+          }, 3000);
+      }
+
+
+      // ⏱ Циклы обновления
+      setInterval(loadLogs, 2000);
+      setInterval(loadQueue, 2000);
+
+      loadLogs();
+      loadQueue();
+      window.addEventListener("beforeunload", () => {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.close(1000, "page unload");
+          }
+      });
 
     </script>
 
