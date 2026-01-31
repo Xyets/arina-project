@@ -528,6 +528,12 @@
             }
         
         };
+        window.addEventListener("beforeunload", () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close(1000, "page unload");
+            }
+        });
+
     }
 
     connectWS();
@@ -823,21 +829,6 @@
     loadLogs();
     loadQueue();
 
-
-
-    document.addEventListener("DOMContentLoaded", () => {
-        let isDragging = false, offsetX = 0, offsetY = 0;
-        const popup = document.getElementById("entryPopup");
-        if (!popup) return;
-
-        popup.addEventListener("mousedown", (e) => {
-            isDragging = true;
-            offsetX = e.clientX - popup.offsetLeft;
-            offsetY = e.clientY - popup.offsetTop;
-            popup.style.transition = "none";
-        });
-
-    });
     </script>
 
     <script>
