@@ -77,13 +77,11 @@
 <body>
   <h2>📜 Архив периодов — {{ user }}</h2>
 
-  <!-- График по периодам -->
   <div class="card">
     <h3>📈 Динамика дохода по периодам</h3>
     <canvas id="historyChart" height="200"></canvas>
   </div>
 
-  <!-- Список периодов -->
   <div class="card">
     <h3>📊 Периоды</h3>
 
@@ -128,11 +126,10 @@
   </div>
 
   <div style="text-align:center;">
-    <a href="{{ url_for('stats') }}" class="back">⬅ Назад к статистике</a>
-    <a href="{{ url_for('index') }}" class="back">🏠 Панель</a>
+    <a href="{{ url_for('stats.stats_page') }}" class="back">⬅ Назад к статистике</a>
+    <a href="{{ url_for('panel.index') }}" class="back">🏠 Панель</a>
   </div>
 
-  <!-- Данные для графика -->
   <script id="periods-data" type="application/json">
     {{ archive.periods|tojson|safe }}
   </script>
