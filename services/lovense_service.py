@@ -12,18 +12,26 @@ redis_client = redis.StrictRedis(
 )
 
 
+# ---------------- ПРОФИЛИ ----------------
+
 def _load_profile(profile_key: str) -> Optional[Dict[str, Any]]:
     """
-    Загружает профиль из JSON-файла.
+    Возвращает профиль из CONFIG.
     """
-    try:
-        path = CONFIG["profiles"][profile_key]
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"❌ Ошибка загрузки профиля {profile_key}: {e}")
+    profile = CONFIG["profiles"].get(profile_key)
+
+    if not profile:
+        print(f"❌ Профиль {profile_key} не найден в CONFIG")
         return None
 
+    if not isinstance(profile, dict):
+        print(f"❌ Профиль {profile_key} имеет неверный формат (ожидался dict)")
+        return None
+
+    return profile
+
+
+# ---------------- REDIS ----------------
 
 def _get_utoken_from_redis(uid: str) -> Optional[str]:
     raw = redis_client.hget("connected_users", uid)
@@ -36,6 +44,8 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
     except Exception:
         return None
 
+
+# ---------------- CLOUD ВИБРАЦИЯ ----------------
 
 def send_vibration_cloud(profile_key: str, strength: int, duration: int) -> Optional[dict]:
     """
