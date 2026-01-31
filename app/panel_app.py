@@ -32,9 +32,12 @@ def login():
             session["mode"] = "private"
 
             profile_key = f"{user}_private"
-            audit_event(profile_key, "private", {"type": "login"})
+
+            # безопасный вызов
+            audit_event(profile_key, "auth", {"type": "login"})
 
             return redirect(url_for("panel.index"))
+
 
 
         return render_template("login.html", error="Неверный логин или пароль")
