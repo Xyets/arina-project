@@ -19,6 +19,13 @@ def audit_event(profile_key: str, scope: str, event: Dict[str, Any]) -> Dict[str
     Возвращает записанный объект (включая event_id).
     """
 
+    # защита от пустых ключей
+    if not profile_key:
+        raise ValueError("profile_key не может быть пустым")
+
+    if not isinstance(event, dict):
+        raise ValueError("event должен быть словарём")
+
     # гарантируем, что корневая папка существует
     AUDIT_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -29,6 +36,14 @@ def audit_event(profile_key: str, scope: str, event: Dict[str, Any]) -> Dict[str
     day = now_utc.strftime("%Y-%m-%d")
     folder = AUDIT_ROOT / profile_key / scope / day
 
+    # определяем тип события
+    event_type = event.get("type")
+    if not event_type:
+        if "donation_id" in event or "amount" in event:
+            event_type = "donation"
+        else:
+            event_type = "system"
+
     # формируем запись
     record = {
         "ts_utc": now_utc.isoformat() + "Z",
@@ -36,9 +51,7 @@ def audit_event(profile_key: str, scope: str, event: Dict[str, Any]) -> Dict[str
         "profile_key": profile_key,
         "scope": scope,
         "event_id": str(uuid.uuid4()),
-        "type": event.get("type") or (
-            "donation" if ("donation_id" in event or "amount" in event) else "system"
-        ),
+        "type": event_type,
         "raw": event,
     }
 

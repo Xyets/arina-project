@@ -1,9 +1,7 @@
-# services/logs_service.py
-
 import os
-import json
 from pathlib import Path
 from datetime import datetime
+from typing import List
 
 LOG_DIR = Path("data/donations")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -16,7 +14,7 @@ def log_path(profile_key: str) -> Path:
     return LOG_DIR / f"donations_{profile_key}.log"
 
 
-def load_logs_from_file(profile_key: str) -> list:
+def load_logs_from_file(profile_key: str) -> List[str]:
     """
     Загружает логи донатов.
     Возвращает список строк.
@@ -44,6 +42,9 @@ def add_log(profile_key: str, message: str) -> None:
 
     path = log_path(profile_key)
 
+    # гарантируем, что каталог существует
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     try:
         with open(path, "a", encoding="utf-8") as f:
             f.write(entry + "\n")
@@ -58,7 +59,14 @@ def clear_logs_file(profile_key: str) -> None:
     path = log_path(profile_key)
 
     try:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write("")  # просто перезаписываем пустым
+        # атомарная очистка
+        tmp = path.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("")
+            f.flush()
+            os.fsync(f.fileno())
+
+        os.replace(tmp, path)
+
     except Exception as e:
         print(f"⚠️ Ошибка очистки лога {path}: {e}")

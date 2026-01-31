@@ -5,27 +5,15 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-REACTIONS_DIR = Path("data/reactions")
-REACTIONS_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# ---------------- PATH UTILITY ----------------
-
-def reactions_path(profile_key: str) -> Path:
-    """
-    Возвращает путь к файлу правил реакций для профиля.
-    """
-    return REACTIONS_DIR / f"reactions_{profile_key}.json"
-
 
 # ---------------- LOAD ----------------
 
-def load_reaction_rules(profile_key: str) -> Dict[str, Any]:
+def load_reaction_rules(path: str) -> Dict[str, Any]:
     """
-    Загружает правила реакций.
+    Загружает правила реакций из файла по ПОЛНОМУ пути.
     Если файла нет или он повреждён — возвращает пустую структуру.
     """
-    path = reactions_path(profile_key)
+    path = Path(path)
 
     if not path.exists():
         return {"rules": []}
@@ -39,13 +27,16 @@ def load_reaction_rules(profile_key: str) -> Dict[str, Any]:
 
 # ---------------- SAVE ----------------
 
-def save_reaction_rules(profile_key: str, rules: Dict[str, Any]) -> None:
+def save_reaction_rules(path: str, rules: Dict[str, Any]) -> None:
     """
-    Сохраняет правила реакций.
+    Сохраняет правила реакций в файл по ПОЛНОМУ пути.
     Запись атомарная: сначала .tmp, затем замена.
     """
-    path = reactions_path(profile_key)
+    path = Path(path)
     tmp = path.with_suffix(".json.tmp")
+
+    # гарантируем, что каталог существует
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(rules, f, indent=2, ensure_ascii=False)
@@ -57,7 +48,7 @@ def save_reaction_rules(profile_key: str, rules: Dict[str, Any]) -> None:
 
 # ---------------- APPLY RULE ----------------
 
-def apply_reaction_rule(profile_key: str, amount: int) -> Optional[Dict[str, Any]]:
+def apply_reaction_rule(path: str, amount: int) -> Optional[Dict[str, Any]]:
     """
     Проверяет сумму доната против правил реакций.
     Если совпадает — возвращает событие для OBS:
@@ -67,15 +58,13 @@ def apply_reaction_rule(profile_key: str, amount: int) -> Optional[Dict[str, Any
             "duration": X,
             "image": "reactions/xxx.png"
         }
-    Если нет совпадений — возвращает None.
     """
-    rules = load_reaction_rules(profile_key)
+    rules = load_reaction_rules(path)
 
     for rule in rules.get("rules", []):
         if rule["min_points"] <= amount <= rule["max_points"]:
             return {
                 "reaction": rule["id"],
-                "profile": profile_key,
                 "duration": rule.get("duration", 5),
                 "image": rule.get("image")
             }

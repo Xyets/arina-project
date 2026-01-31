@@ -25,7 +25,8 @@ def apply_rule(profile_key, amount, text):
     Применяет правило вибрации/действия.
     """
 
-    rules = load_rules(profile_key)
+    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    rules = load_rules(rules_file)
 
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
@@ -92,32 +93,37 @@ def handle_donation(profile_key, name, amount, text):
     )
 
     # 3. VIP
-    update_vip(profile_key, user_id=name, name=name, amount=amount)
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+    update_vip(vip_file, user_id=name, name=name, amount=amount)
 
     # 4. Цель
-    goal = load_goal(profile_key)
+    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    goal = load_goal(goal_file)
     goal["current"] += amount
-    save_goal(profile_key, goal)
+    save_goal(goal_file, goal)
 
     # 5. Статистика
-    update_donations_sum(profile_key, amount)
+    stats_file = CONFIG["profiles"][profile_key]["stats_file"]
+    update_donations_sum(stats_file, amount)
 
     # 6. Правила
     rule_result = apply_rule(profile_key, amount, text)
 
     if rule_result and rule_result["kind"] == "action":
         add_log(profile_key, f"🎬 ACTION | {rule_result['action_text']}")
-        update_stats(profile_key, "actions", amount)
+        update_stats(stats_file, "actions", amount)
         return
 
     if rule_result and rule_result["kind"] == "vibration":
-        update_stats(profile_key, "vibrations", amount)
+        update_stats(stats_file, "vibrations", amount)
         return
 
     # 7. OTHER
-    update_stats(profile_key, "other", amount)
+    update_stats(stats_file, "other", amount)
 
     # 8. Реакции OBS
-    reaction_event = apply_reaction_rule(profile_key, amount)
+    reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
+    reaction_event = apply_reaction_rule(reactions_file, amount)
+
     if reaction_event:
         redis_client.publish("obs_reactions", json.dumps(reaction_event))

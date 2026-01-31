@@ -1,5 +1,3 @@
-# services/lovense_service.py
-
 import json
 import requests
 import redis
@@ -20,9 +18,8 @@ redis_client = redis.StrictRedis(
 
 def generate_utoken(uid: str) -> str:
     """
-    В НОВОЙ версии utoken НЕ генерируется вручную.
+    В новой версии utoken НЕ генерируется вручную.
     Он приходит из callback Lovense Cloud.
-    Поэтому возвращаем пустую строку.
     """
     return ""
 
@@ -35,15 +32,12 @@ def get_qr_code_for_profile(profile: Dict[str, Any]) -> Optional[str]:
     """
     url = "https://api.lovense.com/api/lan/getQrCode"
 
-    uid = profile["uid"]
-    utoken = ""  # utoken приходит из callback
-
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
-        "uid": uid,
+        "uid": profile["uid"],
         "uname": profile["uname"],
-        "utoken": utoken,
-        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
+        "utoken": "",  # utoken приходит из callback
+        "callbackUrl": CONFIG.get("lovense_callback_url"),
         "v": 2,
     }
 
@@ -55,8 +49,10 @@ def get_qr_code_for_profile(profile: Dict[str, Any]) -> Optional[str]:
         return None
 
     # Успешный ответ
-    if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
-        return data["data"]["qr"]
+    if data.get("code") == 0:
+        qr = data.get("data", {}).get("qr")
+        if qr:
+            return qr
 
     # Иногда API возвращает QR в message
     msg = data.get("message")

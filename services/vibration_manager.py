@@ -1,7 +1,7 @@
 # services/vibration_manager.py
 
 import asyncio
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional
 
 # profile_key -> asyncio.Queue[(strength, duration)]
 vibration_queues: Dict[str, asyncio.Queue] = {}
@@ -13,6 +13,8 @@ def init_vibration_queues(profile_keys) -> None:
     Вызывать ТОЛЬКО внутри того event loop, где работает WebSocket.
     """
     global vibration_queues
+
+    # создаём новые очереди, не смешивая со старыми
     vibration_queues = {
         key: asyncio.Queue() for key in profile_keys
     }
@@ -31,8 +33,10 @@ def enqueue_vibration(profile_key: str, strength: int, duration: int) -> None:
     Если очереди нет — тихо игнорируем (например, профиль не активен).
     """
     q = vibration_queues.get(profile_key)
-    if q:
-        try:
-            q.put_nowait((strength, duration))
-        except Exception as e:
-            print(f"⚠️ Ошибка enqueue_vibration для {profile_key}: {e}")
+    if not q:
+        return
+
+    try:
+        q.put_nowait((strength, duration))
+    except Exception as e:
+        print(f"⚠️ Ошибка enqueue_vibration для {profile_key}: {e}")

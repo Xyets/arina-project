@@ -196,6 +196,7 @@ async def ws_handler(websocket):
                 continue
 
     finally:
+        # корректное удаление сокета
         CONNECTED_SOCKETS.discard(websocket)
         CLIENT_TYPES.pop(websocket, None)
         CLIENT_PROFILES.pop(websocket, None)

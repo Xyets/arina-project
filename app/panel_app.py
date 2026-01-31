@@ -139,29 +139,3 @@ def clear_queue():
         queue.queue.clear()
 
     return {"status": "ok", "message": "Очередь очищена"}
-
-
-# -------------------- AJAX: новые мемберы --------------------
-
-@panel_bp.route("/entries_data")
-@login_required
-def entries_data():
-    user = session["user"]
-    mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
-
-    entries = load_entries(profile_key)
-    return jsonify({"entries": entries})
-
-
-# -------------------- AJAX: VIP --------------------
-
-@panel_bp.route("/vip_data")
-@login_required
-def vip_data():
-    user = session["user"]
-    mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
-
-    vip = load_vip(profile_key)
-    return jsonify({"vip": vip})

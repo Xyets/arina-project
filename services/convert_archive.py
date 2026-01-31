@@ -22,15 +22,31 @@ def main():
         print(f"❌ Ошибка чтения JSON: {e}")
         return
 
+    # Проверка структуры
     if not isinstance(old, dict) or not old:
         print("❌ Некорректный формат: ожидается словарь с днями")
         return
 
     days = sorted(old.keys())
+    if not days:
+        print("❌ Нет данных для конвертации")
+        return
+
+    # Если файл уже в новом формате
+    if "periods" in old:
+        print("⚠️ Файл уже в новом формате, конвертация не требуется")
+        return
 
     # --- Функция суммирования ---
     def get(field):
-        return sum(float(old[d].get(field, 0)) for d in days)
+        total = 0.0
+        for d in days:
+            value = old.get(d, {}).get(field, 0)
+            try:
+                total += float(value)
+            except (TypeError, ValueError):
+                pass
+        return total
 
     # --- Новый формат ---
     new = {

@@ -4,12 +4,12 @@ import uuid
 import os
 from werkzeug.utils import secure_filename
 
-from services.reactions_service import load_reaction_rules, save_reaction_rules
 from config import CONFIG
+from services.reactions_service import load_reaction_rules, save_reaction_rules
 
 reactions_bp = Blueprint("reactions", __name__)
 
-# Путь к папке реакций — теперь берём из CONFIG
+# Путь к папке реакций — берём из CONFIG
 STATIC_REACTIONS_DIR = CONFIG["static_reactions_dir"]
 
 
@@ -33,12 +33,16 @@ def reactions_page():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    rules = load_reaction_rules(profile_key)
+    # путь к файлу реакций из config.json
+    reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
 
-    # ⭐ СОРТИРОВКА ПРАВИЛ ПО min_points
+    # загрузка правил
+    rules = load_reaction_rules(reactions_file)
+
+    # ⭐ сортировка правил
     rules["rules"].sort(key=lambda r: r.get("min_points", 0))
 
-    # -------------------- ДОБАВЛЕНИЕ НОВОГО ПРАВИЛА --------------------
+    # -------------------- ДОБАВЛЕНИЕ ПРАВИЛА --------------------
     if request.method == "POST" and "add_reaction_rule" in request.form:
 
         new_rule = {
@@ -61,7 +65,7 @@ def reactions_page():
             new_rule["image"] = f"reactions/{filename}"
 
         rules["rules"].append(new_rule)
-        save_reaction_rules(profile_key, rules)
+        save_reaction_rules(reactions_file, rules)
 
         return redirect(url_for("reactions.reactions_page"))
 
@@ -70,7 +74,7 @@ def reactions_page():
         rule_id = request.form["delete_reaction_rule"]
 
         rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
-        save_reaction_rules(profile_key, rules)
+        save_reaction_rules(reactions_file, rules)
 
         return redirect(url_for("reactions.reactions_page"))
 
@@ -84,7 +88,6 @@ def reactions_page():
                 rule["max_points"] = int(request.form["max_points"])
                 rule["duration"] = int(request.form["duration"])
 
-                # Новое изображение (если загружено)
                 file = request.files.get("image")
                 if file and file.filename:
                     safe_name = secure_filename(file.filename)
@@ -98,7 +101,7 @@ def reactions_page():
 
                 break
 
-        save_reaction_rules(profile_key, rules)
+        save_reaction_rules(reactions_file, rules)
         return redirect(url_for("reactions.reactions_page"))
 
     # -------------------- РЕНДЕР --------------------

@@ -5,27 +5,15 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 
-RULES_DIR = Path("data/rules")
-RULES_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# ---------------- PATH UTILITY ----------------
-
-def rules_path(profile_key: str) -> Path:
-    """
-    Возвращает путь к файлу правил вибраций/действий.
-    """
-    return RULES_DIR / f"rules_{profile_key}.json"
-
 
 # ---------------- LOAD ----------------
 
-def load_rules(profile_key: str) -> Dict[str, Any]:
+def load_rules(path: str) -> Dict[str, Any]:
     """
-    Загружает правила вибраций/действий.
+    Загружает правила вибраций/действий из файла по ПОЛНОМУ пути.
     Если файла нет или он повреждён — возвращает пустую структуру.
     """
-    path = rules_path(profile_key)
+    path = Path(path)
 
     if not path.exists():
         return {"rules": []}
@@ -39,13 +27,16 @@ def load_rules(profile_key: str) -> Dict[str, Any]:
 
 # ---------------- SAVE ----------------
 
-def save_rules(profile_key: str, rules: Dict[str, Any]) -> None:
+def save_rules(path: str, rules: Dict[str, Any]) -> None:
     """
-    Сохраняет правила вибраций/действий.
+    Сохраняет правила вибраций/действий в файл по ПОЛНОМУ пути.
     Запись атомарная: сначала .tmp, затем замена.
     """
-    path = rules_path(profile_key)
+    path = Path(path)
     tmp = path.with_suffix(".json.tmp")
+
+    # гарантируем, что каталог существует
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(rules, f, indent=2, ensure_ascii=False)

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, session, redirect, url_for
 from functools import wraps
+
 from config import CONFIG
 from services.stats_service import load_stats, calculate_stats
 
@@ -24,13 +25,16 @@ def login_required(f):
 def stats_page():
     """
     Страница статистики.
-    Загружает сырые данные и вычисляет агрегированную статистику.
+    Загружает JSON-файл статистики и вычисляет агрегированную статистику.
     """
     user = session["user"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    stats_file = CONFIG["profiles"][profile_key]["stats_file"] 
+    # путь к файлу статистики из config.json
+    stats_file = CONFIG["profiles"][profile_key]["stats_file"]
+
+    # загрузка и обработка статистики
     stats_data = load_stats(stats_file)
     results, summary = calculate_stats(stats_data, user=user)
 

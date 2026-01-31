@@ -14,18 +14,18 @@ def obs_alert(user, mode):
     /obs_alert/Irina/public
     """
 
-    # Проверяем, что пользователь существует в конфиге
-    if user not in CONFIG["profiles"]:
-        return abort(404)
-
-    # Проверяем, что режим корректный
+    # Проверяем корректность режима
     if mode not in ("private", "public"):
         return abort(404)
 
+    # Формируем ключ профиля
     profile_key = f"{user}_{mode}"
+
+    # Проверяем, что профиль существует
+    if profile_key not in CONFIG["profiles"]:
+        return abort(404)
 
     # Выбираем правильный шаблон
     template_name = f"obs_alert_{user.lower()}.html"
 
     return render_template(template_name, profile_key=profile_key)
- 

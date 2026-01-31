@@ -60,8 +60,9 @@ def update_vip(
 ) -> Dict[str, Any]:
 
     path = Path(path)
-    vip_data = load_vip_file(path)
+    vip_data = load_vip_file(str(path))
 
+    # создаём запись, если нет
     if user_id not in vip_data:
         vip_data[user_id] = {
             "name": name or "Аноним",
@@ -77,9 +78,11 @@ def update_vip(
 
     user = vip_data[user_id]
 
+    # обновляем имя
     if name and (not user["name"] or user["name"] == "Аноним"):
         user["name"] = name
 
+    # обновляем сумму донатов
     if amount > 0:
         user["total"] = float(user.get("total", 0.0)) + float(amount)
 
@@ -89,11 +92,13 @@ def update_vip(
             {"type": "vip_total_increment", "user_id": user_id, "amount": amount}
         )
 
+    # события входа/выхода
     if event:
         event = event.lower()
 
         if event == "login":
             user["login_count"] += 1
+
             if user["last_login"]:
                 user["_previous_login"] = user["last_login"]
 
@@ -101,7 +106,7 @@ def update_vip(
             user["_just_logged_in"] = True
 
         elif event == "logout":
-            pass
+            user["_just_logged_in"] = False
 
-    save_vip_file(path, vip_data)
+    save_vip_file(str(path), vip_data)
     return user
