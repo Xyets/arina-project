@@ -13,7 +13,8 @@ from app.lovense_app import lovense_bp
 from app.ws_app import run_websocket_server
 from services.maintenance_service import periodic_backup_cleanup
 
-from .config import CONFIG
+from config import CONFIG
+
 
 
 
