@@ -165,8 +165,23 @@ async def ws_handler(websocket):
 
             # ---------- VIP UPDATE ----------
             if msg_type == "vip_update":
+                user = data.get("user")
+
+                # читаем режим из Redis
+                mode = redis_client.hget("user_modes", user)
+                if mode:
+                    mode = mode.decode()
+                else:
+                    mode = "private"
+
+                profile_key = f"{user}_{mode}"
+
+                # добавляем profile_key в сообщение
+                data["profile_key"] = profile_key
+
                 ws_send(data, role="panel")
                 continue
+
 
             # ---------- GOAL UPDATE ----------
             if msg_type == "goal_update":
