@@ -13,12 +13,17 @@ from app.lovense_app import lovense_bp
 from app.ws_app import run_websocket_server
 from services.maintenance_service import periodic_backup_cleanup
 
-from config import CONFIG
+from .config import CONFIG
+
 
 
 def create_app():
     app = Flask(__name__)
     app.secret_key = CONFIG["secret_key"]
+    app.config.update( 
+        SESSION_COOKIE_SECURE=True, 
+        SESSION_COOKIE_SAMESITE="None" 
+    )
     CORS(app)
 
     # 🔥 Регистрируем все blueprints
