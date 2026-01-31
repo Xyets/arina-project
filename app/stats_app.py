@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, session, redirect, url_for
 from functools import wraps
-
+from config import CONFIG
 from services.stats_service import load_stats, calculate_stats
 
 stats_bp = Blueprint("stats", __name__)
@@ -30,7 +30,8 @@ def stats_page():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    stats_data = load_stats(profile_key)
+    stats_file = CONFIG["profiles"][profile_key]["stats_file"] 
+    stats_data = load_stats(stats_file)
     results, summary = calculate_stats(stats_data, user=user)
 
     return render_template(

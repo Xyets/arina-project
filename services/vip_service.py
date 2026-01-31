@@ -1,5 +1,3 @@
-# services/vip_service.py
-
 import json
 import os
 import shutil
@@ -10,27 +8,13 @@ from typing import Dict, Any, Optional
 from services.audit import audit_event
 
 
-VIP_DIR = Path("data/vip")
-VIP_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# ---------------- PATH ----------------
-
-def vip_path(profile_key: str) -> Path:
-    """
-    Возвращает путь к файлу VIP-данных профиля.
-    """
-    return VIP_DIR / f"vip_{profile_key}.json"
-
-
 # ---------------- LOAD ----------------
 
-def load_vip_file(profile_key: str) -> Dict[str, Any]:
+def load_vip_file(path: str) -> Dict[str, Any]:
     """
-    Загружает VIP-данные профиля.
-    Если файла нет или он повреждён — возвращает пустую структуру.
+    Загружает VIP-данные из файла по ПОЛНОМУ пути.
     """
-    path = vip_path(profile_key)
+    path = Path(path)
 
     if not path.exists():
         return {}
@@ -44,13 +28,11 @@ def load_vip_file(profile_key: str) -> Dict[str, Any]:
 
 # ---------------- SAVE ----------------
 
-def save_vip_file(profile_key: str, vip_data: Dict[str, Any]) -> None:
+def save_vip_file(path: str, vip_data: Dict[str, Any]) -> None:
     """
-    Сохраняет VIP-данные.
-    Запись атомарная: сначала .tmp, затем замена.
-    Создаёт резервную копию .bak с датой.
+    Сохраняет VIP-данные в файл по ПОЛНОМУ пути.
     """
-    path = vip_path(profile_key)
+    path = Path(path)
     tmp = path.with_suffix(".json.tmp")
 
     # резервная копия
@@ -70,23 +52,16 @@ def save_vip_file(profile_key: str, vip_data: Dict[str, Any]) -> None:
 # ---------------- UPDATE ----------------
 
 def update_vip(
-    profile_key: str,
+    path: str,
     user_id: str,
     name: Optional[str] = None,
     amount: float = 0.0,
     event: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Обновляет VIP-данные:
-      - имя
-      - сумма донатов
-      - события входа/выхода
-      - счётчики логинов
-    """
 
-    vip_data = load_vip_file(profile_key)
+    path = Path(path)
+    vip_data = load_vip_file(path)
 
-    # если нет записи — создаём
     if user_id not in vip_data:
         vip_data[user_id] = {
             "name": name or "Аноним",
@@ -102,21 +77,18 @@ def update_vip(
 
     user = vip_data[user_id]
 
-    # обновляем имя
     if name and (not user["name"] or user["name"] == "Аноним"):
         user["name"] = name
 
-    # обновляем сумму донатов
     if amount > 0:
         user["total"] = float(user.get("total", 0.0)) + float(amount)
 
         audit_event(
-            profile_key,
-            profile_key.split("_")[1],
+            str(path),
+            "vip",
             {"type": "vip_total_increment", "user_id": user_id, "amount": amount}
         )
 
-    # события входа/выхода
     if event:
         event = event.lower()
 
@@ -128,18 +100,8 @@ def update_vip(
             user["last_login"] = datetime.now().replace(microsecond=0).isoformat(sep=" ")
             user["_just_logged_in"] = True
 
-            audit_event(
-                profile_key,
-                profile_key.split("_")[1],
-                {"type": "vip_login", "user_id": user_id, "name": user["name"]}
-            )
-
         elif event == "logout":
-            audit_event(
-                profile_key,
-                profile_key.split("_")[1],
-                {"type": "vip_logout", "user_id": user_id, "name": user["name"]}
-            )
+            pass
 
-    save_vip_file(profile_key, vip_data)
+    save_vip_file(path, vip_data)
     return user

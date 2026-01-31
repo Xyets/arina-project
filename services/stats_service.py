@@ -18,9 +18,8 @@ def stats_path(profile_key: str) -> Path:
 
 # ---------------- LOAD ----------------
 
-def load_stats(profile_key: str) -> Dict[str, Dict]:
-    path = stats_path(profile_key)
-
+def load_stats(path):
+    path = Path(path)
     if not path.exists():
         return {}
 
