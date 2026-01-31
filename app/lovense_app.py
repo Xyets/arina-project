@@ -8,27 +8,59 @@ from services.lovense_service import redis_client, generate_utoken
 
 lovense_bp = Blueprint("lovense", __name__)
 
-def login_required(f): 
-    @wraps(f) 
-    def wrapper(*args, **kwargs): 
-        if "user" not in session: 
-            return redirect(url_for("panel.login")) 
-        return f(*args, **kwargs) 
-    return wrapper
-# -------------------- QR‑КОД ДЛЯ ПОДКЛЮЧЕНИЯ --------------------
 
-@lovense_bp.route("/qrcode") 
-@login_required 
-def qrcode_default(): 
-    """ Старый режим: /qrcode без параметров. Автоматически определяет профиль текущего пользователя. """ 
-    user = session["user"] 
-    mode = session.get("mode", "private") 
-    profile_key = f"{user}_{mode}" 
-    qr_url = get_qr_code(profile_key) 
-    if not qr_url: 
-        return "❌ Не удалось получить QR‑код", 500 
+# -------------------- AUTH --------------------
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            return redirect(url_for("panel.login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+# -------------------- QR-КОД (АВТОМАТИЧЕСКИЙ) --------------------
+
+@lovense_bp.route("/qrcode")
+@login_required
+def qrcode_default():
+    """
+    Старый режим: /qrcode без параметров.
+    Автоматически определяет профиль текущего пользователя.
+    """
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    qr_url = get_qr_code(profile_key)
+    if not qr_url:
+        return "❌ Не удалось получить QR‑код", 500
+
     return render_template("qrcode.html", user=user, qr_url=qr_url)
 
+
+# -------------------- QR-КОД (ЯВНЫЙ ПРОФИЛЬ) --------------------
+
+@lovense_bp.route("/qrcode/<profile_key>")
+@login_required
+def qrcode_page(profile_key):
+    """
+    Режим: /qrcode/<profile_key>
+    Позволяет вручную открыть QR‑код для любого профиля.
+    """
+    profile = CONFIG["profiles"].get(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    qr_url = get_qr_code(profile_key)
+    if not qr_url:
+        return "❌ Не удалось получить QR‑код", 500
+
+    return render_template("qrcode.html", user=profile["uname"], qr_url=qr_url)
+
+
+# -------------------- ФУНКЦИЯ ПОЛУЧЕНИЯ QR-КОДА --------------------
 
 def get_qr_code(profile_key):
     """
@@ -39,14 +71,14 @@ def get_qr_code(profile_key):
     url = "https://api.lovense.com/api/lan/getQrCode"
 
     uid = profile["uid"]
-    utoken = generate_utoken(uid)  # как раньше
+    utoken = generate_utoken(uid)
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
         "uname": profile["uname"],
         "utoken": utoken,
-        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback?token=arina_secret_123",
+        "callbackUrl": "https://arinairina.duckdns.org/lovense/callback",
         "v": 2,
     }
 
