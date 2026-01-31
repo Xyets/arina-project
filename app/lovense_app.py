@@ -71,13 +71,12 @@ def get_qr_code(profile_key):
     url = "https://api.lovense.com/api/lan/getQrCode"
 
     uid = profile["uid"]
-    utoken = generate_utoken(uid)
 
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
         "uname": profile["uname"],
-        "utoken": utoken,
+        "utoken": "",  # LAN API — utoken всегда пустой
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback",
         "v": 2,
     }
@@ -100,6 +99,7 @@ def get_qr_code(profile_key):
         return msg
 
     return None
+
 
 
 # -------------------- CALLBACK ОТ LOVENSE CLOUD --------------------

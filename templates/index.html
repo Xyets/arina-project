@@ -472,20 +472,61 @@
 
             console.log("📡 Панель получила:", data);
 
+            // ---------- DONATION ----------
+            if (data.type === "donation") {
+                const box = document.getElementById("logbox");
+                const div = document.createElement("div");
+                div.className = "log-entry log-donation-plain";
+                div.textContent = `${data.name}: ${data.amount} pt — ${data.text}`;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+                return;
+            }
+
+            // ---------- RULE ----------
+            if (data.rule) {
+                const box = document.getElementById("logbox");
+                const div = document.createElement("div");
+
+                if (data.rule.kind === "action") {
+                    div.className = "log-entry log-action";
+                    div.textContent = `🎬 Действие: ${data.rule.action_text}`;
+                } else if (data.rule.kind === "vibration") {
+                    div.className = "log-entry log-vibration";
+                    div.textContent = `🏰 Вибрация: сила=${data.rule.strength}, время=${data.rule.duration}`;
+                    startVibrationTimer(data.rule.duration, data.rule.strength);
+                }
+
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+                return;
+            }
+
+            // ---------- VIBRATION (от OBS) ----------
+            if (data.vibration) {
+                const v = data.vibration;
+                startVibrationTimer(v.duration, v.strength);
+                return;
+            }
+
+            // ---------- GOAL UPDATE ----------
             if (data.goal_update) {
                 updateGoalUI(data.goal);
                 return;
             }
 
+            // ---------- VIP UPDATE ----------
             if (data.vip_update) {
                 loadVIP();
                 return;
             }
 
+            // ---------- MODE UPDATE ----------
             if (data.mode_update && data.user === CURRENT_USER) {
                 location.reload();
                 return;
             }
+        
         };
     }
 
@@ -796,34 +837,11 @@
             popup.style.transition = "none";
         });
 
-        document.addEventListener("mousemove", (e) => {
-            if (isDragging) {
-                popup.style.left = `${e.clientX - offsetX}px`;
-                popup.style.top = `${e.clientY - offsetY}px`;
-                popup.style.transform = "none";
-            }
-        });
-
-        document.addEventListener("mouseup", () => {
-            if (isDragging) {
-                isDragging = false;
-                popup.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-                popup.style.transform = "translate(-50%, -50%)";
-            }
-        });
-    });
-
-
-    document.addEventListener("mouseup", () => {
-        if (isDragging) {
-            isDragging = false;
-            popup.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-            popup.style.transform = "translate(-50%, -50%)";
-        }
     });
     </script>
 
     <script>
+
         // Загружаем цель, переданную Flask
         let goal = JSON.parse(`{{ goal|tojson|safe or '{"title":"","target":0,"current":0}' }}`);
 
