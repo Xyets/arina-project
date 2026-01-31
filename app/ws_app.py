@@ -3,6 +3,10 @@ import json
 import websockets
 import redis
 
+from config import CONFIG
+from services.goal_service import load_goal
+
+
 from services.vibration_manager import (
     init_vibration_queues,
     get_vibration_queue,
@@ -137,6 +141,44 @@ async def ws_handler(websocket):
                     continue
 
                 await websocket.send(json.dumps({"error": "unknown_role"}))
+                continue
+
+            # ---------- DONATION ----------
+            if msg_type == "donation":
+                print("🔥 DONATION RECEIVED:", data)
+
+                user = data.get("user")
+                name = (data.get("name") or "Аноним").strip()
+                text = data.get("text", "")
+                amount = float(data.get("amount") or 0)
+
+                if not user or amount <= 0:
+                    await websocket.send(json.dumps({"error": "invalid_donation"}))
+                    continue
+
+                # режим
+                mode = redis_client.hget("user_modes", user)
+                mode = mode.decode() if mode else "private"
+                profile_key = f"{user}_{mode}"
+
+                # обработка доната (лог, VIP, цель, статистика, правила, реакции)
+                from services.donation_service import handle_donation
+                handle_donation(profile_key, name, amount, text)
+
+                # отправляем панели обновление цели
+                goal = load_goal(CONFIG["profiles"][profile_key]["goal_file"])
+                ws_send({"goal_update": True, "goal": goal}, role="panel")
+
+                # отправляем панели лог доната
+                ws_send({
+                    "type": "donation",
+                    "user": user,
+                    "name": name,
+                    "amount": amount,
+                    "text": text
+                }, role="panel")
+
+                await websocket.send(json.dumps({"status": "donation_ok"}))
                 continue
 
             # ---------- STOP ----------
