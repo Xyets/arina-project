@@ -4,7 +4,7 @@ import json
 import requests
 
 from config import CONFIG
-from services.lovense_service import redis_client, generate_utoken
+from services.lovense_service import redis_client
 
 lovense_bp = Blueprint("lovense", __name__)
 
