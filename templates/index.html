@@ -363,12 +363,30 @@
 
     <!-- Меню -->
     <div class="menu">
-      <a href="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}"> <button>📱 QR‑код</button> </a>
-      <a href="{{ url_for('stats') }}"><button>📊 Статистика</button></a>
-      <a href="{{ url_for('rules') }}"><button>⚙️ Правила</button></a>
-      <a href="{{ url_for('reactions_page') }}"><button>🎭 Реакции</button></a>
-      <a href="{{ url_for('vip_page') }}"><button>👑 VIP‑лист</button></a>
-      <a href="{{ url_for('logout') }}"><button>🚪 Выйти</button></a>
+      <a href="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}">
+          <button>📱 QR‑код</button>
+      </a>
+
+      <a href="{{ url_for('stats.stats_page') }}">
+          <button>📊 Статистика</button>
+      </a>
+
+      <a href="{{ url_for('rules.rules_page') }}">
+          <button>⚙️ Правила</button>
+      </a>
+
+      <a href="{{ url_for('reactions.reactions_page') }}">
+          <button>🎭 Реакции</button>
+      </a>
+
+      <a href="{{ url_for('vip.vip_page') }}">
+          <button>👑 VIP‑лист</button>
+      </a>
+
+      <a href="{{ url_for('panel.logout') }}">
+          <button>🚪 Выйти</button>
+      </a>
+
     </div>
 
     {% if mode == "public" %}
