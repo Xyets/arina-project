@@ -162,6 +162,6 @@ def clear_queue():
 
     queue = get_vibration_queue(profile_key)
     if queue:
-        queue.queue.clear()
+        queue._queue.clear()
 
     return {"status": "ok", "message": "Очередь очищена"}
