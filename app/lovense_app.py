@@ -1,33 +1,33 @@
-from flask import Blueprint, request, render_template
-import json
-import requests
-
-from config import CONFIG
+from flask import Blueprint, render_template, session, redirect, url_for 
+from functools import wraps 
+from config import CONFIG 
 from services.lovense_service import redis_client, generate_utoken
+import requests 
+import json
+from flask import Blueprint, request, render_template, session, redirect, url_for
 
 lovense_bp = Blueprint("lovense", __name__)
 
-
+def login_required(f): 
+    @wraps(f) 
+    def wrapper(*args, **kwargs): 
+        if "user" not in session: 
+            return redirect(url_for("panel.login")) 
+        return f(*args, **kwargs) 
+    return wrapper
 # -------------------- QR‑КОД ДЛЯ ПОДКЛЮЧЕНИЯ --------------------
 
-@lovense_bp.route("/qrcode/<profile_key>")
-def qrcode_page(profile_key):
-    """
-    Страница с QR‑кодом для подключения Lovense (LAN API, как раньше).
-    """
-    profile = CONFIG["profiles"].get(profile_key)
-    if not profile:
-        return "Профиль не найден", 404
-
-    qr_url = get_qr_code(profile_key)
-    if not qr_url:
-        return "Не удалось получить QR‑код", 500
-
-    return render_template(
-        "qrcode.html",
-        user=profile["uname"],
-        qr_url=qr_url
-    )
+@lovense_bp.route("/qrcode") 
+@login_required 
+def qrcode_default(): 
+    """ Старый режим: /qrcode без параметров. Автоматически определяет профиль текущего пользователя. """ 
+    user = session["user"] 
+    mode = session.get("mode", "private") 
+    profile_key = f"{user}_{mode}" 
+    qr_url = get_qr_code(profile_key) 
+    if not qr_url: 
+        return "❌ Не удалось получить QR‑код", 500 
+    return render_template("qrcode.html", user=user, qr_url=qr_url)
 
 
 def get_qr_code(profile_key):
@@ -75,7 +75,8 @@ def get_qr_code(profile_key):
 @lovense_bp.route("/callback", methods=["POST"])
 def lovense_callback():
     """
-    Callback от Lovense Cloud (как раньше).
+    Callback от Lovense Cloud.
+    Получает utoken и список игрушек, сохраняет в Redis.
     """
     data = request.json or request.form or {}
     print("📩 Callback от Lovense:", data)
@@ -95,5 +96,5 @@ def lovense_callback():
         json.dumps(payload, ensure_ascii=False)
     )
 
-    print("🔐 CONNECTED_USERS (Redis) обновлён:", uid)
+    print("🔐 CONNECTED_USERS обновлён:", uid)
     return "✅ Callback принят", 200
