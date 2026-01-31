@@ -146,7 +146,9 @@ def queue_data():
     profile_key = f"{user}_{mode}"
 
     queue = get_vibration_queue(profile_key)
-    items = list(queue.queue) if queue else []
+    items = list(queue._queue) if queue else []
+
+
 
     return jsonify({"queue": items})
 
