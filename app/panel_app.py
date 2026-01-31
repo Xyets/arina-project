@@ -29,9 +29,13 @@ def login():
 
         if user in USERS and USERS[user] == pwd:
             session["user"] = user
-            session["mode"] = "private"   # режим по умолчанию
-            audit_event(user, "LOGIN")
+            session["mode"] = "private"
+
+            profile_key = f"{user}_private"
+            audit_event(profile_key, "private", {"type": "login"})
+
             return redirect(url_for("panel.index"))
+
 
         return render_template("login.html", error="Неверный логин или пароль")
 
@@ -41,8 +45,12 @@ def login():
 @panel_bp.route("/logout")
 def logout():
     user = session.get("user")
+    mode = session.get("mode", "private")
+
     if user:
-        audit_event(user, "LOGOUT")
+        profile_key = f"{user}_{mode}"
+        audit_event(profile_key, mode, {"type": "logout"})
+
 
     session.clear()
     return redirect(url_for("panel.login"))

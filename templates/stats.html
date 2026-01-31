@@ -156,7 +156,7 @@
 
   <script>
     async function loadLogs() {
-      const resp = await fetch("{{ url_for('logs_data_stats') }}");
+      const resp = await fetch("{{ url_for('panel.logs_data') }}");
       const data = await resp.json();
       const logBox = document.getElementById("eventLogs");
       data.logs.forEach(ev => {
