@@ -5,8 +5,6 @@ from typing import Optional, Dict, Any
 from config import CONFIG
 
 
-# ---------------- REDIS ----------------
-
 redis_client = redis.StrictRedis(
     host=CONFIG.get("redis_host", "localhost"),
     port=CONFIG.get("redis_port", 6379),
@@ -14,60 +12,20 @@ redis_client = redis.StrictRedis(
 )
 
 
-# ---------------- УТИЛИТЫ ----------------
-
-def generate_utoken(uid: str) -> str:
+def _load_profile(profile_key: str) -> Optional[Dict[str, Any]]:
     """
-    В новой версии utoken НЕ генерируется вручную.
-    Он приходит из callback Lovense Cloud.
+    Загружает профиль из JSON-файла.
     """
-    return ""
-
-
-# ---------------- QR-КОД ----------------
-
-def get_qr_code_for_profile(profile: Dict[str, Any]) -> Optional[str]:
-    """
-    Возвращает QR-код для подключения игрушки Lovense.
-    """
-    url = "https://api.lovense.com/api/lan/getQrCode"
-
-    payload = {
-        "token": profile["DEVELOPER_TOKEN"],
-        "uid": profile["uid"],
-        "uname": profile["uname"],
-        "utoken": "",  # utoken приходит из callback
-        "callbackUrl": CONFIG.get("lovense_callback_url"),
-        "v": 2,
-    }
-
     try:
-        response = requests.post(url, json=payload, timeout=10)
-        data = response.json()
+        path = CONFIG["profiles"][profile_key]
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
     except Exception as e:
-        print(f"❌ Ошибка получения QR-кода: {e}")
+        print(f"❌ Ошибка загрузки профиля {profile_key}: {e}")
         return None
 
-    # Успешный ответ
-    if data.get("code") == 0:
-        qr = data.get("data", {}).get("qr")
-        if qr:
-            return qr
-
-    # Иногда API возвращает QR в message
-    msg = data.get("message")
-    if isinstance(msg, str) and msg.startswith("http"):
-        return msg
-
-    return None
-
-
-# ---------------- CLOUD ВИБРАЦИЯ ----------------
 
 def _get_utoken_from_redis(uid: str) -> Optional[str]:
-    """
-    Возвращает utoken из Redis, если игрушка подключена.
-    """
     raw = redis_client.hget("connected_users", uid)
     if not raw:
         return None
@@ -79,15 +37,22 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
         return None
 
 
-def send_vibration_cloud(profile: Dict[str, Any], strength: int, duration: int) -> Optional[dict]:
+def send_vibration_cloud(profile_key: str, strength: int, duration: int) -> Optional[dict]:
     """
     Отправляет вибрацию в Lovense Cloud.
     """
-    uid = profile["uid"]
-    utoken = _get_utoken_from_redis(uid)
+    profile = _load_profile(profile_key)
+    if not profile:
+        return None
 
+    uid = profile.get("uid")
+    if not uid:
+        print(f"❌ [{profile_key}] Нет uid в профиле")
+        return None
+
+    utoken = _get_utoken_from_redis(uid)
     if not utoken:
-        print(f"❌ Игрушка {uid} не подключена или utoken отсутствует")
+        print(f"❌ [{profile_key}] Игрушка не подключена или utoken отсутствует")
         return None
 
     url = "https://api.lovense.com/api/lan/v2/command"
@@ -104,19 +69,26 @@ def send_vibration_cloud(profile: Dict[str, Any], strength: int, duration: int) 
         response = requests.post(url, json=payload, timeout=10)
         return response.json()
     except Exception as e:
-        print(f"❌ Ошибка Cloud-вибрации: {e}")
+        print(f"❌ [{profile_key}] Ошибка Cloud-вибрации: {e}")
         return None
 
 
-def stop_vibration_cloud(profile: Dict[str, Any]) -> Optional[dict]:
+def stop_vibration_cloud(profile_key: str) -> Optional[dict]:
     """
-    Останавливает вибрацию в Lovense Cloud.
+    Останавливает вибрацию.
     """
-    uid = profile["uid"]
-    utoken = _get_utoken_from_redis(uid)
+    profile = _load_profile(profile_key)
+    if not profile:
+        return None
 
+    uid = profile.get("uid")
+    if not uid:
+        print(f"❌ [{profile_key}] Нет uid в профиле")
+        return None
+
+    utoken = _get_utoken_from_redis(uid)
     if not utoken:
-        print(f"❌ Игрушка {uid} не подключена или utoken отсутствует")
+        print(f"❌ [{profile_key}] Игрушка не подключена или utoken отсутствует")
         return None
 
     url = "https://api.lovense.com/api/lan/v2/command"
@@ -133,5 +105,5 @@ def stop_vibration_cloud(profile: Dict[str, Any]) -> Optional[dict]:
         response = requests.post(url, json=payload, timeout=10)
         return response.json()
     except Exception as e:
-        print(f"❌ Ошибка остановки вибрации: {e}")
+        print(f"❌ [{profile_key}] Ошибка остановки вибрации: {e}")
         return None
