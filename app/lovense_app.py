@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, session, redirect, url_for 
-from functools import wraps 
-from config import CONFIG 
-from services.lovense_service import redis_client, generate_utoken
-import requests 
-import json
 from flask import Blueprint, request, render_template, session, redirect, url_for
+from functools import wraps
+import json
+import requests
+
+from config import CONFIG
+from services.lovense_service import redis_client, generate_utoken
 
 lovense_bp = Blueprint("lovense", __name__)
 
