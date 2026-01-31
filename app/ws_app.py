@@ -118,6 +118,9 @@ async def ws_handler(websocket):
                 continue
 
             msg_type = data.get("type")
+            # Если это донат от расширения (нет type, но есть amount)
+            if msg_type is None and "amount" in data:
+                msg_type = "donation"
 
             # ---------- PING ----------
             if msg_type == "ping":
