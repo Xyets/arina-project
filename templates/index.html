@@ -429,6 +429,8 @@
       🔧 1. Текущий пользователь
     --------------------------------------------------------- */
     const CURRENT_USER = "{{ user }}";
+    let lastLogCount = 0;
+    const shownEntries = new Set();
 
     /* ---------------------------------------------------------
       🌐 2. WebSocket с авто‑реконнектом
@@ -775,32 +777,42 @@
 
     // ⏱ Циклы обновления
     setInterval(loadLogs, 2000);
-    setInterval(checkNewEntries, 2000);
     setInterval(loadQueue, 2000);
 
     loadLogs();
-    checkNewEntries();
     loadQueue();
 
 
-    // 🖱️ Перетаскивание entryPopup
-    let isDragging = false, offsetX = 0, offsetY = 0;
-    const popup = document.getElementById("entryPopup");
 
-    popup.addEventListener("mousedown", (e) => {
-        isDragging = true;
-        offsetX = e.clientX - popup.offsetLeft;
-        offsetY = e.clientY - popup.offsetTop;
-        popup.style.transition = "none";
+    document.addEventListener("DOMContentLoaded", () => {
+        let isDragging = false, offsetX = 0, offsetY = 0;
+        const popup = document.getElementById("entryPopup");
+        if (!popup) return;
+
+        popup.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            offsetX = e.clientX - popup.offsetLeft;
+            offsetY = e.clientY - popup.offsetTop;
+            popup.style.transition = "none";
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            if (isDragging) {
+                popup.style.left = `${e.clientX - offsetX}px`;
+                popup.style.top = `${e.clientY - offsetY}px`;
+                popup.style.transform = "none";
+            }
+        });
+
+        document.addEventListener("mouseup", () => {
+            if (isDragging) {
+                isDragging = false;
+                popup.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+                popup.style.transform = "translate(-50%, -50%)";
+            }
+        });
     });
 
-    document.addEventListener("mousemove", (e) => {
-        if (isDragging) {
-            popup.style.left = `${e.clientX - offsetX}px`;
-            popup.style.top = `${e.clientY - offsetY}px`;
-            popup.style.transform = "none";
-        }
-    });
 
     document.addEventListener("mouseup", () => {
         if (isDragging) {
@@ -817,14 +829,22 @@
 
         // Обновление UI цели
         function updateGoalUI(newGoal = null) {
-            if (newGoal) goal = newGoal;  // обновляем локальную переменную
+            if (newGoal) goal = newGoal;
+
+            const fill = document.getElementById("goalFill");
+            const cur = document.getElementById("goalCurrent");
+            const tgt = document.getElementById("goalTarget");
+
+            // Если цель скрыта (режим private) — просто выходим
+            if (!fill || !cur || !tgt) return;
 
             const percent = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
 
-            document.getElementById("goalFill").style.width = Math.min(percent, 100) + "%";
-            document.getElementById("goalCurrent").textContent = goal.current;
-            document.getElementById("goalTarget").textContent = goal.target;
+            fill.style.width = Math.min(percent, 100) + "%";
+            cur.textContent = goal.current;
+            tgt.textContent = goal.target;
         }
+
 
         updateGoalUI(); // первичная отрисовка
     </script>
