@@ -5,7 +5,6 @@ from config import CONFIG, USERS
 from services.vibration_manager import get_vibration_queue
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
-from services.vip_service import load_vip
 from services.audit import audit_event
 
 panel_bp = Blueprint("panel", __name__)
