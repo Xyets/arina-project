@@ -12,7 +12,7 @@ from app.obs_app import obs_bp
 from app.lovense_app import lovense_bp
 from app.ws_app import run_websocket_server
 from services.maintenance_service import periodic_backup_cleanup
-from app.stats_app import stats_bp
+
 from config import CONFIG
 
 
@@ -30,7 +30,7 @@ def create_app():
     app.register_blueprint(reactions_bp)
     app.register_blueprint(obs_bp)
     app.register_blueprint(lovense_bp)
-    app.register_blueprint(stats_bp)
+
     return app
 
 
