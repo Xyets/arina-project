@@ -83,7 +83,7 @@ def index():
         "index.html",
         user=user,
         profile=profile,
-        queue=list(queue.queue) if queue else [],
+        queue=list(queue._queue) if queue else [],
         logs=logs,
         current_mode=mode,
         goal=goal,
