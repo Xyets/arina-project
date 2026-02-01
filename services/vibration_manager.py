@@ -5,37 +5,44 @@ from typing import Dict, Optional
 
 # profile_key -> asyncio.Queue[(strength, duration)]
 vibration_queues: Dict[str, asyncio.Queue] = {}
-stop_flags = {}
+
+# profile_key -> asyncio.Event (сигнал остановки)
+stop_events: Dict[str, asyncio.Event] = {}
+
 
 def init_vibration_queues(profile_keys) -> None:
     """
-    Создаёт очередь вибраций для каждого профиля.
+    Создаёт очередь вибраций и stop_event для каждого профиля.
     Вызывать ТОЛЬКО внутри того event loop, где работает WebSocket.
     """
-    global vibration_queues
+    global vibration_queues, stop_events
 
-    # создаём новые очереди, не смешивая со старыми
-    vibration_queues = {
-        key: asyncio.Queue() for key in profile_keys
-    }
+    vibration_queues = {key: asyncio.Queue() for key in profile_keys}
+    stop_events = {key: asyncio.Event() for key in profile_keys}
 
 
 def get_vibration_queue(profile_key: str) -> Optional[asyncio.Queue]:
-    """
-    Возвращает очередь вибраций для профиля.
-    """
+    """Возвращает очередь вибраций для профиля."""
     return vibration_queues.get(profile_key)
 
-def stop_vibration(profile_key): 
-    stop_flags[profile_key] = True
+
+def stop_vibration(profile_key: str) -> None:
+    """
+    Ставит флаг остановки вибрации.
+    vibration_worker увидит stop_events[profile_key].is_set()
+    """
+    if profile_key in stop_events:
+        stop_events[profile_key].set()
+
 
 def enqueue_vibration(profile_key: str, strength: int, duration: int) -> None:
-    stop_flags[profile_key] = False
-
     """
     Кладёт вибрацию в очередь нужного профиля.
-    Если очереди нет — тихо игнорируем (например, профиль не активен).
+    Перед этим сбрасывает stop_event, чтобы новая вибрация не была остановлена.
     """
+    if profile_key in stop_events:
+        stop_events[profile_key].clear()
+
     q = vibration_queues.get(profile_key)
     if not q:
         return

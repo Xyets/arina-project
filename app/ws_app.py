@@ -64,6 +64,8 @@ async def vibration_worker(profile_key):
     if not q:
         return
 
+    from services.vibration_manager import stop_events
+
     while True:
         strength, duration = await q.get()
 
@@ -75,19 +77,18 @@ async def vibration_worker(profile_key):
             }
         }
 
-        # 1) запускаем вибрацию в OBS (и, по сути, игрушку)
         ws_send(payload, role="obs", profile_key=profile_key)
-
-        # 2) говорим панели: «вибрация реально стартовала»
         ws_send(payload, role="panel")
 
         for _ in range(duration):
             await asyncio.sleep(1)
-            if stop_flags.get(profile_key):
+
+            if stop_events[profile_key].is_set():
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 break
 
         q.task_done()
+
 
 
 # ---------------- REDIS LISTENER ----------------
