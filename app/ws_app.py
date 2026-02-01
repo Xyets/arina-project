@@ -328,20 +328,27 @@ async def ws_handler(websocket):
 
 # ---------------- ЗАПУСК WS ----------------
 
-async def ws_server(profile_keys):
+async def ws_server():
     global WS_EVENT_LOOP
     WS_EVENT_LOOP = asyncio.get_running_loop()
 
+    # Берём ключи профилей напрямую из CONFIG
+    profile_keys = list(CONFIG["profiles"].keys())
+    print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
+
+    # Инициализируем очереди вибраций для всех профилей
     init_vibration_queues(profile_keys)
 
+    # Запускаем фоновые задачи
     asyncio.create_task(redis_listener())
     for key in profile_keys:
         asyncio.create_task(vibration_worker(key))
 
+    # Запускаем WebSocket-сервер
     server = await websockets.serve(ws_handler, "127.0.0.1", 8765)
     await server.wait_closed()
 
 
-def run_websocket_server(profile_keys):
+def run_websocket_server():
+    asyncio.run(ws_server())
 
-    asyncio.run(ws_server(profile_keys))
