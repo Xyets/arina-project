@@ -81,11 +81,18 @@ async def vibration_worker(profile_key):
                 "target": profile_key
             }
         })
-        for ws in list(CONNECTED_SOCKETS):
-            try:
-                await ws.send(msg)
-            except:
-                CONNECTED_SOCKETS.discard(ws)
+        ws_send(
+            {
+                "vibration": {
+                    "strength": strength,
+                    "duration": duration,
+                    "target": profile_key
+                }
+            },
+            role="obs",
+            profile_key=profile_key
+        )
+
 
         # Ждём duration секунд, но проверяем STOP
         for _ in range(duration):
