@@ -65,11 +65,15 @@ async def vibration_worker(profile_key):
         return
 
     from services.vibration_manager import stop_events
-    from services.lovense_service import stop_vibration_cloud
+    from services.lovense_service import send_vibration_cloud, stop_vibration_cloud
 
     while True:
         strength, duration = await q.get()
 
+        # 🔥 1. Отправляем вибрацию на устройство
+        send_vibration_cloud(profile_key, strength, duration)
+
+        # 🔥 2. OBS-анимация
         payload = {
             "vibration": {
                 "strength": strength,
@@ -77,21 +81,24 @@ async def vibration_worker(profile_key):
                 "target": profile_key
             }
         }
-
         ws_send(payload, role="obs", profile_key=profile_key)
         ws_send(payload, role="panel")
 
+        # 🔥 3. Ждём duration секунд, проверяя STOP
         for _ in range(duration):
             await asyncio.sleep(1)
 
             if stop_events[profile_key].is_set():
                 print("🛑 STOP DETECTED FOR:", profile_key)
+
+                # Останавливаем устройство
                 stop_vibration_cloud(profile_key)
+
+                # Останавливаем OBS
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 break
 
         q.task_done()
-
 
 
 
