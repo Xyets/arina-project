@@ -71,8 +71,11 @@ async def vibration_worker(profile_key):
             }
         }
 
+        # 1) запускаем вибрацию в OBS (и, по сути, игрушку)
         ws_send(payload, role="obs", profile_key=profile_key)
 
+        # 2) говорим панели: «вибрация реально стартовала»
+        ws_send(payload, role="panel")
 
         await asyncio.sleep(duration)
         q.task_done()
@@ -199,20 +202,23 @@ async def ws_handler(websocket):
                 mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
 
-
                 from services.donation_service import handle_donation
+                from services.vibration_manager import enqueue_vibration
+
                 result = handle_donation(profile_key, name, amount, text)
+
+                # если правило содержит вибрацию — кладём в очередь
+                if "vibration" in result:
+                    vib = result["vibration"]
+                    enqueue_vibration(profile_key, vib["strength"], vib["duration"])
 
                 # обновление цели
                 ws_send({"goal_update": True, "goal": result["goal"]}, role="panel")
-
-                # 🔥 главное изменение — панель сама обновит лог
                 ws_send({"type": "refresh_logs"}, role="panel")
-                if "vibration" in result: 
-                    ws_send({"vibration": result["vibration"]}, role="panel")
-                # если было правило — панель сама увидит его в JSON
+
                 continue
 
+               
             # ---------- STOP ----------
             if msg_type == "stop":
                 user = data.get("user")
