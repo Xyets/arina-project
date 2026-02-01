@@ -11,7 +11,10 @@ from services.goal_service import load_goal
 from services.vibration_manager import (
     init_vibration_queues,
     get_vibration_queue,
+    stop_vibration,
+    stop_flags,          # ← ДОБАВИТЬ ЭТО
 )
+
 
 # ---------------- ГЛОБАЛЬНЫЕ СТРУКТУРЫ ----------------
 
@@ -77,7 +80,12 @@ async def vibration_worker(profile_key):
         # 2) говорим панели: «вибрация реально стартовала»
         ws_send(payload, role="panel")
 
-        await asyncio.sleep(duration)
+        for _ in range(duration):
+            await asyncio.sleep(1)
+            if stop_flags.get(profile_key):
+                ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
+                break
+
         q.task_done()
 
 
@@ -224,6 +232,9 @@ async def ws_handler(websocket):
                 user = data.get("user")
                 mode = CLIENT_MODES.get(user, "private") 
                 profile_key = f"{user}_{mode}"
+
+                from services.vibration_manager import stop_vibration 
+                stop_vibration(profile_key)
 
                 ws_send(
                     {"stop": True, "target": profile_key},

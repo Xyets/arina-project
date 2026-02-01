@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 # profile_key -> asyncio.Queue[(strength, duration)]
 vibration_queues: Dict[str, asyncio.Queue] = {}
-
+stop_flags = {}
 
 def init_vibration_queues(profile_keys) -> None:
     """
@@ -26,8 +26,12 @@ def get_vibration_queue(profile_key: str) -> Optional[asyncio.Queue]:
     """
     return vibration_queues.get(profile_key)
 
+def stop_vibration(profile_key): 
+    stop_flags[profile_key] = True
 
 def enqueue_vibration(profile_key: str, strength: int, duration: int) -> None:
+    stop_flags[profile_key] = False
+
     """
     Кладёт вибрацию в очередь нужного профиля.
     Если очереди нет — тихо игнорируем (например, профиль не активен).
