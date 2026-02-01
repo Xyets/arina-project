@@ -100,7 +100,7 @@
         </div>
         <div class="actions">
           <button type="submit">💾</button>
-          <button type="button" onclick="openDeleteModal('{{ user_id }}')">🗑️</button>
+          <button type="button" onclick="vipOpenModal('{{ user_id }}')">🗑️</button>
         </div>
       </form>
     </div>
@@ -342,7 +342,43 @@
       // первичная загрузка списка, чтобы сортировка работала сразу
       refreshVipList();
     });
+    let vipDeleteId = null;
 
+    function vipOpenModal(userId) {
+      vipDeleteId = userId;
+      document.getElementById("vipModalOverlay").style.display = "block";
+      document.getElementById("vipConfirmModal").style.display = "block";
+    }
+
+    function vipCloseModal() {
+      document.getElementById("vipModalOverlay").style.display = "none";
+      document.getElementById("vipConfirmModal").style.display = "none";
+      vipDeleteId = null;
+    }
+
+    document.getElementById("vipConfirmYes").onclick = function() {
+      if (!vipDeleteId) return;
+
+      fetch("/remove_member", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "user_id=" + encodeURIComponent(vipDeleteId)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") {
+          document.getElementById("card_" + vipDeleteId)?.remove();
+        } else {
+          alert("Ошибка: " + data.message);
+        }
+      })
+      .finally(() => vipCloseModal());
+    };
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") vipCloseModal();
+    });
+        
   </script>
   <script>
   let deleteId = null;
@@ -370,46 +406,34 @@
   });
   </script>
 
-  <div id="modalOverlay" style="
-    display:none;
-    position:fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    background:rgba(0,0,0,0.4);
+  <div id="vipModalOverlay" style="
+    display:none; position:fixed; top:0; left:0;
+    width:100%; height:100%; background:rgba(0,0,0,0.4);
     z-index:1000;">
   </div>
 
-  <div id="confirmModal" style="
-    display:none;
-    position:fixed;
-    top:50%; left:50%;
+  <div id="vipConfirmModal" style="
+    display:none; position:fixed; top:50%; left:50%;
     transform:translate(-50%, -50%);
-    background:white;
-    padding:20px 30px;
-    border-radius:12px;
-    box-shadow:0 6px 18px rgba(0,0,0,0.2);
-    z-index:1001;
-    text-align:center;">
+    background:white; padding:20px 30px;
+    border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.2);
+    z-index:1001; text-align:center;">
     
     <p style="margin-bottom:20px; font-size:18px;">Удалить VIP?</p>
 
-    <button id="confirmYes" style="
-      background:#f28497;
-      color:white;
-      padding:8px 20px;
-      border:none;
-      border-radius:10px;
-      cursor:pointer;
-      margin-right:10px;">Да</button>
+    <button id="vipConfirmYes" style="
+      background:#f28497; color:white; padding:8px 20px;
+      border:none; border-radius:10px; cursor:pointer; margin-right:10px;">
+      Да
+    </button>
 
-    <button onclick="closeDeleteModal()" style="
-      background:#a3d8f4;
-      color:white;
-      padding:8px 20px;
-      border:none;
-      border-radius:10px;
-      cursor:pointer;">Нет</button>
+    <button onclick="vipCloseModal()" style="
+      background:#a3d8f4; color:white; padding:8px 20px;
+      border:none; border-radius:10px; cursor:pointer;">
+      Нет
+    </button>
   </div>
+
 
 </body>
 </html>
