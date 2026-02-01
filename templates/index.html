@@ -438,7 +438,7 @@
       let socket = null;
 
       function connectWS() {
-        const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+          const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
 
           socket = new WebSocket(wsUrl);
 
