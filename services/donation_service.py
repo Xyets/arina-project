@@ -63,11 +63,7 @@ def apply_rule(profile_key, amount, text):
 
 # ---------------- DONATION HANDLER ----------------
 
-def handle_donation(profile_key, name, amount, text):
-    """
-    Главная функция обработки доната.
-    """
-
+def handle_donation(profile_key, user_id, name, amount, text): 
     mode = profile_key.split("_")[1]
 
     # 1. Применяем правила
@@ -75,22 +71,11 @@ def handle_donation(profile_key, name, amount, text):
 
     # 2. Логируем красиво
     if rule_result and rule_result["kind"] == "action":
-        add_log(
-            profile_key,
-            f"💸  | {name} → {amount} 🎬 Действие: {rule_result['action_text']}"
-        )
-
+        add_log(profile_key, f"💸 | {name} → {amount} 🎬 Действие: {rule_result['action_text']}")
     elif rule_result and rule_result["kind"] == "vibration":
-        add_log(
-            profile_key,
-            f"💸  | {name} → {amount} 🏰 Вибрация: сила={rule_result['strength']}, время={rule_result['duration']}"
-        )
-
+        add_log(profile_key, f"💸 | {name} → {amount} 🏰 Вибрация: сила={rule_result['strength']}, время={rule_result['duration']}")
     else:
-        add_log(
-            profile_key,
-            f"💸  | {name} → {amount} 🍀 Без действия"
-        )
+        add_log(profile_key, f"💸 | {name} → {amount} 🍀 Без действия")
 
     # 3. Аудит
     audit_event(
@@ -104,24 +89,20 @@ def handle_donation(profile_key, name, amount, text):
         },
     )
 
-    # 4. VIP
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    update_vip(vip_file, user_id=name, name=name, amount=amount)
+
     from app.ws_app import ws_send
 
-    # уведомляем панель, что VIP обновился
     ws_send({
         "vip_update": True,
-        "user_id": name
+        "user_id": user_id
     }, role="panel")
 
-    # 5. Goal (only public)
+    # 5. Goal
     goal_add_points(profile_key.split("_")[0], amount)
 
     user = profile_key.split("_")[0]
     goal_file = CONFIG["profiles"][f"{user}_public"]["goal_file"]
     goal = load_goal(goal_file)
-
 
     # 6. Статистика
     stats_file = CONFIG["profiles"][profile_key]["stats_file"]

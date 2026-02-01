@@ -188,8 +188,7 @@ async def ws_handler(websocket):
                 mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
 
-                vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-                profile = update_vip(vip_file, viewer_id, name=viewer_name, event=event)
+                profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
                 if event == "login":
                     add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
@@ -217,11 +216,12 @@ async def ws_handler(websocket):
                 print("🔥 DONATION RECEIVED:", data)
 
                 user = data.get("user")
+                user_id = data.get("user_id")  # ← настоящий уникальный ID
                 name = (data.get("name") or "Аноним").strip()
                 text = data.get("text", "")
                 amount = float(data.get("amount") or 0)
 
-                if not user or amount <= 0:
+                if not user or not user_id or amount <= 0:
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
@@ -230,9 +230,16 @@ async def ws_handler(websocket):
 
                 from services.donation_service import handle_donation
 
-                result = handle_donation(profile_key, name, amount, text)
+                # передаём user_id первым аргументом
+                result = handle_donation(profile_key, user_id, name, amount, text)
+                profile = update_vip(profile_key, user_id, name=name, amount=amount)
 
-                # 🔥 ПРАВИЛЬНОЕ ОБНОВЛЕНИЕ ЦЕЛИ (как в goal_app)
+                ws_send({
+                    "vip_update": True,
+                    "user_id": user_id,
+                    "profile_key": profile_key,
+                })
+
                 ws_send({
                     "goal_update": True,
                     "goal": result["goal"]
@@ -240,6 +247,7 @@ async def ws_handler(websocket):
 
                 ws_send({"type": "refresh_logs"}, role="panel")
                 continue
+
 
             # ---------- STOP ----------
             if msg_type == "stop":

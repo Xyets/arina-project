@@ -51,16 +51,19 @@ def save_vip_file(path: str, vip_data: Dict[str, Any]) -> None:
 
 # ---------------- UPDATE ----------------
 
+from config import CONFIG
+
 def update_vip(
-    path: str,
+    profile_key: str,
     user_id: str,
     name: Optional[str] = None,
     amount: float = 0.0,
     event: Optional[str] = None
 ) -> Dict[str, Any]:
 
-    path = Path(path)
-    vip_data = load_vip_file(str(path))
+    # путь берём из CONFIG
+    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+    vip_data = load_vip_file(vip_file)
 
     # создаём запись, если нет
     if user_id not in vip_data:
@@ -87,7 +90,7 @@ def update_vip(
         user["total"] = float(user.get("total", 0.0)) + float(amount)
 
         audit_event(
-            str(path),
+            vip_file,
             "vip",
             {"type": "vip_total_increment", "user_id": user_id, "amount": amount}
         )
@@ -108,5 +111,5 @@ def update_vip(
         elif event == "logout":
             user["_just_logged_in"] = False
 
-    save_vip_file(str(path), vip_data)
+    save_vip_file(vip_file, vip_data)
     return user
