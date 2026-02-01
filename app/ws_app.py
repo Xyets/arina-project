@@ -10,7 +10,7 @@ from services.goal_service import load_goal
 
 from services.vibration_manager import (
     init_vibration_queues,
-    get_vibration_queue,
+    vibration_queues,
     stop_vibration,
     stop_events,          # ← ДОБАВИТЬ ЭТО
 )
@@ -59,10 +59,7 @@ def ws_send(data, role=None, profile_key=None):
 # ---------------- ВИБРАЦИИ ----------------
 
 async def vibration_worker(profile_key):
-    print("👀 WORKER RUNNING FOR:", profile_key)
-    q = get_vibration_queue(profile_key)
-    if not q:
-        return
+    q = vibration_queues[profile_key]
 
     from services.vibration_manager import stop_events
     from services.lovense_service import send_vibration_cloud, stop_vibration_cloud
@@ -70,32 +67,44 @@ async def vibration_worker(profile_key):
     while True:
         strength, duration = await q.get()
 
-        # 🔥 1. Отправляем вибрацию на устройство
+        # Сбрасываем STOP перед новой вибрацией
+        stop_events[profile_key].clear()
+
+        # Запускаем вибрацию на duration секунд (как раньше)
         send_vibration_cloud(profile_key, strength, duration)
 
-        # 🔥 2. OBS-анимация
-        payload = {
+        # OBS-анимация
+        msg = json.dumps({
             "vibration": {
                 "strength": strength,
                 "duration": duration,
                 "target": profile_key
             }
-        }
-        ws_send(payload, role="obs", profile_key=profile_key)
-        ws_send(payload, role="panel")
+        })
+        for ws in list(CONNECTED_SOCKETS):
+            try:
+                await ws.send(msg)
+            except:
+                CONNECTED_SOCKETS.discard(ws)
 
-        # 🔥 3. Ждём duration секунд, проверяя STOP
+        # Ждём duration секунд, но проверяем STOP
         for _ in range(duration):
             await asyncio.sleep(1)
 
             if stop_events[profile_key].is_set():
-                print("🛑 STOP DETECTED FOR:", profile_key)
-
-                # Останавливаем устройство
                 stop_vibration_cloud(profile_key)
 
-                # Останавливаем OBS
-                ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
+                # STOP в OBS
+                stop_msg = json.dumps({
+                    "stop": True,
+                    "target": profile_key
+                })
+                for ws in list(CONNECTED_SOCKETS):
+                    try:
+                        await ws.send(stop_msg)
+                    except:
+                        CONNECTED_SOCKETS.discard(ws)
+
                 break
 
         q.task_done()

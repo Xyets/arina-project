@@ -5,7 +5,6 @@ import redis
 
 from config import CONFIG
 from services.vibration_manager import enqueue_vibration
-from services.lovense_service import send_vibration_cloud
 from services.stats_service import update_stats, update_donations_sum
 from services.audit import audit_event
 from services.reactions_service import apply_reaction_rule
@@ -53,8 +52,7 @@ def apply_rule(profile_key, amount, text):
             if action and action.strip():
                 return {"kind": "action", "action_text": action.strip()}
 
-
-            # OBS
+            # VIBRATION → только очередь
             enqueue_vibration(profile_key, strength, duration)
 
             return {"kind": "vibration", "strength": strength, "duration": duration}
@@ -67,7 +65,6 @@ def apply_rule(profile_key, amount, text):
 def handle_donation(profile_key, name, amount, text):
     """
     Главная функция обработки доната.
-    Полностью повторяет старую красивую логику.
     """
 
     mode = profile_key.split("_")[1]
