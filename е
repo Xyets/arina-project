@@ -5,4 +5,7 @@ sudo journalctl -u arina.service -f
 
 конфиг нгинкс sudo nano /etc/nginx/sites-available/arina.conf
 sudo nano /root/arina-project/wsgi.py
+nano /etc/systemd/system/arina.service
+
+journalctl -u arina_ws.service -n 50 --no-pager
 
