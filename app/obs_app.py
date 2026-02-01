@@ -29,3 +29,16 @@ def obs_alert(user, mode):
     template_name = f"obs_alert_{user.lower()}.html"
 
     return render_template(template_name, profile_key=profile_key)
+
+@obs_bp.route("/obs_reactions/<user>/<mode>")
+def obs_reactions(user, mode):
+    if mode not in ("private", "public"):
+        return abort(404)
+
+    profile_key = f"{user}_{mode}"
+
+    if profile_key not in CONFIG["profiles"]:
+        return abort(404)
+
+    template_name = f"obs_reactions_{user.lower()}.html"
+    return render_template(template_name, profile_key=profile_key)

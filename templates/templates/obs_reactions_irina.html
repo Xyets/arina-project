@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>OBS Реакции</title>
+  <style>
+    body {
+      margin: 0;
+      background: transparent; /* чтобы фон был прозрачным в OBS */
+      overflow: hidden;
+    }
+    #reaction {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      animation: fadeIn 0.5s, fadeOut 0.5s forwards;
+    }
+    #reaction img {
+      max-width: 80%;
+      max-height: 80%;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="reaction"></div>
+
+  <script>
+    const profileKey = "{{ profile_key }}"; // передаётся из Flask
+    const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+    ws.onopen = () => {
+    console.log("🔌 WebSocket подключён");
+    };
+
+    ws.onerror = (err) => {
+    console.error("❌ Ошибка WebSocket:", err);
+    };
+
+    ws.onclose = () => {
+    console.warn("⚠️ WebSocket закрыт");
+    };
+
+    ws.onmessage = (event) => {
+    try {
+        const data = JSON.parse(event.data);
+        console.log("📩 WS raw:", data);
+
+        if (data.reaction && data.profile === profileKey) {
+        showReaction(data.image, data.duration || 5);
+        }
+    } catch (e) {
+        console.error("Ошибка обработки WS:", e);
+    }
+    };
+
+
+    function showReaction(imagePath, duration) {
+      const container = document.getElementById("reaction");
+      container.innerHTML = `<img src="/static/${imagePath}" alt="reaction">`;
+      container.style.display = "block";
+      container.style.animation = "fadeIn 0.5s";
+
+      setTimeout(() => {
+        container.style.animation = "fadeOut 0.5s forwards";
+        setTimeout(() => {
+          container.style.display = "none";
+          container.innerHTML = "";
+        }, 500);
+      }, duration * 1000);
+    }
+  </script>
+</body>
+</html>
