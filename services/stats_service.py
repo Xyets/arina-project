@@ -1,5 +1,3 @@
-# services/stats_service.py
-
 import json
 import os
 from pathlib import Path
@@ -9,7 +7,7 @@ from typing import Dict, Tuple
 
 # ---------------- LOAD ----------------
 
-def load_stats(path: str) -> Dict[str, Dict]:
+def load_stats(path: str) -> Dict[str, Dict]]:
     """
     Загружает статистику из файла по ПОЛНОМУ пути.
     Если файла нет или он повреждён — возвращает пустую структуру.
@@ -36,7 +34,6 @@ def save_stats(path: str, stats: Dict[str, Dict]) -> None:
     path = Path(path)
     tmp = path.with_suffix(".json.tmp")
 
-    # гарантируем, что каталог существует
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(tmp, "w", encoding="utf-8") as f:
@@ -52,6 +49,7 @@ def save_stats(path: str, stats: Dict[str, Dict]) -> None:
 def update_stats(path: str, category: str, amount: float = 0.0) -> None:
     """
     Обновляет статистику по категории (vibrations/actions/other).
+    amount = количество донатов (обычно 1).
     """
     stats = load_stats(path)
     today = datetime.now().strftime("%Y-%m-%d")
@@ -80,7 +78,7 @@ def update_stats(path: str, category: str, amount: float = 0.0) -> None:
 
 def update_donations_sum(path: str, amount: float = 0.0) -> None:
     """
-    Обновляет сумму донатов за день.
+    Обновляет сумму донатов за день (в поинтах).
     """
     stats = load_stats(path)
     today = datetime.now().strftime("%Y-%m-%d")
@@ -107,35 +105,49 @@ def calculate_stats(
     irina_stats: Dict[str, Dict] = None
 ) -> Tuple[Dict[str, Dict], Dict[str, float]]:
     """
-    Агрегирует статистику по дням и считает доход.
+    Считает:
+    - вибрации
+    - действия
+    - иное
+    - всего поинтов
+    - archi_fee (только Irina)
+    - чистый доход (total * 0.7 - archi_fee)
     """
+
     results = {}
 
-    sum_vibr = sum(float(d["vibrations"]) for d in stats.values())
-    sum_act = sum(float(d["actions"]) for d in stats.values())
-    sum_other = sum(float(d["other"]) for d in stats.values())
-    sum_total = sum(float(d["total"]) for d in stats.values())
-    sum_donations = sum(float(d.get("donations_sum", 0.0)) for d in stats.values())
+    sum_vibr = sum(d["vibrations"] for d in stats.values())
+    sum_act = sum(d["actions"] for d in stats.values())
+    sum_other = sum(d["other"] for d in stats.values())
+    sum_total = sum(d["total"] for d in stats.values())
+    sum_donations = sum(d.get("donations_sum", 0.0) for d in stats.values())
 
-    archi_fee = 0.0
-    total_income = 0.0
+    sum_archi = 0.0
+    sum_net = 0.0
 
     for day, data in stats.items():
-        base_income = float(data["total"]) * 0.7
+        vibr = float(data["vibrations"])
+        act = float(data["actions"])
+        other = float(data["other"])
+        total = float(data["total"])
 
+        # ARCHI (только Irina)
         if user == "Irina":
-            archi = float(data["vibrations"]) * 0.7 * 0.1
-            net_income = base_income - archi
-            results[day] = {**data, "archi_fee": archi, "net_income": net_income}
-            archi_fee += archi
-            total_income += net_income
+            archi_fee = vibr * 0.7 * 0.1
         else:
-            net_income = base_income
-            results[day] = {**data, "net_income": net_income}
-            total_income += net_income
+            archi_fee = 0.0
 
-    if user == "Arina" and irina_stats:
-        archi_fee = sum(float(d["vibrations"]) * 0.7 * 0.1 for d in irina_stats.values())
+        # NET INCOME
+        net_income = total * 0.7 - archi_fee
+
+        results[day] = {
+            **data,
+            "archi_fee": archi_fee,
+            "net_income": net_income
+        }
+
+        sum_archi += archi_fee
+        sum_net += net_income
 
     summary = {
         "sum_vibr": sum_vibr,
@@ -143,8 +155,8 @@ def calculate_stats(
         "sum_other": sum_other,
         "sum_total": sum_total,
         "sum_donations": sum_donations,
-        "archi_fee": archi_fee,
-        "total_income": total_income,
+        "archi_fee": sum_archi,
+        "total_income": sum_net,
     }
 
     return results, summary

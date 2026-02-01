@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from functools import wraps
 import json
 import os
+from datetime import datetime
 from config import CONFIG
 from services.stats_service import load_stats, calculate_stats
 
@@ -32,8 +33,16 @@ def stats_page():
     if not profile_cfg:
         return f"Профиль {profile_key} не найден", 500
 
-    stats_file = profile_cfg.get("stats_file")
+    stats_file = profile_cfg["stats_file"]
     stats_data = load_stats(stats_file)
+
+    # calculate_stats теперь считает:
+    # - vibrations
+    # - actions
+    # - other
+    # - total
+    # - archi_fee (Irina)
+    # - net_income
     results, summary = calculate_stats(stats_data, user=user)
 
     return render_template(
@@ -66,17 +75,19 @@ def stats_history():
     to_date = request.args.get("to")
 
     if from_date and to_date:
-        filtered = []
-        for p in archive.get("periods", []):
-            if p.get("start") >= from_date and p.get("end") <= to_date:
-                filtered.append(p)
-        archive = {"periods": filtered}
+        archive["periods"] = [
+            p for p in archive.get("periods", [])
+            if p.get("start") >= from_date and p.get("end") <= to_date
+        ]
 
     return render_template(
         "stats_history.html",
         user=user,
         archive=archive
     )
+
+
+# -------------------- ЗАКРЫТИЕ ПЕРИОДА --------------------
 
 @stats_bp.route("/close_period", methods=["POST"])
 @login_required
@@ -85,7 +96,6 @@ def close_period():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    # Пути к файлам из config.json
     profile_cfg = CONFIG["profiles"].get(profile_key)
     if not profile_cfg:
         return f"Профиль {profile_key} не найден", 500
@@ -95,7 +105,6 @@ def close_period():
 
     # Загружаем текущую статистику
     stats = load_stats(stats_file)
-
     if not stats:
         return redirect(url_for("stats.stats_history"))
 
@@ -111,30 +120,47 @@ def close_period():
     start_day = days_sorted[0]
     end_day = days_sorted[-1]
 
-    # Считаем суммы
-    total_income = 0
-    total_vibrations = 0
-    total_actions = 0
+    # Итоговые суммы
+    total_vibr = 0
+    total_act = 0
     total_other = 0
-    total_archi_fee = 0
+    total_points = 0
+    total_archi = 0
+    total_income = 0
 
     for day, data in stats.items():
-        total_income += data.get("net_income", 0)
-        total_vibrations += data.get("vibrations", 0)
-        total_actions += data.get("actions", 0)
-        total_other += data.get("other", 0)
-        total_archi_fee += data.get("archi_fee", 0)
+        vibr = float(data.get("vibrations", 0))
+        act = float(data.get("actions", 0))
+        other = float(data.get("other", 0))
+        total = float(data.get("total", vibr + act + other))
+
+        # ARCHI (только Irina)
+        if user == "Irina":
+            archi_fee = vibr * 0.7 * 0.1
+        else:
+            archi_fee = 0.0
+
+        # NET INCOME
+        net_income = total * 0.7 - archi_fee
+
+        total_vibr += vibr
+        total_act += act
+        total_other += other
+        total_points += total
+        total_archi += archi_fee
+        total_income += net_income
 
     # Создаём новый период
     new_period = {
         "id": len(archive["periods"]) + 1,
         "start": start_day,
         "end": end_day,
-        "total_income": total_income,
-        "vibrations": total_vibrations,
-        "actions": total_actions,
+        "vibrations": total_vibr,
+        "actions": total_act,
         "other": total_other,
-        "archi_fee": total_archi_fee,
+        "total_points": total_points,
+        "archi_fee": total_archi,
+        "total_income": total_income,
         "days": stats
     }
 
@@ -153,4 +179,3 @@ def close_period():
         json.dump({}, f)
 
     return redirect(url_for("stats.stats_history"))
-

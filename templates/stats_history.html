@@ -87,9 +87,9 @@
 
     {% for p in archive.periods %}
       <div class="period-header" onclick="togglePeriod('{{ p.id }}')">
-        🔽 Период {{ p.id }} ({{ p.start }} — {{ p.end }}) — доход: <b>{{ p.total_income }}</b>
+        🔽 Период {{ p.id }} ({{ p.start }} — {{ p.end }}) — доход: <b>{{ p.total_income|int }}</b>
         {% if user == "Irina" %}
-          — %Арчи: <b>{{ p.archi_fee }}</b>
+          — %Арчи: <b>{{ p.archi_fee|int }}</b>
         {% endif %}
       </div>
 
@@ -100,7 +100,7 @@
             <th>Вибрации</th>
             <th>Действия</th>
             <th>Иное</th>
-            <th>Всего</th>
+            <th>Всего поинтов</th>
             {% if user == "Irina" %}
               <th>%Арчи</th>
             {% endif %}
@@ -108,16 +108,31 @@
           </tr>
 
           {% for day, data in p.days.items() %}
+            {% set vibr = data.vibrations %}
+            {% set act = data.actions %}
+            {% set other = data.other %}
+            {% set total = data.total %}
+
+            {% if user == "Irina" %}
+              {% set archi_fee = vibr * 0.7 * 0.1 %}
+              {% set net_income = total * 0.7 - archi_fee %}
+            {% else %}
+              {% set archi_fee = 0 %}
+              {% set net_income = total * 0.7 %}
+            {% endif %}
+
             <tr>
               <td>{{ day }}</td>
-              <td>{{ data.vibrations }}</td>
-              <td>{{ data.actions }}</td>
-              <td>{{ data.other }}</td>
-              <td>{{ data.donations_sum }}</td>
+              <td>{{ vibr|int }}</td>
+              <td>{{ act|int }}</td>
+              <td>{{ other|int }}</td>
+              <td>{{ total|int }}</td>
+
               {% if user == "Irina" %}
-                <td>{{ data.archi_fee|default(0)|int }}</td>
+                <td>{{ archi_fee|int }}</td>
               {% endif %}
-              <td><b>{{ data.net_income|default(data.total)|int }}</b></td>
+
+              <td><b>{{ net_income|int }}</b></td>
             </tr>
           {% endfor %}
         </table>

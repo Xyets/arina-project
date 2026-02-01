@@ -126,7 +126,7 @@
           <td>{{ data.vibrations|default(0)|int }}</td>
           <td>{{ data.actions|default(0)|int }}</td>
           <td>{{ data.other|default(0)|int }}</td>
-          <td>{{ data.donations_sum|default(0)|int }}</td>
+          <td>{{ data.total|default(0)|int }}</td>
           {% if user == "Irina" %}
             <td><b>{{ data.archi_fee|default(0)|int }}</b></td>
           {% endif %}
@@ -196,7 +196,8 @@
     const vibrations = labels.map(d => parseInt(stats[d].vibrations || 0));
     const actions    = labels.map(d => parseInt(stats[d].actions || 0));
     const other      = labels.map(d => parseInt(stats[d].other || 0));
-    const donations  = labels.map(d => parseInt(stats[d].donations_sum || 0));
+    const totalPoints = labels.map(d => parseInt(stats[d].total || 0));
+
 
     const chartCtx = document.getElementById('statsChart').getContext('2d');
     new Chart(chartCtx, {
@@ -207,7 +208,7 @@
           { label: 'Вибрации',     data: vibrations, borderColor: '#74c0e3', backgroundColor: 'rgba(163,216,244,0.4)', tension: 0.3 },
           { label: 'Действия',     data: actions,    borderColor: '#81c784', backgroundColor: 'rgba(129,199,132,0.4)', tension: 0.3 },
           { label: 'Иное',         data: other,      borderColor: '#ffb74d', backgroundColor: 'rgba(255,183,77,0.4)', tension: 0.3 },
-          { label: 'Всего поинтов',data: donations,  borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
+          { label: 'Всего поинтов',data: totalPoints,  borderColor: '#f28497', backgroundColor: 'rgba(242,132,151,0.4)', tension: 0.3 }
         ]
       },
       options: {
