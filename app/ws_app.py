@@ -57,9 +57,9 @@ def ws_send(data, role=None, profile_key=None):
 
 
 # ---------------- ВИБРАЦИИ ----------------
-
+from services.vibration_manager import get_vibration_queue
 async def vibration_worker(profile_key):
-    q = vibration_queues[profile_key]
+    q = get_vibration_queue(profile_key)
 
     from services.vibration_manager import stop_events
     from services.lovense_service import send_vibration_cloud, stop_vibration_cloud
