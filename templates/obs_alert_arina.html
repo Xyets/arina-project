@@ -86,7 +86,8 @@
     let socket = null;
 
     function connectWS() {
-      socket = new WebSocket(`ws://${location.hostname}:8765/`);
+      socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
 
       socket.onopen = () => {
         console.log("✅ WebSocket подключён");
