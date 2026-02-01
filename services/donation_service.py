@@ -107,6 +107,14 @@ def handle_donation(profile_key, name, amount, text):
     # 4. VIP
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     update_vip(vip_file, user_id=name, name=name, amount=amount)
+    from app.ws_app import ws_send
+
+    # уведомляем панель, что VIP обновился
+    ws_send({
+        "vip_update": True,
+        "user_id": name
+    }, role="panel")
+
     # 5. Goal (only public)
     goal_add_points(profile_key.split("_")[0], amount)
 

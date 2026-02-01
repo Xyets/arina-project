@@ -232,11 +232,6 @@ async def ws_handler(websocket):
 
                 result = handle_donation(profile_key, name, amount, text)
 
-                # если правило содержит вибрацию — шлём панели таймер
-                rule = result.get("rule")
-                if rule and rule.get("kind") == "vibration":
-                    vib = rule
-
                 # 🔥 ПРАВИЛЬНОЕ ОБНОВЛЕНИЕ ЦЕЛИ (как в goal_app)
                 ws_send({
                     "goal_update": True,
