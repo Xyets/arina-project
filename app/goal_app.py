@@ -62,7 +62,12 @@ def goal_new():
 
     save_goal(goal_file, goal)
 
-    ws_send({"goal_update": True, "goal": goal}, role="panel")
+    ws_send(
+        {"goal_update": True, "goal": goal},
+        role="panel",
+        profile_key=f"{user}_{mode}"
+    )
+
 
 
     return {"status": "ok"}
@@ -71,33 +76,27 @@ def goal_new():
 # -------------------- AUTO UPDATE GOAL (DONATION) --------------------
 
 def goal_add_points(user: str, amount: float):
-    """
-    Автоматически вызывается donation_service при донате.
-    Работает только в PUBLIC режиме.
-    """
     profile_key = f"{user}_public"
     goal_file = CONFIG["profiles"][profile_key]["goal_file"]
 
     goal = load_goal(goal_file)
 
-    # если цели нет — ничего не делаем
     if goal["target"] <= 0:
         return
 
     goal["current"] += amount
 
-    # ограничиваем сверху
     if goal["current"] > goal["target"]:
         goal["current"] = goal["target"]
 
     save_goal(goal_file, goal)
 
-    # отправляем обновление в OBS и панель
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
-        user=user
+        profile_key=f"{user}_public"
     )
+
 
 
 # -------------------- RESET GOAL --------------------
@@ -119,6 +118,11 @@ def goal_reset():
 
     save_goal(goal_file, goal)
 
-    ws_send({"goal_update": True, "goal": goal}, role="panel", user=user)
+    ws_send(
+        {"goal_update": True, "goal": goal},
+        role="panel",
+        profile_key=f"{user}_public"
+    )
+
 
     return {"status": "ok"}
