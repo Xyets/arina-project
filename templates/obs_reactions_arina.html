@@ -34,63 +34,56 @@
 <body>
   <div id="reaction"></div>
 
-  <script>
-    const profileKey = "{{ profile_key }}"; // передаётся из Flask
-    const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+    <script>
+        const profileKey = "{{ profile_key }}";
+        const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
-    ws.onopen = () => {
-        console.log("🔌 WebSocket подключён");
-        ws.send(JSON.stringify({
-            type: "hello",
-            role: "obs",
-            profile_key: profileKey
-        }));
-    };
+        ws.onopen = () => {
+            console.log("🔌 WebSocket подключён");
 
+            ws.send(JSON.stringify({
+                type: "hello",
+                role: "obs",
+                profile_key: profileKey
+            }));
+        };
 
-    ws.send(JSON.stringify({
-        type: "hello",
-        role: "obs",
-        profile_key: profileKey
-    }));
+        ws.onerror = (err) => {
+            console.error("❌ Ошибка WebSocket:", err);
+        };
 
+        ws.onclose = () => {
+            console.warn("⚠️ WebSocket закрыт");
+        };
 
-    ws.onerror = (err) => {
-    console.error("❌ Ошибка WebSocket:", err);
-    };
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("📩 WS raw:", data);
 
-    ws.onclose = () => {
-    console.warn("⚠️ WebSocket закрыт");
-    };
+                if (data.reaction && data.profile === profileKey) {
+                    showReaction(data.reaction.image, data.reaction.duration || 5);
+                }
+            } catch (e) {
+                console.error("Ошибка обработки WS:", e);
+            }
+        };
 
-    ws.onmessage = (event) => {
-    try {
-        const data = JSON.parse(event.data);
-        console.log("📩 WS raw:", data);
+        function showReaction(imagePath, duration) {
+            const container = document.getElementById("reaction");
+            container.innerHTML = `<img src="/static/${imagePath}" alt="reaction">`;
+            container.style.display = "block";
+            container.style.animation = "fadeIn 0.5s";
 
-        if (data.reaction && data.profile === profileKey) {
-        showReaction(data.image, data.duration || 5);
+            setTimeout(() => {
+                container.style.animation = "fadeOut 0.5s forwards";
+                setTimeout(() => {
+                    container.style.display = "none";
+                    container.innerHTML = "";
+                }, 500);
+            }, duration * 1000);
         }
-    } catch (e) {
-        console.error("Ошибка обработки WS:", e);
-    }
-    };
+    </script>
 
-
-    function showReaction(imagePath, duration) {
-      const container = document.getElementById("reaction");
-      container.innerHTML = `<img src="/static/${imagePath}" alt="reaction">`;
-      container.style.display = "block";
-      container.style.animation = "fadeIn 0.5s";
-
-      setTimeout(() => {
-        container.style.animation = "fadeOut 0.5s forwards";
-        setTimeout(() => {
-          container.style.display = "none";
-          container.innerHTML = "";
-        }, 500);
-      }, duration * 1000);
-    }
-  </script>
 </body>
 </html>
