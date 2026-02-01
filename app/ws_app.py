@@ -188,7 +188,8 @@ async def ws_handler(websocket):
                 mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
 
-                profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
+                vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+                profile = update_vip(vip_file, viewer_id, name=viewer_name, event=event)
 
                 if event == "login":
                     add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
