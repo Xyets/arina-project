@@ -113,7 +113,9 @@ def reactions_page():
         "reactions.html",
         reactions=rules,
         profile_key=profile_key,
-        profile=CONFIG["profiles"][profile_key]
+        profile=CONFIG["profiles"][profile_key],
+        user=user, 
+        mode=mode,
     )
 
 
