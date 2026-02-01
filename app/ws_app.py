@@ -241,11 +241,16 @@ async def ws_handler(websocket):
                     vib = result["vibration"]
                     enqueue_vibration(profile_key, vib["strength"], vib["duration"])
 
-                # обновление цели
-                ws_send({"goal_update": True, "goal": result["goal"]}, role="panel")
+                # 🔥 ПРАВИЛЬНОЕ ОБНОВЛЕНИЕ ЦЕЛИ
+                ws_send({
+                    "type": "goal_update",
+                    "goal": result["goal"]
+                }, role="panel")
+
                 ws_send({"type": "refresh_logs"}, role="panel")
 
                 continue
+
 
                
             # ---------- STOP ----------

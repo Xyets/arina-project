@@ -62,7 +62,8 @@ def goal_new():
 
     save_goal(goal_file, goal)
 
-    ws_send({"goal_update": True, "goal": goal}, role="panel", user=user)
+    ws_send({"goal_update": True, "goal": goal}, role="panel")
+
 
     return {"status": "ok"}
     
