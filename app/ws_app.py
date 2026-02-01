@@ -229,11 +229,13 @@ async def ws_handler(websocket):
                
             # ---------- STOP ----------
             if msg_type == "stop":
-                user = data.get("user")
-                mode = CLIENT_MODES.get(user, "private") 
-                profile_key = f"{user}_{mode}"
+                profile_key = data.get("profile_key")
 
-                from services.vibration_manager import stop_vibration 
+                if not profile_key:
+                    user = data.get("user")
+                    mode = CLIENT_MODES.get(user, "private")
+                    profile_key = f"{user}_{mode}"
+
                 stop_vibration(profile_key)
 
                 ws_send(
