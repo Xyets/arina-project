@@ -12,6 +12,7 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal, save_goal
+from app.goal_app import goal_add_points
 
 redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
 
@@ -106,12 +107,13 @@ def handle_donation(profile_key, name, amount, text):
     # 4. VIP
     vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     update_vip(vip_file, user_id=name, name=name, amount=amount)
+    # 5. Goal (only public)
+    goal_add_points(profile_key.split("_")[0], amount)
 
-    # 5. Цель
-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    user = profile_key.split("_")[0]
+    goal_file = CONFIG["profiles"][f"{user}_public"]["goal_file"]
     goal = load_goal(goal_file)
-    goal["current"] += amount
-    save_goal(goal_file, goal)
+
 
     # 6. Статистика
     stats_file = CONFIG["profiles"][profile_key]["stats_file"]

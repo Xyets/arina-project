@@ -19,16 +19,19 @@ def login_required(f):
     return wrapper
 
 
-# -------------------- GOAL DATA --------------------
+# -------------------- GET GOAL --------------------
 
 @goal_bp.route("/goal_data")
 @login_required
 def goal_data():
     user = session["user"]
     mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
 
-    # путь к файлу цели
+    # ❗ В приватном режиме цели нет
+    if mode == "private":
+        return {"title": "", "target": 0, "current": 0}
+
+    profile_key = f"{user}_{mode}"
     goal_file = CONFIG["profiles"][profile_key]["goal_file"]
 
     return load_goal(goal_file)
@@ -41,9 +44,11 @@ def goal_data():
 def goal_new():
     user = session["user"]
     mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
 
-    # путь к файлу цели
+    if mode == "private":
+        return {"status": "error", "message": "В приватном режиме цели нет"}
+
+    profile_key = f"{user}_{mode}"
     goal_file = CONFIG["profiles"][profile_key]["goal_file"]
 
     title = request.form.get("title", "")
@@ -57,11 +62,62 @@ def goal_new():
 
     save_goal(goal_file, goal)
 
-    # уведомляем OBS/панель
+    ws_send({"goal_update": True, "goal": goal}, role="panel", user=user)
+
+    return {"status": "ok"}
+    
+
+# -------------------- AUTO UPDATE GOAL (DONATION) --------------------
+
+def goal_add_points(user: str, amount: float):
+    """
+    Автоматически вызывается donation_service при донате.
+    Работает только в PUBLIC режиме.
+    """
+    profile_key = f"{user}_public"
+    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+
+    goal = load_goal(goal_file)
+
+    # если цели нет — ничего не делаем
+    if goal["target"] <= 0:
+        return
+
+    goal["current"] += amount
+
+    # ограничиваем сверху
+    if goal["current"] > goal["target"]:
+        goal["current"] = goal["target"]
+
+    save_goal(goal_file, goal)
+
+    # отправляем обновление в OBS и панель
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
         user=user
     )
+
+
+# -------------------- RESET GOAL --------------------
+
+@goal_bp.route("/goal_reset", methods=["POST"])
+@login_required
+def goal_reset():
+    user = session["user"]
+    mode = session.get("mode", "private")
+
+    if mode == "private":
+        return {"status": "error", "message": "В приватном режиме цели нет"}
+
+    profile_key = f"{user}_{mode}"
+    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+
+    goal = load_goal(goal_file)
+    goal["current"] = 0
+
+    save_goal(goal_file, goal)
+
+    ws_send({"goal_update": True, "goal": goal}, role="panel", user=user)
 
     return {"status": "ok"}
