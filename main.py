@@ -40,9 +40,9 @@ def create_app():
 
     threading.Thread(
         target=run_websocket_server,
-        args=(profile_keys,),
         daemon=True
     ).start()
+
 
     # 🔧 Запускаем фоновую очистку
     threading.Thread(
