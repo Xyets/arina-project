@@ -381,25 +381,6 @@
         
   </script>
   <script>
-  let deleteId = null;
-
-  function openDeleteModal(id) {
-    deleteId = id;
-    document.getElementById("modalOverlay").style.display = "block";
-    document.getElementById("confirmModal").style.display = "block";
-  }
-
-  function closeDeleteModal() {
-    document.getElementById("modalOverlay").style.display = "none";
-    document.getElementById("confirmModal").style.display = "none";
-    deleteId = null;
-  }
-
-  document.getElementById("confirmYes").onclick = function() {
-    if (deleteId) {
-      document.getElementById("deleteForm_" + deleteId).submit();
-    }
-  };
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeDeleteModal();
