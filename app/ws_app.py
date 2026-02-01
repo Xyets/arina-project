@@ -134,6 +134,9 @@ async def ws_handler(websocket):
             # ---------- HELLO ----------
             if msg_type == "hello":
                 role = data.get("role")
+                print("🔥 RAW MESSAGE:", message)
+                print("🔥 PARSED:", data)
+                print("🔥 msg_type:", msg_type)
                 
                 if role == "panel":
                     CLIENT_TYPES[websocket] = "panel"
