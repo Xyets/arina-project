@@ -119,8 +119,15 @@ def handle_donation(profile_key, user_id, name, amount, text):
     reaction_event = apply_reaction_rule(reactions_file, amount)
 
     if reaction_event:
-        reaction_event["profile"] = profile_key
-        redis_client.publish("obs_reactions", json.dumps(reaction_event))
+        payload = {
+            "reaction": {
+                "image": reaction_event.get("image"),
+                "duration": reaction_event.get("duration", 5)
+            },
+            "profile": profile_key
+        }
+        redis_client.publish("obs_reactions", json.dumps(payload))
+
 
 
     return {"goal": goal, "rule": rule_result}
