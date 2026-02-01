@@ -53,9 +53,6 @@ def apply_rule(profile_key, amount, text):
             if action and action.strip():
                 return {"kind": "action", "action_text": action.strip()}
 
-            # VIBRATION
-            # Cloud
-            send_vibration_cloud(profile_key, strength, duration)
 
             # OBS
             enqueue_vibration(profile_key, strength, duration)
