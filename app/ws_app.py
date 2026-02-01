@@ -122,6 +122,9 @@ async def ws_handler(websocket):
                 continue
 
             msg_type = data.get("type")
+            print("🔥 RAW MESSAGE:", message)
+            print("🔥 PARSED:", data)
+            print("🔥 msg_type:", msg_type)
 
             if msg_type is None and "amount" in data:
                 msg_type = "donation"
@@ -134,9 +137,6 @@ async def ws_handler(websocket):
             # ---------- HELLO ----------
             if msg_type == "hello":
                 role = data.get("role")
-                print("🔥 RAW MESSAGE:", message)
-                print("🔥 PARSED:", data)
-                print("🔥 msg_type:", msg_type)
                 
                 if role == "panel":
                     CLIENT_TYPES[websocket] = "panel"
@@ -155,7 +155,6 @@ async def ws_handler(websocket):
                     CLIENT_PROFILES[websocket] = data.get("profile_key")
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "obs"}))
                     continue
-                print("🔥 HELLO RECEIVED FROM:", data)
                 await websocket.send(json.dumps({"error": "unknown_role"}))
                 continue
             # ---------- VIEWER LOGIN / LOGOUT ----------
