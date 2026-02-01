@@ -235,13 +235,6 @@ async def ws_handler(websocket):
                 rule = result.get("rule")
                 if rule and rule.get("kind") == "vibration":
                     vib = rule
-                    ws_send({
-                        "vibration": {
-                            "strength": vib["strength"],
-                            "duration": vib["duration"],
-                            "target": profile_key
-                        }
-                    }, role="panel")
 
                 # 🔥 ПРАВИЛЬНОЕ ОБНОВЛЕНИЕ ЦЕЛИ (как в goal_app)
                 ws_send({
