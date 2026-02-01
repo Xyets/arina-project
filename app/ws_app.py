@@ -19,6 +19,7 @@ CONNECTED_SOCKETS = set()
 CLIENT_TYPES = {}          # ws -> "panel" / "obs"
 CLIENT_PROFILES = {}       # ws -> profile_key (OBS)
 CLIENT_USERS = {}          # ws -> user (panel)
+CLIENT_MODES = {}
 
 WS_EVENT_LOOP = None
 
@@ -126,9 +127,15 @@ async def ws_handler(websocket):
 
                 if role == "panel":
                     CLIENT_TYPES[websocket] = "panel"
-                    CLIENT_USERS[websocket] = data.get("user")
+                    user = data.get("user")
+                    mode = data.get("mode", "private")
+
+                    CLIENT_USERS[websocket] = user
+                    CLIENT_MODES[user] = mode  # сохраняем режим панели
+
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
                     continue
+
 
                 if role == "obs":
                     CLIENT_TYPES[websocket] = "obs"
@@ -141,25 +148,41 @@ async def ws_handler(websocket):
             # ---------- VIEWER LOGIN / LOGOUT ----------
             if "event" in data:
                 event = data["event"].lower()
-                user_id = data.get("user_id")
-                name = data.get("name", "Анонимно")
+                viewer_id = data.get("user_id")
+                viewer_name = data.get("name", "Анонимно")
                 text = data.get("text", "")
+                user = data.get("user")  # Arina / Irina
+
+                # определяем режим панели
+                mode = CLIENT_MODES.get(user, "private")
+                profile_key = f"{user}_{mode}"
 
                 # VIP обновление
-                profile = update_vip(profile_key, user_id, name=name, event=event)
+                profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
                 # Логирование
                 if event == "login":
-                    add_log(profile_key, f"🔵 LOGIN | {name} ({user_id})")
+                    add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
                 elif event == "logout":
-                    add_log(profile_key, f"🔴 LOGOUT | {name} ({user_id})")
+                    add_log(profile_key, f"🔴 LOGOUT | {viewer_name} ({viewer_id})")
                 else:
-                    add_log(profile_key, f"📥 EVENT | {event.upper()} | {name} ({user_id}) → {text}")
+                    add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
 
-                # Обновление панели
+                # popup ВСЕГДА
+                ws_send({
+                    "entry": {
+                        "user_id": viewer_id,
+                        "name": viewer_name,
+                        "visits": profile.get("login_count", 1),
+                        "last_login": profile.get("_previous_login"),
+                        "total_tips": profile.get("total", 0),
+                        "notes": profile.get("notes", "")
+                    }
+                }, role="panel")
+
                 ws_send({"type": "refresh_logs"}, role="panel")
-
                 continue
+
 
             # ---------- DONATION ----------
             if msg_type == "donation":
@@ -174,9 +197,9 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
-                mode = redis_client.hget("user_modes", user)
-                mode = mode.decode() if mode else "private"
+                mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
+
 
                 from services.donation_service import handle_donation
                 result = handle_donation(profile_key, name, amount, text)
@@ -193,7 +216,7 @@ async def ws_handler(websocket):
             # ---------- STOP ----------
             if msg_type == "stop":
                 user = data.get("user")
-                mode = data.get("mode", "private")
+                mode = CLIENT_MODES.get(user, "private") 
                 profile_key = f"{user}_{mode}"
 
                 ws_send(
@@ -208,19 +231,22 @@ async def ws_handler(websocket):
                 user = data.get("user")
                 mode = data.get("mode")
 
+                CLIENT_MODES[user] = mode  # обновляем режим
+
                 ws_send(
                     {"mode_update": mode, "user": user},
                     role="panel"
                 )
                 continue
 
+
             # ---------- VIP UPDATE ----------
             if msg_type == "vip_update":
                 user = data.get("user")
 
-                mode = redis_client.hget("user_modes", user)
-                mode = mode.decode() if mode else "private"
+                mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
+
 
                 data["profile_key"] = profile_key
                 ws_send(data, role="panel")

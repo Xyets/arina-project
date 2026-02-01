@@ -448,8 +448,10 @@
               socket.send(JSON.stringify({
                   type: "hello",
                   role: "panel",
-                  user: CURRENT_USER
+                  user: CURRENT_USER,
+                  mode: document.getElementById("modeSwitch").checked ? "private" : "public"
               }));
+
 
               if (socket._pingInterval) clearInterval(socket._pingInterval);
               socket._pingInterval = setInterval(() => {
@@ -475,9 +477,27 @@
                 loadLogs();
                 return;
               }
+              // ---------- ВИБРАЦИЯ ----------
+              if (data.vibration) {
+                  const v = data.vibration;
+                  startVibrationTimer(v.duration, v.strength);
+                  return;
+              }
 
+              // ---------- POPUP ENTRY ----------
+              if (data.entry) {
+                  const e = data.entry;
 
+                  const message = `
+                      👤 <strong>${e.name}</strong><br>
+                      🔢 Визитов: ${e.visits}<br>
+                      💗 Чаевых всего: ${e.total_tips}<br>
+                      📝 Заметки: ${e.notes || "нет"}
+                  `;
 
+                  showEntryPopup(message);
+                  return;
+              }
 
 
               // ---------- GOAL UPDATE ----------
