@@ -39,8 +39,21 @@
     const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
     ws.onopen = () => {
-    console.log("🔌 WebSocket подключён");
+        console.log("🔌 WebSocket подключён");
+        ws.send(JSON.stringify({
+            type: "hello",
+            role: "obs",
+            profile_key: profileKey
+        }));
     };
+
+
+    ws.send(JSON.stringify({
+        type: "hello",
+        role: "obs",
+        profile_key: profileKey
+    }));
+
 
     ws.onerror = (err) => {
     console.error("❌ Ошибка WebSocket:", err);
