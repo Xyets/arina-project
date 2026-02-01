@@ -329,6 +329,9 @@
     if (y) window.scrollTo(0, parseInt(y));
 
     refreshVipList();
+    function removeMember(userId) {
+      vipOpenModal(userId);
+    }
 
     // модалка
     let vipDeleteId = null;
