@@ -452,7 +452,6 @@
                   mode: document.getElementById("modeSwitch").checked ? "private" : "public"
               }));
 
-
               if (socket._pingInterval) clearInterval(socket._pingInterval);
               socket._pingInterval = setInterval(() => {
                   if (socket.readyState === WebSocket.OPEN) {
@@ -473,10 +472,12 @@
               catch { return; }
 
               console.log("📡 Панель получила:", data);
+
               if (data.type === "refresh_logs") {
-                loadLogs();
-                return;
+                  loadLogs();
+                  return;
               }
+
               // ---------- ВИБРАЦИЯ ----------
               if (data.vibration) {
                   const v = data.vibration;
@@ -499,7 +500,6 @@
                   return;
               }
 
-
               // ---------- GOAL UPDATE ----------
               if (data.goal_update) {
                   updateGoalUI(data.goal);
@@ -517,13 +517,11 @@
                   location.reload();
                   return;
               }
-          
-          };
-
-
-      }
+          };  // ←←← ЭТОЙ СКОБКИ У ТЕБЯ НЕ ХВАТАЛО
+      }       // ←←← И ЭТОЙ ТОЖЕ
 
       connectWS();
+
 
       /* ---------------------------------------------------------
         🔄 Переключение режима
