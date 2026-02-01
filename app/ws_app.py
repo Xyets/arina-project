@@ -322,9 +322,5 @@ async def ws_server(profile_keys):
 
 
 def run_websocket_server(profile_keys):
-    profile_keys = [
-        f"{user}_public",
-        f"{user}_private"
-    ]
 
     asyncio.run(ws_server(profile_keys))
