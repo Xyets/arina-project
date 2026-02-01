@@ -62,18 +62,21 @@ async def vibration_worker(profile_key):
 
     while True:
         strength, duration = await q.get()
+        
+        payload = {
+            "vibration": {
+                "strength": strength,
+                "duration": duration,
+                "target": profile_key
+            }
+        }
 
-        ws_send(
-            {
-                "vibration": {
-                    "strength": strength,
-                    "duration": duration,
-                    "target": profile_key
-                }
-            },
-            role="obs",
-            profile_key=profile_key
-        )
+        # отправляем OBS
+        ws_send(payload, role="obs", profile_key=profile_key)
+
+        # отправляем панели
+        ws_send(payload, role="panel")
+
 
         await asyncio.sleep(duration)
         q.task_done()
@@ -266,17 +269,20 @@ async def ws_handler(websocket):
                 if not profile_key or strength is None or duration is None:
                     continue
 
-                ws_send(
-                    {
-                        "vibration": {
-                            "strength": strength,
-                            "duration": duration,
-                            "target": profile_key
-                        }
-                    },
-                    role="obs",
-                    profile_key=profile_key
-                )
+                payload = {
+                    "vibration": {
+                        "strength": strength,
+                        "duration": duration,
+                        "target": profile_key
+                    }
+                }
+
+                # отправляем OBS
+                ws_send(payload, role="obs", profile_key=profile_key)
+
+                # отправляем панели
+                ws_send(payload, role="panel")
+
                 continue
 
     finally:
