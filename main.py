@@ -10,7 +10,6 @@ from app.rules_app import rules_bp
 from app.reactions_app import reactions_bp
 from app.obs_app import obs_bp
 from app.lovense_app import lovense_bp
-from app.ws_app import run_websocket_server
 from services.maintenance_service import periodic_backup_cleanup
 
 from config import CONFIG
@@ -34,15 +33,6 @@ def create_app():
     app.register_blueprint(reactions_bp)
     app.register_blueprint(obs_bp)
     app.register_blueprint(lovense_bp)
-
-    # 🔥 Запускаем WebSocket сервер (ВАЖНО: внутри create_app)
-    profile_keys = list(CONFIG["profiles"].keys())
-
-    threading.Thread(
-        target=run_websocket_server,
-        daemon=True
-    ).start()
-
 
     # 🔧 Запускаем фоновую очистку
     threading.Thread(
