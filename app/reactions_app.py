@@ -1,7 +1,9 @@
-from flask import Blueprint, request, render_template, session, redirect, url_for
+from flask import Blueprint, request, render_template, session, redirect, url_for, jsonify
 from functools import wraps
 import uuid
 import os
+import json
+import redis
 from werkzeug.utils import secure_filename
 
 from config import CONFIG
@@ -11,6 +13,8 @@ reactions_bp = Blueprint("reactions", __name__)
 
 # Путь к папке реакций — берём из CONFIG
 STATIC_REACTIONS_DIR = CONFIG["static_reactions_dir"]
+
+redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
 
 
 # -------------------- AUTH --------------------
@@ -111,3 +115,36 @@ def reactions_page():
         profile_key=profile_key,
         profile=CONFIG["profiles"][profile_key]
     )
+
+
+# -------------------- TEST REACTION --------------------
+
+@reactions_bp.route("/test_reaction", methods=["POST"])
+@login_required
+def test_reaction():
+    data = request.get_json()
+    rule_id = data.get("rule_id")
+    profile_key = data.get("profile_key")
+
+    if not rule_id or not profile_key:
+        return jsonify({"status": "error", "message": "missing params"}), 400
+
+    # Загружаем файл реакций
+    reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
+    with open(reactions_file, "r", encoding="utf-8") as f:
+        rules = json.load(f)["rules"]
+
+    rule = next((r for r in rules if r["id"] == rule_id), None)
+    if not rule:
+        return jsonify({"status": "error", "message": "rule not found"}), 404
+
+    # Публикуем реакцию в Redis
+    redis_client.publish("obs_reactions", json.dumps({
+        "reaction": {
+            "image": rule["image"],
+            "duration": rule["duration"]
+        },
+        "profile": profile_key
+    }))
+
+    return jsonify({"status": "ok"})

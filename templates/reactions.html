@@ -14,7 +14,8 @@
     .preview img { max-width:200px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
     button { background:#a3d8f4; border:none; padding:8px 16px; border-radius:20px; color:white; cursor:pointer; transition:0.3s; margin-top:10px; }
     button:hover { background:#74c0e3; }
-    .delete { background:#f7a8b8; } .delete:hover { background:#f28497; }
+    .delete { background:#f7a8b8; } 
+    .delete:hover { background:#f28497; }
     input { padding:6px; border:1px solid #ddd; border-radius:8px; margin:5px; }
     .back-link { text-align:center; margin-top:30px; }
     .back-link a { background:#f7a8b8; padding:10px 20px; border-radius:20px; color:white; text-decoration:none; font-size:16px; transition:0.3s; }
@@ -29,7 +30,7 @@
   <!-- Ссылка для OBS -->
   <div class="obs-link">
     <p>🔗 Ссылка для OBS (скопируй и вставь в браузер‑источник):</p>
-    <code>https://arinairina.duckdns.org/obs_reactions/{{ profile_key }}</code>
+    <code>https://arinairina.duckdns.org/obs_reactions/{{ user }}/{{ mode }}</code>
   </div>
 
   <!-- Список правил -->
@@ -45,8 +46,9 @@
         {% endif %}
       </div>
       <div class="actions">
+
         <!-- Тест -->
-        <button type="button" onclick="testReaction('{{ rule.id }}','{{ profile_key }}')">🔔 Тест</button>
+        <button type="button" onclick="testReaction('{{ rule.id }}')">🔔 Тест</button>
 
         <!-- Удалить -->
         <form method="POST" style="display:inline;">
@@ -63,6 +65,7 @@
           <input type="file" name="image" accept="image/*">
           <button type="submit">✏ Изменить</button>
         </form>
+
       </div>
     </div>
   {% endfor %}
@@ -85,12 +88,15 @@
   </div>
 
   <script>
-    function testReaction(ruleId, profileKey) {
+    function testReaction(ruleId) {
       fetch("/test_reaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ rule_id: ruleId, profile_key: profileKey })
+        body: JSON.stringify({
+          rule_id: ruleId,
+          profile_key: "{{ profile_key }}"
+        })
       })
       .then(res => res.json())
       .then(data => {
@@ -102,7 +108,7 @@
       })
       .catch(() => alert("❌ Запрос не удался"));
     }
-
   </script>
+
 </body>
 </html>
