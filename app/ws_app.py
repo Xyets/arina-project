@@ -81,17 +81,20 @@ async def vibration_worker(profile_key):
                 "target": profile_key
             }
         })
-        ws_send(
-            {
-                "vibration": {
-                    "strength": strength,
-                    "duration": duration,
-                    "target": profile_key
-                }
-            },
-            role="obs",
-            profile_key=profile_key
-        )
+        payload = {
+            "vibration": {
+                "strength": strength,
+                "duration": duration,
+                "target": profile_key
+            }
+        }
+
+        # OBS — для анимации игрушки
+        ws_send(payload, role="obs", profile_key=profile_key)
+
+        # PANEL — для таймера вибрации
+        ws_send(payload, role="panel")
+
 
 
         # Ждём duration секунд, но проверяем STOP
@@ -318,7 +321,7 @@ async def ws_handler(websocket):
                         "target": profile_key
                     }
                 }
-
+                ws_send(payload, role="panel")
                 ws_send(payload, role="obs", profile_key=profile_key)
                 continue
 
