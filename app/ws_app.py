@@ -82,12 +82,14 @@ async def vibration_worker(profile_key):
 
         for _ in range(duration):
             await asyncio.sleep(1)
-            
+
             if stop_events[profile_key].is_set():
+                print("🛑 STOP DETECTED FOR:", profile_key)
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 break
 
         q.task_done()
+
 
 
 
