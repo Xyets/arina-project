@@ -168,14 +168,15 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
                     continue
 
-
                 if role == "obs":
                     CLIENT_TYPES[websocket] = "obs"
                     CLIENT_PROFILES[websocket] = data.get("profile_key")
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "obs"}))
                     continue
+
                 await websocket.send(json.dumps({"error": "unknown_role"}))
                 continue
+
             # ---------- VIEWER LOGIN / LOGOUT ----------
             if "event" in data:
                 event = data["event"].lower()
@@ -184,14 +185,11 @@ async def ws_handler(websocket):
                 text = data.get("text", "")
                 user = data.get("user")  # Arina / Irina
 
-                # определяем режим панели
                 mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
 
-                # VIP обновление
                 profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
-                # Логирование
                 if event == "login":
                     add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
                 elif event == "logout":
@@ -199,7 +197,6 @@ async def ws_handler(websocket):
                 else:
                     add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
 
-                # popup ВСЕГДА
                 ws_send({
                     "entry": {
                         "user_id": viewer_id,
@@ -213,7 +210,6 @@ async def ws_handler(websocket):
 
                 ws_send({"type": "refresh_logs"}, role="panel")
                 continue
-
 
             # ---------- DONATION ----------
             if msg_type == "donation":
@@ -232,27 +228,30 @@ async def ws_handler(websocket):
                 profile_key = f"{user}_{mode}"
 
                 from services.donation_service import handle_donation
-                from services.vibration_manager import enqueue_vibration
 
                 result = handle_donation(profile_key, name, amount, text)
 
-                # если правило содержит вибрацию — кладём в очередь
-                if "vibration" in result:
-                    vib = result["vibration"]
-                    enqueue_vibration(profile_key, vib["strength"], vib["duration"])
+                # если правило содержит вибрацию — шлём панели таймер
+                rule = result.get("rule")
+                if rule and rule.get("kind") == "vibration":
+                    vib = rule
+                    ws_send({
+                        "vibration": {
+                            "strength": vib["strength"],
+                            "duration": vib["duration"],
+                            "target": profile_key
+                        }
+                    }, role="panel")
 
-                # 🔥 ПРАВИЛЬНОЕ ОБНОВЛЕНИЕ ЦЕЛИ
+                # 🔥 ПРАВИЛЬНОЕ ОБНОВЛЕНИЕ ЦЕЛИ (как в goal_app)
                 ws_send({
-                    "type": "goal_update",
+                    "goal_update": True,
                     "goal": result["goal"]
                 }, role="panel")
 
                 ws_send({"type": "refresh_logs"}, role="panel")
-
                 continue
 
-
-               
             # ---------- STOP ----------
             if msg_type == "stop":
                 profile_key = data.get("profile_key")
@@ -276,7 +275,7 @@ async def ws_handler(websocket):
                 user = data.get("user")
                 mode = data.get("mode")
 
-                CLIENT_MODES[user] = mode  # обновляем режим
+                CLIENT_MODES[user] = mode
 
                 ws_send(
                     {"mode_update": mode, "user": user},
@@ -284,14 +283,11 @@ async def ws_handler(websocket):
                 )
                 continue
 
-
             # ---------- VIP UPDATE ----------
             if msg_type == "vip_update":
                 user = data.get("user")
-
                 mode = CLIENT_MODES.get(user, "private")
                 profile_key = f"{user}_{mode}"
-
 
                 data["profile_key"] = profile_key
                 ws_send(data, role="panel")
@@ -320,8 +316,6 @@ async def ws_handler(websocket):
                 }
 
                 ws_send(payload, role="obs", profile_key=profile_key)
-
-
                 continue
 
     finally:
