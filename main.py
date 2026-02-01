@@ -16,14 +16,12 @@ from services.maintenance_service import periodic_backup_cleanup
 from config import CONFIG
 
 
-
-
 def create_app():
     app = Flask(__name__)
     app.secret_key = CONFIG["secret_key"]
-    app.config.update( 
-        SESSION_COOKIE_SECURE=True, 
-        SESSION_COOKIE_SAMESITE="None" 
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_SAMESITE="None"
     )
     CORS(app)
 
@@ -37,30 +35,20 @@ def create_app():
     app.register_blueprint(obs_bp)
     app.register_blueprint(lovense_bp)
 
-    return app
-
-
-def run_flask():
-    app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=False)
-
-
-if __name__ == "__main__":
+    # 🔥 Запускаем WebSocket сервер (ВАЖНО: внутри create_app)
     profile_keys = list(CONFIG["profiles"].keys())
 
-    threading.Thread(
-        target=periodic_backup_cleanup,
-        args=(5,),
-        daemon=True
-    ).start()
-
-    # 🔥 Запускаем WebSocket сервер
     threading.Thread(
         target=run_websocket_server,
         args=(profile_keys,),
         daemon=True
     ).start()
 
-    # 🔥 Запускаем Flask
-    run_flask()
+    # 🔧 Запускаем фоновую очистку
+    threading.Thread(
+        target=periodic_backup_cleanup,
+        args=(5,),
+        daemon=True
+    ).start()
 
+    return app
