@@ -208,7 +208,8 @@ async def ws_handler(websocket):
 
                 # 🔥 главное изменение — панель сама обновит лог
                 ws_send({"type": "refresh_logs"}, role="panel")
-
+                if "vibration" in result: 
+                    ws_send({"vibration": result["vibration"]}, role="panel")
                 # если было правило — панель сама увидит его в JSON
                 continue
 
