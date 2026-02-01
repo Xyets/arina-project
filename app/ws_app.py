@@ -65,6 +65,7 @@ async def vibration_worker(profile_key):
         return
 
     from services.vibration_manager import stop_events
+    from services.lovense_service import stop_vibration_cloud
 
     while True:
         strength, duration = await q.get()
@@ -85,6 +86,7 @@ async def vibration_worker(profile_key):
 
             if stop_events[profile_key].is_set():
                 print("🛑 STOP DETECTED FOR:", profile_key)
+                stop_vibration_cloud(profile_key)
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 break
 
