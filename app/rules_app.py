@@ -77,3 +77,66 @@ def rules_page():
         rules=rules["rules"],
         profile_key=profile_key
     )
+@rules_bp.route("/rules", methods=["POST"])
+@login_required
+def rules_modify():
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    rules = load_rules(rules_file)
+
+    # ---------- DELETE ----------
+    if "delete_rule" in request.form:
+        rule_id = request.form["delete_rule"]
+        rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
+        save_rules(rules_file, rules)
+        return redirect(url_for("rules.rules_page"))
+
+    # ---------- EDIT ----------
+    if "edit_rule" in request.form:
+        rule_id = request.form["edit_rule"]
+
+        for r in rules["rules"]:
+            if r["id"] == rule_id:
+                r["min"] = int(request.form["min"])
+                r["max"] = int(request.form["max"])
+                r["strength"] = int(request.form["strength"])
+                r["duration"] = int(request.form["duration"])
+
+                if request.form["action_type"] == "custom":
+                    r["action"] = request.form["action"].strip()
+                else:
+                    r["action"] = None
+
+        save_rules(rules_file, rules)
+        return redirect(url_for("rules.rules_page"))
+
+    return redirect(url_for("rules.rules_page"))
+@rules_bp.route("/test_rule/<int:index>", methods=["POST"])
+@login_required
+def test_rule(index):
+    user = session["user"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    rules = load_rules(rules_file).get("rules", [])
+
+    if index < 0 or index >= len(rules):
+        return {"status": "error", "message": "Правило не найдено"}
+
+    rule = rules[index]
+
+    from services.vibration_manager import enqueue_vibration
+
+    if rule.get("action"):
+        return {"status": "ok", "message": f"Действие: {rule['action']}"}
+
+    strength = rule.get("strength", 1)
+    duration = rule.get("duration", 5)
+
+    enqueue_vibration(profile_key, strength, duration)
+
+    return {"status": "ok", "message": f"Вибрация: сила={strength}, время={duration}s"}
