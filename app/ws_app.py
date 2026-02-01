@@ -59,6 +59,7 @@ def ws_send(data, role=None, profile_key=None):
 # ---------------- ВИБРАЦИИ ----------------
 
 async def vibration_worker(profile_key):
+    print("👀 WORKER RUNNING FOR:", profile_key)
     q = get_vibration_queue(profile_key)
     if not q:
         return
@@ -122,9 +123,6 @@ async def ws_handler(websocket):
                 continue
 
             msg_type = data.get("type")
-            print("🔥 RAW MESSAGE:", message)
-            print("🔥 PARSED:", data)
-            print("🔥 msg_type:", msg_type)
 
             if msg_type is None and "amount" in data:
                 msg_type = "donation"
@@ -324,4 +322,9 @@ async def ws_server(profile_keys):
 
 
 def run_websocket_server(profile_keys):
+    profile_keys = [
+        f"{user}_public",
+        f"{user}_private"
+    ]
+
     asyncio.run(ws_server(profile_keys))
