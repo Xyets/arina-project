@@ -7,7 +7,7 @@ from typing import Dict, Tuple
 
 # ---------------- LOAD ----------------
 
-def load_stats(path: str) -> Dict[str, Dict]]:
+def load_stats(path: str) -> Dict[str, Dict]:
     """
     Загружает статистику из файла по ПОЛНОМУ пути.
     Если файла нет или он повреждён — возвращает пустую структуру.
