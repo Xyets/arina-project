@@ -104,7 +104,17 @@ def rules_page():
                 r["max"] = int(request.form["max"])
                 r["strength"] = int(request.form["strength"])
                 r["duration"] = int(request.form["duration"])
-                r["action"] = request.form["action"].strip() or None
+
+                action_type = request.form.get("action_type")
+
+                if action_type == "vibration":
+                    r["action"] = None
+                else:
+                    r["action"] = request.form["action"].strip() or None
+
+        save_rules(rules_file, rules)
+        return redirect(url_for("rules.rules_page"))
+
 
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
