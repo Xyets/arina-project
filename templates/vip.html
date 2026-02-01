@@ -108,6 +108,8 @@
   </div>
 
   <script>
+  window.addEventListener("load", () => {
+
     // текущий режим сортировки берём из URL при загрузке
     let currentSort = new URL(window.location.href).searchParams.get("sort") || "total";
 
@@ -124,11 +126,9 @@
         if (res.ok) {
           console.log("✅ Сохранено");
 
-          // обновляем карточку заново из /vip_data
           const userId = form.querySelector("input[name='user_id']").value;
           await refreshVipCard(userId);
 
-          // пересортируем список после обновления
           resortCards(currentSort);
         } else {
           alert("❌ Ошибка сохранения");
@@ -149,7 +149,6 @@
       .then(data => {
         if (data.status === "ok") {
           document.getElementById("card_" + userId)?.remove();
-          // после удаления пересортируем
           resortCards(currentSort);
         } else {
           alert("❌ " + data.message);
@@ -158,8 +157,7 @@
       .catch(() => alert("❌ Ошибка удаления"));
     }
 
-
-    // форматируем дату для уже отрисованных элементов
+    // форматирование дат
     document.querySelectorAll(".date").forEach(el => {
       const raw = el.textContent.trim();
       if (!raw) return;
@@ -175,7 +173,7 @@
       }
     });
 
-    // подключение к WebSocket
+    // WebSocket
     let socket;
     function connectWS() {
       socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
@@ -192,7 +190,7 @@
 
         if (data.vip_update && data.user_id) {
           console.log("🔄 Обновляем карточку:", data.user_id);
-          refreshVipCard(data.user_id); // сортировка вызовется внутри функции
+          refreshVipCard(data.user_id);
         }
       };
     }
@@ -218,7 +216,7 @@
             : rawDate;
 
           card.innerHTML = `
-            <form id="deleteForm_${user_id}" onsubmit="event.preventDefault(); saveMember(this)">
+            <form onsubmit="event.preventDefault(); saveMember(this)">
               <input type="hidden" name="user_id" value="${user_id}">
               <h3><input type="text" name="name" value="${info.name}"></h3>
               <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
@@ -236,7 +234,6 @@
           grid.appendChild(card);
         });
 
-        // пересортируем сразу после загрузки списка
         resortCards(currentSort);
       } catch (e) {
         console.warn("⚠️ Ошибка обновления VIP‑листа:", e);
@@ -291,7 +288,7 @@
       }
     }
 
-    // пересортировка карточек
+    // сортировка
     function resortCards(sortBy) {
       const grid = document.querySelector(".card-grid");
       const cards = Array.from(grid.children);
@@ -327,33 +324,26 @@
       console.log("✅ Сортировка завершена (" + sortBy + ")");
     }
 
-    // сохраняем позицию перед обновлением страницы
-    window.addEventListener("beforeunload", () => {
-      localStorage.setItem("vip_scroll", window.scrollY);
-    });
+    // восстановление скролла
+    const y = localStorage.getItem("vip_scroll");
+    if (y) window.scrollTo(0, parseInt(y));
 
-    // восстанавливаем позицию после загрузки и подгружаем список
-    window.addEventListener("load", () => {
-      const y = localStorage.getItem("vip_scroll");
-      if (y) {
-        window.scrollTo(0, parseInt(y));
-      }
-      // первичная загрузка списка, чтобы сортировка работала сразу
-      refreshVipList();
-    });
+    refreshVipList();
+
+    // модалка
     let vipDeleteId = null;
 
-    function vipOpenModal(userId) {
+    window.vipOpenModal = function(userId) {
       vipDeleteId = userId;
       document.getElementById("vipModalOverlay").style.display = "block";
       document.getElementById("vipConfirmModal").style.display = "block";
-    }
+    };
 
-    function vipCloseModal() {
+    window.vipCloseModal = function() {
       document.getElementById("vipModalOverlay").style.display = "none";
       document.getElementById("vipConfirmModal").style.display = "none";
       vipDeleteId = null;
-    }
+    };
 
     document.getElementById("vipConfirmYes").onclick = function() {
       if (!vipDeleteId) return;
@@ -377,7 +367,8 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") vipCloseModal();
     });
-        
+
+  });
   </script>
 
   <div id="vipModalOverlay" style="
