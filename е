@@ -1,8 +1,6 @@
 sudo systemctl restart arina.service
-sudo systemctl restart arina-ws.service
+
 
 sudo journalctl -u arina.service -f
-sudo journalctl -u arina-ws.service -f
- а
-    mode = get_current_mode()
-    profile_key = f"{user}_{mode}"
+
+конфиг нгинкс sudo nano /etc/nginx/sites-available/arina.conf
