@@ -62,7 +62,7 @@ async def vibration_worker(profile_key):
 
     while True:
         strength, duration = await q.get()
-        
+
         payload = {
             "vibration": {
                 "strength": strength,
@@ -71,11 +71,7 @@ async def vibration_worker(profile_key):
             }
         }
 
-        # отправляем OBS
         ws_send(payload, role="obs", profile_key=profile_key)
-
-        # отправляем панели
-        ws_send(payload, role="panel")
 
 
         await asyncio.sleep(duration)
@@ -277,11 +273,8 @@ async def ws_handler(websocket):
                     }
                 }
 
-                # отправляем OBS
                 ws_send(payload, role="obs", profile_key=profile_key)
 
-                # отправляем панели
-                ws_send(payload, role="panel")
 
                 continue
 
