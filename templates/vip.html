@@ -110,35 +110,28 @@
   <script>
   window.addEventListener("load", () => {
 
-    // текущий режим сортировки берём из URL при загрузке
     let currentSort = new URL(window.location.href).searchParams.get("sort") || "total";
 
-    // AJAX‑сохранение карточки
+    // ---------------- SAVE MEMBER ----------------
     async function saveMember(form) {
       const formData = new FormData(form);
 
       try {
-        const res = await fetch("/vip", {
-          method: "POST",
-          body: formData
-        });
+        const res = await fetch("/vip", { method: "POST", body: formData });
 
         if (res.ok) {
-          console.log("✅ Сохранено");
-
           const userId = form.querySelector("input[name='user_id']").value;
           await refreshVipCard(userId);
-
           resortCards(currentSort);
         } else {
           alert("❌ Ошибка сохранения");
         }
       } catch (e) {
-        console.warn("⚠️ Ошибка AJAX‑сохранения:", e);
         alert("❌ Ошибка сохранения");
       }
     }
 
+    // ---------------- DELETE MEMBER (REAL DELETE) ----------------
     function removeMember(userId) {
       fetch("/remove_member", {
         method: "POST",
@@ -157,46 +150,26 @@
       .catch(() => alert("❌ Ошибка удаления"));
     }
 
-    // форматирование дат
-    document.querySelectorAll(".date").forEach(el => {
-      const raw = el.textContent.trim();
-      if (!raw) return;
-      const iso = raw.replace(" ", "T");
-      const d = new Date(iso);
-      if (!isNaN(d.getTime())) {
-        el.textContent = d.toLocaleString("ru-RU", {
-          day: "numeric",
-          month: "long",
-          hour: "2-digit",
-          minute: "2-digit"
-        });
-      }
-    });
-
-    // WebSocket
+    // ---------------- WEBSOCKET ----------------
     let socket;
     function connectWS() {
       socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
       socket.onopen = () => console.log("✅ WS открыт");
-      socket.onclose = () => {
-        console.log("❌ WS закрыт, переподключаемся...");
-        setTimeout(connectWS, 2000);
-      };
+      socket.onclose = () => setTimeout(connectWS, 2000);
 
       socket.onmessage = (event) => {
         let data;
         try { data = JSON.parse(event.data); } catch { return; }
 
         if (data.vip_update && data.user_id) {
-          console.log("🔄 Обновляем карточку:", data.user_id);
           refreshVipCard(data.user_id);
         }
       };
     }
     connectWS();
 
-    // обновление всего списка
+    // ---------------- REFRESH LIST ----------------
     async function refreshVipList() {
       try {
         const res = await fetch("/vip_data");
@@ -227,7 +200,7 @@
               </div>
               <div class="actions">
                 <button type="submit">💾</button>
-                <button type="button" onclick="removeMember('${user_id}')">🗑️</button>
+                <button type="button" onclick="vipOpenModal('${user_id}')">🗑️</button>
               </div>
             </form>
           `;
@@ -235,12 +208,10 @@
         });
 
         resortCards(currentSort);
-      } catch (e) {
-        console.warn("⚠️ Ошибка обновления VIP‑листа:", e);
-      }
+      } catch (e) {}
     }
 
-    // обновление одной карточки
+    // ---------------- REFRESH ONE CARD ----------------
     async function refreshVipCard(userId) {
       try {
         const res = await fetch("/vip_data");
@@ -271,24 +242,17 @@
             </div>
             <div class="actions">
               <button type="submit">💾</button>
-              <button type="button" onclick="removeMember('${userId}')">🗑️</button>
+              <button type="button" onclick="vipOpenModal('${userId}')">🗑️</button>
             </div>
           </form>
         `;
 
-        if (card) {
-          card.replaceWith(newCard);
-        } else {
-          document.querySelector(".card-grid").appendChild(newCard);
-        }
-
+        card.replaceWith(newCard);
         resortCards(currentSort);
-      } catch (e) {
-        console.warn("⚠️ Ошибка обновления карточки:", e);
-      }
+      } catch (e) {}
     }
 
-    // сортировка
+    // ---------------- SORT ----------------
     function resortCards(sortBy) {
       const grid = document.querySelector(".card-grid");
       const cards = Array.from(grid.children);
@@ -321,19 +285,9 @@
 
       grid.innerHTML = "";
       cards.forEach(c => grid.appendChild(c));
-      console.log("✅ Сортировка завершена (" + sortBy + ")");
     }
 
-    // восстановление скролла
-    const y = localStorage.getItem("vip_scroll");
-    if (y) window.scrollTo(0, parseInt(y));
-
-    refreshVipList();
-    function removeMember(userId) {
-      vipOpenModal(userId);
-    }
-
-    // модалка
+    // ---------------- MODAL ----------------
     let vipDeleteId = null;
 
     window.vipOpenModal = function(userId) {
@@ -350,26 +304,15 @@
 
     document.getElementById("vipConfirmYes").onclick = function() {
       if (!vipDeleteId) return;
-
-      fetch("/remove_member", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "user_id=" + encodeURIComponent(vipDeleteId)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "ok") {
-          document.getElementById("card_" + vipDeleteId)?.remove();
-        } else {
-          alert("Ошибка: " + data.message);
-        }
-      })
-      .finally(() => vipCloseModal());
+      removeMember(vipDeleteId);
+      vipCloseModal();
     };
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") vipCloseModal();
     });
+
+    refreshVipList();
 
   });
   </script>
