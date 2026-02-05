@@ -837,7 +837,8 @@
     <script>
 
         // Загружаем цель, переданную Flask
-        let goal = JSON.parse(`{{ goal|tojson|safe or '{"title":"","target":0,"current":0}' }}`);
+        let goal = { title: "", target: 0, current: 0 };
+
 
         // Обновление UI цели
         function updateGoalUI(newGoal = null) {
@@ -858,7 +859,12 @@
         }
 
 
-        updateGoalUI(); // первичная отрисовка
+        fetch("/goal_data") 
+          .then(r => r.json()) 
+          .then(g => { 
+            goal = g; 
+            updateGoalUI(); 
+          }); // первичная отрисовка
     </script>
 
     <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
