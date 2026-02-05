@@ -115,18 +115,26 @@ ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
     if (data.goal_update && data.profile === PROFILE_KEY) {
-        updateGoal(data.goal.current, data.goal.max);
+        updateGoal(
+            data.goal.current,
+            data.goal.target,   // ← заменили max → target
+        );
+
+        // обновляем название, если оно есть
+        if (data.goal.title) {
+            document.getElementById("goalName").innerText = data.goal.title;
+        }
     }
 };
 
-function updateGoal(current, max) {
-    const percent = Math.min(100, (current / max) * 100);
+function updateGoal(current, target) {
+    const percent = Math.min(100, (current / target) * 100);
 
     const fill = document.getElementById("goalFill");
     const flash = document.getElementById("flash");
 
     fill.style.height = percent + "%";
-    document.getElementById("goalText").innerText = `${current} / ${max}`;
+    document.getElementById("goalText").innerText = `${current} / ${target}`;
 
     flash.classList.remove("flash-anim");
     void flash.offsetWidth;

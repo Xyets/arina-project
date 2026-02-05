@@ -104,15 +104,17 @@ def handle_donation(profile_key, user_id, name, amount, text):
     goal_file = CONFIG["profiles"][f"{user}_public"]["goal_file"]
     goal = load_goal(goal_file)
     # 5.5. Отправляем обновление цели в OBS
+# 5.5. Отправляем обновление цели в OBS
     ws_send({
         "goal_update": True,
         "goal": {
-            "current": goal["current"],
-            "max": goal["max"],
-            "name": goal.get("name", "")
+            "current": goal.get("current", 0),
+            "target": goal.get("target", 1),
+            "title": goal.get("title", "")
         },
         "profile": profile_key
     }, role="obs", profile_key=profile_key)
+
 
 
 
