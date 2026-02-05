@@ -2,59 +2,55 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Goal Bar</title>
+<title>Goal Bar Vertical</title>
 
 <style>
     body {
         margin: 0;
         background: transparent;
         font-family: Arial, sans-serif;
-        text-align: center;
         overflow: hidden;
     }
 
-    #goalWrapper {
-        width: 80%;
-        margin: 20px auto;
-        padding-top: 10px;
+    #wrapper {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        display: flex;
+        align-items: flex-end;
+        gap: 20px;
     }
 
+    /* Вертикальная шкала */
     #goalBar {
-        width: 100%;
-        height: 32px;
+        width: 40px;
+        height: 300px;
         background: rgba(255,255,255,0.15);
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 0 12px rgba(0,0,0,0.4);
         position: relative;
+        box-shadow: 0 0 12px rgba(0,0,0,0.4);
     }
 
     #goalFill {
-        height: 100%;
-        width: 0%;
-        background: linear-gradient(90deg, #00d4ff, #0066ff);
-        transition: width 0.6s ease;
+        width: 100%;
+        height: 0%;
+        background: linear-gradient(180deg, #00d4ff, #0066ff);
+        transition: height 0.6s ease;
         box-shadow: 0 0 18px rgba(0,150,255,0.8);
+        position: absolute;
+        bottom: 0;
     }
 
-    #goalText {
-        margin-top: 8px;
-        font-size: 26px;
-        color: white;
-        text-shadow: 0 0 6px black;
-        font-weight: bold;
-    }
-
-    /* Эффект вспышки при росте */
+    /* Вспышка */
     #flash {
         position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 0%;
+        bottom: 0;
+        width: 100%;
+        height: 0%;
         background: rgba(255,255,255,0.6);
-        pointer-events: none;
         opacity: 0;
+        pointer-events: none;
     }
 
     .flash-anim {
@@ -62,20 +58,45 @@
     }
 
     @keyframes flashAnim {
-        0% { opacity: 0.9; width: 100%; }
-        100% { opacity: 0; width: 0%; }
+        0% { opacity: 0.9; height: 100%; }
+        100% { opacity: 0; height: 0%; }
+    }
+
+    /* Вертикальный японский текст */
+    #goalName {
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        font-size: 32px;
+        color: #aee2ff;
+        text-shadow: 0 0 6px black;
+        font-weight: bold;
+        letter-spacing: 4px;
+    }
+
+    /* Текст прогресса */
+    #goalText {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 22px;
+        color: white;
+        text-shadow: 0 0 6px black;
+        font-weight: bold;
     }
 </style>
 </head>
 
 <body>
 
-<div id="goalWrapper">
+<div id="wrapper">
     <div id="goalBar">
         <div id="goalFill"></div>
         <div id="flash"></div>
+        <div id="goalText">0 / 0</div>
     </div>
-    <div id="goalText">0 / 0</div>
+
+    <div id="goalName">潮吹きショー</div>
 </div>
 
 <script>
@@ -104,12 +125,11 @@ function updateGoal(current, max) {
     const fill = document.getElementById("goalFill");
     const flash = document.getElementById("flash");
 
-    fill.style.width = percent + "%";
+    fill.style.height = percent + "%";
     document.getElementById("goalText").innerText = `${current} / ${max}`;
 
-    // Вспышка при увеличении
     flash.classList.remove("flash-anim");
-    void flash.offsetWidth; // reset animation
+    void flash.offsetWidth;
     flash.classList.add("flash-anim");
 }
 </script>

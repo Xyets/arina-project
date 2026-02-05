@@ -106,9 +106,14 @@ def handle_donation(profile_key, user_id, name, amount, text):
     # 5.5. Отправляем обновление цели в OBS
     ws_send({
         "goal_update": True,
-        "goal": goal,
+        "goal": {
+            "current": goal["current"],
+            "max": goal["max"],
+            "name": goal.get("name", "")
+        },
         "profile": profile_key
     }, role="obs", profile_key=profile_key)
+
 
 
     # 6. Статистика
