@@ -59,6 +59,34 @@
         100% { transform: translateY(-300px) scale(0.3); opacity: 0; }
     }
 
+    /* Сердечки */
+    .heart {
+        position: absolute;
+        bottom: 0;
+        font-size: 16px;
+        color: #ff7abf;
+        opacity: 0.9;
+        animation: heartUp 1.8s ease-out forwards;
+        pointer-events: none;
+        text-shadow: 0 0 6px #ff4fa3;
+    }
+
+    @keyframes heartUp {
+        0%   { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-120px) scale(1.8); opacity: 0; }
+    }
+
+    /* Пульсация */
+    @keyframes pulse {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.06); }
+        100% { transform: scale(1); }
+    }
+
+    .pulse-anim {
+        animation: pulse 0.4s ease-out;
+    }
+
     /* Вспышка */
     #flash {
         position: absolute;
@@ -88,7 +116,6 @@
         font-weight: bold;
         letter-spacing: 4px;
 
-        /* Обводка */
         text-shadow:
             -2px -2px 3px #ff4fa3,
              2px -2px 3px #ff4fa3,
@@ -97,22 +124,9 @@
              0px  0px 8px #ff8ac9;
     }
 
-    /* Текст прогресса */
+    /* Текст прогресса (скрыт) */
     #goalText {
-        position: absolute;
-        top: -40px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 24px;
-        color: #ffe3f2;
-        font-weight: bold;
-
-        text-shadow:
-            -2px -2px 3px #ff4fa3,
-             2px -2px 3px #ff4fa3,
-            -2px  2px 3px #ff4fa3,
-             2px  2px 3px #ff4fa3,
-             0px  0px 8px #ff8ac9;
+        display: none;
     }
 </style>
 </head>
@@ -163,16 +177,25 @@ function updateGoal(current, target) {
     const flash = document.getElementById("flash");
 
     fill.style.height = percent + "%";
-    document.getElementById("goalText").innerText = `${current} / ${target}`;
 
+    /* Вспышка */
     flash.classList.remove("flash-anim");
     void flash.offsetWidth;
     flash.classList.add("flash-anim");
 
+    /* Пульсация */
+    fill.classList.remove("pulse-anim");
+    void fill.offsetWidth;
+    fill.classList.add("pulse-anim");
+
+    /* Сердечко */
+    spawnHeart();
+
+    /* Пузырёк */
     spawnBubble();
 }
 
-/* Создание пузырьков */
+/* Пузырёк */
 function spawnBubble() {
     const bar = document.getElementById("goalBar");
     const bubble = document.createElement("div");
@@ -184,6 +207,21 @@ function spawnBubble() {
     bar.appendChild(bubble);
 
     setTimeout(() => bubble.remove(), 3000);
+}
+
+/* Сердечко */
+function spawnHeart() {
+    const bar = document.getElementById("goalBar");
+    const heart = document.createElement("div");
+
+    heart.classList.add("heart");
+    heart.innerText = "❤";
+
+    heart.style.left = Math.random() * 30 + 10 + "px";
+
+    bar.appendChild(heart);
+
+    setTimeout(() => heart.remove(), 1800);
 }
 </script>
 
