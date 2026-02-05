@@ -103,6 +103,13 @@ def handle_donation(profile_key, user_id, name, amount, text):
     user = profile_key.split("_")[0]
     goal_file = CONFIG["profiles"][f"{user}_public"]["goal_file"]
     goal = load_goal(goal_file)
+    # 5.5. Отправляем обновление цели в OBS
+    ws_send({
+        "goal_update": True,
+        "goal": goal,
+        "profile": profile_key
+    }, role="obs", profile_key=profile_key)
+
 
     # 6. Статистика
     stats_file = CONFIG["profiles"][profile_key]["stats_file"]

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Goal Bar</title>
+
+<style>
+    body {
+        margin: 0;
+        background: transparent;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        overflow: hidden;
+    }
+
+    #goalWrapper {
+        width: 80%;
+        margin: 20px auto;
+        padding-top: 10px;
+    }
+
+    #goalBar {
+        width: 100%;
+        height: 32px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 12px rgba(0,0,0,0.4);
+        position: relative;
+    }
+
+    #goalFill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #00d4ff, #0066ff);
+        transition: width 0.6s ease;
+        box-shadow: 0 0 18px rgba(0,150,255,0.8);
+    }
+
+    #goalText {
+        margin-top: 8px;
+        font-size: 26px;
+        color: white;
+        text-shadow: 0 0 6px black;
+        font-weight: bold;
+    }
+
+    /* Эффект вспышки при росте */
+    #flash {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.6);
+        pointer-events: none;
+        opacity: 0;
+    }
+
+    .flash-anim {
+        animation: flashAnim 0.4s ease-out;
+    }
+
+    @keyframes flashAnim {
+        0% { opacity: 0.9; width: 100%; }
+        100% { opacity: 0; width: 0%; }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="goalWrapper">
+    <div id="goalBar">
+        <div id="goalFill"></div>
+        <div id="flash"></div>
+    </div>
+    <div id="goalText">0 / 0</div>
+</div>
+
+<script>
+const PROFILE_KEY = "{{ profile_key }}";
+const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+ws.onopen = () => {
+    ws.send(JSON.stringify({
+        type: "hello",
+        role: "obs",
+        profile_key: PROFILE_KEY
+    }));
+};
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.goal_update && data.profile === PROFILE_KEY) {
+        updateGoal(data.goal.current, data.goal.max);
+    }
+};
+
+function updateGoal(current, max) {
+    const percent = Math.min(100, (current / max) * 100);
+
+    const fill = document.getElementById("goalFill");
+    const flash = document.getElementById("flash");
+
+    fill.style.width = percent + "%";
+    document.getElementById("goalText").innerText = `${current} / ${max}`;
+
+    // Вспышка при увеличении
+    flash.classList.remove("flash-anim");
+    void flash.offsetWidth; // reset animation
+    flash.classList.add("flash-anim");
+}
+</script>
+
+</body>
+</html>
