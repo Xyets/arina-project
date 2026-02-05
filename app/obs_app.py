@@ -42,3 +42,16 @@ def obs_reactions(user, mode):
 
     template_name = f"obs_reactions_{user.lower()}.html"
     return render_template(template_name, profile_key=profile_key)
+
+@obs_bp.route("/obs_goal/<user>/<mode>")
+def obs_goal(user, mode):
+    if mode not in ("private", "public"):
+        return abort(404)
+
+    profile_key = f"{user}_{mode}"
+
+    if profile_key not in CONFIG["profiles"]:
+        return abort(404)
+
+    # Используем шаблон obs_goal_arina.html
+    return render_template("obs_goal_arina.html", profile_key=profile_key)
