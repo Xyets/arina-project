@@ -68,6 +68,8 @@ async def vibration_worker(profile_key):
         strength = task["strength"]
         duration = task["duration"]
 
+        if profile_key not in stop_events: 
+            stop_events[profile_key] = asyncio.Event() 
         stop_events[profile_key].clear()
 
         # запускаем вибрацию
@@ -241,7 +243,11 @@ async def ws_handler(websocket):
                 profile_key = data.get("profile_key")
 
 
+                if profile_key not in stop_events:
+                    stop_events[profile_key] = asyncio.Event()
+
                 stop_events[profile_key].set()
+
                 send_vibration_cloud(profile_key, 0, 0)
 
                 ws_send(
@@ -299,6 +305,10 @@ async def ws_server():
     # Берём ключи профилей напрямую из CONFIG
     profile_keys = list(CONFIG["profiles"].keys())
     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
+
+    # Создаём stop_events для всех профилей из CONFIG
+    global stop_events
+    stop_events = {key: asyncio.Event() for key in profile_keys}
 
 
     # Запускаем фоновые задачи
