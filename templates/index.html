@@ -483,6 +483,15 @@
               // ---------- ВИБРАЦИЯ ----------
               if (data.vibration) {
                   const v = data.vibration;
+
+                  // добавляем в локальную очередь
+                  vibrationQueue.push({
+                      strength: v.strength ?? "—",
+                      duration: v.duration ?? 0
+                  });
+                  updateQueueUI();
+
+                  // запускаем таймер
                   startVibrationTimer(v.duration, v.strength);
                   return;
               }
@@ -636,9 +645,13 @@
 
           const interval = setInterval(() => {
               remaining -= 1;
-              if (remaining <= 0) {
-                  clearInterval(interval);
-                  box.remove();
+              if (remaining <= 0) { 
+                clearInterval(interval); 
+                box.remove(); 
+                
+                // когда вибрация закончилась — убираем её из очереди 
+                vibrationQueue.shift(); 
+                updateQueueUI(); 
               } else {
                   timeSpan.textContent = Math.ceil(remaining);
                   progressBar.style.width = `${(remaining / duration) * 100}%`;
@@ -692,78 +705,6 @@
           }
       }
 
-
-      // 🔁 Очередь вибраций
-      async function loadQueue() {
-          try {
-              const res = await fetch("/queue_data");
-              const data = await res.json();
-              const box = document.getElementById("queuebox");
-
-              const items = data.queue || [];
-
-              if (items.length === 0) {
-                  if (box.dataset.state !== "empty") {
-                      box.dataset.state = "empty";
-                      box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
-                  }
-                  return;
-              }
-
-              box.dataset.state = "filled";
-
-              const newHtml = items
-                  .map(([strength, duration], i) =>
-                      `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-                  )
-                  .join("");
-
-              if (box.innerHTML !== newHtml) {
-                  box.innerHTML = newHtml;
-                  box.scrollTop = box.scrollHeight;
-              }
-
-          } catch (e) {
-              console.error("⚠️ Ошибка загрузки очереди:", e);
-          }
-      }
-
-      // 🔁 Очередь вибраций
-      async function loadQueue() {
-          try {
-              const res = await fetch("/queue_data");
-              const data = await res.json();
-              const box = document.getElementById("queuebox");
-
-              const items = data.queue || [];
-
-              if (items.length === 0) {
-                  if (box.dataset.state !== "empty") {
-                      box.dataset.state = "empty";
-                      box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
-                  }
-                  return;
-              }
-
-              box.dataset.state = "filled";
-
-              const newHtml = items
-                  .map(([strength, duration], i) =>
-                      `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`
-                  )
-                  .join("");
-
-              if (box.innerHTML !== newHtml) {
-                  box.innerHTML = newHtml;
-                  box.scrollTop = box.scrollHeight;
-              }
-
-          } catch (e) {
-              console.error("⚠️ Ошибка загрузки очереди:", e);
-          }
-      }
-
-
       // 🧹 Очистка логов
       document.querySelector("form[action='/clear_logs']").addEventListener("submit", (e) => {
           e.preventDefault();
@@ -775,16 +716,38 @@
       });
 
 
+      // 🔁 Локальная очередь вибраций
+      let vibrationQueue = [];
+
       // 🧹 Очистка очереди
       document.getElementById("clearQueueBtn").addEventListener("click", () => {
-          fetch("/clear_queue", { method: "POST" })
-            .then(r => r.json())
-            .then(data => {
-              showToast(data.message || "Очередь очищена ✅");
-              loadQueue();
-            })
-            .catch(() => showToast("❌ Ошибка при очистке очереди"));
+          vibrationQueue = [];
+          updateQueueUI();
+          showToast("Очередь очищена ✅");
       });
+
+      function updateQueueUI() {
+          const box = document.getElementById("queuebox");
+
+          if (!box) return;
+
+          if (vibrationQueue.length === 0) {
+              box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
+              box.dataset.state = "empty";
+              return;
+          }
+
+          box.dataset.state = "filled";
+
+          box.innerHTML = vibrationQueue
+              .map((v, i) =>
+                  `<div>#${i + 1} → сила: ${v.strength}, время: ${v.duration}s</div>`
+              )
+              .join("");
+
+          box.scrollTop = box.scrollHeight;
+      }
+
 
 
       // 🔔 Popup
@@ -821,13 +784,9 @@
           }, 3000);
       }
 
-
-      // ⏱ Циклы обновления
-      setInterval(loadLogs, 2000);
-      setInterval(loadQueue, 2000);
-
+      setInterval(loadLogs, 2000); 
       loadLogs();
-      loadQueue();
+
       window.addEventListener("beforeunload", () => {
           if (socket && socket.readyState === WebSocket.OPEN) {
               socket.close(1000, "page unload");
