@@ -99,6 +99,11 @@ async def vibration_worker(profile_key):
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 break
 
+        # --- НОВОЕ: очистка очереди ---
+        if redis_client.llen(queue_name) == 0:
+            redis_client.delete(queue_name)
+            ws_send({"queue_empty": True, "target": profile_key}, role="panel")
+
 
 
 # ---------------- REDIS LISTENER ----------------
