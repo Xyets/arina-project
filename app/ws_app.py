@@ -332,6 +332,7 @@ async def ws_server():
 
 def run_websocket_server():
     asyncio.run(ws_server())
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__.endswith("ws_app"):
     run_websocket_server()
+
 
