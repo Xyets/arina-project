@@ -279,6 +279,13 @@ async def ws_handler(websocket):
                 if not profile_key or strength is None or duration is None:
                     continue
 
+                # КЛАДЁМ В REDIS ОЧЕРЕДЬ
+                redis_client.lpush(
+                    f"vibration_queue:{profile_key}",
+                    json.dumps({"strength": strength, "duration": duration})
+                )
+
+                # Отправляем панель/OBS
                 payload = {
                     "vibration": {
                         "strength": strength,
