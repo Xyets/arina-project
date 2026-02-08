@@ -254,9 +254,9 @@ async def ws_server():
 
     profile_keys = list(CONFIG["profiles"].keys())
     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
-
-    # Инициализация STOP событий
+    # Инициализация очередей и STOP событий
     for key in profile_keys:
+        vibration_queues[key] = asyncio.Queue()
         stop_events[key] = asyncio.Event()
 
     # Запуск фоновых задач
