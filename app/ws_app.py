@@ -127,16 +127,26 @@ async def vibration_worker(profile_key):
 async def redis_listener():
     pubsub = redis_client.pubsub()
     pubsub.subscribe("obs_reactions")
+    print("🔥 Redis listener started")
 
     while True:
         msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
         if msg:
+            print("📩 Redis raw message:", msg)
+
             try:
-                data = json.loads(msg["data"].decode("utf-8"))
+                raw = msg["data"]
+                if isinstance(raw, bytes):
+                    raw = raw.decode("utf-8")
+
+                data = json.loads(raw)
+                print("📩 Redis parsed:", data)
+
                 profile_key = data.get("profile")
                 ws_send(data, role="obs", profile_key=profile_key)
-            except Exception:
-                pass
+
+            except Exception as e:
+                print("❌ Redis parse error:", e)
 
         await asyncio.sleep(0.1)
 
