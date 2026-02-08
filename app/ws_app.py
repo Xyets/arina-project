@@ -5,48 +5,30 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
 logging.basicConfig(level=logging.INFO)
+
 import asyncio
 import json
 import websockets
-from services.vip_service import update_vip
-from services.logs_service import add_log
 
 from config import CONFIG
-from services.vibration_manager import vibration_queues, stop_events
+from services.vip_service import update_vip
+from services.logs_service import add_log
 from services.lovense_service import send_vibration_cloud
-
+from services.vibration_manager import vibration_queues, stop_events
+from services.redis_client import redis_client
 
 
 # ---------------- ГЛОБАЛЬНЫЕ СТРУКТУРЫ ----------------
 
 CONNECTED_SOCKETS = set()
 CLIENT_TYPES = {}          # ws -> "panel" / "obs"
-CLIENT_PROFILES = {}       # ws -> profile_key (OBS)
-      # ws -> user (panel)
-
-
+CLIENT_PROFILES = {}       # ws -> profile_key
 WS_EVENT_LOOP = None
-
-from services.redis_client import redis_client
-
-from asyncio import Queue
-
-# Очереди вибраций в памяти
-vibration_queues = {
-    key: Queue()
-    for key in CONFIG["profiles"].keys()
-}
-
 
 
 # ---------------- УТИЛИТА ДЛЯ РАССЫЛКИ ----------------
 
 def ws_send(data, role=None, profile_key=None):
-    """
-    role="panel"  → отправить только панели
-    role="obs"    → отправить только OBS
-    profile_key   → отправить только OBS конкретного профиля
-    """
     message = json.dumps(data)
 
     for ws in list(CONNECTED_SOCKETS):
@@ -74,18 +56,18 @@ async def vibration_worker(profile_key):
         try:
             strength, duration = await q.get()
 
-            # очищаем STOP перед началом вибрации
+            # STOP event
             if profile_key not in stop_events:
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # запускаем вибрацию
+            # Запуск вибрации
             try:
                 send_vibration_cloud(profile_key, strength, duration)
             except Exception as e:
                 print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
 
-            # отправляем фронту
+            # Отправка на фронт
             payload = {
                 "vibration": {
                     "strength": strength,
@@ -96,8 +78,8 @@ async def vibration_worker(profile_key):
             ws_send(payload, role="panel")
             ws_send(payload, role="obs", profile_key=profile_key)
 
-            # Ждём duration, но с возможностью прерывания STOP
-            for _ in range(duration * 10):  # проверка каждые 100 мс
+            # Ожидание с возможностью STOP
+            for _ in range(duration * 10):
                 await asyncio.sleep(0.1)
                 if stop_events[profile_key].is_set():
                     send_vibration_cloud(profile_key, 0, 0)
@@ -106,6 +88,7 @@ async def vibration_worker(profile_key):
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
+
         finally:
             q.task_done()
 
@@ -120,16 +103,12 @@ async def redis_listener():
     while True:
         msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
         if msg:
-            print("📩 Redis raw message:", msg)
-
             try:
                 raw = msg["data"]
                 if isinstance(raw, bytes):
                     raw = raw.decode("utf-8")
 
                 data = json.loads(raw)
-                print("📩 Redis parsed:", data)
-
                 profile_key = data.get("profile")
                 ws_send(data, role="obs", profile_key=profile_key)
 
@@ -148,6 +127,7 @@ async def ws_handler(websocket):
     try:
         async for message in websocket:
             print("📩 WS received:", message)
+
             try:
                 data = json.loads(message)
             except Exception:
@@ -166,14 +146,12 @@ async def ws_handler(websocket):
             # ---------- HELLO ----------
             if msg_type == "hello":
                 role = data.get("role")
-                
+
                 if role == "panel":
                     CLIENT_TYPES[websocket] = "panel"
-                    profile_key = data.get("profile_key")
-                    CLIENT_PROFILES[websocket] = profile_key
+                    CLIENT_PROFILES[websocket] = data.get("profile_key")
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
                     continue
-
 
                 if role == "obs":
                     CLIENT_TYPES[websocket] = "obs"
@@ -192,7 +170,6 @@ async def ws_handler(websocket):
                 text = data.get("text", "")
                 profile_key = data.get("profile_key")
 
-
                 profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
                 if event == "login":
@@ -202,26 +179,15 @@ async def ws_handler(websocket):
                 else:
                     add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
 
-                ws_send({
-                    "entry": {
-                        "user_id": viewer_id,
-                        "name": viewer_name,
-                        "visits": profile.get("login_count", 1),
-                        "last_login": profile.get("_previous_login"),
-                        "total_tips": profile.get("total", 0),
-                        "notes": profile.get("notes", "")
-                    }
-                }, role="panel")
-
                 ws_send({"type": "refresh_logs"}, role="panel")
                 continue
 
             # ---------- DONATION ----------
             if msg_type == "donation":
-                print("🔥 DONATION RECEIVED:", data)
+                from services.donation_service import handle_donation
 
                 profile_key = data.get("profile_key")
-                user_id = data.get("user_id")  # ← настоящий уникальный ID
+                user_id = data.get("user_id")
                 name = (data.get("name") or "Аноним").strip()
                 text = data.get("text", "")
                 amount = float(data.get("amount") or 0)
@@ -230,58 +196,24 @@ async def ws_handler(websocket):
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
-
-                from services.donation_service import handle_donation
-
-                # передаём user_id первым аргументом
                 result = handle_donation(profile_key, user_id, name, amount, text)
-                profile = update_vip(profile_key, user_id, name=name, amount=amount)
 
-                ws_send({
-                    "vip_update": True,
-                    "user_id": user_id,
-                    "profile_key": profile_key,
-                })
-
-                ws_send({
-                    "goal_update": True,
-                    "goal": result["goal"]
-                }, role="panel")
-
+                ws_send({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
+                ws_send({"goal_update": True, "goal": result["goal"]}, role="panel")
                 ws_send({"type": "refresh_logs"}, role="panel")
                 continue
-
 
             # ---------- STOP ----------
             if msg_type == "stop":
                 profile_key = data.get("profile_key")
 
-
                 if profile_key not in stop_events:
                     stop_events[profile_key] = asyncio.Event()
 
                 stop_events[profile_key].set()
-
                 send_vibration_cloud(profile_key, 0, 0)
 
-                ws_send(
-                    {"stop": True, "target": profile_key},
-                    role="obs",
-                    profile_key=profile_key
-                )
-
-
-
-            # ---------- VIP UPDATE ----------
-            if msg_type == "vip_update":
-                profile_key = data.get("profile_key")
-                data["profile_key"] = profile_key
-                ws_send(data, role="panel")
-                continue
-
-            # ---------- GOAL UPDATE ----------
-            if msg_type == "goal_update":
-                ws_send(data, role="panel")
+                ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 continue
 
             # ---------- ВИБРАЦИИ ОТ ПАНЕЛИ ----------
@@ -293,8 +225,10 @@ async def ws_handler(websocket):
                 if not profile_key or strength is None or duration is None:
                     continue
 
+                # Кладём задачу в очередь
                 vibration_queues[profile_key].put_nowait((strength, duration))
 
+                # Отправляем на фронт
                 payload = {
                     "vibration": {
                         "strength": strength,
@@ -305,8 +239,6 @@ async def ws_handler(websocket):
                 ws_send(payload, role="panel")
                 ws_send(payload, role="obs", profile_key=profile_key)
                 continue
-
-
 
     finally:
         CONNECTED_SOCKETS.discard(websocket)
@@ -320,29 +252,25 @@ async def ws_server():
     global WS_EVENT_LOOP
     WS_EVENT_LOOP = asyncio.get_running_loop()
 
-    # Берём ключи профилей напрямую из CONFIG
     profile_keys = list(CONFIG["profiles"].keys())
     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
 
-    # Создаём stop_events для всех профилей из CONFIG
-    global stop_events
-    stop_events = {key: asyncio.Event() for key in profile_keys}
+    # Инициализация STOP событий
+    for key in profile_keys:
+        stop_events[key] = asyncio.Event()
 
-
-    # Запускаем фоновые задачи
+    # Запуск фоновых задач
     asyncio.create_task(redis_listener())
     for key in profile_keys:
         asyncio.create_task(vibration_worker(key))
 
-    # Запускаем WebSocket-сервер
     server = await websockets.serve(ws_handler, "127.0.0.1", 8765)
     await server.wait_closed()
 
 
 def run_websocket_server():
     asyncio.run(ws_server())
+
+
 if __name__ == "__main__":
     run_websocket_server()
-
-
-

@@ -1,7 +1,9 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from functools import wraps
 import uuid
-from services.vibration_manager import vibration_queues
+import json
+import asyncio
+import websockets
 
 from config import CONFIG
 from services.rules_service import load_rules, save_rules
@@ -20,6 +22,18 @@ def login_required(f):
     return wrapper
 
 
+# -------------------- WS SEND --------------------
+
+async def send_ws_vibration(profile_key, strength, duration):
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
+        await ws.send(json.dumps({
+            "type": "vibration",
+            "profile_key": profile_key,
+            "strength": strength,
+            "duration": duration
+        }))
+
+
 # -------------------- TEST VIBRATION --------------------
 
 @rules_bp.route("/test_vibration", methods=["POST"])
@@ -29,7 +43,7 @@ def test_vibration():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    vibration_queues[profile_key].put_nowait((1, 5))
+    asyncio.run(send_ws_vibration(profile_key, 1, 5))
 
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
@@ -54,8 +68,7 @@ def test_rule(index):
     if rule.get("action"):
         return {"status": "ok", "message": f"Действие: {rule['action']}"}
 
-    # ✔ вот правильная строка
-    vibration_queues[profile_key].put_nowait((rule["strength"], rule["duration"]))
+    asyncio.run(send_ws_vibration(profile_key, rule["strength"], rule["duration"]))
 
     return {"status": "ok", "message": "Вибрация отправлена по правилу"}
 
@@ -72,7 +85,7 @@ def rules_page():
     rules_file = CONFIG["profiles"][profile_key]["rules_file"]
     rules = load_rules(rules_file)
 
-    # ---------- ADD ----------
+    # ADD
     if request.method == "POST" and "add_rule" in request.form:
         new_rule = {
             "id": str(uuid.uuid4()),
@@ -86,14 +99,14 @@ def rules_page():
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # ---------- DELETE ----------
+    # DELETE
     if request.method == "POST" and "delete_rule" in request.form:
         rule_id = request.form["delete_rule"]
         rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # ---------- EDIT ----------
+    # EDIT
     if request.method == "POST" and "edit_rule" in request.form:
         rule_id = request.form["edit_rule"]
 

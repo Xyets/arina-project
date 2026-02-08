@@ -1,6 +1,8 @@
 # services/donation_service.py
 
 import json
+import asyncio
+import websockets
 from config import CONFIG
 
 from services.redis_client import redis_client
@@ -11,7 +13,30 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal
-from services.vibration_manager import vibration_queues
+
+
+# ---------------- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ----------------
+
+async def send_ws_vibration(profile_key, strength, duration):
+    """
+    Отправляет вибрацию в ws_app через WebSocket.
+    """
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
+        await ws.send(json.dumps({
+            "type": "vibration",
+            "profile_key": profile_key,
+            "strength": strength,
+            "duration": duration
+        }))
+
+
+def trigger_vibration(profile_key, strength, duration):
+    """
+    Запускает асинхронную отправку вибрации.
+    """
+    asyncio.get_event_loop().create_task(
+        send_ws_vibration(profile_key, strength, duration)
+    )
 
 
 # ---------------- RULES ----------------
@@ -46,12 +71,13 @@ def apply_rule(profile_key, amount, text):
             if action and action.strip():
                 return {"kind": "action", "action_text": action.strip()}
 
-            # VIBRATION → очередь в памяти
-            vibration_queues[profile_key].put_nowait((strength, duration))
+            # VIBRATION → через WebSocket → ws_app → очередь
+            trigger_vibration(profile_key, strength, duration)
 
             return {"kind": "vibration", "strength": strength, "duration": duration}
 
     return None
+
 
 # ---------------- DONATION HANDLER ----------------
 
@@ -89,7 +115,6 @@ def handle_donation(profile_key, user_id, name, amount, text):
     public_key = f"{user}_public"
     goal_file = CONFIG["profiles"][public_key]["goal_file"]
 
-    # увеличиваем цель
     from app.goal_app import goal_add_points
     goal_add_points(user, amount)
 
