@@ -1,8 +1,8 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from functools import wraps
 import uuid
+from services.vibration_manager import vibration_queues
 
-from services.vibration_manager import enqueue_vibration
 from config import CONFIG
 from services.rules_service import load_rules, save_rules
 
@@ -29,7 +29,7 @@ def test_vibration():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    enqueue_vibration(profile_key, 1, 5)
+    vibration_queues[profile_key].put_nowait((1, 5))
 
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
@@ -54,7 +54,8 @@ def test_rule(index):
     if rule.get("action"):
         return {"status": "ok", "message": f"Действие: {rule['action']}"}
 
-    enqueue_vibration(profile_key, rule["strength"], rule["duration"])
+    # ✔ вот правильная строка
+    vibration_queues[profile_key].put_nowait((rule["strength"], rule["duration"]))
 
     return {"status": "ok", "message": "Вибрация отправлена по правилу"}
 

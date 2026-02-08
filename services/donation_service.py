@@ -11,16 +11,12 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal
-from services.vibration_manager import enqueue_vibration
+from services.vibration_manager import vibration_queues
 
 
 # ---------------- RULES ----------------
 
 def apply_rule(profile_key, amount, text):
-    """
-    Применяет правило вибрации или действия.
-    """
-
     rules_file = CONFIG["profiles"][profile_key]["rules_file"]
     rules = load_rules(rules_file)
 
@@ -50,13 +46,12 @@ def apply_rule(profile_key, amount, text):
             if action and action.strip():
                 return {"kind": "action", "action_text": action.strip()}
 
-            # VIBRATION → Redis очередь
-            enqueue_vibration(profile_key, strength, duration)
+            # VIBRATION → очередь в памяти
+            vibration_queues[profile_key].put_nowait((strength, duration))
 
             return {"kind": "vibration", "strength": strength, "duration": duration}
 
     return None
-
 
 # ---------------- DONATION HANDLER ----------------
 

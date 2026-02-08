@@ -12,7 +12,7 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 
 from config import CONFIG
-from services.vibration_manager import stop_events
+from services.vibration_manager import vibration_queues, stop_events
 from services.lovense_service import send_vibration_cloud
 
 
@@ -28,6 +28,14 @@ CLIENT_PROFILES = {}       # ws -> profile_key (OBS)
 WS_EVENT_LOOP = None
 
 from services.redis_client import redis_client
+
+from asyncio import Queue
+
+# Очереди вибраций в памяти
+vibration_queues = {
+    key: Queue()
+    for key in CONFIG["profiles"].keys()
+}
 
 
 
@@ -60,50 +68,46 @@ def ws_send(data, role=None, profile_key=None):
 # ---------------- ВИБРАЦИИ ----------------
 
 async def vibration_worker(profile_key):
-    from services.lovense_service import send_vibration_cloud
-
-    loop = asyncio.get_running_loop()
-    queue_name = f"vibration_queue:{profile_key}"
+    q = vibration_queues[profile_key]
 
     while True:
-        # ждём задачу из Redis
-        raw = await loop.run_in_executor(None, redis_client.brpop, queue_name)
-        task = json.loads(raw[1])
+        try:
+            strength, duration = await q.get()
 
-        strength = task["strength"]
-        duration = task["duration"]
+            # очищаем STOP перед началом вибрации
+            if profile_key not in stop_events:
+                stop_events[profile_key] = asyncio.Event()
+            stop_events[profile_key].clear()
 
-        if profile_key not in stop_events: 
-            stop_events[profile_key] = asyncio.Event() 
-        stop_events[profile_key].clear()
+            # запускаем вибрацию
+            try:
+                send_vibration_cloud(profile_key, strength, duration)
+            except Exception as e:
+                print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
 
-        # запускаем вибрацию
-        send_vibration_cloud(profile_key, strength, duration)
-
-        # отправляем в OBS и панель
-        payload = {
-            "vibration": {
-                "strength": strength,
-                "duration": duration,
-                "target": profile_key
+            # отправляем фронту
+            payload = {
+                "vibration": {
+                    "strength": strength,
+                    "duration": duration,
+                    "target": profile_key
+                }
             }
-        }
-        ws_send(payload, role="obs", profile_key=profile_key)
-        ws_send(payload, role="panel")
+            ws_send(payload, role="panel")
+            ws_send(payload, role="obs", profile_key=profile_key)
 
-        # таймер с проверкой STOP каждые 100 мс
-        for _ in range(duration * 10):
-            await asyncio.sleep(0.1)
-            if stop_events[profile_key].is_set():
-                send_vibration_cloud(profile_key, 0, 0)
-                ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
-                break
+            # Ждём duration, но с возможностью прерывания STOP
+            for _ in range(duration * 10):  # проверка каждые 100 мс
+                await asyncio.sleep(0.1)
+                if stop_events[profile_key].is_set():
+                    send_vibration_cloud(profile_key, 0, 0)
+                    ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
+                    break
 
-        # --- НОВОЕ: очистка очереди ---
-        if redis_client.llen(queue_name) == 0:
-            redis_client.delete(queue_name)
-            ws_send({"queue_empty": True, "target": profile_key}, role="panel")
-
+        except Exception as e:
+            print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
+        finally:
+            q.task_done()
 
 
 # ---------------- REDIS LISTENER ----------------
@@ -289,13 +293,8 @@ async def ws_handler(websocket):
                 if not profile_key or strength is None or duration is None:
                     continue
 
-                # КЛАДЁМ В REDIS ОЧЕРЕДЬ
-                redis_client.lpush(
-                    f"vibration_queue:{profile_key}",
-                    json.dumps({"strength": strength, "duration": duration})
-                )
+                vibration_queues[profile_key].put_nowait((strength, duration))
 
-                # Отправляем панель/OBS
                 payload = {
                     "vibration": {
                         "strength": strength,
@@ -306,6 +305,8 @@ async def ws_handler(websocket):
                 ws_send(payload, role="panel")
                 ws_send(payload, role="obs", profile_key=profile_key)
                 continue
+
+
 
     finally:
         CONNECTED_SOCKETS.discard(websocket)
