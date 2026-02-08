@@ -1,27 +1,24 @@
 # services/donation_service.py
 
 import json
-import redis
-
 from config import CONFIG
-from services.vibration_manager import enqueue_vibration
-from services.stats_service import update_stats, update_donations_sum
+
+from services.redis_client import redis_client
+from services.stats_service import update_stats
 from services.audit import audit_event
 from services.reactions_service import apply_reaction_rule
 from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.rules_service import load_rules
-from services.goal_service import load_goal, save_goal
-from app.goal_app import goal_add_points
-
-redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
+from services.goal_service import load_goal
+from services.vibration_manager import enqueue_vibration
 
 
 # ---------------- RULES ----------------
 
 def apply_rule(profile_key, amount, text):
     """
-    Применяет правило вибрации/действия.
+    Применяет правило вибрации или действия.
     """
 
     rules_file = CONFIG["profiles"][profile_key]["rules_file"]
@@ -53,7 +50,7 @@ def apply_rule(profile_key, amount, text):
             if action and action.strip():
                 return {"kind": "action", "action_text": action.strip()}
 
-            # VIBRATION → только очередь
+            # VIBRATION → Redis очередь
             enqueue_vibration(profile_key, strength, duration)
 
             return {"kind": "vibration", "strength": strength, "duration": duration}
@@ -63,13 +60,13 @@ def apply_rule(profile_key, amount, text):
 
 # ---------------- DONATION HANDLER ----------------
 
-def handle_donation(profile_key, user_id, name, amount, text): 
+def handle_donation(profile_key, user_id, name, amount, text):
     mode = profile_key.split("_")[1]
 
     # 1. Применяем правила
     rule_result = apply_rule(profile_key, amount, text)
 
-    # 2. Логируем красиво
+    # 2. Логируем
     if rule_result and rule_result["kind"] == "action":
         add_log(profile_key, f"💸 | {name} → {amount} 🎬 Действие: {rule_result['action_text']}")
     elif rule_result and rule_result["kind"] == "vibration":
@@ -89,23 +86,22 @@ def handle_donation(profile_key, user_id, name, amount, text):
         },
     )
 
+    # 4. VIP обновление
+    update_vip(profile_key, user_id, name=name, amount=amount)
 
-    from app.ws_app import ws_send
-
-    ws_send({
-        "vip_update": True,
-        "user_id": user_id
-    }, role="panel")
-
-    # 5. Goal
-    goal_add_points(profile_key.split("_")[0], amount)
-
+    # 5. Обновление цели
     user = profile_key.split("_")[0]
-    goal_file = CONFIG["profiles"][f"{user}_public"]["goal_file"]
+    public_key = f"{user}_public"
+    goal_file = CONFIG["profiles"][public_key]["goal_file"]
+
+    # увеличиваем цель
+    from app.goal_app import goal_add_points
+    goal_add_points(user, amount)
+
     goal = load_goal(goal_file)
-    # 5.5. Отправляем обновление цели в OBS
-# 5.5. Отправляем обновление цели в OBS
-    ws_send({
+
+    # отправляем обновление цели через Redis → ws_app → OBS
+    redis_client.publish("obs_reactions", json.dumps({
         "goal_update": True,
         "goal": {
             "current": goal.get("current", 0),
@@ -113,10 +109,7 @@ def handle_donation(profile_key, user_id, name, amount, text):
             "title": goal.get("title", "")
         },
         "profile": profile_key
-    }, role="obs", profile_key=profile_key)
-
-
-
+    }))
 
     # 6. Статистика
     stats_file = CONFIG["profiles"][profile_key]["stats_file"]
@@ -128,7 +121,7 @@ def handle_donation(profile_key, user_id, name, amount, text):
     else:
         update_stats(stats_file, "other", amount)
 
-    # 7. Реакции OBS
+    # 7. OBS реакции
     reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
     reaction_event = apply_reaction_rule(reactions_file, amount)
 
@@ -141,7 +134,5 @@ def handle_donation(profile_key, user_id, name, amount, text):
             "profile": profile_key
         }
         redis_client.publish("obs_reactions", json.dumps(payload))
-
-
 
     return {"goal": goal, "rule": rule_result}

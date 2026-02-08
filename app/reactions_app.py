@@ -3,18 +3,15 @@ from functools import wraps
 import uuid
 import os
 import json
-import redis
 from werkzeug.utils import secure_filename
 
 from config import CONFIG
 from services.reactions_service import load_reaction_rules, save_reaction_rules
+from services.redis_client import redis_client   # ← ЕДИНЫЙ redis_client
 
 reactions_bp = Blueprint("reactions", __name__)
 
-# Путь к папке реакций — берём из CONFIG
 STATIC_REACTIONS_DIR = CONFIG["static_reactions_dir"]
-
-redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
 
 
 # -------------------- AUTH --------------------
@@ -37,16 +34,12 @@ def reactions_page():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    # путь к файлу реакций из config.json
     reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
-
-    # загрузка правил
     rules = load_reaction_rules(reactions_file)
 
-    # ⭐ сортировка правил
     rules["rules"].sort(key=lambda r: r.get("min_points", 0))
 
-    # -------------------- ДОБАВЛЕНИЕ ПРАВИЛА --------------------
+    # ADD RULE
     if request.method == "POST" and "add_reaction_rule" in request.form:
 
         new_rule = {
@@ -73,16 +66,14 @@ def reactions_page():
 
         return redirect(url_for("reactions.reactions_page"))
 
-    # -------------------- УДАЛЕНИЕ ПРАВИЛА --------------------
+    # DELETE RULE
     if request.method == "POST" and "delete_reaction_rule" in request.form:
         rule_id = request.form["delete_reaction_rule"]
-
         rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
         save_reaction_rules(reactions_file, rules)
-
         return redirect(url_for("reactions.reactions_page"))
 
-    # -------------------- РЕДАКТИРОВАНИЕ ПРАВИЛА --------------------
+    # EDIT RULE
     if request.method == "POST" and "edit_reaction_rule" in request.form:
         rule_id = request.form["edit_reaction_rule"]
 
@@ -108,13 +99,12 @@ def reactions_page():
         save_reaction_rules(reactions_file, rules)
         return redirect(url_for("reactions.reactions_page"))
 
-    # -------------------- РЕНДЕР --------------------
     return render_template(
         "reactions.html",
         reactions=rules,
         profile_key=profile_key,
         profile=CONFIG["profiles"][profile_key],
-        user=user, 
+        user=user,
         mode=mode,
     )
 
@@ -131,16 +121,13 @@ def test_reaction():
     if not rule_id or not profile_key:
         return jsonify({"status": "error", "message": "missing params"}), 400
 
-    # Загружаем файл реакций
     reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
-    with open(reactions_file, "r", encoding="utf-8") as f:
-        rules = json.load(f)["rules"]
+    rules = load_reaction_rules(reactions_file)["rules"]
 
     rule = next((r for r in rules if r["id"] == rule_id), None)
     if not rule:
         return jsonify({"status": "error", "message": "rule not found"}), 404
 
-    # Публикуем реакцию в Redis
     redis_client.publish("obs_reactions", json.dumps({
         "reaction": {
             "image": rule["image"],

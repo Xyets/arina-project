@@ -121,8 +121,9 @@ def goal_reset():
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
-        profile_key=f"{user}_public"
+        profile_key=profile_key
     )
+
 
 
     return {"status": "ok"}

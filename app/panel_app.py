@@ -6,6 +6,7 @@ from services.vibration_manager import get_vibration_queue
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
 from services.audit import audit_event
+from services.redis_client import redis_client   # ← правильный импорт
 
 panel_bp = Blueprint("panel", __name__)
 
@@ -27,17 +28,14 @@ def login():
         user = request.form.get("username", "").strip()
         pwd = request.form.get("password", "").strip()
 
-        # USERS теперь берём из config.json
         users_cfg = CONFIG.get("USERS", {})
 
-        # нормализуем имя пользователя
         user_key = None
         for u in users_cfg:
             if u.lower() == user.lower():
                 user_key = u
                 break
 
-        # проверяем пароль
         if user_key and users_cfg.get(user_key) == pwd:
             session["user"] = user_key
             session["mode"] = "private"
@@ -77,7 +75,9 @@ def index():
     profile = CONFIG["profiles"][profile_key]
     queue = get_vibration_queue(profile_key)
     logs = load_logs_from_file(profile_key)
-    goal = load_goal(profile_key)
+
+    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    goal = load_goal(goal_file)
 
     return render_template(
         "index.html",
@@ -104,12 +104,9 @@ def set_mode():
     
     session["mode"] = mode
 
-    # 🔥 Добавляем сохранение режима в Redis
-    from services.lovense_service import redis_client
     redis_client.hset("user_modes", session["user"], mode)
 
     return {"status": "ok", "mode": mode}
-
 
 
 # -------------------- AJAX: логи --------------------
@@ -147,8 +144,6 @@ def queue_data():
 
     queue = get_vibration_queue(profile_key)
     items = list(queue._queue) if queue else []
-
-
 
     return jsonify({"queue": items})
 

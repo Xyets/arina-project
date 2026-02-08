@@ -1,23 +1,14 @@
 import json
 import requests
-import redis
 from typing import Optional, Dict, Any
 from config import CONFIG
 
-
-redis_client = redis.StrictRedis(
-    host=CONFIG.get("redis_host", "localhost"),
-    port=CONFIG.get("redis_port", 6379),
-    db=0
-)
+from services.redis_client import redis_client
 
 
 # ---------------- ПРОФИЛИ ----------------
 
 def _load_profile(profile_key: str) -> Optional[Dict[str, Any]]:
-    """
-    Возвращает профиль из CONFIG.
-    """
     profile = CONFIG["profiles"].get(profile_key)
 
     if not profile:
@@ -48,9 +39,6 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
 # ---------------- CLOUD ВИБРАЦИЯ ----------------
 
 def send_vibration_cloud(profile_key: str, strength: int, duration: int) -> Optional[dict]:
-    """
-    Отправляет вибрацию в Lovense Cloud.
-    """
     profile = _load_profile(profile_key)
     if not profile:
         return None
@@ -84,9 +72,6 @@ def send_vibration_cloud(profile_key: str, strength: int, duration: int) -> Opti
 
 
 def stop_vibration_cloud(profile_key: str) -> Optional[dict]:
-    """
-    Останавливает вибрацию.
-    """
     profile = _load_profile(profile_key)
     if not profile:
         return None

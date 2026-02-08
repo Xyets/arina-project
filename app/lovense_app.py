@@ -4,7 +4,7 @@ import json
 import requests
 
 from config import CONFIG
-from services.lovense_service import redis_client
+from services.redis_client import redis_client   # ← ЕДИНСТВЕННЫЙ ПРАВИЛЬНЫЙ ИМПОРТ
 
 lovense_bp = Blueprint("lovense", __name__)
 
@@ -25,10 +25,6 @@ def login_required(f):
 @lovense_bp.route("/qrcode")
 @login_required
 def qrcode_default():
-    """
-    Старый режим: /qrcode без параметров.
-    Автоматически определяет профиль текущего пользователя.
-    """
     user = session["user"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
@@ -45,10 +41,6 @@ def qrcode_default():
 @lovense_bp.route("/qrcode/<profile_key>")
 @login_required
 def qrcode_page(profile_key):
-    """
-    Режим: /qrcode/<profile_key>
-    Позволяет вручную открыть QR‑код для любого профиля.
-    """
     profile = CONFIG["profiles"].get(profile_key)
     if not profile:
         return "Профиль не найден", 404
@@ -63,20 +55,14 @@ def qrcode_page(profile_key):
 # -------------------- ФУНКЦИЯ ПОЛУЧЕНИЯ QR-КОДА --------------------
 
 def get_qr_code(profile_key):
-    """
-    СТАРЫЙ РЕЖИМ — LAN API.
-    Работает ВСЕГДА, даже если игрушка не подключена.
-    """
     profile = CONFIG["profiles"][profile_key]
     url = "https://api.lovense.com/api/lan/getQrCode"
 
-    uid = profile["uid"]
-
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
-        "uid": uid,
+        "uid": profile["uid"],
         "uname": profile["uname"],
-        "utoken": "",  # LAN API — utoken всегда пустой
+        "utoken": "",
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback",
         "v": 2,
     }
@@ -89,11 +75,9 @@ def get_qr_code(profile_key):
         print("Ошибка запроса QR:", e)
         return None
 
-    # Успешный ответ
     if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
         return data["data"]["qr"]
 
-    # Иногда QR приходит в message
     msg = data.get("message")
     if isinstance(msg, str) and msg.startswith("http"):
         return msg
@@ -101,15 +85,10 @@ def get_qr_code(profile_key):
     return None
 
 
-
 # -------------------- CALLBACK ОТ LOVENSE CLOUD --------------------
 
 @lovense_bp.route("/callback", methods=["POST"])
 def lovense_callback():
-    """
-    Callback от Lovense Cloud.
-    Получает utoken и список игрушек, сохраняет в Redis.
-    """
     data = request.json or request.form or {}
     print("📩 Callback от Lovense:", data)
 

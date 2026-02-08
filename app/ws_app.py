@@ -3,18 +3,13 @@ logging.basicConfig(level=logging.INFO)
 import asyncio
 import json
 import websockets
-import redis
 from services.vip_service import update_vip
 from services.logs_service import add_log
 
 from config import CONFIG
+from services.vibration_manager import stop_vibration, stop_events
+from services.lovense_service import send_vibration_cloud
 
-from services.vibration_manager import (
-    init_vibration_queues,
-    vibration_queues,
-    stop_vibration,
-    stop_events,          # ← ДОБАВИТЬ ЭТО
-)
 
 
 # ---------------- ГЛОБАЛЬНЫЕ СТРУКТУРЫ ----------------
@@ -27,7 +22,8 @@ CLIENT_PROFILES = {}       # ws -> profile_key (OBS)
 
 WS_EVENT_LOOP = None
 
-redis_client = redis.StrictRedis(host="127.0.0.1", port=6379, db=0)
+from services.redis_client import redis_client
+
 
 
 # ---------------- УТИЛИТА ДЛЯ РАССЫЛКИ ----------------
@@ -57,31 +53,27 @@ def ws_send(data, role=None, profile_key=None):
 
 
 # ---------------- ВИБРАЦИИ ----------------
-from services.vibration_manager import get_vibration_queue
-async def vibration_worker(profile_key):
-    q = get_vibration_queue(profile_key)
 
-    from services.vibration_manager import stop_events
-    from services.lovense_service import send_vibration_cloud, stop_vibration_cloud
+async def vibration_worker(profile_key):
+    from services.lovense_service import send_vibration_cloud
+
+    loop = asyncio.get_running_loop()
+    queue_name = f"vibration_queue:{profile_key}"
 
     while True:
-        strength, duration = await q.get()
+        # ждём задачу из Redis
+        raw = await loop.run_in_executor(None, redis_client.brpop, queue_name)
+        task = json.loads(raw[1])
 
-        # Сбрасываем STOP перед новой вибрацией
+        strength = task["strength"]
+        duration = task["duration"]
+
         stop_events[profile_key].clear()
 
-        # Запускаем вибрацию на duration секунд (как раньше)
+        # запускаем вибрацию
         send_vibration_cloud(profile_key, strength, duration)
-        print(f"🔥 WS → Vibrate {strength} for {duration}s → {profile_key}")
 
-        # OBS-анимация
-        msg = json.dumps({
-            "vibration": {
-                "strength": strength,
-                "duration": duration,
-                "target": profile_key
-            }
-        })
+        # отправляем в OBS и панель
         payload = {
             "vibration": {
                 "strength": strength,
@@ -89,36 +81,16 @@ async def vibration_worker(profile_key):
                 "target": profile_key
             }
         }
-
-        # OBS — для анимации игрушки
         ws_send(payload, role="obs", profile_key=profile_key)
-
-        # PANEL — для таймера вибрации
         ws_send(payload, role="panel")
 
-
-
-        # Ждём duration секунд, но проверяем STOP
-        for _ in range(duration):
-            await asyncio.sleep(1)
-
+        # таймер с проверкой STOP каждые 100 мс
+        for _ in range(duration * 10):
+            await asyncio.sleep(0.1)
             if stop_events[profile_key].is_set():
-                stop_vibration_cloud(profile_key)
-
-                # STOP в OBS
-                stop_msg = json.dumps({
-                    "stop": True,
-                    "target": profile_key
-                })
-                for ws in list(CONNECTED_SOCKETS):
-                    try:
-                        await ws.send(stop_msg)
-                    except:
-                        CONNECTED_SOCKETS.discard(ws)
-
+                send_vibration_cloud(profile_key, 0, 0)
+                ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 break
-
-        q.task_done()
 
 
 
@@ -269,14 +241,15 @@ async def ws_handler(websocket):
                 profile_key = data.get("profile_key")
 
 
-                stop_vibration(profile_key)
+                stop_events[profile_key].set()
+                send_vibration_cloud(profile_key, 0, 0)
 
                 ws_send(
                     {"stop": True, "target": profile_key},
                     role="obs",
                     profile_key=profile_key
                 )
-                continue
+
 
 
             # ---------- VIP UPDATE ----------
@@ -327,8 +300,6 @@ async def ws_server():
     profile_keys = list(CONFIG["profiles"].keys())
     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
 
-    # Инициализируем очереди вибраций для всех профилей
-    init_vibration_queues(profile_keys)
 
     # Запускаем фоновые задачи
     asyncio.create_task(redis_listener())

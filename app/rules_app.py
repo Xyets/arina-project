@@ -1,9 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from functools import wraps
 import uuid
-import threading
 
-from services.lovense_service import send_vibration_cloud
 from services.vibration_manager import enqueue_vibration
 from config import CONFIG
 from services.rules_service import load_rules, save_rules
@@ -111,10 +109,6 @@ def rules_page():
                     r["action"] = None
                 else:
                     r["action"] = request.form["action"].strip() or None
-
-        save_rules(rules_file, rules)
-        return redirect(url_for("rules.rules_page"))
-
 
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))

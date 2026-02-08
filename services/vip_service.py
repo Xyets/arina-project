@@ -90,7 +90,7 @@ def update_vip(
         user["total"] = float(user.get("total", 0.0)) + float(amount)
 
         audit_event(
-            vip_file,
+            profile_key,
             "vip",
             {"type": "vip_total_increment", "user_id": user_id, "amount": amount}
         )
