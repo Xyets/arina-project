@@ -1,3 +1,5 @@
+print("🔥🔥🔥 WS_APP.PY LOADED 🔥🔥🔥")
+
 import logging
 logging.basicConfig(level=logging.INFO)
 import asyncio
