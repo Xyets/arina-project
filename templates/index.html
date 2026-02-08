@@ -445,11 +445,13 @@
           socket.onopen = () => {
               console.log("✅ Панель подключена к WebSocket");
 
+              const mode = document.getElementById("modeSwitch").checked ? "private" : "public";
+              const profile_key = `${CURRENT_USER}_${mode}`;
+
               socket.send(JSON.stringify({
                   type: "hello",
                   role: "panel",
-                  user: CURRENT_USER,
-                  mode: document.getElementById("modeSwitch").checked ? "private" : "public"
+                  profile_key: profile_key
               }));
 
               if (socket._pingInterval) clearInterval(socket._pingInterval);

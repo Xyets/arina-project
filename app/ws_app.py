@@ -6,7 +6,6 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 
 from config import CONFIG
-from services.goal_service import load_goal
 
 from services.vibration_manager import (
     init_vibration_queues,
@@ -21,8 +20,8 @@ from services.vibration_manager import (
 CONNECTED_SOCKETS = set()
 CLIENT_TYPES = {}          # ws -> "panel" / "obs"
 CLIENT_PROFILES = {}       # ws -> profile_key (OBS)
-CLIENT_USERS = {}          # ws -> user (panel)
-CLIENT_MODES = {}
+      # ws -> user (panel)
+
 
 WS_EVENT_LOOP = None
 
@@ -53,7 +52,6 @@ def ws_send(data, role=None, profile_key=None):
             CONNECTED_SOCKETS.discard(ws)
             CLIENT_TYPES.pop(ws, None)
             CLIENT_PROFILES.pop(ws, None)
-            CLIENT_USERS.pop(ws, None)
 
 
 # ---------------- ВИБРАЦИИ ----------------
@@ -169,14 +167,11 @@ async def ws_handler(websocket):
                 
                 if role == "panel":
                     CLIENT_TYPES[websocket] = "panel"
-                    user = data.get("user")
-                    mode = data.get("mode", "private")
-
-                    CLIENT_USERS[websocket] = user
-                    CLIENT_MODES[user] = mode  # сохраняем режим панели
-
+                    profile_key = data.get("profile_key")
+                    CLIENT_PROFILES[websocket] = profile_key
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
                     continue
+
 
                 if role == "obs":
                     CLIENT_TYPES[websocket] = "obs"
@@ -193,10 +188,8 @@ async def ws_handler(websocket):
                 viewer_id = data.get("user_id")
                 viewer_name = data.get("name", "Анонимно")
                 text = data.get("text", "")
-                user = data.get("user")  # Arina / Irina
+                profile_key = data.get("profile_key")
 
-                mode = CLIENT_MODES.get(user, "private")
-                profile_key = f"{user}_{mode}"
 
                 profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
@@ -225,18 +218,16 @@ async def ws_handler(websocket):
             if msg_type == "donation":
                 print("🔥 DONATION RECEIVED:", data)
 
-                user = data.get("user")
+                profile_key = data.get("profile_key")
                 user_id = data.get("user_id")  # ← настоящий уникальный ID
                 name = (data.get("name") or "Аноним").strip()
                 text = data.get("text", "")
                 amount = float(data.get("amount") or 0)
 
-                if not user or not user_id or amount <= 0:
+                if not profile_key or not user_id or amount <= 0:
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
-                mode = CLIENT_MODES.get(user, "private")
-                profile_key = f"{user}_{mode}"
 
                 from services.donation_service import handle_donation
 
@@ -263,10 +254,6 @@ async def ws_handler(websocket):
             if msg_type == "stop":
                 profile_key = data.get("profile_key")
 
-                if not profile_key:
-                    user = data.get("user")
-                    mode = CLIENT_MODES.get(user, "private")
-                    profile_key = f"{user}_{mode}"
 
                 stop_vibration(profile_key)
 
@@ -277,25 +264,10 @@ async def ws_handler(websocket):
                 )
                 continue
 
-            # ---------- SET MODE ----------
-            if msg_type == "set_mode":
-                user = data.get("user")
-                mode = data.get("mode")
-
-                CLIENT_MODES[user] = mode
-
-                ws_send(
-                    {"mode_update": mode, "user": user},
-                    role="panel"
-                )
-                continue
 
             # ---------- VIP UPDATE ----------
             if msg_type == "vip_update":
-                user = data.get("user")
-                mode = CLIENT_MODES.get(user, "private")
-                profile_key = f"{user}_{mode}"
-
+                profile_key = data.get("profile_key")
                 data["profile_key"] = profile_key
                 ws_send(data, role="panel")
                 continue
@@ -329,7 +301,6 @@ async def ws_handler(websocket):
         CONNECTED_SOCKETS.discard(websocket)
         CLIENT_TYPES.pop(websocket, None)
         CLIENT_PROFILES.pop(websocket, None)
-        CLIENT_USERS.pop(websocket, None)
 
 
 # ---------------- ЗАПУСК WS ----------------
