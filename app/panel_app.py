@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from functools import wraps
 
 from config import CONFIG
-from services.vibration_manager import get_vibration_queue
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
 from services.audit import audit_event
@@ -73,7 +72,6 @@ def index():
     profile_key = f"{user}_{mode}"
 
     profile = CONFIG["profiles"][profile_key]
-    queue = get_vibration_queue(profile_key)
     logs = load_logs_from_file(profile_key)
 
     goal_file = CONFIG["profiles"][profile_key]["goal_file"]
@@ -83,11 +81,10 @@ def index():
         "index.html",
         user=user,
         profile=profile,
-        queue=list(queue._queue) if queue else [],
         logs=logs,
         current_mode=mode,
         goal=goal,
-        current_profile=profile_key 
+        current_profile=profile_key
     )
 
 
@@ -131,32 +128,3 @@ def clear_logs():
 
     clear_logs_file(profile_key)
     return {"status": "ok"}
-
-
-# -------------------- AJAX: очередь вибраций --------------------
-
-@panel_bp.route("/queue_data")
-@login_required
-def queue_data():
-    user = session["user"]
-    mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
-
-    queue = get_vibration_queue(profile_key)
-    items = list(queue._queue) if queue else []
-
-    return jsonify({"queue": items})
-
-
-@panel_bp.route("/clear_queue", methods=["POST"])
-@login_required
-def clear_queue():
-    user = session["user"]
-    mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
-
-    queue = get_vibration_queue(profile_key)
-    if queue:
-        queue._queue.clear()
-
-    return {"status": "ok", "message": "Очередь очищена"}
