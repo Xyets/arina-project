@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.INFO)
 import asyncio
 import json
 import websockets
@@ -70,6 +72,7 @@ async def vibration_worker(profile_key):
 
         # Запускаем вибрацию на duration секунд (как раньше)
         send_vibration_cloud(profile_key, strength, duration)
+        print(f"🔥 WS → Vibrate {strength} for {duration}s → {profile_key}")
 
         # OBS-анимация
         msg = json.dumps({
@@ -146,6 +149,7 @@ async def ws_handler(websocket):
 
     try:
         async for message in websocket:
+            print("📩 WS received:", message)
             try:
                 data = json.loads(message)
             except Exception:
