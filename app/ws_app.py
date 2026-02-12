@@ -72,9 +72,10 @@ async def vibration_worker(profile_key):
             print(f"🔄 [{profile_key}] stop_event CLEARED")
 
             # запускаем вибрацию
-            print(f"📤 [{profile_key}] SENDING START COMMAND TO LOVENSE…")
-            await start_vibration_cloud_async(profile_key, strength, duration)
-            print(f"📥 [{profile_key}] START COMMAND SENT")
+            print(f"📤 [{profile_key}] SENDING START COMMAND TO LOVENSE (fire-and-forget)…")
+            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
+            print(f"📥 [{profile_key}] START COMMAND DISPATCHED")
+
 
             # уведомления
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
