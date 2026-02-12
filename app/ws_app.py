@@ -56,19 +56,23 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
+            # ждём следующую задачу
             strength, duration = await q.get()
 
             print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
+
+            # обновляем очередь (в ней уже НЕТ текущей задачи)
             ws_send({
                 "queue_update": True,
                 "queue": list(q._queue)
             }, role="panel", profile_key=profile_key)
 
+            # сбрасываем STOP
             if profile_key not in stop_events:
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # 👉 НЕ блокируем event loop: requests уезжает в отдельный поток
+            # отправляем вибрацию в отдельном потоке
             try:
                 print(f"🚀 [{profile_key}] Sending vibration to Cloud...")
                 await loop.run_in_executor(
@@ -81,22 +85,34 @@ async def vibration_worker(profile_key):
             except Exception as e:
                 print(f"❌ [{profile_key}] Cloud vibration ERROR:", e)
 
-            payload = {
+            # уведомляем панель и OBS
+            ws_send({
                 "vibration": {
                     "strength": strength,
                     "duration": duration,
                     "target": profile_key
                 }
-            }
-            ws_send(payload, role="panel", profile_key=profile_key)
-            ws_send(payload, role="obs", profile_key=profile_key)
+            }, role="panel", profile_key=profile_key)
 
-            # таймер с возможностью STOP, но без блокировки
+            ws_send({
+                "vibration": {
+                    "strength": strength,
+                    "duration": duration,
+                    "target": profile_key
+                }
+            }, role="obs", profile_key=profile_key)
+
+            # таймер с возможностью STOP
             total_steps = duration * 10
+            stopped = False
+
             for _ in range(total_steps):
                 await asyncio.sleep(0.1)
+
                 if stop_events[profile_key].is_set():
-                    print(f"🛑 [{profile_key}] STOP received, stopping vibration")
+                    print(f"🛑 [{profile_key}] STOP received")
+
+                    # останавливаем вибрацию
                     try:
                         await loop.run_in_executor(
                             None,
@@ -108,14 +124,28 @@ async def vibration_worker(profile_key):
                     except Exception as e:
                         print(f"❌ [{profile_key}] Cloud STOP ERROR:", e)
 
+                    # уведомляем панель и OBS
+                    ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
+
+                    stopped = True
                     break
+
+            # если вибрация закончилась сама
+            if not stopped:
+                ws_send({
+                    "vibration_finished": True,
+                    "target": profile_key
+                }, role="panel", profile_key=profile_key)
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
 
         finally:
+            # помечаем задачу выполненной
             q.task_done()
+
+            # отправляем обновлённую очередь
             ws_send({
                 "queue_update": True,
                 "queue": list(q._queue)
@@ -191,14 +221,14 @@ async def ws_handler(websocket):
                     CLIENT_TYPES[websocket] = "panel"
                     CLIENT_PROFILES[websocket] = profile_key
 
-                    # режим пользователя в Redis
+                    # сохраняем режим пользователя
                     try:
                         user, mode = profile_key.split("_")
                         redis_client.hset("user_modes", user, mode)
                     except Exception as e:
                         print("❌ Ошибка обновления режима:", e)
 
-                    # сразу отправляем текущую очередь вибраций
+                    # отправляем актуальную очередь
                     if profile_key in vibration_queues:
                         ws_send({
                             "queue_update": True,
@@ -223,7 +253,7 @@ async def ws_handler(websocket):
                 viewer_id = data.get("user_id")
                 viewer_name = data.get("name", "Анонимно")
                 text = data.get("text", "")
-                user = data.get("user")  # "Arina" / "Irina"
+                user = data.get("user")
 
                 mode = redis_client.hget("user_modes", user)
                 if isinstance(mode, bytes):
@@ -249,7 +279,7 @@ async def ws_handler(websocket):
             if msg_type == "donation":
                 from services.donation_service import handle_donation
 
-                user = data.get("user")  # "Arina" или "Irina"
+                user = data.get("user")
                 user_id = data.get("user_id")
                 name = (data.get("name") or "Аноним").strip()
                 text = data.get("text", "")
@@ -282,8 +312,17 @@ async def ws_handler(websocket):
                     stop_events[profile_key] = asyncio.Event()
 
                 stop_events[profile_key].set()
-                send_vibration_cloud(profile_key, 0, 0)
 
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(
+                    None,
+                    send_vibration_cloud,
+                    profile_key,
+                    0,
+                    0,
+                )
+
+                ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                 continue
 
@@ -298,15 +337,29 @@ async def ws_handler(websocket):
 
                 vibration_queues[profile_key].put_nowait((strength, duration))
 
-                payload = {
+                # обновляем очередь
+                ws_send({
+                    "queue_update": True,
+                    "queue": list(vibration_queues[profile_key]._queue)
+                }, role="panel", profile_key=profile_key)
+
+                # визуальное уведомление
+                ws_send({
                     "vibration": {
                         "strength": strength,
                         "duration": duration,
                         "target": profile_key
                     }
-                }
-                ws_send(payload, role="panel", profile_key=profile_key)
-                ws_send(payload, role="obs", profile_key=profile_key)
+                }, role="panel", profile_key=profile_key)
+
+                ws_send({
+                    "vibration": {
+                        "strength": strength,
+                        "duration": duration,
+                        "target": profile_key
+                    }
+                }, role="obs", profile_key=profile_key)
+
                 continue
 
             # ---------- CLEAR QUEUE ----------
