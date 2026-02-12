@@ -337,6 +337,21 @@ async def ws_handler(websocket):
                     "queue": []
                 }, role="panel", profile_key=profile_key)
                 continue
+            # ---------- GET QUEUE ----------
+            if msg_type == "get_queue":
+                profile_key = data.get("profile_key")
+
+                if profile_key in vibration_queues:
+                    q = list(vibration_queues[profile_key]._queue)
+                else:
+                    q = []
+
+                ws_send({
+                    "queue_update": True,
+                    "queue": q
+                }, role="panel", profile_key=profile_key)
+
+                continue
 
     finally:
         CONNECTED_SOCKETS.discard(websocket)

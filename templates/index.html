@@ -459,7 +459,8 @@
                   role: "panel",
                   profile_key: profile_key
               }));
-
+              // 🔥 ДОБАВЬ ЭТО 
+              socket.send(JSON.stringify({ type: "get_queue", profile_key: profile_key }));
               // Пинг
               if (socket._pingInterval) clearInterval(socket._pingInterval);
               socket._pingInterval = setInterval(() => {
@@ -764,7 +765,6 @@
           showToast("Очередь очищена ✅");
       });
 
-
       function updateQueueUI() {
           const box = document.getElementById("queuebox");
           if (!box) return;
@@ -780,6 +780,7 @@
 
           box.scrollTop = box.scrollHeight;
       }
+
 
 
 
