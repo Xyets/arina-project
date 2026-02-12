@@ -17,7 +17,7 @@ from services.lovense_service import send_vibration_cloud_async
 
 from services.vibration_manager import vibration_queues, stop_events
 from services.redis_client import redis_client
-
+from services.vibration_manager import init_vibration_queues
 
 # ---------------- ГЛОБАЛЬНЫЕ СТРУКТУРЫ ----------------
 
@@ -353,9 +353,8 @@ async def ws_server():
     profile_keys = list(CONFIG["profiles"].keys())
     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
     # Инициализация очередей и STOP событий
-    for key in profile_keys:
-        vibration_queues[key] = asyncio.Queue()
-        stop_events[key] = asyncio.Event()
+    init_vibration_queues(profile_keys)
+
 
     # Запуск фоновых задач
     asyncio.create_task(redis_listener())
