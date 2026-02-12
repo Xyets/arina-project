@@ -469,11 +469,20 @@
               }, 30000);
           };
 
-          // ❗ Больше НИКАКИХ авто‑реконнектов
           socket.onclose = () => {
               console.log("❌ WebSocket закрыт");
+
               if (socket._pingInterval) clearInterval(socket._pingInterval);
+
+              // 🔥 Умный авто‑реконнект
+              setTimeout(() => {
+                  if (!socket || socket.readyState === WebSocket.CLOSED) {
+                      console.log("🔄 Переподключение WebSocket...");
+                      connectWS();
+                  }
+              }, 2000);
           };
+
 
           socket.onmessage = (event) => {
               let data;
@@ -532,6 +541,15 @@
       }
 
       connectWS();
+
+      document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+              if (!socket || socket.readyState !== WebSocket.OPEN) {
+                  console.log("🔄 Вкладка активна — переподключаем WebSocket");
+                  connectWS();
+              }
+          }
+      });
 
 
 
