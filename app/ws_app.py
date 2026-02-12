@@ -238,7 +238,13 @@ async def ws_handler(websocket):
                 profile_key = f"{user}_{mode}"
 
                 profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
-
+                # 🔥 ВОТ ЭТО — ОБЯЗАТЕЛЬНО 
+                ws_send({
+                    "vip_update": True, 
+                    "user_id": viewer_id, 
+                    "profile_key": profile_key 
+                }, role="panel", profile_key=profile_key)
+                
                 if event == "login":
                     add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
                 elif event == "logout":
