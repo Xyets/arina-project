@@ -1,8 +1,6 @@
 # services/donation_service.py
 
 import json
-import asyncio
-import websockets
 from config import CONFIG
 
 from services.redis_client import redis_client
@@ -13,35 +11,6 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal
-
-
-# ---------------- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ----------------
-
-async def send_ws_vibration(profile_key, strength, duration):
-    """
-    Отправляет вибрацию в ws_app через WebSocket.
-    """
-    async with websockets.connect("ws://127.0.0.1:8765") as ws:
-        await ws.send(json.dumps({ 
-            "type": "hello", 
-            "role": "panel", 
-            "profile_key": profile_key 
-        }))
-        await ws.send(json.dumps({
-            "type": "vibration",
-            "profile_key": profile_key,
-            "strength": strength,
-            "duration": duration
-        }))
-
-
-def trigger_vibration(profile_key, strength, duration):
-    loop = asyncio.new_event_loop()
-    try:
-        loop.run_until_complete(send_ws_vibration(profile_key, strength, duration))
-    finally:
-        loop.close()
-
 
 
 # ---------------- RULES ----------------
@@ -76,8 +45,12 @@ def apply_rule(profile_key, amount, text):
             if action and action.strip():
                 return {"kind": "action", "action_text": action.strip()}
 
-            # VIBRATION → через WebSocket → ws_app → очередь
-            trigger_vibration(profile_key, strength, duration)
+            # VIBRATION → через Redis → ws_app → очередь
+            redis_client.publish("vibrations", json.dumps({
+                "profile_key": profile_key,
+                "strength": strength,
+                "duration": duration
+            }))
 
             return {"kind": "vibration", "strength": strength, "duration": duration}
 

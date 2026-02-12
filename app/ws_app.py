@@ -146,21 +146,31 @@ async def ws_handler(websocket):
             # ---------- HELLO ----------
             if msg_type == "hello":
                 role = data.get("role")
+                profile_key = data.get("profile_key")
 
                 if role == "panel":
                     CLIENT_TYPES[websocket] = "panel"
-                    CLIENT_PROFILES[websocket] = data.get("profile_key")
+                    CLIENT_PROFILES[websocket] = profile_key
+
+                    # 🔥 Автоматически обновляем режим пользователя в Redis
+                    try:
+                        user, mode = profile_key.split("_")
+                        redis_client.hset("user_modes", user, mode)
+                    except Exception as e:
+                        print("❌ Ошибка обновления режима:", e)
+
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
                     continue
 
                 if role == "obs":
                     CLIENT_TYPES[websocket] = "obs"
-                    CLIENT_PROFILES[websocket] = data.get("profile_key")
+                    CLIENT_PROFILES[websocket] = profile_key
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "obs"}))
                     continue
 
                 await websocket.send(json.dumps({"error": "unknown_role"}))
                 continue
+
 
             # ---------- VIEWER LOGIN / LOGOUT ----------
             if "event" in data:
