@@ -198,7 +198,16 @@ async def ws_handler(websocket):
                 viewer_id = data.get("user_id")
                 viewer_name = data.get("name", "Анонимно")
                 text = data.get("text", "")
-                profile_key = data.get("profile_key")
+                user = data.get("user")  # "Arina" / "Irina"
+
+                # определяем режим из Redis
+                mode = redis_client.hget("user_modes", user)
+                if isinstance(mode, bytes):
+                    mode = mode.decode("utf-8")
+                if mode not in ("private", "public"):
+                    mode = "private"
+
+                profile_key = f"{user}_{mode}"
 
                 profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
@@ -209,8 +218,9 @@ async def ws_handler(websocket):
                 else:
                     add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
 
-                ws_send({"type": "refresh_logs"}, role="panel")
+                ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
                 continue
+
 
             # ---------- DONATION ----------
             if msg_type == "donation":
