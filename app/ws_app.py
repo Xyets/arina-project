@@ -237,18 +237,32 @@ async def ws_handler(websocket):
 
                 profile_key = f"{user}_{mode}"
 
+                # 🔥 обновляем профиль ОДИН раз
                 profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
-                # 🔥 ВОТ ЭТО — ОБЯЗАТЕЛЬНО 
+
+                # 🔥 обновляем VIP‑панель
                 ws_send({
-                    "vip_update": True, 
-                    "user_id": viewer_id, 
-                    "profile_key": profile_key 
+                    "vip_update": True,
+                    "user_id": viewer_id,
+                    "profile_key": profile_key
                 }, role="panel", profile_key=profile_key)
-                
+
+                # 🔥 показываем popup ТОЛЬКО при login
                 if event == "login":
+                    ws_send({
+                        "entry": {
+                            "name": viewer_name,
+                            "visits": profile["visits"],
+                            "total_tips": profile["total"],
+                            "notes": profile.get("notes", "")
+                        }
+                    }, role="panel", profile_key=profile_key)
+
                     add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
+
                 elif event == "logout":
                     add_log(profile_key, f"🔴 LOGOUT | {viewer_name} ({viewer_id})")
+
                 else:
                     add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
 
