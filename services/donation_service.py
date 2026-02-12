@@ -22,6 +22,11 @@ async def send_ws_vibration(profile_key, strength, duration):
     Отправляет вибрацию в ws_app через WebSocket.
     """
     async with websockets.connect("ws://127.0.0.1:8765") as ws:
+        await ws.send(json.dumps({ 
+            "type": "hello", 
+            "role": "panel", 
+            "profile_key": profile_key 
+        }))
         await ws.send(json.dumps({
             "type": "vibration",
             "profile_key": profile_key,
