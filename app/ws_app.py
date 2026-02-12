@@ -126,7 +126,8 @@ async def redis_listener():
     print("🔥 Redis listener started")
 
     while True:
-        msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
+        msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=0)
+
         if msg:
             try:
                 raw = msg["data"]
@@ -149,7 +150,7 @@ async def redis_listener():
             except Exception as e:
                 print("❌ Redis parse error:", e)
 
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
 
 
 
