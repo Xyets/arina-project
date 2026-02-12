@@ -61,7 +61,7 @@ async def vibration_worker(profile_key):
 
             print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
 
-            # обновляем очередь (в ней уже НЕТ текущей задачи)
+            # 🔥 ОБНОВЛЯЕМ ОЧЕРЕДЬ — текущая вибрация уже удалена
             ws_send({
                 "queue_update": True,
                 "queue": list(q._queue)
@@ -85,7 +85,7 @@ async def vibration_worker(profile_key):
             except Exception as e:
                 print(f"❌ [{profile_key}] Cloud vibration ERROR:", e)
 
-            # уведомляем панель и OBS
+            # уведомляем панель и OBS о начале вибрации
             ws_send({
                 "vibration": {
                     "strength": strength,
@@ -104,8 +104,6 @@ async def vibration_worker(profile_key):
 
             # таймер с возможностью STOP
             total_steps = duration * 10
-            stopped = False
-
             for _ in range(total_steps):
                 await asyncio.sleep(0.1)
 
@@ -128,28 +126,18 @@ async def vibration_worker(profile_key):
                     ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
-                    stopped = True
                     break
 
-            # если вибрация закончилась сама
-            if not stopped:
-                ws_send({
-                    "vibration_finished": True,
-                    "target": profile_key
-                }, role="panel", profile_key=profile_key)
+            # ❗ НИЧЕГО НЕ ОБНОВЛЯЕМ ПОСЛЕ ЗАВЕРШЕНИЯ ВИБРАЦИИ
+            # очередь обновится только когда начнётся следующая вибрация
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
 
         finally:
-            # помечаем задачу выполненной
             q.task_done()
-
-            # отправляем обновлённую очередь
-            ws_send({
-                "queue_update": True,
-                "queue": list(q._queue)
-            }, role="panel", profile_key=profile_key)
+            # ❗ НЕ отправляем queue_update здесь
+            # очередь обновляется только при добавлении и при начале вибрации
 
 
 
@@ -228,7 +216,7 @@ async def ws_handler(websocket):
                     except Exception as e:
                         print("❌ Ошибка обновления режима:", e)
 
-                    # отправляем актуальную очередь
+                    # отправляем актуальную очередь (только будущие вибрации)
                     if profile_key in vibration_queues:
                         ws_send({
                             "queue_update": True,
@@ -313,6 +301,7 @@ async def ws_handler(websocket):
 
                 stop_events[profile_key].set()
 
+                # останавливаем вибрацию в отдельном потоке
                 loop = asyncio.get_running_loop()
                 await loop.run_in_executor(
                     None,
@@ -322,8 +311,11 @@ async def ws_handler(websocket):
                     0,
                 )
 
+                # уведомляем панель и OBS
                 ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
+
+                # ❗ очередь НЕ обновляем — это важно
                 continue
 
             # ---------- ВИБРАЦИИ ОТ ПАНЕЛИ ----------
@@ -335,9 +327,10 @@ async def ws_handler(websocket):
                 if not profile_key or strength is None or duration is None:
                     continue
 
+                # добавляем в очередь
                 vibration_queues[profile_key].put_nowait((strength, duration))
 
-                # обновляем очередь
+                # 🔥 обновляем очередь (показываем будущие вибрации)
                 ws_send({
                     "queue_update": True,
                     "queue": list(vibration_queues[profile_key]._queue)
