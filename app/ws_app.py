@@ -52,6 +52,7 @@ def ws_send(data, role=None, profile_key=None):
 async def vibration_worker(profile_key):
     print(f"🔥 vibration_worker STARTED for {profile_key}")
     q = vibration_queues[profile_key]
+    loop = asyncio.get_running_loop()
 
     while True:
         try:
@@ -67,10 +68,16 @@ async def vibration_worker(profile_key):
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # --- ВАЖНО: БЕЗ await ---
+            # 👉 НЕ блокируем event loop: requests уезжает в отдельный поток
             try:
                 print(f"🚀 [{profile_key}] Sending vibration to Cloud...")
-                send_vibration_cloud(profile_key, strength, duration)
+                await loop.run_in_executor(
+                    None,
+                    send_vibration_cloud,
+                    profile_key,
+                    strength,
+                    duration,
+                )
             except Exception as e:
                 print(f"❌ [{profile_key}] Cloud vibration ERROR:", e)
 
@@ -84,15 +91,20 @@ async def vibration_worker(profile_key):
             ws_send(payload, role="panel", profile_key=profile_key)
             ws_send(payload, role="obs", profile_key=profile_key)
 
-            # --- таймер вибрации ---
+            # таймер с возможностью STOP, но без блокировки
             total_steps = duration * 10
             for _ in range(total_steps):
                 await asyncio.sleep(0.1)
-
                 if stop_events[profile_key].is_set():
                     print(f"🛑 [{profile_key}] STOP received, stopping vibration")
                     try:
-                        send_vibration_cloud(profile_key, 0, 0)
+                        await loop.run_in_executor(
+                            None,
+                            send_vibration_cloud,
+                            profile_key,
+                            0,
+                            0,
+                        )
                     except Exception as e:
                         print(f"❌ [{profile_key}] Cloud STOP ERROR:", e)
 
