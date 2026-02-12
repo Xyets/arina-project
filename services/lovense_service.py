@@ -53,11 +53,9 @@ async def send_vibration_cloud_async(profile_key: str, strength: int, duration: 
     try:
         async with aiohttp.ClientSession() as session:
             # 🔥 НЕ ЖДЁМ ОТВЕТ — просто отправляем и идём дальше
-            await session.post(url, json=payload, timeout=2)
-    except Exception as e:
-        print(f"❌ [{profile_key}] Ошибка Cloud-вибрации: {e}")
-
-    return None
+            await session.post(url, json=payload, timeout=1)
+    except Exception:
+        pass
 
 async def stop_vibration_cloud_async(profile_key: str) -> Optional[dict]:
     return await send_vibration_cloud_async(profile_key, 0, 0)
