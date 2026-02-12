@@ -236,7 +236,7 @@ async def ws_handler(websocket):
                         "target": profile_key
                     }
                 }
-                ws_send(payload, role="panel")
+                ws_send(payload, role="panel", profile_key=profile_key)
                 ws_send(payload, role="obs", profile_key=profile_key)
                 continue
 
