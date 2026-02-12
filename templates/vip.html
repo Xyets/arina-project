@@ -86,7 +86,7 @@
   <div class="card-grid">
     {% for user_id, info in members %}
     <div class="vip-card {% if info.blocked %}blocked{% endif %}" id="card_{{ user_id }}">
-      <form method="POST">
+      <form onsubmit="event.preventDefault(); saveMember(this)">
         <input type="hidden" name="user_id" value="{{ user_id }}">
         <input type="hidden" name="sort" value="{{ request.args.get('sort', 'total') }}">
         <input type="hidden" name="q" value="{{ query }}">
@@ -113,7 +113,7 @@
     let currentSort = new URL(window.location.href).searchParams.get("sort") || "total";
 
     // ---------------- SAVE MEMBER ----------------
-    async function saveMember(form) {
+    window.saveMember = async function(form) {
       const formData = new FormData(form);
 
       try {
