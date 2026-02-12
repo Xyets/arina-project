@@ -55,6 +55,11 @@ async def vibration_worker(profile_key):
     while True:
         try:
             strength, duration = await q.get()
+            # отправляем обновлённую очередь на панель
+            ws_send({
+                "queue_update": True,
+                "queue": list(q._queue)
+            }, role="panel", profile_key=profile_key)
 
             # STOP event
             if profile_key not in stop_events:
@@ -91,6 +96,11 @@ async def vibration_worker(profile_key):
 
         finally:
             q.task_done()
+            ws_send({
+                "queue_update": True,
+                "queue": list(q._queue)
+            }, role="panel", profile_key=profile_key)
+
 
 
 # ---------------- REDIS LISTENER ----------------
@@ -275,6 +285,18 @@ async def ws_handler(websocket):
                 }
                 ws_send(payload, role="panel", profile_key=profile_key)
                 ws_send(payload, role="obs", profile_key=profile_key)
+                continue
+            # ---------- CLEAR QUEUE ----------
+            if msg_type == "clear_queue":
+                profile_key = data.get("profile_key")
+                if profile_key in vibration_queues:
+                    vibration_queues[profile_key] = asyncio.Queue()
+
+                ws_send({
+                    "queue_update": True,
+                    "queue": []
+                }, role="panel", profile_key=profile_key)
+
                 continue
 
     finally:

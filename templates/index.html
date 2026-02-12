@@ -509,6 +509,16 @@
                   startVibrationTimer(v.duration, v.strength);
                   return;
               }
+              // ---------- ОБНОВЛЕНИЕ ОЧЕРЕДИ ВИБРАЦИЙ ----------
+              if (data.queue_update) {
+                  const q = data.queue || [];
+                  vibrationQueue = q.map(v => ({
+                      strength: v[0],
+                      duration: v[1]
+                  }));
+                  updateQueueUI();
+                  return;
+              }
 
               // ---------- POPUP ENTRY ----------
               if (data.entry) {
@@ -669,9 +679,7 @@
                 clearInterval(interval); 
                 box.remove(); 
                 
-                // когда вибрация закончилась — убираем её из очереди 
-                vibrationQueue.shift(); 
-                updateQueueUI(); 
+
               } else {
                   timeSpan.textContent = Math.ceil(remaining);
                   progressBar.style.width = `${(remaining / duration) * 100}%`;
@@ -741,10 +749,21 @@
 
       // 🧹 Очистка очереди
       document.getElementById("clearQueueBtn").addEventListener("click", () => {
+          const mode = document.getElementById("modeSwitch").checked ? "private" : "public";
+          const profile_key = `${CURRENT_USER}_${mode}`;
+
+          // очищаем на сервере
+          socket.send(JSON.stringify({
+              type: "clear_queue",
+              profile_key: profile_key
+          }));
+
+          // локально сразу чистим
           vibrationQueue = [];
           updateQueueUI();
           showToast("Очередь очищена ✅");
       });
+
 
       function updateQueueUI() {
           const box = document.getElementById("queuebox");
