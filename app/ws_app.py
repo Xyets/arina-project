@@ -51,7 +51,7 @@ def ws_send(data, role=None, profile_key=None):
 # ---------------- ВИБРАЦИИ ----------------
 
 async def vibration_worker(profile_key):
-    print(f"🔥 vibration_worker STARTED for {profile_key}")
+    print(f"🔥 WORKER STARTED for {profile_key}")
 
     from services.vibration_manager import vibration_queues, stop_events
     from services.lovense_service import start_vibration_cloud_async, stop_vibration_cloud_async
@@ -60,29 +60,41 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
+            print(f"⏳ [{profile_key}] WAITING FOR NEXT VIBRATION…")
             strength, duration = await q.get()
-            print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
+            print(f"🚀 [{profile_key}] START NEW VIBRATION: strength={strength}, duration={duration}")
 
+            # обновляем очередь
             ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
+            # сбрасываем стоп
             stop_events[profile_key].clear()
+            print(f"🔄 [{profile_key}] stop_event CLEARED")
 
-            # 🔥 просто отправляем вибрацию с duration в Lovense
-            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
+            # запускаем вибрацию
+            print(f"📤 [{profile_key}] SENDING START COMMAND TO LOVENSE…")
+            await start_vibration_cloud_async(profile_key, strength, duration)
+            print(f"📥 [{profile_key}] START COMMAND SENT")
 
+            # уведомления
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="panel", profile_key=profile_key)
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="obs", profile_key=profile_key)
 
-            # ждём либо STOP, либо окончания duration — но уже без управления мотором
+            # ждём duration или STOP
+            print(f"⏳ [{profile_key}] WAITING {duration}s OR STOP…")
             stopped = False
-            for _ in range(duration * 10):
-                await asyncio.sleep(0.1)
-                if stop_events[profile_key].is_set():
-                    print(f"🛑 [{profile_key}] STOP received")
 
+            for i in range(duration * 10):
+                await asyncio.sleep(0.1)
+
+                if stop_events[profile_key].is_set():
+                    print(f"🛑 [{profile_key}] STOP RECEIVED DURING WAIT at {i*0.1:.1f}s")
+
+                    print(f"📤 [{profile_key}] SENDING STOP COMMAND TO LOVENSE…")
                     await stop_vibration_cloud_async(profile_key)
+                    print(f"📥 [{profile_key}] STOP COMMAND SENT")
 
                     ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
@@ -91,11 +103,16 @@ async def vibration_worker(profile_key):
                     break
 
             if not stopped:
-                # мотор сам остановится по timeSec, мы только даём OBS событие
+                print(f"⏳ [{profile_key}] NATURAL END OF VIBRATION — SENDING STOP")
+                await stop_vibration_cloud_async(profile_key)
+                print(f"📥 [{profile_key}] NATURAL STOP SENT")
+
                 ws_send({"vibration_finished": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
+            print(f"✅ [{profile_key}] VIBRATION COMPLETE — MOVING TO NEXT")
+
         except Exception as e:
-            print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
+            print(f"❌ [{profile_key}] ERROR IN WORKER:", e)
 
         finally:
             q.task_done()
