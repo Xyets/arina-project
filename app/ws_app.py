@@ -104,6 +104,8 @@ async def vibration_worker(profile_key):
 
             # таймер с возможностью STOP
             total_steps = duration * 10
+            stopped = False   # ← ОБЯЗАТЕЛЬНО!
+
             for _ in range(total_steps):
                 await asyncio.sleep(0.1)
 
@@ -126,10 +128,15 @@ async def vibration_worker(profile_key):
                     ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
+                    stopped = True
                     break
 
             # ❗ НИЧЕГО НЕ ОБНОВЛЯЕМ ПОСЛЕ ЗАВЕРШЕНИЯ ВИБРАЦИИ
             # очередь обновится только когда начнётся следующая вибрация
+
+            # просто выходим из try, чтобы finally сработал
+            # (даже если stopped == False)
+            pass
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
