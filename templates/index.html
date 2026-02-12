@@ -513,12 +513,6 @@
               if (data.vibration) {
                   const v = data.vibration;
 
-                  vibrationQueue.push({
-                      strength: v.strength ?? "—",
-                      duration: v.duration ?? 0
-                  });
-                  updateQueueUI();
-
                   startVibrationTimer(v.duration, v.strength);
                   return;
               }
