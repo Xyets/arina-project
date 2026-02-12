@@ -459,8 +459,7 @@
                   role: "panel",
                   profile_key: profile_key
               }));
-              // 🔥 ДОБАВЬ ЭТО 
-              socket.send(JSON.stringify({ type: "get_queue", profile_key: profile_key }));
+
               // Пинг
               if (socket._pingInterval) clearInterval(socket._pingInterval);
               socket._pingInterval = setInterval(() => {
@@ -469,6 +468,7 @@
                   }
               }, 30000);
           };
+
 
           socket.onclose = () => {
               console.log("❌ WebSocket закрыт");
@@ -494,6 +494,18 @@
 
               if (data.type === "refresh_logs") {
                   loadLogs();
+                  return;
+              }
+              // ---------- HELLO_OK ----------
+              if (data.status === "hello_ok" && data.role === "panel") {
+                  const mode = document.getElementById("modeSwitch").checked ? "private" : "public";
+                  const profile_key = `${CURRENT_USER}_${mode}`;
+
+                  console.log("📥 HELLO_OK — ЗАПРАШИВАЮ ОЧЕРЕДЬ");
+                  socket.send(JSON.stringify({
+                      type: "get_queue",
+                      profile_key: profile_key
+                  }));
                   return;
               }
 
