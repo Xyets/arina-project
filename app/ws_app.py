@@ -60,18 +60,21 @@ async def vibration_worker(profile_key):
 
             print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
 
+            # обновляем очередь
             ws_send({
                 "queue_update": True,
                 "queue": list(q._queue)
             }, role="panel", profile_key=profile_key)
 
+            # сбрасываем STOP
             if profile_key not in stop_events:
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
             # 🔥 отправляем команду, но НЕ ждём ответа
-            await send_vibration_cloud_async(profile_key, strength, duration)
+            asyncio.create_task(send_vibration_cloud_async(profile_key, strength, duration))
 
+            # уведомляем панель и OBS
             ws_send({
                 "vibration": {
                     "strength": strength,
@@ -88,16 +91,15 @@ async def vibration_worker(profile_key):
                 }
             }, role="obs", profile_key=profile_key)
 
-            total_steps = duration * 10
+            # 🔥 ТАЙМЕР — КАК В ТВОЁМ СТАРОМ КОДЕ
             stopped = False
-
-            for _ in range(total_steps):
+            for _ in range(duration * 10):
                 await asyncio.sleep(0.1)
 
                 if stop_events[profile_key].is_set():
                     print(f"🛑 [{profile_key}] STOP received")
 
-                    await send_vibration_cloud_async(profile_key, 0, 0)
+                    asyncio.create_task(send_vibration_cloud_async(profile_key, 0, 0))
 
                     ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
@@ -105,6 +107,7 @@ async def vibration_worker(profile_key):
                     stopped = True
                     break
 
+            # если вибрация закончилась сама
             if not stopped:
                 ws_send({
                     "vibration_finished": True,
