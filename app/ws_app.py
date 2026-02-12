@@ -52,41 +52,26 @@ def ws_send(data, role=None, profile_key=None):
 
 async def vibration_worker(profile_key):
     print(f"🔥 vibration_worker STARTED for {profile_key}")
+
+    from services.vibration_manager import vibration_queues, stop_events
+    from services.lovense_service import start_vibration_cloud_async, stop_vibration_cloud_async
+
     q = vibration_queues[profile_key]
 
     while True:
         try:
             strength, duration = await q.get()
-
             print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
 
-            ws_send({
-                "queue_update": True,
-                "queue": list(q._queue)
-            }, role="panel", profile_key=profile_key)
+            ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
-            if profile_key not in stop_events:
-                stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # запускаем вибрацию (бесконечно)
-            asyncio.create_task(send_vibration_cloud_async(profile_key, strength, duration))
+            # 🔥 запускаем вибрацию (бесконечно)
+            asyncio.create_task(start_vibration_cloud_async(profile_key, strength))
 
-            ws_send({
-                "vibration": {
-                    "strength": strength,
-                    "duration": duration,
-                    "target": profile_key
-                }
-            }, role="panel", profile_key=profile_key)
-
-            ws_send({
-                "vibration": {
-                    "strength": strength,
-                    "duration": duration,
-                    "target": profile_key
-                }
-            }, role="obs", profile_key=profile_key)
+            ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}}, role="panel", profile_key=profile_key)
+            ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}}, role="obs", profile_key=profile_key)
 
             stopped = False
             for _ in range(duration * 10):
@@ -94,8 +79,7 @@ async def vibration_worker(profile_key):
                 if stop_events[profile_key].is_set():
                     print(f"🛑 [{profile_key}] STOP received")
 
-                    # явный стоп
-                    asyncio.create_task(send_vibration_cloud_async(profile_key, 0, 0))
+                    await stop_vibration_cloud_async(profile_key)
 
                     ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
@@ -103,14 +87,10 @@ async def vibration_worker(profile_key):
                     stopped = True
                     break
 
-            # естественное окончание — тоже стопим игрушку
             if not stopped:
-                asyncio.create_task(send_vibration_cloud_async(profile_key, 0, 0))
+                await stop_vibration_cloud_async(profile_key)
 
-                ws_send({
-                    "vibration_finished": True,
-                    "target": profile_key
-                }, role="obs", profile_key=profile_key)
+                ws_send({"vibration_finished": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
