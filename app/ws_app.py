@@ -186,22 +186,39 @@ async def ws_handler(websocket):
             if msg_type == "donation":
                 from services.donation_service import handle_donation
 
-                profile_key = data.get("profile_key")
+                # 1. Определяем пользователя
+                user = data.get("user")  # "Arina" или "Irina"
                 user_id = data.get("user_id")
                 name = (data.get("name") or "Аноним").strip()
                 text = data.get("text", "")
                 amount = float(data.get("amount") or 0)
 
-                if not profile_key or not user_id or amount <= 0:
+                # 2. Определяем режим пользователя из Redis
+                mode = redis_client.hget("user_modes", user)
+                if isinstance(mode, bytes):
+                    mode = mode.decode("utf-8")
+
+                if mode not in ("private", "public"):
+                    mode = "private"
+
+                # 3. Собираем profile_key автоматически
+                profile_key = f"{user}_{mode}"
+
+                # 4. Проверка корректности
+                if not user_id or amount <= 0:
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
+                # 5. Обработка доната
                 result = handle_donation(profile_key, user_id, name, amount, text)
 
+                # 6. Обновления панели
                 ws_send({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
-                ws_send({"goal_update": True, "goal": result["goal"]}, role="panel")
-                ws_send({"type": "refresh_logs"}, role="panel")
+                ws_send({"goal_update": True, "goal": result["goal"]}, role="panel", profile_key=profile_key)
+                ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+
                 continue
+
 
             # ---------- STOP ----------
             if msg_type == "stop":
