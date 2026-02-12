@@ -2,7 +2,7 @@ print("🔥🔥🔥 WS_APP.PY LOADED 🔥🔥🔥")
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+import aiohttp
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -13,7 +13,8 @@ import websockets
 from config import CONFIG
 from services.vip_service import update_vip
 from services.logs_service import add_log
-from services.lovense_service import send_vibration_cloud
+from services.lovense_service import send_vibration_cloud_async
+
 from services.vibration_manager import vibration_queues, stop_events
 from services.redis_client import redis_client
 
@@ -52,38 +53,24 @@ def ws_send(data, role=None, profile_key=None):
 async def vibration_worker(profile_key):
     print(f"🔥 vibration_worker STARTED for {profile_key}")
     q = vibration_queues[profile_key]
-    loop = asyncio.get_running_loop()
 
     while True:
         try:
-            # ждём следующую задачу
             strength, duration = await q.get()
 
             print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
 
-            # 🔥 ОБНОВЛЯЕМ ОЧЕРЕДЬ — текущая вибрация уже удалена
             ws_send({
                 "queue_update": True,
                 "queue": list(q._queue)
             }, role="panel", profile_key=profile_key)
 
-            # сбрасываем STOP
             if profile_key not in stop_events:
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # отправляем вибрацию в отдельном потоке
-            try:
-                print(f"🚀 [{profile_key}] Sending vibration to Cloud...")
-                await loop.run_in_executor(
-                    None,
-                    send_vibration_cloud,
-                    profile_key,
-                    strength,
-                    duration,
-                )
-            except Exception as e:
-                print(f"❌ [{profile_key}] Cloud vibration ERROR:", e)
+            # 🔥 Асинхронная отправка вибрации
+            await send_vibration_cloud_async(profile_key, strength, duration)
 
             # уведомляем панель и OBS о начале вибрации
             ws_send({
@@ -102,9 +89,8 @@ async def vibration_worker(profile_key):
                 }
             }, role="obs", profile_key=profile_key)
 
-            # таймер с возможностью STOP
             total_steps = duration * 10
-            stopped = False   # ← ОБЯЗАТЕЛЬНО!
+            stopped = False
 
             for _ in range(total_steps):
                 await asyncio.sleep(0.1)
@@ -112,36 +98,26 @@ async def vibration_worker(profile_key):
                 if stop_events[profile_key].is_set():
                     print(f"🛑 [{profile_key}] STOP received")
 
-                    # останавливаем вибрацию
-                    try:
-                        await loop.run_in_executor(
-                            None,
-                            send_vibration_cloud,
-                            profile_key,
-                            0,
-                            0,
-                        )
-                    except Exception as e:
-                        print(f"❌ [{profile_key}] Cloud STOP ERROR:", e)
+                    await send_vibration_cloud_async(profile_key, 0, 0)
 
-                    # уведомляем панель и OBS
                     ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
                     stopped = True
                     break
 
-            # ❗ ВАЖНО: просто выходим из try, чтобы finally сработал
-            # никакой логики здесь не нужно
+            # 🔥 Если вибрация закончилась сама — ОБС должен остановить анимацию
+            if not stopped:
+                ws_send({
+                    "vibration_finished": True,
+                    "target": profile_key
+                }, role="obs", profile_key=profile_key)
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
 
         finally:
-            # обязательно освобождаем задачу
             q.task_done()
-            # очередь НЕ обновляем здесь
-
 
 
 # ---------------- REDIS LISTENER ----------------
@@ -305,13 +281,8 @@ async def ws_handler(websocket):
                 stop_events[profile_key].set()
 
                 loop = asyncio.get_running_loop()
-                await loop.run_in_executor(
-                    None,
-                    send_vibration_cloud,
-                    profile_key,
-                    0,
-                    0,
-                )
+                await send_vibration_cloud_async(profile_key, strength, duration)
+
 
                 ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
