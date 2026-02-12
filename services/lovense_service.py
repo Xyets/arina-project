@@ -32,11 +32,7 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
 
 # ---------------- CLOUD API ----------------
 
-async def start_vibration_cloud_async(profile_key: str, strength: int):
-    """
-    Запускает вибрацию БЕСКОНЕЧНО (timeSec=0).
-    Мы сами контролируем длительность в vibration_worker.
-    """
+async def start_vibration_cloud_async(profile_key: str, strength: int, duration: int):
     profile = _load_profile(profile_key)
     if not profile:
         return
@@ -55,7 +51,7 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": 0,   # 🔥 бесконечно
+        "timeSec": duration,   # 🔥 снова даём duration в Lovense
     }
 
     try:

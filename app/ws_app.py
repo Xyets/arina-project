@@ -67,12 +67,15 @@ async def vibration_worker(profile_key):
 
             stop_events[profile_key].clear()
 
-            # 🔥 запускаем вибрацию (бесконечно)
-            asyncio.create_task(start_vibration_cloud_async(profile_key, strength))
+            # 🔥 просто отправляем вибрацию с duration в Lovense
+            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
 
-            ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}}, role="panel", profile_key=profile_key)
-            ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}}, role="obs", profile_key=profile_key)
+            ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
+                    role="panel", profile_key=profile_key)
+            ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
+                    role="obs", profile_key=profile_key)
 
+            # ждём либо STOP, либо окончания duration — но уже без управления мотором
             stopped = False
             for _ in range(duration * 10):
                 await asyncio.sleep(0.1)
@@ -88,8 +91,7 @@ async def vibration_worker(profile_key):
                     break
 
             if not stopped:
-                await stop_vibration_cloud_async(profile_key)
-
+                # мотор сам остановится по timeSec, мы только даём OBS событие
                 ws_send({"vibration_finished": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
         except Exception as e:
@@ -97,7 +99,6 @@ async def vibration_worker(profile_key):
 
         finally:
             q.task_done()
-
 
 # ---------------- REDIS LISTENER ----------------
 
