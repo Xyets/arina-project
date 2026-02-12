@@ -31,12 +31,12 @@ async def send_ws_vibration(profile_key, strength, duration):
 
 
 def trigger_vibration(profile_key, strength, duration):
-    """
-    Запускает асинхронную отправку вибрации.
-    """
-    asyncio.get_event_loop().create_task(
-        send_ws_vibration(profile_key, strength, duration)
-    )
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(send_ws_vibration(profile_key, strength, duration))
+    finally:
+        loop.close()
+
 
 
 # ---------------- RULES ----------------
