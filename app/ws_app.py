@@ -301,7 +301,6 @@ async def ws_handler(websocket):
 
                 stop_events[profile_key].set()
 
-                # останавливаем вибрацию в отдельном потоке
                 loop = asyncio.get_running_loop()
                 await loop.run_in_executor(
                     None,
@@ -311,7 +310,6 @@ async def ws_handler(websocket):
                     0,
                 )
 
-                # уведомляем панель и OBS
                 ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
                 ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
 
