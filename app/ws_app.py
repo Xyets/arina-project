@@ -131,20 +131,16 @@ async def vibration_worker(profile_key):
                     stopped = True
                     break
 
-            # ❗ НИЧЕГО НЕ ОБНОВЛЯЕМ ПОСЛЕ ЗАВЕРШЕНИЯ ВИБРАЦИИ
-            # очередь обновится только когда начнётся следующая вибрация
-
-            # просто выходим из try, чтобы finally сработал
-            # (даже если stopped == False)
-            pass
+            # ❗ ВАЖНО: просто выходим из try, чтобы finally сработал
+            # никакой логики здесь не нужно
 
         except Exception as e:
             print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
 
         finally:
+            # обязательно освобождаем задачу
             q.task_done()
-            # ❗ НЕ отправляем queue_update здесь
-            # очередь обновляется только при добавлении и при начале вибрации
+            # очередь НЕ обновляем здесь
 
 
 
