@@ -72,7 +72,6 @@ async def vibration_worker(profile_key):
             # 🔥 Асинхронная отправка вибрации
             await send_vibration_cloud_async(profile_key, strength, duration)
 
-            # уведомляем панель и OBS о начале вибрации
             ws_send({
                 "vibration": {
                     "strength": strength,
@@ -106,7 +105,7 @@ async def vibration_worker(profile_key):
                     stopped = True
                     break
 
-            # 🔥 Если вибрация закончилась сама — ОБС должен остановить анимацию
+            # 🔥 Вибрация закончилась сама
             if not stopped:
                 ws_send({
                     "vibration_finished": True,
@@ -281,7 +280,7 @@ async def ws_handler(websocket):
                 stop_events[profile_key].set()
 
                 loop = asyncio.get_running_loop()
-                await send_vibration_cloud_async(profile_key, strength, duration)
+                await send_vibration_cloud_async(profile_key, 0, 0)
 
 
                 ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)

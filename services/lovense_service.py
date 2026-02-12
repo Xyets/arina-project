@@ -1,6 +1,7 @@
 import json
 import aiohttp
 from typing import Optional, Dict, Any
+
 from config import CONFIG
 from services.redis_client import redis_client
 
@@ -21,6 +22,7 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
     raw = redis_client.hget("connected_users", uid)
     if not raw:
         return None
+
     try:
         user_data = json.loads(raw)
         return user_data.get("utoken")
@@ -58,7 +60,11 @@ async def send_vibration_cloud_async(profile_key: str, strength: int, duration: 
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, timeout=5) as resp:
-                return await resp.json()
+                text = await resp.text()
+                try:
+                    return json.loads(text)
+                except:
+                    return {"raw": text}
     except Exception as e:
         print(f"❌ [{profile_key}] Ошибка Cloud-вибрации: {e}")
         return None
