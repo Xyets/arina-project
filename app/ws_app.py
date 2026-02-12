@@ -75,7 +75,7 @@ async def vibration_worker(profile_key):
                     "target": profile_key
                 }
             }
-            ws_send(payload, role="panel")
+            ws_send(payload, role="panel", profile_key=profile_key)
             ws_send(payload, role="obs", profile_key=profile_key)
 
             # Ожидание с возможностью STOP
