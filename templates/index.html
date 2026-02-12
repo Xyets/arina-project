@@ -432,14 +432,20 @@
       let lastLogCount = 0;
       const shownEntries = new Set();
 
+
       /* ---------------------------------------------------------
-        🌐 2. WebSocket с авто‑реконнектом
+        🌐 WebSocket — ОДНО подключение, без авто‑дубликатов
       --------------------------------------------------------- */
       let socket = null;
 
       function connectWS() {
-          const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+          // 🔒 Защита: если соединение уже открыто — не создаём новое
+          if (socket && socket.readyState === WebSocket.OPEN) {
+              console.log("⚠️ WebSocket уже открыт — повторное подключение не создаём");
+              return;
+          }
 
+          const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
           socket = new WebSocket(wsUrl);
 
           socket.onopen = () => {
@@ -454,6 +460,7 @@
                   profile_key: profile_key
               }));
 
+              // Пинг
               if (socket._pingInterval) clearInterval(socket._pingInterval);
               socket._pingInterval = setInterval(() => {
                   if (socket.readyState === WebSocket.OPEN) {
@@ -462,10 +469,10 @@
               }, 30000);
           };
 
+          // ❗ Больше НИКАКИХ авто‑реконнектов
           socket.onclose = () => {
-              console.log("❌ WebSocket закрыт, переподключение...");
+              console.log("❌ WebSocket закрыт");
               if (socket._pingInterval) clearInterval(socket._pingInterval);
-              setTimeout(connectWS, 2000);
           };
 
           socket.onmessage = (event) => {
@@ -484,14 +491,12 @@
               if (data.vibration) {
                   const v = data.vibration;
 
-                  // добавляем в локальную очередь
                   vibrationQueue.push({
                       strength: v.strength ?? "—",
                       duration: v.duration ?? 0
                   });
                   updateQueueUI();
 
-                  // запускаем таймер
                   startVibrationTimer(v.duration, v.strength);
                   return;
               }
@@ -499,14 +504,12 @@
               // ---------- POPUP ENTRY ----------
               if (data.entry) {
                   const e = data.entry;
-
                   const message = `
                       👤 <strong>${e.name}</strong><br>
                       🔢 Визитов: ${e.visits}<br>
                       💗 Чаевых всего: ${e.total_tips}<br>
                       📝 Заметки: ${e.notes || "нет"}
                   `;
-
                   showEntryPopup(message);
                   return;
               }
@@ -518,19 +521,18 @@
               }
 
               // ---------- VIP UPDATE ----------
-              if (data.vip_update) {
-                  return;
-              }
+              if (data.vip_update) return;
 
               // ---------- MODE UPDATE ----------
               if (data.mode_update && data.user === CURRENT_USER) {
                   location.reload();
                   return;
               }
-          };  // ←←← ЭТОЙ СКОБКИ У ТЕБЯ НЕ ХВАТАЛО
-      }       // ←←← И ЭТОЙ ТОЖЕ
+          };
+      }
 
       connectWS();
+
 
 
       /* ---------------------------------------------------------
