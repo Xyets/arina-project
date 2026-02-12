@@ -765,25 +765,22 @@
       });
 
 
-      function updateQueueUI(queue) {
+      function updateQueueUI() {
           const box = document.getElementById("queuebox");
           if (!box) return;
 
-          if (!queue || queue.length === 0) {
+          if (!vibrationQueue || vibrationQueue.length === 0) {
               box.innerHTML = `<div style="color:#aaa; text-align:center;">Очередь пуста ✅</div>`;
               return;
           }
 
-          box.innerHTML = queue
-              .map((v, i) => {
-                  const strength = v[0];
-                  const duration = v[1];
-                  return `<div>#${i + 1} → сила: ${strength}, время: ${duration}s</div>`;
-              })
+          box.innerHTML = vibrationQueue
+              .map((v, i) => `<div>#${i + 1} → сила: ${v.strength}, время: ${v.duration}s</div>`)
               .join("");
 
           box.scrollTop = box.scrollHeight;
       }
+
 
 
 
