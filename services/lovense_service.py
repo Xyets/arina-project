@@ -32,20 +32,13 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
 
 # ---------------- ASYNC CLOUD ВИБРАЦИЯ ----------------
 
-async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int) -> Optional[dict]:
+async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
     profile = _load_profile(profile_key)
     if not profile:
         return None
 
     uid = profile.get("uid")
-    if not uid:
-        print(f"❌ [{profile_key}] Нет uid в профиле")
-        return None
-
     utoken = _get_utoken_from_redis(uid)
-    if not utoken:
-        print(f"❌ [{profile_key}] Игрушка не подключена или utoken отсутствует")
-        return None
 
     url = "https://api.lovense.com/api/lan/v2/command"
     payload = {
@@ -61,10 +54,13 @@ async def send_vibration_cloud_async(profile_key: str, strength: int, duration: 
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, timeout=5) as resp:
                 text = await resp.text()
+
+                # 🔥 ВАЖНО: НЕ ПАДАЕМ, ЕСЛИ ЭТО НЕ JSON
                 try:
                     return json.loads(text)
                 except:
                     return {"raw": text}
+
     except Exception as e:
         print(f"❌ [{profile_key}] Ошибка Cloud-вибрации: {e}")
         return None
