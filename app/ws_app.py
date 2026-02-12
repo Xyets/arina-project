@@ -141,7 +141,15 @@ async def redis_listener():
                     pk = data["profile_key"]
                     vibration_queues[pk].put_nowait((data["strength"], data["duration"]))
                     print(f"🔥 Redis vibration queued for {pk}: {data['strength']} / {data['duration']}")
+
+                    # 🔥 ДОБАВЬ ЭТО
+                    ws_send({
+                        "queue_update": True,
+                        "queue": list(vibration_queues[pk]._queue)
+                    }, role="panel", profile_key=pk)
+
                     continue
+
 
                 # ---------- OBS REACTIONS ----------
                 profile_key = data.get("profile")
