@@ -162,7 +162,6 @@ async def ws_handler(websocket):
                 continue
 
             msg_type = data.get("type")
-
             if msg_type is None and "amount" in data:
                 msg_type = "donation"
 
@@ -180,12 +179,19 @@ async def ws_handler(websocket):
                     CLIENT_TYPES[websocket] = "panel"
                     CLIENT_PROFILES[websocket] = profile_key
 
-                    # 🔥 Автоматически обновляем режим пользователя в Redis
+                    # режим пользователя в Redis
                     try:
                         user, mode = profile_key.split("_")
                         redis_client.hset("user_modes", user, mode)
                     except Exception as e:
                         print("❌ Ошибка обновления режима:", e)
+
+                    # сразу отправляем текущую очередь вибраций
+                    if profile_key in vibration_queues:
+                        ws_send({
+                            "queue_update": True,
+                            "queue": list(vibration_queues[profile_key]._queue)
+                        }, role="panel", profile_key=profile_key)
 
                     await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
                     continue
@@ -199,7 +205,6 @@ async def ws_handler(websocket):
                 await websocket.send(json.dumps({"error": "unknown_role"}))
                 continue
 
-
             # ---------- VIEWER LOGIN / LOGOUT ----------
             if "event" in data:
                 event = data["event"].lower()
@@ -208,7 +213,6 @@ async def ws_handler(websocket):
                 text = data.get("text", "")
                 user = data.get("user")  # "Arina" / "Irina"
 
-                # определяем режим из Redis
                 mode = redis_client.hget("user_modes", user)
                 if isinstance(mode, bytes):
                     mode = mode.decode("utf-8")
@@ -229,44 +233,34 @@ async def ws_handler(websocket):
                 ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
                 continue
 
-
             # ---------- DONATION ----------
             if msg_type == "donation":
                 from services.donation_service import handle_donation
 
-                # 1. Определяем пользователя
                 user = data.get("user")  # "Arina" или "Irina"
                 user_id = data.get("user_id")
                 name = (data.get("name") or "Аноним").strip()
                 text = data.get("text", "")
                 amount = float(data.get("amount") or 0)
 
-                # 2. Определяем режим пользователя из Redis
                 mode = redis_client.hget("user_modes", user)
                 if isinstance(mode, bytes):
                     mode = mode.decode("utf-8")
-
                 if mode not in ("private", "public"):
                     mode = "private"
 
-                # 3. Собираем profile_key автоматически
                 profile_key = f"{user}_{mode}"
 
-                # 4. Проверка корректности
                 if not user_id or amount <= 0:
                     await websocket.send(json.dumps({"error": "invalid_donation"}))
                     continue
 
-                # 5. Обработка доната
                 result = handle_donation(profile_key, user_id, name, amount, text)
 
-                # 6. Обновления панели
                 ws_send({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
                 ws_send({"goal_update": True, "goal": result["goal"]}, role="panel", profile_key=profile_key)
                 ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
-
                 continue
-
 
             # ---------- STOP ----------
             if msg_type == "stop":
@@ -290,10 +284,8 @@ async def ws_handler(websocket):
                 if not profile_key or strength is None or duration is None:
                     continue
 
-                # Кладём задачу в очередь
                 vibration_queues[profile_key].put_nowait((strength, duration))
 
-                # Отправляем на фронт
                 payload = {
                     "vibration": {
                         "strength": strength,
@@ -304,6 +296,7 @@ async def ws_handler(websocket):
                 ws_send(payload, role="panel", profile_key=profile_key)
                 ws_send(payload, role="obs", profile_key=profile_key)
                 continue
+
             # ---------- CLEAR QUEUE ----------
             if msg_type == "clear_queue":
                 profile_key = data.get("profile_key")
@@ -314,7 +307,6 @@ async def ws_handler(websocket):
                     "queue_update": True,
                     "queue": []
                 }, role="panel", profile_key=profile_key)
-
                 continue
 
     finally:
