@@ -50,29 +50,33 @@ def ws_send(data, role=None, profile_key=None):
 # ---------------- ВИБРАЦИИ ----------------
 
 async def vibration_worker(profile_key):
+    print(f"🔥 vibration_worker STARTED for {profile_key}")
     q = vibration_queues[profile_key]
 
     while True:
         try:
+            # ждём следующую вибрацию
             strength, duration = await q.get()
-            # отправляем обновлённую очередь на панель
+
+            print(f"🔥 [{profile_key}] NEW vibration: strength={strength}, duration={duration}")
             ws_send({
                 "queue_update": True,
                 "queue": list(q._queue)
             }, role="panel", profile_key=profile_key)
 
-            # STOP event
+            # STOP event reset
             if profile_key not in stop_events:
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # Запуск вибрации
+            # --- отправляем вибрацию в Lovense Cloud ---
             try:
-                send_vibration_cloud(profile_key, strength, duration)
+                print(f"🚀 [{profile_key}] Sending vibration to Cloud...")
+                await send_vibration_cloud(profile_key, strength, duration)
             except Exception as e:
-                print(f"❌ [{profile_key}] Ошибка Cloud‑вибрации:", e)
+                print(f"❌ [{profile_key}] Cloud vibration ERROR:", e)
 
-            # Отправка на фронт
+            # --- отправляем на панель и OBS ---
             payload = {
                 "vibration": {
                     "strength": strength,
@@ -83,16 +87,23 @@ async def vibration_worker(profile_key):
             ws_send(payload, role="panel", profile_key=profile_key)
             ws_send(payload, role="obs", profile_key=profile_key)
 
-            # Ожидание с возможностью STOP
-            for _ in range(duration * 10):
+            # --- таймер вибрации с возможностью STOP ---
+            total_steps = duration * 10
+            for _ in range(total_steps):
                 await asyncio.sleep(0.1)
+
                 if stop_events[profile_key].is_set():
-                    send_vibration_cloud(profile_key, 0, 0)
+                    print(f"🛑 [{profile_key}] STOP received, stopping vibration")
+                    try:
+                        await send_vibration_cloud(profile_key, 0, 0)
+                    except Exception as e:
+                        print(f"❌ [{profile_key}] Cloud STOP ERROR:", e)
+
                     ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
                     break
 
         except Exception as e:
-            print(f"⚠️ [{profile_key}] Ошибка в vibration_worker:", e)
+            print(f"⚠️ [{profile_key}] ERROR in vibration_worker:", e)
 
         finally:
             q.task_done()
