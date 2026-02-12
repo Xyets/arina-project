@@ -95,3 +95,15 @@ async def stop_vibration_cloud_async(profile_key: str):
             await session.post(url, json=payload, timeout=1)
     except Exception:
         pass
+# ---------------- СОВМЕСТИМОСТЬ С WS_APP ----------------
+
+async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
+    """
+    Эта функция нужна для совместимости с ws_app.py.
+    Она вызывает start/stop в зависимости от силы.
+    duration игнорируется — длительность контролирует vibration_worker.
+    """
+    if strength > 0:
+        await start_vibration_cloud_async(profile_key, strength)
+    else:
+        await stop_vibration_cloud_async(profile_key)
