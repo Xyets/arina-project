@@ -97,7 +97,7 @@ async def vibration_worker(profile_key):
 
 async def redis_listener():
     pubsub = redis_client.pubsub()
-    pubsub.subscribe("obs_reactions")
+    pubsub.subscribe("obs_reactions", "vibrations")
     print("🔥 Redis listener started")
 
     while True:
@@ -109,6 +109,15 @@ async def redis_listener():
                     raw = raw.decode("utf-8")
 
                 data = json.loads(raw)
+
+                # ---------- VIBRATIONS ----------
+                if "strength" in data and "duration" in data and "profile_key" in data:
+                    pk = data["profile_key"]
+                    vibration_queues[pk].put_nowait((data["strength"], data["duration"]))
+                    print(f"🔥 Redis vibration queued for {pk}: {data['strength']} / {data['duration']}")
+                    continue
+
+                # ---------- OBS REACTIONS ----------
                 profile_key = data.get("profile")
                 ws_send(data, role="obs", profile_key=profile_key)
 
@@ -116,6 +125,7 @@ async def redis_listener():
                 print("❌ Redis parse error:", e)
 
         await asyncio.sleep(0.1)
+
 
 
 # ---------------- ОСНОВНОЙ WS HANDLER ----------------
