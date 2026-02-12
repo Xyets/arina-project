@@ -342,6 +342,7 @@ async def ws_server():
     # Запуск фоновых задач
     asyncio.create_task(redis_listener())
     for key in profile_keys:
+        print("🚀 STARTING WORKER FOR", key)
         asyncio.create_task(vibration_worker(key))
 
     server = await websockets.serve(ws_handler, "127.0.0.1", 8765)
