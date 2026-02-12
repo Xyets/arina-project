@@ -69,7 +69,7 @@ async def vibration_worker(profile_key):
                 stop_events[profile_key] = asyncio.Event()
             stop_events[profile_key].clear()
 
-            # 🔥 Асинхронная отправка вибрации
+            # 🔥 отправляем команду, но НЕ ждём ответа
             await send_vibration_cloud_async(profile_key, strength, duration)
 
             ws_send({
@@ -105,7 +105,6 @@ async def vibration_worker(profile_key):
                     stopped = True
                     break
 
-            # 🔥 Вибрация закончилась сама
             if not stopped:
                 ws_send({
                     "vibration_finished": True,
