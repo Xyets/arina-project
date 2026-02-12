@@ -30,32 +30,68 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
         return None
 
 
-# ---------------- ASYNC CLOUD ВИБРАЦИЯ ----------------
+# ---------------- CLOUD API ----------------
 
-async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
+async def start_vibration_cloud_async(profile_key: str, strength: int):
+    """
+    Запускает вибрацию БЕСКОНЕЧНО (timeSec=0).
+    Мы сами контролируем длительность в vibration_worker.
+    """
     profile = _load_profile(profile_key)
     if not profile:
-        return None
+        return
 
-    uid = profile.get("uid")
+    uid = profile["uid"]
     utoken = _get_utoken_from_redis(uid)
+    if not utoken:
+        print(f"❌ [{profile_key}] utoken отсутствует — игрушка не подключена")
+        return
 
     url = "https://api.lovense.com/api/lan/v2/command"
+
     payload = {
         "token": profile["DEVELOPER_TOKEN"],
         "uid": uid,
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": duration,
+        "timeSec": 0,   # 🔥 бесконечно
     }
 
     try:
         async with aiohttp.ClientSession() as session:
-            # 🔥 НЕ ЖДЁМ ОТВЕТ — просто отправляем и идём дальше
             await session.post(url, json=payload, timeout=1)
     except Exception:
         pass
 
-async def stop_vibration_cloud_async(profile_key: str) -> Optional[dict]:
-    return await send_vibration_cloud_async(profile_key, 0, 0)
+
+async def stop_vibration_cloud_async(profile_key: str):
+    """
+    Останавливает вибрацию мгновенно.
+    """
+    profile = _load_profile(profile_key)
+    if not profile:
+        return
+
+    uid = profile["uid"]
+    utoken = _get_utoken_from_redis(uid)
+    if not utoken:
+        print(f"❌ [{profile_key}] utoken отсутствует — игрушка не подключена")
+        return
+
+    url = "https://api.lovense.com/api/lan/v2/command"
+
+    payload = {
+        "token": profile["DEVELOPER_TOKEN"],
+        "uid": uid,
+        "utoken": utoken,
+        "command": "Function",
+        "action": "Vibrate:0",
+        "timeSec": 0,
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            await session.post(url, json=payload, timeout=1)
+    except Exception:
+        pass
