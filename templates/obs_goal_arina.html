@@ -28,7 +28,6 @@
         gap: 20px;
     }
 
-    /* Шкала */
     #goalBar {
         width: 70px;
         height: 360px;
@@ -52,7 +51,6 @@
         overflow: hidden;
     }
 
-    /* Вспышка */
     #flash {
         position: absolute;
         bottom: 0;
@@ -72,7 +70,6 @@
         100% { opacity: 0; height: 0%; }
     }
 
-    /* Сердечки */
     .heart {
         position: absolute;
         bottom: 0;
@@ -89,7 +86,6 @@
         100% { transform: translateY(-140px) scale(1.8); opacity: 0; }
     }
 
-    /* Пузырьки */
     .bubble {
         position: absolute;
         bottom: 0;
@@ -106,7 +102,6 @@
         100% { transform: translateY(-300px) scale(0.3); opacity: 0; }
     }
 
-    /* Блёстки */
     .glitter {
         position: absolute;
         width: 4px;
@@ -124,7 +119,6 @@
         100% { transform: translateY(-150px) scale(0.2); opacity: 0; }
     }
 
-    /* Конфетти */
     .confetti {
         position: absolute;
         width: 8px;
@@ -141,7 +135,6 @@
         100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
     }
 
-    /* Название цели */
     #goalName {
         writing-mode: vertical-rl;
         text-orientation: upright;
@@ -164,8 +157,16 @@
 <div id="wrapper">
     <div id="goalBar">
         <div id="goalFill">
-            <svg id="wave1" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
-            <svg id="wave2" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
+
+            <!-- ВАЖНО: добавлены path -->
+            <svg id="wave1" viewBox="0 0 120 28" preserveAspectRatio="none">
+                <path id="wave1-path"></path>
+            </svg>
+
+            <svg id="wave2" viewBox="0 0 120 28" preserveAspectRatio="none">
+                <path id="wave2-path"></path>
+            </svg>
+
         </div>
         <div id="flash"></div>
     </div>
@@ -197,8 +198,8 @@ ws.onmessage = (event) => {
     }
 };
 
-/* WAVIFY */
-$('#wave1').wavify({
+/* WAVIFY — вызываем на PATH, не на SVG */
+$('#wave1-path').wavify({
     height: 40,
     bones: 4,
     amplitude: 6,
@@ -206,7 +207,7 @@ $('#wave1').wavify({
     speed: 0.15
 });
 
-$('#wave2').wavify({
+$('#wave2-path').wavify({
     height: 35,
     bones: 3,
     amplitude: 4,
@@ -237,7 +238,6 @@ function updateGoal(current, target) {
     if (percent >= 100) spawnConfettiBurst();
 }
 
-/* Анимации */
 function spawnBubble() {
     const bar = document.getElementById("goalBar");
     const bubble = document.createElement("div");

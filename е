@@ -1,6 +1,6 @@
 systemctl restart arina.service
 systemctl restart arina-ws.service
-или systemctl restart arina.service arina-ws.service
+systemctl restart arina.service arina-ws.service
 systemctl status arina.service
 systemctl status arina-ws.service
 
