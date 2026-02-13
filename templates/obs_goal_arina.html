@@ -2,14 +2,21 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Goal Bar Vertical</title>
+<title>Goal Bar — Waves + Glitter</title>
+
+<!-- jQuery -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!-- wavify.js -->
+<script src="https://rawcdn.githack.com/peacepostman/wavify/master/dist/wavify.js"></script>
+<script src="https://rawcdn.githack.com/peacepostman/wavify/master/dist/jquery.wavify.js"></script>
 
 <style>
     body {
         margin: 0;
         background: transparent;
-        font-family: Arial, sans-serif;
         overflow: hidden;
+        font-family: Arial, sans-serif;
     }
 
     #wrapper {
@@ -21,19 +28,18 @@
         gap: 20px;
     }
 
-    /* Вертикальная шкала */
+    /* Шкала */
     #goalBar {
-        width: 50px;
-        height: 320px;
+        width: 70px;
+        height: 360px;
         background: rgba(255, 200, 230, 0.15);
-        border-radius: 12px;
+        border-radius: 14px;
         overflow: hidden;
         position: relative;
         transition: box-shadow 0.4s ease;
         box-shadow: 0 0 18px rgba(255, 120, 180, 0.6);
     }
 
-    /* Неоновая рамка при 90% */
     .neon-glow {
         box-shadow: 0 0 25px #ff4fa3, 0 0 45px #ff8ac9;
     }
@@ -41,56 +47,9 @@
     #goalFill {
         width: 100%;
         height: 0%;
-        background: linear-gradient(180deg, #ff8ac9, #ff4fa3);
-        transition: height 0.6s ease;
-        box-shadow: 0 0 25px rgba(255, 100, 170, 0.9);
         position: absolute;
         bottom: 0;
-    }
-
-    /* Пузырьки */
-    .bubble {
-        position: absolute;
-        bottom: 0;
-        width: 8px;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 50%;
-        animation: bubbleUp 3s infinite ease-out;
-        opacity: 0.8;
-    }
-
-    @keyframes bubbleUp {
-        0% { transform: translateY(0) scale(1); opacity: 0.8; }
-        100% { transform: translateY(-300px) scale(0.3); opacity: 0; }
-    }
-
-    /* Сердечки */
-    .heart {
-        position: absolute;
-        bottom: 0;
-        font-size: 16px;
-        color: #ff7abf;
-        opacity: 0.9;
-        animation: heartUp 1.8s ease-out forwards;
-        pointer-events: none;
-        text-shadow: 0 0 6px #ff4fa3;
-    }
-
-    @keyframes heartUp {
-        0%   { transform: translateY(0) scale(1); opacity: 1; }
-        100% { transform: translateY(-120px) scale(1.8); opacity: 0; }
-    }
-
-    /* Пульсация */
-    @keyframes pulse {
-        0%   { transform: scale(1); }
-        50%  { transform: scale(1.06); }
-        100% { transform: scale(1); }
-    }
-
-    .pulse-anim {
-        animation: pulse 0.4s ease-out;
+        overflow: hidden;
     }
 
     /* Вспышка */
@@ -113,24 +72,57 @@
         100% { opacity: 0; height: 0%; }
     }
 
-    /* Вертикальный японский текст */
-    #goalName {
-        writing-mode: vertical-rl;
-        text-orientation: upright;
-        font-size: 36px;
-        color: #ffe3f2;
-        font-weight: bold;
-        letter-spacing: 4px;
-
-        text-shadow:
-            -2px -2px 3px #ff4fa3,
-             2px -2px 3px #ff4fa3,
-            -2px  2px 3px #ff4fa3,
-             2px  2px 3px #ff4fa3,
-             0px  0px 8px #ff8ac9;
+    /* Сердечки */
+    .heart {
+        position: absolute;
+        bottom: 0;
+        font-size: 18px;
+        color: #ff7abf;
+        opacity: 0.9;
+        animation: heartUp 1.8s ease-out forwards;
+        pointer-events: none;
+        text-shadow: 0 0 6px #ff4fa3;
     }
 
-    #goalText { display: none; }
+    @keyframes heartUp {
+        0%   { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-140px) scale(1.8); opacity: 0; }
+    }
+
+    /* Пузырьки */
+    .bubble {
+        position: absolute;
+        bottom: 0;
+        width: 8px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        animation: bubbleUp 3s infinite ease-out;
+        opacity: 0.8;
+    }
+
+    @keyframes bubbleUp {
+        0% { transform: translateY(0) scale(1); opacity: 0.8; }
+        100% { transform: translateY(-300px) scale(0.3); opacity: 0; }
+    }
+
+    /* Блёстки */
+    .glitter {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: white;
+        border-radius: 50%;
+        opacity: 0.8;
+        animation: glitterUp 2s ease-out forwards;
+        pointer-events: none;
+        box-shadow: 0 0 6px #fff;
+    }
+
+    @keyframes glitterUp {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-150px) scale(0.2); opacity: 0; }
+    }
 
     /* Конфетти */
     .confetti {
@@ -148,6 +140,22 @@
         0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
         100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
     }
+
+    /* Название цели */
+    #goalName {
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        font-size: 36px;
+        color: #ffe3f2;
+        font-weight: bold;
+        letter-spacing: 4px;
+        text-shadow:
+            -2px -2px 3px #ff4fa3,
+             2px -2px 3px #ff4fa3,
+            -2px  2px 3px #ff4fa3,
+             2px  2px 3px #ff4fa3,
+             0px  0px 8px #ff8ac9;
+    }
 </style>
 </head>
 
@@ -155,9 +163,11 @@
 
 <div id="wrapper">
     <div id="goalBar">
-        <div id="goalFill"></div>
+        <div id="goalFill">
+            <svg id="wave1" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
+            <svg id="wave2" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>
+        </div>
         <div id="flash"></div>
-        <div id="goalText">0 / 0</div>
     </div>
 
     <div id="goalName">潮吹きショー</div>
@@ -187,6 +197,23 @@ ws.onmessage = (event) => {
     }
 };
 
+/* WAVIFY */
+$('#wave1').wavify({
+    height: 40,
+    bones: 4,
+    amplitude: 6,
+    color: 'rgba(255, 150, 200, 0.45)',
+    speed: 0.15
+});
+
+$('#wave2').wavify({
+    height: 35,
+    bones: 3,
+    amplitude: 4,
+    color: 'rgba(255, 180, 220, 0.35)',
+    speed: 0.12
+});
+
 function updateGoal(current, target) {
     const percent = Math.min(100, (current / target) * 100);
 
@@ -196,76 +223,58 @@ function updateGoal(current, target) {
 
     fill.style.height = percent + "%";
 
-    /* Вспышка */
     flash.classList.remove("flash-anim");
     void flash.offsetWidth;
     flash.classList.add("flash-anim");
 
-    /* Пульсация */
-    fill.classList.remove("pulse-anim");
-    void fill.offsetWidth;
-    fill.classList.add("pulse-anim");
-
-    /* Сердечко */
     spawnHeart();
-
-    /* Пузырёк */
     spawnBubble();
+    spawnGlitter();
 
-    /* Неоновая рамка при 90% */
-    if (percent >= 90) {
-        bar.classList.add("neon-glow");
-    } else {
-        bar.classList.remove("neon-glow");
-    }
+    if (percent >= 90) bar.classList.add("neon-glow");
+    else bar.classList.remove("neon-glow");
 
-    /* Конфетти при достижении цели */
-    if (current >= target) {
-        spawnConfettiBurst();
-    }
+    if (percent >= 100) spawnConfettiBurst();
 }
 
-/* Пузырёк */
+/* Анимации */
 function spawnBubble() {
     const bar = document.getElementById("goalBar");
     const bubble = document.createElement("div");
     bubble.classList.add("bubble");
-
-    bubble.style.left = Math.random() * 30 + 10 + "px";
+    bubble.style.left = Math.random() * 50 + "px";
     bubble.style.animationDuration = (2 + Math.random() * 2) + "s";
-
     bar.appendChild(bubble);
-
     setTimeout(() => bubble.remove(), 3000);
 }
 
-/* Сердечко */
 function spawnHeart() {
     const bar = document.getElementById("goalBar");
     const heart = document.createElement("div");
-
     heart.classList.add("heart");
     heart.innerText = "❤";
-
-    heart.style.left = Math.random() * 30 + 10 + "px";
-
+    heart.style.left = Math.random() * 50 + "px";
     bar.appendChild(heart);
-
     setTimeout(() => heart.remove(), 1800);
 }
 
-/* Конфетти */
+function spawnGlitter() {
+    const bar = document.getElementById("goalBar");
+    const g = document.createElement("div");
+    g.classList.add("glitter");
+    g.style.left = Math.random() * 50 + "px";
+    bar.appendChild(g);
+    setTimeout(() => g.remove(), 2000);
+}
+
 function spawnConfettiBurst() {
     const bar = document.getElementById("goalBar");
-
     for (let i = 0; i < 20; i++) {
         const c = document.createElement("div");
         c.classList.add("confetti");
-
-        c.style.left = Math.random() * 40 + "px";
+        c.style.left = Math.random() * 60 + "px";
         c.style.background = ["#ff7abf", "#ff4fa3", "#ff8ac9"][Math.floor(Math.random()*3)];
         c.style.animationDuration = (0.8 + Math.random()*0.6) + "s";
-
         bar.appendChild(c);
         setTimeout(() => c.remove(), 1200);
     }
