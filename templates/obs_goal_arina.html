@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Goal Bar — Waves + Glitter</title>
+<title>Goal Bar — Waves</title>
 
 <!-- jQuery -->
 <script src="/obs_static/js/jquery.min.js?v=351"></script>
 
-<!-- wavify.js -->
+<!-- wavify -->
 <script src="/obs_static/js/wavify.js"></script>
 <script src="/obs_static/js/jquery.wavify.js"></script>
 
@@ -28,6 +28,7 @@
         gap: 20px;
     }
 
+    /* ШКАЛА */
     #goalBar {
         width: 70px;
         height: 360px;
@@ -51,6 +52,23 @@
         overflow: hidden;
     }
 
+    /* ВОЛНЫ */
+    #waveWrapper {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #waveWrapper svg {
+        position: absolute;
+        bottom: 0;
+        width: 200%;
+        height: 60px;
+    }
+
+    /* ВСПЫШКА */
     #flash {
         position: absolute;
         bottom: 0;
@@ -70,6 +88,7 @@
         100% { opacity: 0; height: 0%; }
     }
 
+    /* СЕРДЕЧКИ */
     .heart {
         position: absolute;
         bottom: 0;
@@ -86,6 +105,7 @@
         100% { transform: translateY(-140px) scale(1.8); opacity: 0; }
     }
 
+    /* ПУЗЫРЬКИ */
     .bubble {
         position: absolute;
         bottom: 0;
@@ -102,6 +122,7 @@
         100% { transform: translateY(-300px) scale(0.3); opacity: 0; }
     }
 
+    /* БЛЁСТКИ */
     .glitter {
         position: absolute;
         width: 4px;
@@ -119,6 +140,7 @@
         100% { transform: translateY(-150px) scale(0.2); opacity: 0; }
     }
 
+    /* КОНФЕТТИ */
     .confetti {
         position: absolute;
         width: 8px;
@@ -135,6 +157,7 @@
         100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
     }
 
+    /* ТЕКСТ */
     #goalName {
         writing-mode: vertical-rl;
         text-orientation: upright;
@@ -158,16 +181,18 @@
     <div id="goalBar">
         <div id="goalFill">
 
-            <!-- ВАЖНО: добавлены path -->
-            <svg id="wave1" viewBox="0 0 120 28" preserveAspectRatio="none">
-                <path id="wave1-path"></path>
-            </svg>
+            <div id="waveWrapper">
+                <svg id="wave1" viewBox="0 0 120 28" preserveAspectRatio="none">
+                    <path id="wave1-path"></path>
+                </svg>
 
-            <svg id="wave2" viewBox="0 0 120 28" preserveAspectRatio="none">
-                <path id="wave2-path"></path>
-            </svg>
+                <svg id="wave2" viewBox="0 0 120 28" preserveAspectRatio="none">
+                    <path id="wave2-path"></path>
+                </svg>
+            </div>
 
         </div>
+
         <div id="flash"></div>
     </div>
 
@@ -198,7 +223,7 @@ ws.onmessage = (event) => {
     }
 };
 
-/* WAVIFY — вызываем на PATH, не на SVG */
+/* WAVIFY */
 $('#wave1-path').wavify({
     height: 40,
     bones: 4,
@@ -215,6 +240,7 @@ $('#wave2-path').wavify({
     speed: 0.12
 });
 
+/* ОБНОВЛЕНИЕ ШКАЛЫ */
 function updateGoal(current, target) {
     const percent = Math.min(100, (current / target) * 100);
 
@@ -238,6 +264,7 @@ function updateGoal(current, target) {
     if (percent >= 100) spawnConfettiBurst();
 }
 
+/* АНИМАЦИИ */
 function spawnBubble() {
     const bar = document.getElementById("goalBar");
     const bubble = document.createElement("div");
