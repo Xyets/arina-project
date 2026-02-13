@@ -1,7 +1,13 @@
 from flask import Blueprint, render_template, abort
 from config import CONFIG
 
-obs_bp = Blueprint("obs", __name__)
+obs_bp = Blueprint(
+    "obs",
+    __name__,
+    static_folder="static_obs",
+    static_url_path="/obs_static"
+)
+
 
 
 @obs_bp.route("/obs_alert/<user>/<mode>")
