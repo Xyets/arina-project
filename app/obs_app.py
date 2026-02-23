@@ -48,6 +48,4 @@ def obs_goal(user, mode):
     if profile_key not in CONFIG["profiles"]:
         return abort(404)
 
-    # Если у каждого свой шаблон:
-    template_name = f"obs_goal_{user.lower()}.html"
-    return render_template(template_name, profile_key=profile_key)
+    return render_template("obs_goal.html", profile_key=profile_key)
