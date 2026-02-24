@@ -212,8 +212,9 @@
       } catch (e) {}
     }
 
-    async function doSearch() {
-      const q = document.querySelector('input[name="q"]').value.trim();
+    // ---------------- LIVE SEARCH ----------------
+    window.doSearch = async function() {
+      const q = document.querySelector('input[name="q"]').value.trim().toLowerCase();
       const url = "/vip_data";
 
       const res = await fetch(url);
@@ -221,13 +222,15 @@
 
       const filtered = Object.entries(data.members).filter(([id, info]) => {
         const text = (id + " " + info.name + " " + info.notes).toLowerCase();
-        return text.includes(q.toLowerCase());
+        return text.includes(q);
       });
 
-      renderVipCards(filtered);
-    }
-    
-    function renderVipCards(list) {
+      window.renderVipCards(filtered);
+    };
+
+
+    // ---------------- RENDER FILTERED CARDS ----------------
+    window.renderVipCards = function(list) {
       const grid = document.querySelector(".card-grid");
       grid.innerHTML = "";
 
@@ -263,7 +266,7 @@
       });
 
       resortCards(currentSort);
-    }
+    };
 
 
     // ---------------- REFRESH ONE CARD ----------------
