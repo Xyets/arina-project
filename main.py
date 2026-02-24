@@ -10,6 +10,7 @@ from app.rules_app import rules_bp
 from app.reactions_app import reactions_bp
 from app.obs_app import obs_bp
 from app.lovense_app import lovense_bp
+from app.fc2_app import fc2_bp
 from services.maintenance_service import periodic_backup_cleanup
 
 from config import CONFIG
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(reactions_bp)
     app.register_blueprint(obs_bp)
     app.register_blueprint(lovense_bp)
+    app.register_blueprint(fc2_bp)
 
     # 🔧 Запускаем фоновую очистку
     threading.Thread(

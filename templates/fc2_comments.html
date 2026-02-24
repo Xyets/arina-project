@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>FC2 コメントビューア</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: monospace;
+      padding: 20px;
+    }
+    #log {
+      white-space: pre-wrap;
+      font-size: 16px;
+      line-height: 1.4;
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      height: 80vh;
+      overflow-y: scroll;
+    }
+    .msg { margin-bottom: 12px; }
+    .nick { font-weight: bold; }
+    .translated { color: #9f9; font-style: italic; }
+    #filterBox {
+      margin-bottom: 10px;
+      padding: 8px;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>FC2 コメントビューア</h2>
+
+<input id="filterBox" placeholder="Фильтр по словам...">
+
+<div id="log">読み込み中...</div>
+
+<script>
+let lastIndex = -1;
+let filterWord = "";
+
+document.getElementById("filterBox").addEventListener("input", (e) => {
+  filterWord = e.target.value.toLowerCase();
+});
+
+async function fetchComments() {
+  try {
+    const res = await fetch(`/fc2_api?last=${lastIndex}`);
+    const data = await res.json();
+
+    if (data.comments && data.comments.length > 0) {
+      const log = document.getElementById("log");
+
+      data.comments.forEach(c => {
+        lastIndex = c.index;
+
+        const text = c.comment || "";
+        const translated = c.translated || "";
+        const user = c.user_id;
+        const time = c.time;
+        const color = c.color;
+
+        if (filterWord && !text.toLowerCase().includes(filterWord)) {
+          return;
+        }
+
+        const div = document.createElement("div");
+        div.className = "msg";
+
+        div.innerHTML = `
+          <span class="nick" style="color:${color}">&lt;${user}&gt;</span>
+          <span class="time">[${time}]</span><br>
+          ${text}<br>
+          ${translated ? `<span class="translated">${translated}</span>` : ""}
+        `;
+
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+      });
+    }
+  } catch (e) {
+    console.log("API error:", e);
+  }
+}
+
+setInterval(fetchComments, 1500);
+</script>
+
+</body>
+</html>
