@@ -69,7 +69,7 @@
   </header>
 
   <div class="top-bar">
-    <form method="GET" action="/vip" class="search-bar">
+    <form onsubmit="event.preventDefault(); doSearch();" class="search-bar">
       <input type="text" name="q" placeholder="🔍 Поиск..." value="{{ query }}">
       <button type="submit">Найти</button>
       {% if query %}<a href="/vip">Сбросить</a>{% endif %}
@@ -163,7 +163,8 @@
         try { data = JSON.parse(event.data); } catch { return; }
 
         if (data.vip_update && data.user_id) {
-          refreshVipCard(data.user_id);
+          refreshVipList();
+
         }
       };
     }
@@ -210,6 +211,60 @@
         resortCards(currentSort);
       } catch (e) {}
     }
+
+    async function doSearch() {
+      const q = document.querySelector('input[name="q"]').value.trim();
+      const url = "/vip_data";
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const filtered = Object.entries(data.members).filter(([id, info]) => {
+        const text = (id + " " + info.name + " " + info.notes).toLowerCase();
+        return text.includes(q.toLowerCase());
+      });
+
+      renderVipCards(filtered);
+    }
+    
+    function renderVipCards(list) {
+      const grid = document.querySelector(".card-grid");
+      grid.innerHTML = "";
+
+      list.forEach(([user_id, info]) => {
+        const card = document.createElement("div");
+        card.className = "vip-card" + (info.blocked ? " blocked" : "");
+        card.id = "card_" + user_id;
+
+        const rawDate = info.last_login || "";
+        const d = rawDate ? new Date(rawDate.replace(" ", "T")) : null;
+        const formattedDate = d && !isNaN(d.getTime())
+          ? d.toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
+          : rawDate;
+
+        card.innerHTML = `
+          <form onsubmit="event.preventDefault(); saveMember(this)">
+            <input type="hidden" name="user_id" value="${user_id}">
+            <h3><input type="text" name="name" value="${info.name}"></h3>
+            <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
+            <div class="meta">
+              💗 ${info.total} | 📅 ${info.login_count} входов<br>
+              🕒 Последний визит: <span class="date" data-last-login="${rawDate}">${formattedDate}</span><br>
+              🆔 ID: <code>${user_id}</code>
+            </div>
+            <div class="actions">
+              <button type="submit">💾</button>
+              <button type="button" onclick="vipOpenModal('${user_id}')">🗑️</button>
+            </div>
+          </form>
+        `;
+
+        grid.appendChild(card);
+      });
+
+      resortCards(currentSort);
+    }
+
 
     // ---------------- REFRESH ONE CARD ----------------
     async function refreshVipCard(userId) {
