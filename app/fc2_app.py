@@ -56,7 +56,7 @@ FC2_TOKEN = "ТВОЙ_ТОКЕН"
 def fc2_api():
     last = request.args.get("last", "-1")
 
-    url = f"https://live.fc2.com/api/getChannelComment.php?channel_id={FC2_CHANNEL}&token={FC2_TOKEN}&last_comment_index={last}"
+    url = f"https://live.fc2.com/api/getChannelComment.php?channel_id=42811971&token=[dcb06e8d24b06d88]&last_comment_index=-1"
 
     try:
         r = requests.get(url, timeout=5)
