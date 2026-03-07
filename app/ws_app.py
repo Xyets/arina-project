@@ -2,7 +2,6 @@ print("🔥🔥🔥 WS_APP.PY LOADED 🔥🔥🔥")
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import aiohttp
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -357,14 +356,24 @@ async def ws_handler(websocket):
             # ---------- CLEAR QUEUE ----------
             if msg_type == "clear_queue":
                 profile_key = data.get("profile_key")
+
                 if profile_key in vibration_queues:
-                    vibration_queues[profile_key] = asyncio.Queue()
+                    q = vibration_queues[profile_key]
+
+                    # очищаем ТЕКУЩУЮ очередь, не создавая новую
+                    while not q.empty():
+                        try:
+                            q.get_nowait()
+                            q.task_done()
+                        except:
+                            break
 
                 ws_send({
                     "queue_update": True,
                     "queue": []
                 }, role="panel", profile_key=profile_key)
                 continue
+
             # ---------- GET QUEUE ----------
             if msg_type == "get_queue":
                 profile_key = data.get("profile_key")
