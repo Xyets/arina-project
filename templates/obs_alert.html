@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>OBS Alert Arina</title>
+  <title>OBS Alert</title>
 
   <style>
     body {
@@ -30,8 +30,8 @@
 </head>
 <body>
 
-  <!-- 🔥 GIF АринЫ -->
-  <img src="{{ url_for('static', filename='arina.png') }}" id="gifArina" class="vibration-gif" />
+  <!-- 🔥 GIF выбирается автоматически -->
+  <img id="gif" class="vibration-gif" />
 
   <script>
     /* ---------------------------------------------------------
@@ -40,7 +40,18 @@
     const PROFILE_KEY = "{{ profile_key }}";
 
     /* ---------------------------------------------------------
-       🔥 2. Очередь вибраций
+       🎨 2. Выбор GIF по профилю
+    --------------------------------------------------------- */
+    const gif = document.getElementById("gif");
+
+    if (PROFILE_KEY.startsWith("arina")) {
+        gif.src = "{{ url_for('static', filename='arina.png') }}";
+    } else {
+        gif.src = "{{ url_for('static', filename='irina.png') }}";
+    }
+
+    /* ---------------------------------------------------------
+       🔥 3. Очередь вибраций
     --------------------------------------------------------- */
     let vibrationQueue = [];
     let isPlaying = false;
@@ -50,9 +61,6 @@
 
       const { strength, duration } = vibrationQueue.shift();
       isPlaying = true;
-
-      const gif = document.getElementById("gifArina");
-      if (!gif) { isPlaying = false; playNext(); return; }
 
       let s = Math.max(1, Math.min(Number(strength) || 1, 20));
 
@@ -81,25 +89,22 @@
     }
 
     /* ---------------------------------------------------------
-       🌐 3. WebSocket с авто‑реконнектом
+       🌐 4. WebSocket с авто‑реконнектом
     --------------------------------------------------------- */
     let socket = null;
 
     function connectWS() {
       socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
-
       socket.onopen = () => {
         console.log("✅ WebSocket подключён");
 
-        // Идентификация OBS
         socket.send(JSON.stringify({
           type: "hello",
           role: "obs",
           profile_key: PROFILE_KEY
         }));
 
-        // PING
         if (socket._pingInterval) clearInterval(socket._pingInterval);
         socket._pingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
@@ -126,19 +131,15 @@
         console.log("📡 Получено сообщение:", data);
 
         /* ---------------------------------------------------------
-           🛑 STOP — остановка вибрации
+           🛑 STOP
         --------------------------------------------------------- */
         if (data.stop && data.target === PROFILE_KEY) {
-          console.log("🛑 STOP получен");
-
           vibrationQueue = [];
           isPlaying = false;
 
-          const gif = document.getElementById("gifArina");
           gif.style.animation = "";
           gif.style.transform = "scale(1)";
           gif.style.filter = "drop-shadow(0 0 8px rgba(30,144,255,0.4))";
-
           return;
         }
 
@@ -155,7 +156,6 @@
         --------------------------------------------------------- */
         if (data.reaction && data.profile === PROFILE_KEY) {
           console.log("🎭 Реакция:", data);
-          // здесь можно добавить отображение картинки реакции
           return;
         }
       };
