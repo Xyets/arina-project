@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 import asyncio
 import json
 import websockets
-
+import aiohttp
 from config import CONFIG
 from services.vip_service import update_vip
 from services.logs_service import add_log
