@@ -2,14 +2,14 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Goal Bar Vertical</title>
+<title>Arina Heart Bottle Goal</title>
 
 <style>
     body {
         margin: 0;
         background: transparent;
-        font-family: Arial, sans-serif;
         overflow: hidden;
+        font-family: Arial, sans-serif;
     }
 
     #wrapper {
@@ -17,128 +17,62 @@
         bottom: 20px;
         left: 20px;
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         gap: 20px;
     }
 
-    /* Вертикальная шкала */
-    #goalBar {
-        width: 50px;
-        height: 320px;
-        background: rgba(255, 200, 230, 0.15);
-        border-radius: 12px;
-        overflow: hidden;
+    /* Контейнер SVG */
+    #heartContainer {
+        width: 220px;
+        height: 260px;
         position: relative;
-        transition: box-shadow 0.4s ease;
-        box-shadow: 0 0 18px rgba(255, 120, 180, 0.6);
     }
 
-    /* Неоновая рамка при 90% */
-    .neon-glow {
-        box-shadow: 0 0 25px #ff4fa3, 0 0 45px #ff8ac9;
+    /* Пульсация */
+    @keyframes pulseGlow {
+        0%   { transform: scale(1); filter: drop-shadow(0 0 10px #ff7abf); }
+        50%  { transform: scale(1.12); filter: drop-shadow(0 0 25px #ff4fa3); }
+        100% { transform: scale(1); filter: drop-shadow(0 0 10px #ff7abf); }
     }
 
-    #goalFill {
-        width: 100%;
-        height: 0%;
-        background: linear-gradient(180deg, #ff8ac9, #ff4fa3);
-        transition: height 0.6s ease;
-        box-shadow: 0 0 25px rgba(255, 100, 170, 0.9);
+    /* Вибрация */
+    @keyframes shake {
+        0% { transform: translate(0,0); }
+        25% { transform: translate(-3px,2px); }
+        50% { transform: translate(3px,-2px); }
+        75% { transform: translate(-2px,3px); }
+        100% { transform: translate(0,0); }
+    }
+
+    .glow {
+        animation: pulseGlow 1s infinite ease-in-out;
+    }
+
+    .shake {
+        animation: shake 0.12s infinite;
+    }
+
+    /* Плавающие сердечки */
+    .floatHeart {
         position: absolute;
-        bottom: 0;
-    }
-
-    /* Пузырьки */
-    .bubble {
-        position: absolute;
-        bottom: 0;
-        width: 8px;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 50%;
-        animation: bubbleUp 3s infinite ease-out;
-        opacity: 0.8;
-    }
-
-    @keyframes bubbleUp {
-        0% { transform: translateY(0) scale(1); opacity: 0.8; }
-        100% { transform: translateY(-300px) scale(0.3); opacity: 0; }
-    }
-
-    /* Сердечки */
-    .heart {
-        position: absolute;
-        bottom: 0;
-        font-size: 16px;
+        font-size: 18px;
         color: #ff7abf;
         opacity: 0.9;
-        animation: heartUp 1.8s ease-out forwards;
+        animation: floatUp 2.2s ease-out forwards;
         pointer-events: none;
         text-shadow: 0 0 6px #ff4fa3;
     }
 
-    @keyframes heartUp {
+    @keyframes floatUp {
         0%   { transform: translateY(0) scale(1); opacity: 1; }
-        100% { transform: translateY(-120px) scale(1.8); opacity: 0; }
+        100% { transform: translateY(-120px) scale(1.6); opacity: 0; }
     }
-
-    /* Пульсация */
-    @keyframes pulse {
-        0%   { transform: scale(1); }
-        50%  { transform: scale(1.06); }
-        100% { transform: scale(1); }
-    }
-
-    .pulse-anim {
-        animation: pulse 0.4s ease-out;
-    }
-
-    /* Вспышка */
-    #flash {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        height: 0%;
-        background: rgba(255,255,255,0.6);
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .flash-anim {
-        animation: flashAnim 0.4s ease-out;
-    }
-
-    @keyframes flashAnim {
-        0% { opacity: 0.9; height: 100%; }
-        100% { opacity: 0; height: 0%; }
-    }
-
-    /* Вертикальный японский текст */
-    #goalName {
-        writing-mode: vertical-rl;
-        text-orientation: upright;
-        font-size: 36px;
-        color: #ffe3f2;
-        font-weight: bold;
-        letter-spacing: 4px;
-
-        text-shadow:
-            -2px -2px 3px #ff4fa3,
-             2px -2px 3px #ff4fa3,
-            -2px  2px 3px #ff4fa3,
-             2px  2px 3px #ff4fa3,
-             0px  0px 8px #ff8ac9;
-    }
-
-    #goalText { display: none; }
 
     /* Конфетти */
     .confetti {
         position: absolute;
         width: 8px;
         height: 8px;
-        background: #ff7abf;
-        opacity: 0.9;
         border-radius: 2px;
         animation: confettiFall 1.2s ease-out forwards;
         pointer-events: none;
@@ -148,16 +82,80 @@
         0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
         100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
     }
+
+    #goalName {
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        font-size: 32px;
+        color: #ffe3f2;
+        font-weight: bold;
+        letter-spacing: 4px;
+        text-shadow:
+            -2px -2px 3px #ff4fa3,
+             2px -2px 3px #ff4fa3,
+            -2px  2px 3px #ff4fa3,
+             2px  2px 3px #ff4fa3,
+             0px  0px 8px #ff8ac9;
+    }
 </style>
 </head>
 
 <body>
 
 <div id="wrapper">
-    <div id="goalBar">
-        <div id="goalFill"></div>
-        <div id="flash"></div>
-        <div id="goalText">0 / 0</div>
+    <div id="heartContainer">
+        <!-- SVG бутылочка-сердце -->
+        <svg id="heartSVG" viewBox="0 0 200 240">
+
+            <!-- Пробка-сердечко -->
+            <path d="M100 10
+                     C90 0, 60 0, 60 25
+                     C60 45, 100 70, 100 70
+                     C100 70, 140 45, 140 25
+                     C140 0, 110 0, 100 10Z"
+                  fill="#ff7abf"
+                  stroke="#ff4fa3"
+                  stroke-width="3"
+                  filter="drop-shadow(0 0 6px #ff7abf)">
+            </path>
+
+            <!-- Контур бутылочки -->
+            <path id="bottleOutline"
+                  d="M100 70
+                     C40 70, 20 120, 20 160
+                     C20 210, 60 230, 100 230
+                     C140 230, 180 210, 180 160
+                     C180 120, 160 70, 100 70Z"
+                  fill="none"
+                  stroke="#ff7abf"
+                  stroke-width="5"
+                  filter="drop-shadow(0 0 10px #ff7abf)">
+            </path>
+
+            <!-- Маска для жидкости -->
+            <clipPath id="heartClip">
+                <path d="M100 70
+                         C40 70, 20 120, 20 160
+                         C20 210, 60 230, 100 230
+                         C140 230, 180 210, 180 160
+                         C180 120, 160 70, 100 70Z"></path>
+            </clipPath>
+
+            <!-- Жидкость -->
+            <rect id="liquid"
+                  x="20" y="230"
+                  width="160" height="0"
+                  clip-path="url(#heartClip)"
+                  fill="url(#liquidGradient)">
+            </rect>
+
+            <defs>
+                <linearGradient id="liquidGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ffb3e6"/>
+                    <stop offset="100%" stop-color="#a8ffd4"/>
+                </linearGradient>
+            </defs>
+        </svg>
     </div>
 
     <div id="goalName"></div>
@@ -189,86 +187,58 @@ ws.onmessage = (event) => {
 
 function updateGoal(current, target) {
     const percent = Math.min(100, (current / target) * 100);
-
-    const bar = document.getElementById("goalBar");
-    const fill = document.getElementById("goalFill");
-    const flash = document.getElementById("flash");
-
-    fill.style.height = percent + "%";
-
-    /* Вспышка */
-    flash.classList.remove("flash-anim");
-    void flash.offsetWidth;
-    flash.classList.add("flash-anim");
-
-    /* Пульсация */
-    fill.classList.remove("pulse-anim");
-    void fill.offsetWidth;
-    fill.classList.add("pulse-anim");
-
-    /* Сердечко */
+    updateLiquid(percent);
     spawnHeart();
-
-    /* Пузырёк */
-    spawnBubble();
-
-    /* Неоновая рамка при 90% */
-    if (percent >= 90) {
-        bar.classList.add("neon-glow");
-    } else {
-        bar.classList.remove("neon-glow");
-    }
-
-    /* Конфетти при достижении цели */
-    if (current >= target) {
-        spawnConfettiBurst();
-    }
+    if (percent >= 100) triggerFullGoal();
 }
 
-/* Пузырёк */
-function spawnBubble() {
-    const bar = document.getElementById("goalBar");
-    const bubble = document.createElement("div");
-    bubble.classList.add("bubble");
+/* Заливка жидкости */
+function updateLiquid(percent) {
+    const liquid = document.getElementById("liquid");
+    const maxHeight = 160;
+    const newHeight = maxHeight * (percent / 100);
+    const newY = 230 - newHeight;
 
-    bubble.style.left = Math.random() * 30 + 10 + "px";
-    bubble.style.animationDuration = (2 + Math.random() * 2) + "s";
-
-    bar.appendChild(bubble);
-
-    setTimeout(() => bubble.remove(), 3000);
+    liquid.setAttribute("y", newY);
+    liquid.setAttribute("height", newHeight);
 }
 
-/* Сердечко */
+/* Плавающее сердечко */
 function spawnHeart() {
-    const bar = document.getElementById("goalBar");
-    const heart = document.createElement("div");
-
-    heart.classList.add("heart");
-    heart.innerText = "❤";
-
-    heart.style.left = Math.random() * 30 + 10 + "px";
-
-    bar.appendChild(heart);
-
-    setTimeout(() => heart.remove(), 1800);
+    const container = document.getElementById("heartContainer");
+    const h = document.createElement("div");
+    h.classList.add("floatHeart");
+    h.innerText = "❤";
+    h.style.left = (80 + Math.random() * 60) + "px";
+    h.style.bottom = "40px";
+    container.appendChild(h);
+    setTimeout(() => h.remove(), 2200);
 }
 
-/* Конфетти */
-function spawnConfettiBurst() {
-    const bar = document.getElementById("goalBar");
-
+/* Конфетти при 100% */
+function spawnConfetti() {
+    const container = document.getElementById("heartContainer");
     for (let i = 0; i < 20; i++) {
         const c = document.createElement("div");
         c.classList.add("confetti");
-
-        c.style.left = Math.random() * 40 + "px";
-        c.style.background = ["#ff7abf", "#ff4fa3", "#ff8ac9"][Math.floor(Math.random()*3)];
+        c.style.left = (60 + Math.random() * 80) + "px";
+        c.style.bottom = "40px";
+        c.style.background = ["#ff7abf", "#ff4fa3", "#a8ffd4"][Math.floor(Math.random()*3)];
         c.style.animationDuration = (0.8 + Math.random()*0.6) + "s";
-
-        bar.appendChild(c);
+        container.appendChild(c);
         setTimeout(() => c.remove(), 1200);
     }
+}
+
+/* Эффект при достижении цели */
+function triggerFullGoal() {
+    const svg = document.getElementById("heartSVG");
+    svg.classList.add("glow", "shake");
+    spawnConfetti();
+
+    setTimeout(() => {
+        svg.classList.remove("shake");
+    }, 5000);
 }
 </script>
 
