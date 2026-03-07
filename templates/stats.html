@@ -148,12 +148,6 @@
     </div>
   </div>
 
-  <!-- Логи -->
-  <div class="card">
-    <h3>📜 Логи событий</h3>
-    <pre id="eventLogs" style="text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
-  </div>
-
   <script>
     async function loadLogs() {
       const resp = await fetch("{{ url_for('panel.logs_data') }}");
