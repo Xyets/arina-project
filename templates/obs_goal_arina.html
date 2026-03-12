@@ -38,12 +38,6 @@
         filter: brightness(1.1);
     }
 
-    #percentLabel {
-        margin-left: 10px;
-        font-size: 14px;
-        opacity: 0.9;
-    }
-
     #stage {
         position: relative;
         width: 420px;
@@ -162,6 +156,9 @@
 </head>
 <body>
 
+<div id="goalName"></div>
+
+
 <div id="stage">
     <div id="bottleWrapper">
         <svg id="bottleSVG" viewBox="-350 -320 700 720" width="380" height="480">
@@ -270,10 +267,31 @@
 </div>
 
 <script>
+const PROFILE_KEY = "{{ profile_key }}";
+const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+ws.onopen = () => {
+    ws.send(JSON.stringify({
+        type: "hello",
+        role: "obs",
+        profile_key: PROFILE_KEY
+    }));
+};
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.goal_update && data.profile === PROFILE_KEY) {
+        updateGoal(data.goal.current, data.goal.target);
+
+        if (data.goal.title) {
+            document.getElementById("goalName").textContent = data.goal.title;
+        }
+    }
+};
 let currentPercent = 0;
 
 const levelRect = document.getElementById("levelRect");
-const percentLabel = document.getElementById("percentLabel");
 const bottleSVG = document.getElementById("bottleSVG");
 const corkGroup = document.getElementById("corkGroup");
 
@@ -287,7 +305,6 @@ function updateGoal(current, target) {
 
 function setPercent(p, isReset = false) {
     currentPercent = p;
-    percentLabel.textContent = currentPercent + "%";
     document.getElementById("labelPercent").textContent = currentPercent + "%";
 
     // Уровень жидкости: от -320 (низ) до 380 (верх) по высоте 700
@@ -441,28 +458,7 @@ setInterval(() => {
 
 // Стартовое состояние
 setPercent(0, true);
-const PROFILE_KEY = "{{ profile_key }}";
-const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
-ws.onopen = () => {
-    ws.send(JSON.stringify({
-        type: "hello",
-        role: "obs",
-        profile_key: PROFILE_KEY
-    }));
-};
-
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    if (data.goal_update && data.profile === PROFILE_KEY) {
-        updateGoal(data.goal.current, data.goal.target);
-
-        if (data.goal.title) {
-            document.getElementById("labelPercent").textContent = data.goal.title;
-        }
-    }
-};
 
 </script>
 
