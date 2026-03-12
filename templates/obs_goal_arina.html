@@ -299,7 +299,7 @@ const stage = document.getElementById("stage");
 
 
 function updateGoal(current, target) {
-    const percent = Math.min(100, (current / target) * 100);
+    const percent = Math.min(100, Math.floor((current / target) * 100));
     setPercent(percent);
 }
 
