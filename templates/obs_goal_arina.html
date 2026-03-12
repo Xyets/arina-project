@@ -2,40 +2,103 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Arina Heart Bottle Goal</title>
-
+<title>Test Heart Bottle Goal</title>
 <style>
     body {
         margin: 0;
-        background: transparent;
-        overflow: hidden;
+        background: #111;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        color: #fff;
         font-family: Arial, sans-serif;
     }
 
-    #wrapper {
+    #controls {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        background: #ff8ac9;
+        color: #2b1020;
+        box-shadow: 0 0 8px #ff8ac9;
+    }
+
+    button:hover {
+        filter: brightness(1.1);
+    }
+
+    #percentLabel {
+        margin-left: 10px;
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    #stage {
+        position: relative;
+        width: 420px;
+        height: 520px;
+    }
+
+    #bottleWrapper {
         position: absolute;
-        bottom: 20px;
-        left: 20px;
+        inset: 0;
         display: flex;
         align-items: center;
-        gap: 20px;
+        justify-content: center;
     }
 
-    /* Контейнер SVG */
-    #heartContainer {
-        width: 220px;
-        height: 260px;
-        position: relative;
+    svg {
+        overflow: visible;
     }
 
-    /* Пульсация */
+    /* Анимации */
+    @keyframes waveMove1 {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(-80px); }
+    }
+
+    @keyframes waveMove2 {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(80px); }
+    }
+
+    @keyframes bubbleUp {
+        0%   { transform: translateY(0) scale(0.6); opacity: 0.9; }
+        100% { transform: translateY(-140px) scale(1.1); opacity: 0; }
+    }
+
+    @keyframes sparkleUp {
+        0%   { transform: translateY(0) scale(0.6); opacity: 0.9; }
+        100% { transform: translateY(-120px) scale(1.4); opacity: 0; }
+    }
+
+    @keyframes floatHeart {
+        0%   { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-160px) scale(1.6); opacity: 0; }
+    }
+
+    @keyframes confettiFall {
+        0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(200px) rotate(360deg); opacity: 0; }
+    }
+
     @keyframes pulseGlow {
         0%   { transform: scale(1); filter: drop-shadow(0 0 10px #ff7abf); }
-        50%  { transform: scale(1.12); filter: drop-shadow(0 0 25px #ff4fa3); }
+        50%  { transform: scale(1.08); filter: drop-shadow(0 0 24px #ff4fa3); }
         100% { transform: scale(1); filter: drop-shadow(0 0 10px #ff7abf); }
     }
 
-    /* Вибрация */
     @keyframes shake {
         0% { transform: translate(0,0); }
         25% { transform: translate(-3px,2px); }
@@ -44,124 +107,340 @@
         100% { transform: translate(0,0); }
     }
 
-    .glow {
-        animation: pulseGlow 1s infinite ease-in-out;
+    .bubble {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.7);
+        box-shadow: 0 0 6px rgba(255,255,255,0.9);
+        pointer-events: none;
+        animation: bubbleUp 1.8s ease-out forwards;
     }
 
-    .shake {
-        animation: shake 0.12s infinite;
+    .sparkle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 230, 255, 0.9);
+        box-shadow: 0 0 8px #ffe6ff;
+        pointer-events: none;
+        animation: sparkleUp 1.6s ease-out forwards;
     }
 
-    /* Плавающие сердечки */
     .floatHeart {
         position: absolute;
         font-size: 18px;
+        z-index: 999;
         color: #ff7abf;
-        opacity: 0.9;
-        animation: floatUp 2.2s ease-out forwards;
-        pointer-events: none;
         text-shadow: 0 0 6px #ff4fa3;
+        pointer-events: none;
+        animation: floatHeart 2.2s ease-out forwards;
     }
 
-    @keyframes floatUp {
-        0%   { transform: translateY(0) scale(1); opacity: 1; }
-        100% { transform: translateY(-120px) scale(1.6); opacity: 0; }
-    }
-
-    /* Конфетти */
     .confetti {
         position: absolute;
         width: 8px;
         height: 8px;
         border-radius: 2px;
-        animation: confettiFall 1.2s ease-out forwards;
         pointer-events: none;
+        animation: confettiFall 1.2s ease-out forwards;
     }
 
-    @keyframes confettiFall {
-        0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    .glow {
+        animation: pulseGlow 1.2s infinite ease-in-out;
     }
 
-    #goalName {
-        writing-mode: vertical-rl;
-        text-orientation: upright;
-        font-size: 32px;
-        color: #ffe3f2;
-        font-weight: bold;
-        letter-spacing: 4px;
-        text-shadow:
-            -2px -2px 3px #ff4fa3,
-             2px -2px 3px #ff4fa3,
-            -2px  2px 3px #ff4fa3,
-             2px  2px 3px #ff4fa3,
-             0px  0px 8px #ff8ac9;
+    .shake {
+        animation: shake 0.12s infinite;
+    }
+    #corkGroup {
+        transform-origin: 0px -220px;
     }
 </style>
 </head>
-
 <body>
 
-<div id="wrapper">
-    <div id="heartContainer">
-        <!-- SVG бутылочка-сердце -->
-        <svg id="heartSVG" viewBox="0 0 200 240">
-
-            <!-- Пробка-сердечко -->
-            <path d="M100 10
-                     C90 0, 60 0, 60 25
-                     C60 45, 100 70, 100 70
-                     C100 70, 140 45, 140 25
-                     C140 0, 110 0, 100 10Z"
-                  fill="#ff7abf"
-                  stroke="#ff4fa3"
-                  stroke-width="3"
-                  filter="drop-shadow(0 0 6px #ff7abf)">
-            </path>
-
-            <!-- Контур бутылочки -->
-            <path id="bottleOutline"
-                  d="M100 70
-                     C40 70, 20 120, 20 160
-                     C20 210, 60 230, 100 230
-                     C140 230, 180 210, 180 160
-                     C180 120, 160 70, 100 70Z"
-                  fill="none"
-                  stroke="#ff7abf"
-                  stroke-width="5"
-                  filter="drop-shadow(0 0 10px #ff7abf)">
-            </path>
-
-            <!-- Маска для жидкости -->
-            <clipPath id="heartClip">
-                <path d="M100 70
-                         C40 70, 20 120, 20 160
-                         C20 210, 60 230, 100 230
-                         C140 230, 180 210, 180 160
-                         C180 120, 160 70, 100 70Z"></path>
-            </clipPath>
-
-            <!-- Жидкость -->
-            <rect id="liquid"
-                  x="20" y="230"
-                  width="160" height="0"
-                  clip-path="url(#heartClip)"
-                  fill="url(#liquidGradient)">
-            </rect>
-
+<div id="stage">
+    <div id="bottleWrapper">
+        <svg id="bottleSVG" viewBox="-350 -320 700 720" width="380" height="480">
+            <!-- Внутренний контур (главный, маска для жидкости) -->
             <defs>
+                <clipPath id="innerClip">
+                    <path id="innerPath"
+                          d="M-53.68,-177.46 L-54.31,-106.43 C-166.22,-173.17 -302.39,-107.71 -294.35,35.58 C-274.95,157.85 -168.84,254.56 -4.26,324.77 C178.58,262.11 278.6,133.29 290.59,48.69 C326.29,-91.41 173.77,-186.79 56.46,-101.5 L56.09,-177.09 L-53.68,-177.46 Z"
+                          fill="#ffffff"/>
+                </clipPath>
+
+                <!-- Клип по уровню жидкости -->
+                <clipPath id="levelClip">
+                    <rect id="levelRect" x="-350" y="350" width="700" height="0" />
+                </clipPath>
+
+                <!-- Градиент жидкости -->
                 <linearGradient id="liquidGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="#ffb3e6"/>
+                    <stop offset="50%" stop-color="#ff7abf"/>
                     <stop offset="100%" stop-color="#a8ffd4"/>
                 </linearGradient>
             </defs>
+
+            <!-- Группа жидкости: внутренняя маска + уровень -->
+            <g clip-path="url(#innerClip)">
+                <g clip-path="url(#levelClip)" id="liquidGroup">
+                    <!-- Фон жидкости -->
+                    <rect x="-350" y="-320" width="700" height="700" fill="url(#liquidGradient)" opacity="0.9"/>
+                    
+                    <g id="waveWrapper">
+                        <!-- Нижняя волна -->
+                        <path id="wave2"
+                            d="M-400 -50
+                                C-350 20 -300 60 -250 40
+                                C-200 20 -150 60 -100 40
+                                C-50 20 0 60 50 40
+                                C100 20 150 60 200 40
+                                C250 20 300 60 350 40
+                                L350 120 L-400 120 Z"
+                            fill="#ff9fd8" opacity="0.7"
+                            style="animation: waveMove2 7s linear infinite;" />
+
+                        <!-- Верхняя волна -->
+                        <path id="wave1"
+                            d="M-400 -80
+                                C-350 -10 -300 30 -250 10
+                                C-200 -10 -150 30 -100 10
+                                C-50 -10 0 30 50 10
+                                C100 -10 150 30 200 10
+                                C250 -10 300 30 350 10
+                                L350 100 L-400 100 Z"
+                            fill="#ffe3f7" opacity="0.9"
+                            style="animation: waveMove1 5s linear infinite;" />
+                    </g>      
+                </g>
+            </g>
+
+            <!-- Пробка (отдельная группа для наклона) -->
+            <g id="corkGroup" transform="translate(0,0)">
+                <path id="cork"
+                      d="M-53.61,-175.77 L-71.29,-229.95 L-82.42,-257.13 C-90.07,-271.4 -85.21,-284.34 -86.1,-286.39 C-27.95,-298.75 33.51,-297.77 83.51,-283.67 C82.53,-274.66 83.48,-264.88 77.9,-255.2 L68.39,-230.73 L51.23,-174.61 C20.31,-156.77 -13.65,-152.96 -53.61,-175.77 Z"
+                      fill="#DDB892"
+                      stroke="#000000"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                      stroke-linejoin="miter"
+                      style="filter: drop-shadow(0 0 6px #d9b38c);" />
+            </g>
+
+            <!-- Внешний контур бутылочки -->
+            <path id="outerBottle"
+                d="M83.47,-204.82 L81.87,-139.09 L101.75,-147.61 C158.27,-166.19 209.78,-164.04 258.69,-122.77 C335.27,-57.95 336.17,31.99 283.76,132.33 C222.12,238.13 121.57,308.4 -2.24,357.39 C-159.52,290.85 -217.39,215.95 -255.99,173.26 C-366.8,29.14 -322.75,-91.16 -242.71,-134.91 C-203.75,-159.89 -137.98,-167.71 -87.4,-140.96 L-85.61,-205.87 C-26.56,-196.84 29.78,-195.96 83.47,-204.82 ZM83.81,-205.08 C114.7,-208.4 119.09,-230.01 112.66,-258.9 C43.43,-249.68 -31.76,-251.28 -111.58,-260.01 C-119.55,-225.49 -110.49,-207.02 -86.6,-206.17 C-28.34,-196.69 28.51,-196.02 83.81,-205.08 ZM62.1,-108.21 C180.9,-189.35 325.18,-82.41 291.25,42.6M218.95,185.85 C168.19,242.94 104.22,292.04 22.81,330.38M65.6,-186.06 L64.25,-130.05M-64.92,-189.17 L-65.59,-129.26M50.54,-216.49 C65.6,-216.2 79.56,-218.45 92.67,-222.62M-22.59,330.04 C-135.36,286.08 -225.88,195.59 -267.7,115M-289.21,65.77 C-337.16,-76.51 -206.11,-189.56 -64.85,-109.1"
+                fill="rgba(255,200,221,0.3)"
+                stroke="#000000"
+                stroke-width="8"
+                stroke-linecap="round"
+                stroke-linejoin="miter"
+                style="filter: drop-shadow(0 0 10px #ff7abf);" />
+            <!-- Наклейка -->
+            <g id="labelGroup" transform="translate(-150, 20)">
+                <path d="M6.52,24.46 L4,178.9 C22.35,178.51 30.56,188.58 32.57,204.23 C113.12,210.76 193.72,211.06 274.35,202.55 C275.2,187.6 282.32,178.82 298.69,178.15 L300.97,24.98 C296.59,24.24 282.85,18.69 277.4,4 C206.05,11.53 127.02,13.3 33.38,4.15 C32.65,16.93 24.85,24.94 6.52,24.46 ZM21.49,38.22 C33.81,38.21 40.23,32.15 45.2,21.43 C116.56,28.28 190.58,32.95 267.33,21.43 C269.48,33.11 275.24,36.79 285.87,40.55 L283.01,167.92 C276.74,169.05 266.28,174.74 260.75,190.39 C190.9,197.39 118.97,197.18 45.21,190.32 C39.87,174.91 30.8,167.37 19.13,167.48 L21.49,38.22 Z"
+                    fill="#FFAFCC"
+                    stroke="#000"
+                    stroke-width="8"
+                    stroke-linecap="round"
+                    stroke-linejoin="miter"
+                    style="filter: drop-shadow(0 0 6px #ff7abf);" />
+
+                <!-- Текст процентов -->
+                <text id="labelPercent"
+                    x="150"
+                    y="140"
+                    font-size="70"
+                    font-family="Arial"
+                    font-weight="900"
+                    fill="#000"
+                    text-anchor="middle">
+                    0%
+                </text>
+            </g>
+
+
         </svg>
     </div>
-
-    <div id="goalName"></div>
 </div>
 
 <script>
+let currentPercent = 0;
+
+const levelRect = document.getElementById("levelRect");
+const percentLabel = document.getElementById("percentLabel");
+const bottleSVG = document.getElementById("bottleSVG");
+const corkGroup = document.getElementById("corkGroup");
+
+const stage = document.getElementById("stage");
+
+
+function updateGoal(current, target) {
+    const percent = Math.min(100, (current / target) * 100);
+    setPercent(percent);
+}
+
+function setPercent(p, isReset = false) {
+    currentPercent = p;
+    percentLabel.textContent = currentPercent + "%";
+    document.getElementById("labelPercent").textContent = currentPercent + "%";
+
+    // Уровень жидкости: от -320 (низ) до 380 (верх) по высоте 700
+    const maxHeight = 700;
+    const height = maxHeight * (currentPercent / 100);
+    const y = 380 - height; // 380 — низ прямоугольника (в пределах viewBox)
+
+    levelRect.setAttribute("y", y);
+    levelRect.setAttribute("height", height);
+    // Двигаем волну вместе с уровнем жидкости
+    const waveWrapper = document.getElementById("waveWrapper");
+
+    // Смещение волны = верх жидкости - высота волны
+    // 100 = примерная высота волны
+    const waveY = y - 160;
+
+    waveWrapper.setAttribute("transform", `translate(0, ${waveY})`);
+
+
+    spawnBubble();
+    spawnSparkle();
+    spawnHeart();
+
+    if (currentPercent >= 100 && !isReset) {
+        triggerFullGoal();
+    } else if (isReset) {
+        bottleSVG.classList.remove("glow", "shake");
+        corkGroup.style.transition = "none";
+        corkGroup.style.transform = "translate(0,0) rotate(0deg)";
+        waveWrapper.setAttribute("transform", "translate(0, 220)");
+    }
+
+}
+
+/* Пузырьки */
+function spawnBubble() {
+    const bubble = document.createElement("div");
+    bubble.classList.add("bubble");
+    const rect = stage.getBoundingClientRect();
+    const x = rect.width / 2 - 40 + Math.random() * 80;
+    const y = rect.height / 2 + 40 + Math.random() * 40;
+    bubble.style.left = x + "px";
+    bubble.style.top = y + "px";
+    stage.appendChild(bubble);
+    setTimeout(() => bubble.remove(), 1800);
+}
+
+/* Блёстки */
+function spawnSparkle() {
+    const sp = document.createElement("div");
+    sp.classList.add("sparkle");
+    const rect = stage.getBoundingClientRect();
+    const x = rect.width / 2 - 50 + Math.random() * 100;
+    const y = rect.height / 2 + 10 + Math.random() * 60;
+    sp.style.left = x + "px";
+    sp.style.top = y + "px";
+    stage.appendChild(sp);
+    setTimeout(() => sp.remove(), 1600);
+}
+
+/* Сердечки */
+function spawnHeart() {
+    const h = document.createElement("div");
+    h.classList.add("floatHeart");
+    h.textContent = "❤";
+    const rect = stage.getBoundingClientRect();
+    const x = rect.width / 2 - 40 + Math.random() * 80;
+    const y = rect.height / 2 - 10 + Math.random() * 40;
+    h.style.left = x + "px";
+    h.style.top = y + "px";
+    stage.appendChild(h);
+    setTimeout(() => h.remove(), 2200);
+}
+
+function spawnFloatingHeart() {
+    const heart = document.createElement("div");
+    heart.classList.add("floatHeart");
+
+    const stageRect = stage.getBoundingClientRect();
+
+    // Получаем реальные координаты уровня жидкости
+    const liquidBox = levelRect.getBoundingClientRect();
+
+    // Горизонтальный диапазон внутри бутылки
+    const x = stageRect.width / 2 - 70 + Math.random() * 140;
+
+    // Вертикальный диапазон: строго внутри жидкости
+    const y = liquidBox.top + Math.random() * (liquidBox.height - 40);
+
+    heart.style.left = x + "px";
+    heart.style.top = y + "px";
+
+    // Разные размеры
+    const scale = 0.8 + Math.random() * 1.2;
+    heart.style.fontSize = 20 * scale + "px";
+
+    // Плавание вверх
+    const duration = 2.5 + Math.random() * 3;
+    heart.style.animation = `floatHeart ${duration}s ease-out forwards`;
+
+    stage.appendChild(heart);
+
+    setTimeout(() => heart.remove(), duration * 1000);
+}
+
+/* Конфетти при 100% */
+function spawnConfetti() {
+    const colors = ["#ff7abf", "#ff4fa3", "#a8ffd4", "#ffe3f7"];
+    const rect = stage.getBoundingClientRect();
+    for (let i = 0; i < 26; i++) {
+        const c = document.createElement("div");
+        c.classList.add("confetti");
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        const x = rect.width / 2 - 80 + Math.random() * 160;
+        const y = rect.height / 2 - 80 + Math.random() * 40;
+        c.style.left = x + "px";
+        c.style.top = y + "px";
+        c.style.animationDuration = (0.8 + Math.random() * 0.6) + "s";
+        stage.appendChild(c);
+        setTimeout(() => c.remove(), 1400);
+    }
+}
+
+/* Эффект при достижении цели */
+function triggerFullGoal() {
+    bottleSVG.classList.add("glow", "shake");
+
+    // Фаза 1 — подъём вверх (35px)
+    corkGroup.style.transition = "transform 0.35s ease-out";
+    corkGroup.style.transformOrigin = "0px -220px";
+    corkGroup.style.transform = "translateY(-90px)";
+
+    // Фаза 2 — наклон вправо
+    setTimeout(() => {
+        corkGroup.style.transition = "transform 0.35s ease-out";
+        corkGroup.style.transform = "translateY(-90px) translateX(20px) rotate(25deg)";
+    }, 350);
+
+    spawnConfetti();
+
+    setTimeout(() => {
+        bottleSVG.classList.remove("shake");
+    }, 5000);
+}
+
+// Постоянные плавающие сердечки внутри жидкости
+setInterval(() => {
+    spawnFloatingHeart();
+}, 900 + Math.random() * 600);
+
+
+// Стартовое состояние
+setPercent(0, true);
 const PROFILE_KEY = "{{ profile_key }}";
 const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
@@ -180,66 +459,11 @@ ws.onmessage = (event) => {
         updateGoal(data.goal.current, data.goal.target);
 
         if (data.goal.title) {
-            document.getElementById("goalName").innerText = data.goal.title;
+            document.getElementById("labelPercent").textContent = data.goal.title;
         }
     }
 };
 
-function updateGoal(current, target) {
-    const percent = Math.min(100, (current / target) * 100);
-    updateLiquid(percent);
-    spawnHeart();
-    if (percent >= 100) triggerFullGoal();
-}
-
-/* Заливка жидкости */
-function updateLiquid(percent) {
-    const liquid = document.getElementById("liquid");
-    const maxHeight = 160;
-    const newHeight = maxHeight * (percent / 100);
-    const newY = 230 - newHeight;
-
-    liquid.setAttribute("y", newY);
-    liquid.setAttribute("height", newHeight);
-}
-
-/* Плавающее сердечко */
-function spawnHeart() {
-    const container = document.getElementById("heartContainer");
-    const h = document.createElement("div");
-    h.classList.add("floatHeart");
-    h.innerText = "❤";
-    h.style.left = (80 + Math.random() * 60) + "px";
-    h.style.bottom = "40px";
-    container.appendChild(h);
-    setTimeout(() => h.remove(), 2200);
-}
-
-/* Конфетти при 100% */
-function spawnConfetti() {
-    const container = document.getElementById("heartContainer");
-    for (let i = 0; i < 20; i++) {
-        const c = document.createElement("div");
-        c.classList.add("confetti");
-        c.style.left = (60 + Math.random() * 80) + "px";
-        c.style.bottom = "40px";
-        c.style.background = ["#ff7abf", "#ff4fa3", "#a8ffd4"][Math.floor(Math.random()*3)];
-        c.style.animationDuration = (0.8 + Math.random()*0.6) + "s";
-        container.appendChild(c);
-        setTimeout(() => c.remove(), 1200);
-    }
-}
-
-/* Эффект при достижении цели */
-function triggerFullGoal() {
-    const svg = document.getElementById("heartSVG");
-    svg.classList.add("glow", "shake");
-    spawnConfetti();
-
-    setTimeout(() => {
-        svg.classList.remove("shake");
-    }, 5000);
-}
 </script>
 
 </body>
