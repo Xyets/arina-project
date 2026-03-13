@@ -136,6 +136,10 @@
       opacity: 1;
       bottom: 50px;
     }
+    .hidden {
+      display: none;
+  }
+
   
   </style>
 </head>
@@ -207,20 +211,28 @@
     <div class="modal-content">
       <span class="close" onclick="closeModal('{{ rule.id }}')">&times;</span>
       <h3>✏️ Редактировать правило</h3>
+
       <form method="POST">
         <input type="hidden" name="edit_rule" value="{{ rule.id }}">
+
         Мин: <input type="number" name="min" value="{{ rule.min }}" required><br>
         Макс: <input type="number" name="max" value="{{ rule.max }}" required><br>
+
         Сила: <input type="number" name="strength" value="{{ rule.strength }}"><br>
         Время: <input type="number" name="duration" value="{{ rule.duration }}"><br>
+
         Тип:
         <select name="action_type">
           <option value="vibration" {% if rule.type == "vibration" %}selected{% endif %}>Вибрация</option>
           <option value="custom" {% if rule.type == "custom" %}selected{% endif %}>Действие</option>
           <option value="wheel" {% if rule.type == "wheel" %}selected{% endif %}>Колесо фортуны</option>
         </select><br>
+
         Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
-        {% if rule.type == "wheel" %}
+
+        <!-- Блок сегментов -->
+        <div class="segments-block {% if rule.type != 'wheel' %}hidden{% endif %}">
+
           <h4>🎡 Сегменты колеса</h4>
 
           {% if rule.segments %}
@@ -230,7 +242,6 @@
                 <strong>Шанс:</strong> {{ seg.chance }}%<br>
                 <strong>Действие:</strong> {{ seg.action }}<br>
 
-                <!-- Кнопка удаления сегмента -->
                 <form method="POST" style="margin-top:5px;">
                   <input type="hidden" name="delete_segment" value="{{ rule.id }}">
                   <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
@@ -242,14 +253,13 @@
             <p style="color:#777;">Сегментов пока нет</p>
           {% endif %}
 
-          <!-- Кнопка открыть модалку добавления сегмента -->
           <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕ Добавить сегмент</button>
-        {% endif %}
+        </div>
 
         <button type="submit">💾 Сохранить</button>
       </form>
-    </div> <!-- конец модалки редактирования -->
-  </div> <!-- конец modal-{{ rule.id }} -->
+    </div>
+  </div>
 
   <!-- Модалка добавления сегмента — ВНЕШНЯЯ -->
   <div id="segment-modal-{{ rule.id }}" class="modal">
@@ -342,39 +352,43 @@
     }
   </script>
   <script>
-  function updateRuleFields(selectEl) {
-      const container = selectEl.closest("form");
+    function updateRuleFields(selectEl) {
+        const container = selectEl.closest("form");
+        const type = selectEl.value;
 
-      const strength = container.querySelector('input[name="strength"]');
-      const duration = container.querySelector('input[name="duration"]');
-      const action = container.querySelector('input[name="action"]');
+        const strength = container.querySelector('input[name="strength"]');
+        const duration = container.querySelector('input[name="duration"]');
+        const action = container.querySelector('input[name="action"]');
+        const segmentsBlock = container.querySelector('.segments-block');
 
-      const type = selectEl.value;
+        if (type === "vibration") {
+            strength.parentElement.style.display = "block";
+            duration.parentElement.style.display = "block";
+            action.parentElement.style.display = "none";
+            if (segmentsBlock) segmentsBlock.style.display = "none";
+        }
 
-      if (type === "vibration") {
-          strength.parentElement.style.display = "block";
-          duration.parentElement.style.display = "block";
-          action.parentElement.style.display = "none";
-      }
+        if (type === "custom") {
+            strength.parentElement.style.display = "none";
+            duration.parentElement.style.display = "none";
+            action.parentElement.style.display = "block";
+            if (segmentsBlock) segmentsBlock.style.display = "none";
+        }
 
-      if (type === "custom") {
-          strength.parentElement.style.display = "none";
-          duration.parentElement.style.display = "none";
-          action.parentElement.style.display = "block";
-      }
+        if (type === "wheel") {
+            strength.parentElement.style.display = "none";
+            duration.parentElement.style.display = "none";
+            action.parentElement.style.display = "none";
+            if (segmentsBlock) segmentsBlock.style.display = "block";
+        }
+    }
 
-      if (type === "wheel") {
-          strength.parentElement.style.display = "none";
-          duration.parentElement.style.display = "none";
-          action.parentElement.style.display = "none";
-      }
-  }
 
-  // Автоматически применяем при загрузке
-  document.querySelectorAll('select[name="action_type"]').forEach(sel => {
-      updateRuleFields(sel);
-      sel.addEventListener("change", () => updateRuleFields(sel));
-  });
+    // Автоматически применяем при загрузке
+    document.querySelectorAll('select[name="action_type"]').forEach(sel => {
+        updateRuleFields(sel);
+        sel.addEventListener("change", () => updateRuleFields(sel));
+    });
   </script>
 
 </body>
