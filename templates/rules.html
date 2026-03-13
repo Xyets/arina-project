@@ -209,12 +209,58 @@
         <select name="action_type">
           <option value="vibration" {% if not rule.action %}selected{% endif %}>Вибрация</option>
           <option value="custom" {% if rule.action %}selected{% endif %}>Действие</option>
+          <option value="wheel" {% if rule.type == "wheel" %}selected{% endif %}>Колесо фортуны</option>
         </select><br>
         Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
+        {% if rule.type == "wheel" %}
+          <h4>🎡 Сегменты колеса</h4>
+
+          {% if rule.segments %}
+            {% for seg in rule.segments %}
+              <div style="border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px;">
+                <strong>Название:</strong> {{ seg.name }}<br>
+                <strong>Шанс:</strong> {{ seg.chance }}%<br>
+                <strong>Действие:</strong> {{ seg.action }}<br>
+
+                <!-- Кнопка удаления сегмента -->
+                <form method="POST" style="margin-top:5px;">
+                  <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+                  <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+                  <button type="submit" class="delete">Удалить сегмент</button>
+                </form>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p style="color:#777;">Сегментов пока нет</p>
+          {% endif %}
+
+          <!-- Кнопка открыть модалку добавления сегмента -->
+          <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕ Добавить сегмент</button>
+        {% endif %}
+
         <button type="submit">💾 Сохранить</button>
+      </form>
+    </div> <!-- конец модалки редактирования -->
+  </div> <!-- конец modal-{{ rule.id }} -->
+
+  <!-- Модалка добавления сегмента — ВНЕШНЯЯ -->
+  <div id="segment-modal-{{ rule.id }}" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeSegmentModal('{{ rule.id }}')">&times;</span>
+      <h3>➕ Новый сегмент</h3>
+
+      <form method="POST">
+        <input type="hidden" name="add_segment" value="{{ rule.id }}">
+
+        Название: <input type="text" name="seg_name" required><br>
+        Шанс (%): <input type="number" name="seg_chance" required><br>
+        Действие: <input type="text" name="seg_action" required><br>
+
+        <button type="submit">💾 Добавить</button>
       </form>
     </div>
   </div>
+
   {% endfor %}
 
   <!-- Добавить новое правило -->
@@ -229,6 +275,7 @@
       <select name="action_type">
         <option value="vibration">Вибрация</option>
         <option value="custom">Действие</option>
+        <option value="wheel">Колесо фортуны</option>
       </select>
       Действие: <input type="text" name="action">
       <button type="submit" name="add_rule">Добавить</button>
@@ -272,6 +319,14 @@
     function closeModal(id) {
       document.getElementById("modal-" + id).style.display = "none";
     }
+    function openSegmentModal(id) {
+      document.getElementById("segment-modal-" + id).style.display = "block";
+    }
+
+    function closeSegmentModal(id) {
+      document.getElementById("segment-modal-" + id).style.display = "none";
+    }
+
     window.onclick = function(event) {
       document.querySelectorAll('.modal').forEach(m => {
         if (event.target === m) m.style.display = "none";

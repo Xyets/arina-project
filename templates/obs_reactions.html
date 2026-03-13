@@ -34,6 +34,37 @@
 <body>
 
   <div id="reaction"></div>
+  <div id="wheel" style="
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    display:none;
+  ">
+    <svg id="wheelSvg" width="500" height="500" viewBox="0 0 500 500">
+
+      <!-- ВНЕШНИЙ КРУГ -->
+      <ellipse cx="200" cy="200" rx="170.1" ry="170.1"
+              style="fill:#FFC8DD;stroke:#AF6D85;stroke-width:3;" />
+
+      <!-- ВНУТРЕННИЙ КРУГ (рамка) -->
+      <ellipse cx="200" cy="200" rx="146.5" ry="146.5"
+              style="fill:transparent;stroke:#AF6D85;stroke-width:3;" />
+
+      <!-- ВРАЩАЮЩИЕСЯ СЕГМЕНТЫ -->
+      <g id="wheelSegments" transform="translate(200,200) rotate(0)">
+      </g>
+
+      <!-- СТРЕЛОЧКА-СЕРДЕЧКО -->
+      <g transform="translate(200,50) scale(1.2)">
+        <path d="M44.77,13.26 C56.68,6.28 62.73,3.51 70.57,1.7 C96.83,-0.14 91.45,28.66 87.46,34.74 C76.44,53.85 60.16,68.32 44.77,73.58 C28.58,65.12 12.73,50.17 5.36,34.74 C-4.23,16.8 5.25,3.81 19.24,1.47 C29.23,1.44 38.54,8.76 44.77,13.26 ZM44.77,30.93 C22.22,10.58 15.15,38.83 44.51,51.41 C71.71,44.63 72.47,11.54 44.77,30.93 Z"
+              fill="#E91E68" stroke="#B2154E" stroke-width="3" />
+      </g>
+
+    </svg>
+
+
+  </div>
 
   <script>
     const profileKey = "{{ profile_key }}";
@@ -53,6 +84,9 @@
         data = JSON.parse(event.data);
       } catch {
         return;
+      }
+      if (data.type === "wheel_spin" && data.profile === profileKey) {
+          startWheel(data.segments, data.winner_index, data.action);
       }
 
       if (data.reaction && data.profile === profileKey) {
@@ -74,6 +108,64 @@
         }, 500);
       }, duration * 1000);
     }
+    function startWheel(segments, winnerIndex, action) {
+        const wheel = document.getElementById("wheel");
+        const segGroup = document.getElementById("wheelSegments");
+
+        wheel.style.display = "block";
+        segGroup.innerHTML = "";
+
+        const count = segments.length;
+        const angle = 360 / count;
+
+        // Рисуем сегменты
+        for (let i = 0; i < count; i++) {
+            const start = (i * angle) * Math.PI / 180;
+            const end = ((i + 1) * angle) * Math.PI / 180;
+
+            const x1 = Math.cos(start) * 180;
+            const y1 = Math.sin(start) * 180;
+            const x2 = Math.cos(end) * 180;
+            const y2 = Math.sin(end) * 180;
+
+            const path = `
+                M 0 0
+                L ${x1} ${y1}
+                A 180 180 0 0 1 ${x2} ${y2}
+                Z
+            `;
+
+            const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
+
+            segGroup.innerHTML += `
+                <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
+            `;
+        }
+
+        // Анимация вращения
+        const fullTurns = 360 * 5;
+        const finalAngle = fullTurns - (winnerIndex * angle);
+
+        segGroup.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
+        segGroup.style.transform = `translate(200px,200px) rotate(${finalAngle}deg)`;
+
+        // После остановки отправляем результат
+        setTimeout(() => {
+            ws.send(JSON.stringify({
+                type: "wheel_result",
+                profile: profileKey,
+                action: action
+            }));
+
+            // Прячем колесо через 1 секунду
+            setTimeout(() => {
+                wheel.style.display = "none";
+                segGroup.style.transform = "translate(200px,200px) rotate(0deg)";
+            }, 1000);
+
+        }, 4200);
+    }
+
   </script>
 
 </body>

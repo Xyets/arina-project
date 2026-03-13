@@ -65,8 +65,30 @@ def test_rule(index):
 
     rule = rules[index]
 
-    if rule.get("action"):
+    if rule.get("type") == "custom":
         return {"status": "ok", "message": f"Действие: {rule['action']}"}
+
+    if rule.get("type") == "wheel":
+        segments = rule.get("segments", [])
+        if not segments:
+            return {"status": "error", "message": "Нет сегментов"}
+
+        import random
+        winner_index = random.randint(0, len(segments) - 1)
+        winner = segments[winner_index]
+
+        # отправляем команду OBS запустить колесо
+        from ws_app import ws_send
+        ws_send({
+            "type": "wheel_spin",
+            "profile": profile_key,
+            "segments": segments,
+            "winner_index": winner_index,
+            "action": winner["action"]
+        }, role="obs", profile_key=profile_key)
+
+        return {"status": "ok", "message": f"Колесо запущено! Выпал сегмент: {winner['name']}"}
+
 
     asyncio.run(send_ws_vibration(profile_key, rule["strength"], rule["duration"]))
 
@@ -87,14 +109,30 @@ def rules_page():
 
     # ADD
     if request.method == "POST" and "add_rule" in request.form:
+        action_type = request.form.get("action_type")
+
         new_rule = {
             "id": str(uuid.uuid4()),
             "min": int(request.form["min"]),
             "max": int(request.form["max"]),
             "strength": int(request.form["strength"]),
             "duration": int(request.form["duration"]),
-            "action": request.form["action"].strip() or None,
+            "type": action_type,
+            "action": None
         }
+
+        # Вибрация
+        if action_type == "vibration":
+            new_rule["action"] = None
+
+        # Кастомное действие
+        elif action_type == "custom":
+            new_rule["action"] = request.form["action"].strip() or None
+
+        # Колесо фортуны
+        elif action_type == "wheel":
+            new_rule["segments"] = []   # пока пусто
+
         rules["rules"].append(new_rule)
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
@@ -118,11 +156,52 @@ def rules_page():
                 r["duration"] = int(request.form["duration"])
 
                 action_type = request.form.get("action_type")
+                r["type"] = action_type
 
+                # Вибрация
                 if action_type == "vibration":
                     r["action"] = None
-                else:
+
+                # Кастомное действие
+                elif action_type == "custom":
                     r["action"] = request.form["action"].strip() or None
+
+                # Колесо фортуны
+                elif action_type == "wheel":
+                    r["action"] = None
+                    if "segments" not in r:
+                        r["segments"] = []
+
+
+        save_rules(rules_file, rules)
+        return redirect(url_for("rules.rules_page"))
+
+    # ADD SEGMENT
+    if request.method == "POST" and "add_segment" in request.form:
+        rule_id = request.form["add_segment"]
+
+        for r in rules["rules"]:
+            if r["id"] == rule_id:
+                if "segments" not in r:
+                    r["segments"] = []
+
+                r["segments"].append({
+                    "name": request.form["seg_name"],
+                    "chance": int(request.form["seg_chance"]),
+                    "action": request.form["seg_action"]
+                })
+
+        save_rules(rules_file, rules)
+        return redirect(url_for("rules.rules_page"))
+    # DELETE SEGMENT
+    if request.method == "POST" and "delete_segment" in request.form:
+        rule_id = request.form["delete_segment"]
+        seg_index = int(request.form["seg_index"])
+
+        for r in rules["rules"]:
+            if r["id"] == rule_id and "segments" in r:
+                if 0 <= seg_index < len(r["segments"]):
+                    r["segments"].pop(seg_index)
 
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))

@@ -315,6 +315,57 @@ async def ws_handler(websocket):
 
                 # ❗ очередь НЕ обновляем — это важно
                 continue
+            # ---------- WHEEL RESULT ----------
+            if msg_type == "wheel_result":
+                profile_key = data.get("profile")
+                action = data.get("action")
+
+                # 🎡 ЛОГИ
+                if action.startswith("vibration:"):
+                    add_log(profile_key, f"🏰 Вибрация (колесо): {action}")
+                else:
+                    add_log(profile_key, f"🎬 Действие (колесо): {action}")
+
+                # 🔊 ЕСЛИ ВЫПАЛА ВИБРАЦИЯ
+                if action.startswith("vibration:"):
+                    try:
+                        _, strength, duration = action.split(":")
+                        strength = int(strength)
+                        duration = int(duration)
+
+                        vibration_queues[profile_key].put_nowait((strength, duration))
+
+                        ws_send({
+                            "queue_update": True,
+                            "queue": list(vibration_queues[profile_key]._queue)
+                        }, role="panel", profile_key=profile_key)
+
+                    except Exception as e:
+                        print("❌ Ошибка обработки вибрации колеса:", e)
+
+                # 🎬 ЕСЛИ ВЫПАЛО ДЕЙСТВИЕ
+                elif action.startswith("action:"):
+                    custom = action.replace("action:", "")
+
+                    ws_send({
+                        "reaction": {
+                            "image": custom,
+                            "duration": 5
+                        },
+                        "profile": profile_key
+                    }, role="obs", profile_key=profile_key)
+
+                # 🔁 ЕСЛИ ВЫПАЛА ПОВТОРНАЯ ПОПЫТКА
+                elif action == "wheel:retry":
+                    ws_send({
+                        "type": "wheel_spin_retry",
+                        "profile": profile_key
+                    }, role="obs", profile_key=profile_key)
+
+                # 🔄 ОБНОВИТЬ ЛОГИ НА ПАНЕЛИ
+                ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+                continue
+
 
             # ---------- ВИБРАЦИИ ОТ ПАНЕЛИ ----------
             if msg_type == "vibration":
