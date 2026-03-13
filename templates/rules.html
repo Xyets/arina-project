@@ -269,15 +269,15 @@
     <form method="POST">
       Мин: <input type="number" name="min" required>
       Макс: <input type="number" name="max" required>
-      Сила: <input type="number" name="strength">
-      Время: <input type="number" name="duration">
+      <div class="field-strength">Сила: <input type="number" name="strength"></div>
+      <div class="field-duration">Время: <input type="number" name="duration"></div>
       Тип:
       <select name="action_type">
         <option value="vibration">Вибрация</option>
         <option value="custom">Действие</option>
         <option value="wheel">Колесо фортуны</option>
       </select>
-      Действие: <input type="text" name="action">
+      <div class="field-action">Действие: <input type="text" name="action"></div>
       <button type="submit" name="add_rule">Добавить</button>
     </form>
   </div>
@@ -332,6 +332,41 @@
         if (event.target === m) m.style.display = "none";
       });
     }
+  </script>
+  <script>
+  function updateRuleFields(selectEl) {
+      const container = selectEl.closest("form");
+
+      const strength = container.querySelector('input[name="strength"]');
+      const duration = container.querySelector('input[name="duration"]');
+      const action = container.querySelector('input[name="action"]');
+
+      const type = selectEl.value;
+
+      if (type === "vibration") {
+          strength.parentElement.style.display = "block";
+          duration.parentElement.style.display = "block";
+          action.parentElement.style.display = "none";
+      }
+
+      if (type === "custom") {
+          strength.parentElement.style.display = "none";
+          duration.parentElement.style.display = "none";
+          action.parentElement.style.display = "block";
+      }
+
+      if (type === "wheel") {
+          strength.parentElement.style.display = "none";
+          duration.parentElement.style.display = "none";
+          action.parentElement.style.display = "none";
+      }
+  }
+
+  // Автоматически применяем при загрузке
+  document.querySelectorAll('select[name="action_type"]').forEach(sel => {
+      updateRuleFields(sel);
+      sel.addEventListener("change", () => updateRuleFields(sel));
+  });
   </script>
 
 </body>

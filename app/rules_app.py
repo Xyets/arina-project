@@ -115,8 +115,8 @@ def rules_page():
             "id": str(uuid.uuid4()),
             "min": int(request.form["min"]),
             "max": int(request.form["max"]),
-            "strength": int(request.form["strength"]),
-            "duration": int(request.form["duration"]),
+            "strength": int(request.form["strength"] or 0),
+            "duration": int(request.form["duration"] or 0),
             "type": action_type,
             "action": None
         }
@@ -131,7 +131,8 @@ def rules_page():
 
         # Колесо фортуны
         elif action_type == "wheel":
-            new_rule["segments"] = []   # пока пусто
+            new_rule["action"] = "wheel"   # чтобы не было None
+            new_rule["segments"] = []  # пока пусто
 
         rules["rules"].append(new_rule)
         save_rules(rules_file, rules)
