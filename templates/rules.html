@@ -231,7 +231,7 @@
         Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
 
         <!-- Блок сегментов -->
-        <div class="segments-block{% if rule.type != 'wheel' %} hidden{% endif %}">
+        <div class="segments-block{% if rule.type != 'wheel' %} hidden{% endif %}" data-wheel-block>
 
 
           <h4>🎡 Сегменты колеса</h4>
@@ -361,6 +361,14 @@
         const duration = container.querySelector('input[name="duration"]');
         const action = container.querySelector('input[name="action"]');
         const segmentsBlock = container.querySelector('.segments-block');
+        
+        if (segmentsBlock) {
+            if (type === "wheel") {
+                segmentsBlock.classList.remove("hidden");
+            } else {
+                segmentsBlock.classList.add("hidden");
+            }
+        }
 
         if (type === "vibration") {
             strength.parentElement.style.display = "block";
