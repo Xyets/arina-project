@@ -131,8 +131,10 @@ def rules_page():
 
         # Колесо фортуны
         elif action_type == "wheel":
-            new_rule["action"] = "wheel"   # чтобы не было None
-            new_rule["segments"] = []  # пока пусто
+            new_rule["type"] = "wheel"      # ← ЭТО ГЛАВНОЕ
+            new_rule["action"] = "wheel"    # можно оставить, но не обязательно
+            new_rule["segments"] = []
+        # пока пусто
 
         rules["rules"].append(new_rule)
         save_rules(rules_file, rules)
@@ -169,9 +171,10 @@ def rules_page():
 
                 # Колесо фортуны
                 elif action_type == "wheel":
-                    r["action"] = None
+                    r["type"] = "wheel"
                     if "segments" not in r:
                         r["segments"] = []
+
 
 
         save_rules(rules_file, rules)

@@ -191,7 +191,15 @@
       </div>
     </div>
     <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
-    <p>Действие: {% if rule.action %}🎬 {{ rule.action }}{% else %}🔊 Вибрация{% endif %}</p>
+    <p>Действие:
+      {% if rule.type == "wheel" %}
+          🎡 Колесо фортуны
+      {% elif rule.action %}
+          🎬 {{ rule.action }}
+      {% else %}
+          🔊 Вибрация
+      {% endif %}
+    </p>
   </div>
 
   <!-- Модальное окно редактирования -->
