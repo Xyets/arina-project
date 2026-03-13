@@ -231,7 +231,8 @@
         Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
 
         <!-- Блок сегментов -->
-        <div class="segments-block {% if rule.type != 'wheel' %}hidden{% endif %}">
+        <div class="segments-block{% if rule.type != 'wheel' %} hidden{% endif %}">
+
 
           <h4>🎡 Сегменты колеса</h4>
 
