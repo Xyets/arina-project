@@ -215,8 +215,8 @@
         Время: <input type="number" name="duration" value="{{ rule.duration }}"><br>
         Тип:
         <select name="action_type">
-          <option value="vibration" {% if not rule.action %}selected{% endif %}>Вибрация</option>
-          <option value="custom" {% if rule.action %}selected{% endif %}>Действие</option>
+          <option value="vibration" {% if rule.type == "vibration" %}selected{% endif %}>Вибрация</option>
+          <option value="custom" {% if rule.type == "custom" %}selected{% endif %}>Действие</option>
           <option value="wheel" {% if rule.type == "wheel" %}selected{% endif %}>Колесо фортуны</option>
         </select><br>
         Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
