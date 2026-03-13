@@ -191,7 +191,12 @@
           <button type="submit" name="delete_rule" value="{{ rule.id }}" class="delete">❌</button>
         </form>
         <!-- Редактировать -->
-        <button type="button" onclick="openModal('{{ rule.id }}')">✏️</button>
+        {% if rule.type == "wheel" %}
+            <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕</button>
+        {% else %}
+            <button type="button" onclick="openModal('{{ rule.id }}')">✏️</button>
+        {% endif %}
+
       </div>
     </div>
     <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
@@ -207,6 +212,7 @@
   </div>
 
   <!-- Модальное окно редактирования -->
+  {% if rule.type != "wheel" %}
   <div id="modal-{{ rule.id }}" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('{{ rule.id }}')">&times;</span>
@@ -261,7 +267,7 @@
       </form>
     </div>
   </div>
-
+  {% endif %}
   <!-- Модалка добавления сегмента — ВНЕШНЯЯ -->
   <div id="segment-modal-{{ rule.id }}" class="modal">
     <div class="modal-content">
