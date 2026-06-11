@@ -106,7 +106,9 @@ def vip_page():
         "vip.html",
         user=user,
         members=sorted_members,
-        query=query
+        query=query,
+        current_mode=mode,          # ← ДОБАВИТЬ ЭТО
+        profile_key=profile_key  
     )
 
 
