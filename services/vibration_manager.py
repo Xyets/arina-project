@@ -1,11 +1,13 @@
 # services/vibration_manager.py
 
 import asyncio
-from typing import Dict, Optional
+from typing import Dict
 
-# ГЛОБАЛЬНЫЕ структуры — единый источник истины
+# ГЛОБАЛЬНЫЕ структуры
 vibration_queues: Dict[str, asyncio.Queue] = {}
 stop_events: Dict[str, asyncio.Event] = {}
+
+MAX_QUEUE_SIZE = 50  # максимум вибраций в очереди
 
 
 # ---------------- ВСПОМОГАТЕЛЬНЫЕ ----------------
@@ -39,17 +41,37 @@ def get_vibration_queue(profile_key: str) -> asyncio.Queue:
 
 # ---------------- ОЧЕРЕДЬ ВИБРАЦИЙ ----------------
 
-def enqueue_vibration(profile_key: str, strength: int, duration: int) -> None:
+def safe_enqueue(profile_key: str, strength: int, duration: int) -> None:
     """
-    Кладёт вибрацию в очередь.
+    Безопасное добавление вибрации в очередь с ограничением размера.
     """
     ensure_profile(profile_key)
     q = vibration_queues[profile_key]
 
-    try:
-        q.put_nowait((strength, duration))
-    except Exception as e:
-        print(f"⚠️ Ошибка enqueue_vibration для {profile_key}: {e}")
+    # ограничение размера очереди
+    while q.qsize() >= MAX_QUEUE_SIZE:
+        try:
+            q.get_nowait()
+            q.task_done()
+        except Exception:
+            break
+
+    q.put_nowait((strength, duration))
+
+
+def clear_queue(profile_key: str) -> None:
+    """
+    Полностью очищает очередь вибраций.
+    """
+    ensure_profile(profile_key)
+    q = vibration_queues[profile_key]
+
+    while not q.empty():
+        try:
+            q.get_nowait()
+            q.task_done()
+        except Exception:
+            break
 
 
 # ---------------- ОСТАНОВКА ----------------
@@ -61,3 +83,11 @@ def stop_vibration(profile_key: str) -> None:
     """
     ensure_profile(profile_key)
     stop_events[profile_key].set()
+
+
+def clear_stop_flag(profile_key: str) -> None:
+    """
+    Сбрасывает stop_event перед новой вибрацией.
+    """
+    ensure_profile(profile_key)
+    stop_events[profile_key].clear()
