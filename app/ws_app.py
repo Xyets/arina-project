@@ -531,14 +531,27 @@ async def ws_server():
     global WS_EVENT_LOOP
     WS_EVENT_LOOP = asyncio.get_running_loop()
 
-    profile_keys = list(CONFIG["profiles"].keys())
+    from services.database import get_connection
+
+    def get_all_profile_keys():
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT profile_key FROM profiles")
+        rows = cur.fetchall()
+        conn.close()
+        return [r["profile_key"] for r in rows]
+
+    # 👉 ВОТ ЭТА СТРОКА БЫЛА ОТСУТСТВУЮЩЕЙ
+    profile_keys = get_all_profile_keys()
+
     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
+
     # Инициализация очередей и STOP событий
     init_vibration_queues(profile_keys)
 
-
     # Запуск фоновых задач
     asyncio.create_task(redis_listener())
+
     for key in profile_keys:
         print("🚀 STARTING WORKER FOR", key)
         asyncio.create_task(vibration_worker(key))

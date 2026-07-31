@@ -1,3 +1,4 @@
+from services.database import get_model_by_username, get_connection
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from functools import wraps
 
@@ -15,47 +16,51 @@ panel_bp = Blueprint("panel", __name__)
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session:
+        if "username" not in session:
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
 
+def get_profile_from_db(username, mode):
+    conn = get_connection()
+    cur = conn.cursor()
+    profile_key = f"{username}_{mode}"
+    cur.execute("SELECT * FROM profiles WHERE profile_key = ?", (profile_key,))
+    row = cur.fetchone()
+    conn.close()
+    return row
 
 @panel_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form.get("username", "").strip()
+        username = request.form.get("username", "").strip()
         pwd = request.form.get("password", "").strip()
 
-        users_cfg = CONFIG.get("USERS", {})
+        model = get_model_by_username(username)
 
-        user_key = None
-        for u in users_cfg:
-            if u.lower() == user.lower():
-                user_key = u
-                break
+        if not model:
+            return render_template("login.html", error="Неверный логин или пароль")
 
-        if user_key and users_cfg.get(user_key) == pwd:
-            session["user"] = user_key
-            session["mode"] = "private"
+        if model["password_hash"] != pwd:
+            return render_template("login.html", error="Неверный логин или пароль")
 
-            profile_key = f"{user_key}_private"
-            audit_event(profile_key, "auth", {"type": "login"})
+        # Авторизация успешна
+        session["user_id"] = model["id"]
+        session["username"] = model["username"]
+        session["mode"] = "private"
 
-            return redirect(url_for("panel.index"))
-
-        return render_template("login.html", error="Неверный логин или пароль")
+        return redirect(url_for("panel.index"))
 
     return render_template("login.html")
 
 
 @panel_bp.route("/logout")
 def logout():
-    user = session.get("user")
+    username = session.get("username")
     mode = session.get("mode", "private")
 
-    if user:
-        profile_key = f"{user}_{mode}"
+    if username:
+        profile_key = f"{username}_{mode}"
         audit_event(profile_key, mode, {"type": "logout"})
 
     session.clear()
@@ -67,19 +72,21 @@ def logout():
 @panel_bp.route("/")
 @login_required
 def index():
-    user = session["user"]
+    username = session["username"]
     mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
 
-    profile = CONFIG["profiles"][profile_key]
+    profile = get_profile_from_db(username, mode)
+    if not profile:
+        return "Профиль не найден", 404
+
+    profile_key = profile["profile_key"]
+
     logs = load_logs_from_file(profile_key)
-
-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
-    goal = load_goal(goal_file)
+    goal = load_goal(profile["goal_file"])
 
     return render_template(
         "index.html",
-        user=user,
+        user=username,
         profile=profile,
         logs=logs,
         current_mode=mode,
@@ -101,7 +108,7 @@ def set_mode():
     
     session["mode"] = mode
 
-    redis_client.hset("user_modes", session["user"], mode)
+    redis_client.hset("user_modes", session["username"], mode)
 
     return {"status": "ok", "mode": mode}
 
@@ -111,7 +118,7 @@ def set_mode():
 @panel_bp.route("/logs_data")
 @login_required
 def logs_data():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
@@ -122,7 +129,7 @@ def logs_data():
 @panel_bp.route("/clear_logs", methods=["POST"])
 @login_required
 def clear_logs():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
