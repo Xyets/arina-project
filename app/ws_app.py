@@ -75,7 +75,7 @@ def ws_send(data, role=None, profile_key=None):
             continue
 
         # если сокет уже закрыт — помечаем на удаление
-        if ws.closed:
+        if not ws.open:
             dead_sockets.append(ws)
             continue
 
