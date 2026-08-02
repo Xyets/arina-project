@@ -75,8 +75,11 @@ function drawWheel(segments) {
     const angle = 360 / count;
 
     for (let i = 0; i < count; i++) {
-        const start = (i * angle) * Math.PI / 180;
-        const end = ((i + 1) * angle) * Math.PI / 180;
+        const offset = 90; // указатель сверху
+
+        const start = ((i * angle) + offset) * Math.PI / 180;
+        const end = (((i + 1) * angle) + offset) * Math.PI / 180;
+
 
         const x1 = 200 + Math.cos(start) * 170;
         const y1 = 200 + Math.sin(start) * 170;
@@ -97,7 +100,7 @@ function drawWheel(segments) {
                 ? segments[i].name
                 : (segments[i].action || "");
 
-        const textAngle = (i * angle) + angle / 2;
+        const textAngle = (i * angle) + angle / 2 + offset;
 
         const textRadius = 110;
         const tx = 200 + Math.cos(textAngle * Math.PI / 180) * textRadius;
