@@ -199,6 +199,15 @@ async def redis_listener():
 
                 # ---------- OBS REACTIONS ----------
                 profile_key = data.get("profile")
+                # ---------- WHEEL SPIN ----------
+                if data.get("wheel_spin"):
+                    ws_send({
+                        "type": "wheel_spin",
+                        "profile": data["profile"],
+                        "segments": data["segments"]
+                    }, role="obs", profile_key=data["profile"])
+                    continue
+                # ---------- OTHER OBS REACTIONS ----------
                 ws_send(data, role="obs", profile_key=profile_key)
 
             except Exception as e:
