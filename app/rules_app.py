@@ -33,14 +33,12 @@ async def send_ws_vibration(profile_key, strength, duration):
             "duration": duration
         }))
 
-async def send_ws_wheel_spin(profile_key, segments, winner_index, action):
+async def send_ws_wheel_spin(profile_key, segments):
     async with websockets.connect("ws://127.0.0.1:8765") as ws:
         await ws.send(json.dumps({
             "type": "wheel_spin",
             "profile": profile_key,
-            "segments": segments,
-            "winner_index": winner_index,
-            "action": action
+            "segments": segments
         }))
 
 # -------------------- TEST VIBRATION --------------------
@@ -84,24 +82,12 @@ def test_rule(index):
         if not segments:
             return {"status": "error", "message": "Нет сегментов"}
 
-        import random
-        winner_index = random.randint(0, len(segments) - 1)
-        winner = segments[winner_index]
-
         asyncio.run(send_ws_wheel_spin(
             profile_key,
-            segments,
-            winner_index,
-            winner["action"]
+            segments
         ))
 
-
-        return {"status": "ok", "message": f"Колесо запущено! Выпал сегмент: {winner['name']}"}
-
-
-    asyncio.run(send_ws_vibration(profile_key, rule["strength"], rule["duration"]))
-
-    return {"status": "ok", "message": "Вибрация отправлена по правилу"}
+        return {"status": "ok", "message": "Колесо запущено! Результат появится в логах."}
 
 
 # -------------------- RULES PAGE --------------------
