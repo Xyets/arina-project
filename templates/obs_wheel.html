@@ -90,61 +90,39 @@ function drawWheel(segments) {
 
         const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
-        g.innerHTML += `
-            <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
-        `;
-    }
-}
-
-function drawWheel(segments) {
-    const g = document.getElementById("segments");
-    g.innerHTML = "";
-
-    const count = segments.length;
-    const angle = 360 / count;
-
-    for (let i = 0; i < count; i++) {
-        const start = (i * angle) * Math.PI / 180;
-        const end = ((i + 1) * angle) * Math.PI / 180;
-
-        const x1 = 200 + Math.cos(start) * 170;
-        const y1 = 200 + Math.sin(start) * 170;
-        const x2 = 200 + Math.cos(end) * 170;
-        const y2 = 200 + Math.sin(end) * 170;
-
-        const path = `
-            M 200 200
-            L ${x1} ${y1}
-            A 170 170 0 0 1 ${x2} ${y2}
-            Z
-        `;
-
-        const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
-
         // ⭐ Текст сегмента
-        const label = segments[i].name || segments[i].action || "";
+        const label =
+            (segments[i].name && segments[i].name.trim() !== "")
+                ? segments[i].name
+                : (segments[i].action || "");
 
-        // ⭐ Угол для текста — середина сегмента
+        // ⭐ Угол середины сегмента
         const textAngle = (i * angle) + angle / 2;
 
-        // ⭐ Координаты текста (внутри сегмента)
-        const textRadius = 110; // расстояние от центра
+        // ⭐ Координаты текста
+        const textRadius = 110;
         const tx = 200 + Math.cos(textAngle * Math.PI / 180) * textRadius;
         const ty = 200 + Math.sin(textAngle * Math.PI / 180) * textRadius;
 
-        g.innerHTML += `
+        let html = `
             <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
-
-            <text x="${tx}" y="${ty}"
-                  font-size="26"
-                  font-family="Arial"
-                  fill="#333"
-                  text-anchor="middle"
-                  dominant-baseline="middle"
-                  transform="rotate(${textAngle} ${tx} ${ty})">
-                ${label}
-            </text>
         `;
+
+        if (label.trim() !== "") {
+            html += `
+                <text x="${tx}" y="${ty}"
+                      font-size="26"
+                      font-family="Arial"
+                      fill="#333"
+                      text-anchor="middle"
+                      dominant-baseline="middle"
+                      transform="rotate(${textAngle} ${tx} ${ty})">
+                    ${label}
+                </text>
+            `;
+        }
+
+        g.innerHTML += html;
     }
 }
 
