@@ -17,6 +17,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      display:none;
     }
 
     #pointer {
@@ -44,6 +45,26 @@
 </svg>
 
 <script>
+const profileKey = "{{ profile_key }}";
+const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    type: "hello",
+    role: "obs",
+    profile_key: profileKey
+  }));
+};
+
+ws.onmessage = (event) => {
+  let data;
+  try { data = JSON.parse(event.data); } catch { return; }
+
+  if (data.type === "wheel_spin" && data.profile === profileKey) {
+      spinWheel(data.segments, data.winner_index);
+  }
+};
+
 function drawWheel(segments) {
     const g = document.getElementById("segments");
     g.innerHTML = "";
@@ -78,7 +99,10 @@ function drawWheel(segments) {
 function spinWheel(segments, winnerIndex) {
     drawWheel(segments);
 
+    const svg = document.getElementById("wheelSvg");
     const g = document.getElementById("segments");
+
+    svg.style.display = "block";
 
     const angle = 360 / segments.length;
     const finalAngle = (360 * 5) - (winnerIndex * angle);
@@ -108,22 +132,38 @@ function spinWheel(segments, winnerIndex) {
         if (rotation < target) {
             requestAnimationFrame(animate);
         } else {
-            console.log("Winner:", segments[winnerIndex]);
+            sendResult(segments[winnerIndex]);
+            setTimeout(() => {
+                svg.style.display = "none";
+            }, 1000);
         }
     }
 
     animate();
 }
 
-// ТЕСТ
-const testSegments = [
-    { action: "A" },
-    { action: "B" },
-    { action: "C" },
-    { action: "D" }
-];
+function sendResult(seg) {
+    let segmentData;
 
-spinWheel(testSegments, 2);
+    if (seg.action && seg.action.trim() !== "") {
+        segmentData = {
+            type: "action",
+            action: seg.action
+        };
+    } else {
+        segmentData = {
+            type: "vibration",
+            strength: 5,
+            duration: 10
+        };
+    }
+
+    ws.send(JSON.stringify({
+        type: "wheel_result",
+        profile: profileKey,
+        segment: segmentData
+    }));
+}
 </script>
 
 </body>
