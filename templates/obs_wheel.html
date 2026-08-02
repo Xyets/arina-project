@@ -10,20 +10,13 @@
       overflow: hidden;
     }
 
-    #wheelContainer {
-      position:absolute;
-      top:50%;
-      left:50%;
-      transform:translate(-50%, -50%);
-      width:500px;
-      height:500px;
-      display:none;
-    }
-
     #wheelSvg {
-      width:100%;
-      height:100%;
-      transform-origin: 50% 50%;
+      width: 500px;
+      height: 500px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     #pointer {
@@ -39,80 +32,99 @@
 </head>
 <body>
 
-  <!-- Сердечко -->
-  <svg id="pointer" width="60" height="60">
-    <path d="M30 10 C40 0 55 0 55 20 C55 35 40 50 30 55 C20 50 5 35 5 20 C5 0 20 0 30 10 Z"
-          fill="#00FF00" stroke="#008800" stroke-width="3"/>
-  </svg>
+<!-- Сердечко -->
+<svg id="pointer" width="60" height="60">
+  <path d="M30 10 C40 0 55 0 55 20 C55 35 40 50 30 55 C20 50 5 35 5 20 C5 0 20 0 30 10 Z"
+        fill="#00FF00" stroke="#008800" stroke-width="3"/>
+</svg>
 
-  <!-- Колесо -->
-  <div id="wheelContainer">
-    <svg id="wheelSvg" viewBox="0 0 400 400">
-      <g id="segments"></g>
-    </svg>
-  </div>
+<!-- Колесо -->
+<svg id="wheelSvg" viewBox="0 0 400 400">
+  <g id="segments"></g>
+</svg>
 
-  <script>
-    function drawWheel(segments) {
-        const g = document.getElementById("segments");
-        g.innerHTML = "";
+<script>
+function drawWheel(segments) {
+    const g = document.getElementById("segments");
+    g.innerHTML = "";
 
-        const count = segments.length;
-        const angle = 360 / count;
+    const count = segments.length;
+    const angle = 360 / count;
 
-        for (let i = 0; i < count; i++) {
-            const start = (i * angle) * Math.PI / 180;
-            const end = ((i + 1) * angle) * Math.PI / 180;
+    for (let i = 0; i < count; i++) {
+        const start = (i * angle) * Math.PI / 180;
+        const end = ((i + 1) * angle) * Math.PI / 180;
 
-            const x1 = 200 + Math.cos(start) * 170;
-            const y1 = 200 + Math.sin(start) * 170;
-            const x2 = 200 + Math.cos(end) * 170;
-            const y2 = 200 + Math.sin(end) * 170;
+        const x1 = 200 + Math.cos(start) * 170;
+        const y1 = 200 + Math.sin(start) * 170;
+        const x2 = 200 + Math.cos(end) * 170;
+        const y2 = 200 + Math.sin(end) * 170;
 
-            const path = `
-                M 200 200
-                L ${x1} ${y1}
-                A 170 170 0 0 1 ${x2} ${y2}
-                Z
-            `;
+        const path = `
+            M 200 200
+            L ${x1} ${y1}
+            A 170 170 0 0 1 ${x2} ${y2}
+            Z
+        `;
 
-            const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
+        const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
-            g.innerHTML += `
-                <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
-            `;
+        g.innerHTML += `
+            <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
+        `;
+    }
+}
+
+function spinWheel(segments, winnerIndex) {
+    drawWheel(segments);
+
+    const g = document.getElementById("segments");
+
+    const angle = 360 / segments.length;
+    const finalAngle = (360 * 5) - (winnerIndex * angle);
+
+    let rotation = 0;
+    let speed = 25;
+    let target = finalAngle;
+    let slowing = false;
+
+    function animate() {
+        rotation += speed;
+
+        if (rotation >= target - 360) {
+            slowing = true;
+        }
+
+        if (slowing) {
+            speed *= 0.97;
+        }
+
+        if (speed < 0.5) {
+            rotation = target;
+        }
+
+        g.setAttribute("transform", `rotate(${rotation} 200 200)`);
+
+        if (rotation < target) {
+            requestAnimationFrame(animate);
+        } else {
+            console.log("Winner:", segments[winnerIndex]);
         }
     }
 
-    function spinWheel(segments, winnerIndex) {
-        drawWheel(segments);
+    animate();
+}
 
-        const wheel = document.getElementById("wheelContainer");
-        const svg = document.getElementById("wheelSvg");
+// ТЕСТ
+const testSegments = [
+    { action: "A" },
+    { action: "B" },
+    { action: "C" },
+    { action: "D" }
+];
 
-        wheel.style.display = "block";
-
-        const angle = 360 / segments.length;
-        const finalAngle = (360 * 5) - (winnerIndex * angle);
-
-        svg.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
-        svg.style.transform = `rotate(${finalAngle}deg)`;
-
-        setTimeout(() => {
-            console.log("Winner:", segments[winnerIndex]);
-        }, 4200);
-    }
-
-    // Тест
-    const testSegments = [
-        { action: "A" },
-        { action: "B" },
-        { action: "C" },
-        { action: "D" }
-    ];
-
-    spinWheel(testSegments, 2);
-  </script>
+spinWheel(testSegments, 2);
+</script>
 
 </body>
 </html>
