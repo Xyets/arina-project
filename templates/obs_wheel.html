@@ -10,53 +10,45 @@
       overflow: hidden;
     }
 
-    #wheelWrapper {
+    #wheelCanvas {
       position:absolute;
       top:50%;
       left:50%;
       transform:translate(-50%, -50%);
-      width:500px;
-      height:500px;
       display:none;
-
-      /* КРИТИЧЕСКОЕ — вращение работает на DIV */
-      transform-origin: 50% 50%;
     }
 
-    #wheelSvg {
-      width:100%;
-      height:100%;
-    }
-
+    /* Неподвижное сердечко */
     #pointer {
-      transform-origin: 50% 50%;
-      transform: rotate(0deg) !important;
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -210px);
+      width:60px;
+      height:60px;
+      z-index:10;
     }
   </style>
 </head>
 <body>
 
-  <div id="wheelWrapper">
-    <svg id="wheelSvg" viewBox="0 0 400 400">
+  <!-- Сердечко -->
+  <img id="pointer" src="data:image/svg+xml;utf8,
+  <svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'>
+    <path d='M30 10 C40 0 55 0 55 20 C55 35 40 50 30 55 C20 50 5 35 5 20 C5 0 20 0 30 10 Z'
+          fill='%2300FF00' stroke='%23008800' stroke-width='3'/>
+  </svg>' />
 
-      <!-- ВНЕШНИЙ КРУГ -->
-      <circle cx="200" cy="200" r="170"
-              fill="#FFE6F4" stroke="#AF6D87" stroke-width="3" />
+  <!-- Canvas для колеса -->
+  <canvas id="wheelCanvas" width="500" height="500"></canvas>
 
-      <!-- СЕГМЕНТЫ -->
-      <g id="wheelSegments"></g>
-
-      <!-- СЕРДЕЧКО -->
-      <g id="pointer" transform="translate(200,60) scale(1.2)">
-        <path d="M44.77,13.26 C56.68,6.28 62.73,3.51 70.57,1.7 C96.83,-0.14 91.45,28.66 87.46,34.74 C76.44,53.85 60.16,68.32 44.77,73.58 C28.58,65.12 12.73,50.17 5.36,34.74 C-4.23,16.8 5.25,3.81 19.24,1.47 C29.23,1.44 38.54,8.76 44.77,13.26 ZM44.77,30.93 C22.22,10.58 15.15,38.83 44.51,51.41 C71.71,44.63 72.47,11.54 44.77,30.93 Z"
-              fill="#00FF00" stroke="#008800" stroke-width="3" />
-      </g>
-
-    </svg>
-  </div>
+  <!-- Winwheel.js -->
+  <script src="https://cdn.jsdelivr.net/npm/winwheel@2.8.0/dist/Winwheel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
   <script>
     const profileKey = "{{ profile_key }}";
+
     const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
     ws.onopen = () => {
@@ -76,71 +68,69 @@
       }
     };
 
+    let wheel;
+
     function startWheel(segments, winnerIndex) {
-        const wrapper = document.getElementById("wheelWrapper");
-        const segGroup = document.getElementById("wheelSegments");
+        const canvas = document.getElementById("wheelCanvas");
+        canvas.style.display = "block";
 
-        wrapper.style.display = "block";
-        segGroup.innerHTML = "";
+        // Преобразуем сегменты в формат Winwheel
+        const winwheelSegments = segments.map((seg, i) => ({
+            fillStyle: i % 2 === 0 ? "#FFC8DD" : "#FFAFCC",
+            text: seg.action || ""
+        }));
 
-        const count = segments.length;
-        const angle = 360 / count;
+        // Создаём колесо
+        wheel = new Winwheel({
+            canvasId: "wheelCanvas",
+            numSegments: winwheelSegments.length,
+            outerRadius: 240,
+            textFontSize: 22,
+            textAlignment: "outer",
+            segments: winwheelSegments,
+            animation: {
+                type: "spinToStop",
+                duration: 4,
+                spins: 5,
+                callbackFinished: "wheelFinished()"
+            }
+        });
 
-        // Рисуем сегменты вокруг центра (200,200)
-        for (let i = 0; i < count; i++) {
-            const start = (i * angle) * Math.PI / 180;
-            const end = ((i + 1) * angle) * Math.PI / 180;
+        // Запускаем вращение
+        wheel.startAnimation();
 
-            const x1 = 200 + Math.cos(start) * 170;
-            const y1 = 200 + Math.sin(start) * 170;
-            const x2 = 200 + Math.cos(end) * 170;
-            const y2 = 200 + Math.sin(end) * 170;
+        // Устанавливаем точный сектор
+        wheel.animation.stopAngle = (360 / segments.length) * winnerIndex;
+    }
 
-            const path = `
-                M 200 200
-                L ${x1} ${y1}
-                A 170 170 0 0 1 ${x2} ${y2}
-                Z
-            `;
+    function wheelFinished() {
+        const winnerIndex = wheel.getIndicatedSegmentNumber() - 1;
 
-            const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
+        const seg = wheel.segments[winnerIndex];
+        let segmentData;
 
-            segGroup.innerHTML += `
-                <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
-            `;
+        if (seg.text && seg.text.trim() !== "") {
+            segmentData = {
+                type: "action",
+                action: seg.text
+            };
+        } else {
+            segmentData = {
+                type: "vibration",
+                strength: 5,
+                duration: 10
+            };
         }
 
-        // Плавное вращение — ВРАЩАЕМ DIV
-        const fullTurns = 360 * 5;
-        const finalAngle = fullTurns - (winnerIndex * angle);
+        ws.send(JSON.stringify({
+            type: "wheel_result",
+            profile: profileKey,
+            segment: segmentData
+        }));
 
-        wrapper.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
-        wrapper.style.transform = `translate(-50%, -50%) rotate(${finalAngle}deg)`;
-
-        // После остановки отправляем wheel_result
         setTimeout(() => {
-            const seg = segments[winnerIndex];
-            let segmentData;
-
-            if (seg.action && seg.action.trim() !== "") {
-                segmentData = { type: "action", action: seg.action };
-            } else {
-                segmentData = { type: "vibration", strength: 5, duration: 10 };
-            }
-
-            ws.send(JSON.stringify({
-                type: "wheel_result",
-                profile: profileKey,
-                segment: segmentData
-            }));
-
-            // Сброс
-            setTimeout(() => {
-                wrapper.style.display = "none";
-                wrapper.style.transform = "translate(-50%, -50%) rotate(0deg)";
-            }, 1000);
-
-        }, 4200);
+            document.getElementById("wheelCanvas").style.display = "none";
+        }, 1000);
     }
   </script>
 
