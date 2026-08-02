@@ -33,6 +33,15 @@ async def send_ws_vibration(profile_key, strength, duration):
             "duration": duration
         }))
 
+async def send_ws_wheel_spin(profile_key, segments, winner_index, action):
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
+        await ws.send(json.dumps({
+            "type": "wheel_spin",
+            "profile": profile_key,
+            "segments": segments,
+            "winner_index": winner_index,
+            "action": action
+        }))
 
 # -------------------- TEST VIBRATION --------------------
 
@@ -79,16 +88,13 @@ def test_rule(index):
         winner_index = random.randint(0, len(segments) - 1)
         winner = segments[winner_index]
 
-        # отправляем команду OBS запустить колесо
-        from app.ws_app import ws_send
+        asyncio.run(send_ws_wheel_spin(
+            profile_key,
+            segments,
+            winner_index,
+            winner["action"]
+        ))
 
-        ws_send({
-            "type": "wheel_spin",
-            "profile": profile_key,
-            "segments": segments,
-            "winner_index": winner_index,
-            "action": winner["action"]
-        }, role="obs", profile_key=profile_key)
 
         return {"status": "ok", "message": f"Колесо запущено! Выпал сегмент: {winner['name']}"}
 
