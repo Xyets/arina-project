@@ -580,5 +580,4 @@ def run_websocket_server():
     asyncio.run(ws_server())
 
 
-if __name__ == "__main__":
-    run_websocket_server()
+run_websocket_server()
