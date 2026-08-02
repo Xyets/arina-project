@@ -18,8 +18,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-
-
 # -------------------- GET GOAL --------------------
 
 @goal_bp.route("/goal_data")

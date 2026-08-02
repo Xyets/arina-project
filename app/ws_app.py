@@ -511,6 +511,12 @@ async def ws_handler(websocket):
             if msg_type == "wheel_result":
                 await handle_wheel_result(websocket, data)
                 continue
+            
+            if msg_type == "wheel_spin":
+                profile_key = data.get("profile")
+                # просто пробрасываем колесо в OBS
+                ws_send(data, role="obs", profile_key=profile_key)
+                continue
 
             # Если тип неизвестен
             print("⚠ Unknown WS message type:", msg_type)
