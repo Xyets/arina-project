@@ -404,12 +404,38 @@ async def handle_get_queue(websocket, data):
 
 async def handle_wheel_result(websocket, data):
     profile_key = data.get("profile")
-    seg = data.get("segment")
+    winner_index = data.get("winner_index")
 
-    if not seg:
-        print("❌ wheel_result: segment missing")
+    if profile_key not in CONFIG["profiles"]:
+        print("❌ wheel_result: unknown profile_key")
         return
 
+    # Загружаем правила
+    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    from services.rules_service import load_rules
+    rules = load_rules(rules_file).get("rules", [])
+
+    # Находим правило типа wheel
+    wheel_rule = None
+    for r in rules:
+        if r.get("type") == "wheel":
+            wheel_rule = r
+            break
+
+    if not wheel_rule:
+        print("❌ wheel_result: wheel rule not found")
+        return
+
+    segments = wheel_rule.get("segments", [])
+    if not segments:
+        print("❌ wheel_result: no segments")
+        return
+
+    if winner_index < 0 or winner_index >= len(segments):
+        print("❌ wheel_result: invalid winner_index")
+        return
+
+    seg = segments[winner_index]
     seg_type = seg.get("type")
 
     # --- ВИБРАЦИЯ ---
@@ -426,8 +452,10 @@ async def handle_wheel_result(websocket, data):
             "queue": list(vibration_queues[profile_key]._queue)
         }, role="panel", profile_key=profile_key)
 
+        return
+
     # --- ДЕЙСТВИЕ ---
-    elif seg_type == "action":
+    if seg_type == "action":
         action_text = seg.get("action", "")
 
         add_log(profile_key, f"🎬 Действие (колесо): {action_text}")
@@ -440,15 +468,16 @@ async def handle_wheel_result(websocket, data):
             "profile": profile_key
         }, role="obs", profile_key=profile_key)
 
+        ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+        return
+
     # --- ПОВТОР ---
-    elif seg_type == "retry":
+    if seg_type == "retry":
         ws_send({
             "type": "wheel_spin_retry",
             "profile": profile_key
         }, role="obs", profile_key=profile_key)
-
-    # --- ОБНОВИТЬ ЛОГИ ---
-    ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+        return
 
 
 # ---------------- ОСНОВНОЙ WS HANDLER ----------------
@@ -511,7 +540,7 @@ async def ws_handler(websocket):
             if msg_type == "wheel_result":
                 await handle_wheel_result(websocket, data)
                 continue
-            
+
             if msg_type == "wheel_spin":
                 profile_key = data.get("profile")
                 # просто пробрасываем колесо в OBS
