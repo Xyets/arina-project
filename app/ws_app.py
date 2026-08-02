@@ -293,7 +293,25 @@ async def handle_viewer_event(websocket, data):
             }
         }, role="panel", profile_key=profile_key)
 
-        add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
+        # --- Расширенный лог ---
+        name = profile.get("name", viewer_name)
+        notes = profile.get("notes", "").strip() or "нет"
+        total = profile.get("total", 0)
+        login_count = profile.get("login_count", 0)
+        prev_login = profile.get("_previous_login", "нет данных")
+        last_login = profile.get("last_login", "нет данных")
+
+        log_message = (
+            f"🔵 LOGIN | {name} (ID: {viewer_id}) | "
+            f"Заметки: {notes} | "
+            f"Донаты: {total} | "
+            f"Предыдущий вход: {prev_login} | "
+            f"Текущий вход: {last_login} | "
+            f"Входов всего: {login_count}"
+        )
+
+        add_log(profile_key, log_message)
+
 
     elif event == "logout":
         add_log(profile_key, f"🔴 LOGOUT | {viewer_name} ({viewer_id})")
