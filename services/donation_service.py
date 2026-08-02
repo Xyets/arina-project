@@ -40,6 +40,9 @@ def apply_rule(profile_key, amount, text):
                     "text": text,
                 },
             )
+            # WHEEL
+            if rule.get("type") == "wheel":
+                return {"kind": "wheel", "segments": rule.get("segments", [])}
 
             # ACTION
             if action and action.strip():
@@ -64,6 +67,36 @@ def handle_donation(profile_key, user_id, name, amount, text):
 
     # 1. Применяем правила
     rule_result = apply_rule(profile_key, amount, text)
+
+    # --- WHEEL ---
+    if rule_result and rule_result["kind"] == "wheel":
+        segments = rule_result["segments"]
+
+        if segments:
+            import random
+
+            # веса выпадения
+            weights = [seg.get("chance", 1) for seg in segments]
+
+            # выбираем победителя
+            winner_index = random.choices(range(len(segments)), weights=weights)[0]
+            winner = segments[winner_index]
+
+            # отправляем в OBS через Redis
+            redis_client.publish("obs_reactions", json.dumps({
+                "wheel_spin": True,
+                "profile": profile_key,
+                "segments": segments,
+                "winner_index": winner_index,
+                "action": winner.get("action")
+            }))
+
+            # лог
+            add_log(profile_key, f"🎡 Колесо → Выпал сегмент: {winner.get('name')}")
+
+        # возвращаем результат и выходим
+        return {"goal": None, "rule": rule_result}
+
 
     # 2. Логируем
     if rule_result and rule_result["kind"] == "action":
