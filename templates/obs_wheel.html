@@ -145,7 +145,8 @@ function spinWheel(segments, winnerIndex) {
     const count = segments.length;
     const angle = 360 / count;
 
-    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2;
+    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2 + 90;
+
 
     let rotation = 0;
     let speed = 5;
