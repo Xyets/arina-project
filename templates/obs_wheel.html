@@ -27,18 +27,18 @@
 <body>
 
   <div id="wheel">
-    <svg id="wheelSvg" width="500" height="500" viewBox="0 0 500 500">
+    <svg id="wheelSvg" width="500" height="500" viewBox="-200 -200 400 400">
 
       <!-- ВНЕШНИЙ КРУГ -->
-      <circle cx="200" cy="200" r="170"
+      <circle cx="0" cy="0" r="170"
               fill="#FFE6F0" stroke="#AF6D85" stroke-width="3" />
 
-      <!-- СЕГМЕНТЫ -->
-      <g id="wheelSegments" transform="translate(200,200) rotate(0)">
+      <!-- СЕГМЕНТЫ (центр в 0,0 — ВАЖНО!) -->
+      <g id="wheelSegments" transform="rotate(0)">
       </g>
 
       <!-- НЕПОДВИЖНОЕ СЕРДЕЧКО -->
-      <g transform="translate(200,40) scale(1.2)">
+      <g transform="translate(0,-150) scale(1.2)">
         <path d="M44.77,13.26 C56.68,6.28 62.73,3.51 70.57,1.7 C96.83,-0.14 91.45,28.66 87.46,34.74 C76.44,53.85 60.16,68.32 44.77,73.58 C28.58,65.12 12.73,50.17 5.36,34.74 C-4.23,16.8 5.25,3.81 19.24,1.47 C29.23,1.44 38.54,8.76 44.77,13.26 ZM44.77,30.93 C22.22,10.58 15.15,38.83 44.51,51.41 C71.71,44.63 72.47,11.54 44.77,30.93 Z"
               fill="#E91E68" stroke="#B2154E" stroke-width="3" />
       </g>
@@ -78,7 +78,7 @@
         const count = segments.length;
         const angle = 360 / count;
 
-        // Рисуем минималистичные сегменты
+        // Рисуем сегменты (центр 0,0)
         for (let i = 0; i < count; i++) {
             const start = (i * angle) * Math.PI / 180;
             const end = ((i + 1) * angle) * Math.PI / 180;
@@ -102,12 +102,12 @@
             `;
         }
 
-        // Плавное вращение с замедлением
+        // Плавное вращение
         const fullTurns = 360 * 5;
         const finalAngle = fullTurns - (winnerIndex * angle);
 
         segGroup.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
-        segGroup.style.transform = `translate(200px,200px) rotate(${finalAngle}deg)`;
+        segGroup.style.transform = `rotate(${finalAngle}deg)`;
 
 
         // После остановки отправляем wheel_result
@@ -137,7 +137,7 @@
 
             setTimeout(() => {
                 wheel.style.display = "none";
-                segGroup.style.transform = "translate(200px,200px) rotate(0deg)";
+                segGroup.style.transform = "rotate(0deg)";
             }, 1000);
 
         }, 4200);
