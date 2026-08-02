@@ -125,7 +125,11 @@ function spinWheel(segments, winnerIndex) {
 
     let target = finalAngle;
 
+    let stopped = false; // ← ключевой флаг
+
     function animate() {
+
+        if (stopped) return; // ← если остановлено — больше НИ ОДНОГО кадра
 
         // Плавное ускорение в начале
         if (speed < maxSpeed && rotation < 360) {
@@ -142,20 +146,25 @@ function spinWheel(segments, winnerIndex) {
         // Мягкая остановка
         if (speed < minSpeed) {
             rotation = target;
-        }
 
-        g.setAttribute("transform", `rotate(${rotation} 200 200)`);
+            // ⭐ ЖЁСТКАЯ ОСТАНОВКА — НИ ОДНОГО ЛИШНЕГО КАДРА
+            stopped = true;
 
-        if (rotation < target) {
-            requestAnimationFrame(animate);
-        } else {
-            // ⭐ ОСТАНОВИЛОСЬ — показываем 3 секунды
+            g.setAttribute("transform", `rotate(${target} 200 200)`);
+
+            // показываем 3 секунды
             sendResult(segments[winnerIndex]);
 
             setTimeout(() => {
                 svg.style.display = "none";
-            }, 30000); // ← 3 секунды пауза
+            }, 3000);
+
+            return; // ← выходим, НЕ вызываем requestAnimationFrame
         }
+
+        g.setAttribute("transform", `rotate(${rotation} 200 200)`);
+
+        requestAnimationFrame(animate);
     }
 
     animate();
