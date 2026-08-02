@@ -139,6 +139,63 @@
     .hidden {
       display: none;
   }
+    /* --- Красивые карточки сегментов --- */
+    .segment-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        border-left: 6px solid #74c0e3;
+        animation: fadeSegment 0.3s ease;
+    }
+
+    .segment-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 6px;
+    }
+
+    .segment-action {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+
+    .segment-chance-bar {
+        height: 8px;
+        background: #e6e6e6;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .segment-chance-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #74c0e3, #a3d8f4);
+        width: 0%;
+        transition: width 0.4s ease;
+    }
+
+    .segment-delete-btn {
+        background: #f7a8b8;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: white;
+        font-size: 13px;
+    }
+
+    .segment-delete-btn:hover {
+        background: #f28497;
+    }
+
+    @keyframes fadeSegment {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
   
   </style>
@@ -192,14 +249,19 @@
         </form>
         <!-- Редактировать -->
         {% if rule.type == "wheel" %}
+            <button type="button" onclick="toggleWheel('{{ rule.id }}')">📂</button>
             <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕</button>
         {% else %}
             <button type="button" onclick="openModal('{{ rule.id }}')">✏️</button>
         {% endif %}
 
+
       </div>
     </div>
+    {% if rule.type != "wheel" %}
     <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
+    {% endif %}
+
     <p>Действие:
       {% if rule.type == "wheel" %}
           🎡 Колесо фортуны
@@ -210,6 +272,32 @@
       {% endif %}
     </p>
   </div>
+
+  {% if rule.type == "wheel" %}
+  <div class="wheel-segments" id="wheel-{{ rule.id }}" style="display:none; margin-top:10px; padding:10px; border-radius:10px; background:#f7f7f7;">
+      <h4>🎡 Сегменты колеса</h4>
+
+      {% if rule.segments %}
+          {% for seg in rule.segments %}
+              <div style="border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px;">
+                  <strong>Название:</strong> {{ seg.name }}<br>
+                  <strong>Шанс:</strong> {{ seg.chance }}%<br>
+                  <strong>Действие:</strong> {{ seg.action }}<br>
+
+                  <form method="POST" style="margin-top:5px;">
+                      <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+                      <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+                      <button type="submit" class="delete">Удалить сегмент</button>
+                  </form>
+              </div>
+          {% endfor %}
+      {% else %}
+          <p style="color:#777;">Сегментов пока нет</p>
+      {% endif %}
+
+      <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕ Добавить сегмент</button>
+  </div>
+  {% endif %}
 
   <!-- Модальное окно редактирования -->
   {% if rule.type != "wheel" %}
@@ -251,18 +339,27 @@
 
           {% if rule.segments %}
             {% for seg in rule.segments %}
-              <div style="border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px;">
-                <strong>Название:</strong> {{ seg.name }}<br>
-                <strong>Шанс:</strong> {{ seg.chance }}%<br>
-                <strong>Действие:</strong> {{ seg.action }}<br>
+            <div class="segment-card">
+                <div class="segment-title">🎯 {{ seg.name }}</div>
 
-                <form method="POST" style="margin-top:5px;">
-                  <input type="hidden" name="delete_segment" value="{{ rule.id }}">
-                  <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
-                  <button type="submit" class="delete">Удалить сегмент</button>
+                <div class="segment-action">
+                    <strong>Действие:</strong> {{ seg.action }}
+                </div>
+
+                <div class="segment-chance-bar">
+                    <div class="segment-chance-fill" style="width: {{ seg.chance }}%;"></div>
+                </div>
+
+                <small style="color:#555;">Шанс: {{ seg.chance }}%</small>
+
+                <form method="POST" style="margin-top:10px;">
+                    <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+                    <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+                    <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
                 </form>
-              </div>
+            </div>
             {% endfor %}
+
           {% else %}
             <p style="color:#777;">Сегментов пока нет</p>
           {% endif %}
@@ -412,6 +509,14 @@
         sel.addEventListener("change", () => updateRuleFields(sel));
     });
   </script>
+
+  <script>
+  function toggleWheel(id) {
+      const block = document.getElementById("wheel-" + id);
+      block.style.display = block.style.display === "none" ? "block" : "none";
+  }
+  </script>
+
 
 </body>
 </html>
