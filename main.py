@@ -24,8 +24,8 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = CONFIG["secret_key"]
     app.config.update(
-        SESSION_COOKIE_SECURE=True,
-        SESSION_COOKIE_SAMESITE="None"
+        SESSION_COOKIE_SECURE=False,
+        SESSION_COOKIE_SAMESITE="Lax"
     )
     CORS(app)
 
