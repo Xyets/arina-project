@@ -15,9 +15,6 @@ from services.maintenance_service import periodic_backup_cleanup
 from config import CONFIG
 from services.database import init_db
 
-def create_app():
-    init_db()
-    ...
 
 
 def create_app():
