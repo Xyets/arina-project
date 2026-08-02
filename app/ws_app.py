@@ -67,12 +67,8 @@ def ws_send(data, role=None, profile_key=None):
         if profile_key and CLIENT_PROFILES.get(ws) != profile_key:
             continue
 
-        # НОВАЯ ПРАВИЛЬНАЯ ПРОВЕРКА
-        if ws.closed_code is not None:
-            dead_sockets.append(ws)
-            continue
-
         try:
+            # единственный корректный способ проверить сокет в websockets 12.x+
             future = asyncio.run_coroutine_threadsafe(ws.send(message), WS_EVENT_LOOP)
         except Exception as e:
             print("❌ ws_send error:", e)
