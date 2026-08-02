@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>OBS Колесо фортуны</title>
+  <title>SVG Колесо фортуны</title>
   <style>
     body {
       margin: 0;
@@ -10,15 +10,15 @@
       overflow: hidden;
     }
 
-    #wheelCanvas {
-      position:absolute;
-      top:50%;
-      left:50%;
-      transform:translate(-50%, -50%);
-      display:none;
+    #wheelSvg {
+      width: 500px;
+      height: 500px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
-    /* Неподвижное сердечко */
     #pointer {
       position:absolute;
       top:50%;
@@ -32,107 +32,82 @@
 </head>
 <body>
 
-  <!-- Сердечко -->
-  <img id="pointer" src="data:image/svg+xml;utf8,
-  <svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'>
-    <path d='M30 10 C40 0 55 0 55 20 C55 35 40 50 30 55 C20 50 5 35 5 20 C5 0 20 0 30 10 Z'
-          fill='%2300FF00' stroke='%23008800' stroke-width='3'/>
-  </svg>' />
+<img id="pointer" src="data:image/svg+xml;utf8,
+<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'>
+  <path d='M30 10 C40 0 55 0 55 20 C55 35 40 50 30 55 C20 50 5 35 5 20 C5 0 20 0 30 10 Z'
+        fill='%2300FF00' stroke='%23008800' stroke-width='3'/>
+</svg>' />
 
-  <!-- Canvas для колеса -->
-  <canvas id="wheelCanvas" width="500" height="500"></canvas>
+<svg id="wheelSvg" viewBox="0 0 400 400">
+  <g id="segments"></g>
 
-  <!-- Winwheel.js -->
-  <script src="https://cdn.jsdelivr.net/npm/winwheel@2.8.0/dist/Winwheel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <!-- SMIL-анимация вращения -->
+  <animateTransform
+      id="spinAnim"
+      attributeName="transform"
+      attributeType="XML"
+      type="rotate"
+      from="0 200 200"
+      to="0 200 200"
+      dur="4s"
+      fill="freeze"
+      begin="indefinite" />
+</svg>
 
-  <script>
-    const profileKey = "{{ profile_key }}";
+<script>
+function drawWheel(segments) {
+    const g = document.getElementById("segments");
+    g.innerHTML = "";
 
-    const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
+    const count = segments.length;
+    const angle = 360 / count;
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        type: "hello",
-        role: "obs",
-        profile_key: profileKey
-      }));
-    };
+    for (let i = 0; i < count; i++) {
+        const start = (i * angle) * Math.PI / 180;
+        const end = ((i + 1) * angle) * Math.PI / 180;
 
-    ws.onmessage = (event) => {
-      let data;
-      try { data = JSON.parse(event.data); } catch { return; }
+        const x1 = 200 + Math.cos(start) * 170;
+        const y1 = 200 + Math.sin(start) * 170;
+        const x2 = 200 + Math.cos(end) * 170;
+        const y2 = 200 + Math.sin(end) * 170;
 
-      if (data.type === "wheel_spin" && data.profile === profileKey) {
-        startWheel(data.segments, data.winner_index);
-      }
-    };
+        const path = `
+            M 200 200
+            L ${x1} ${y1}
+            A 170 170 0 0 1 ${x2} ${y2}
+            Z
+        `;
 
-    let wheel;
+        const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
-    function startWheel(segments, winnerIndex) {
-        const canvas = document.getElementById("wheelCanvas");
-        canvas.style.display = "block";
-
-        // Преобразуем сегменты в формат Winwheel
-        const winwheelSegments = segments.map((seg, i) => ({
-            fillStyle: i % 2 === 0 ? "#FFC8DD" : "#FFAFCC",
-            text: seg.action || ""
-        }));
-
-        // Создаём колесо
-        wheel = new Winwheel({
-            canvasId: "wheelCanvas",
-            numSegments: winwheelSegments.length,
-            outerRadius: 240,
-            textFontSize: 22,
-            textAlignment: "outer",
-            segments: winwheelSegments,
-            animation: {
-                type: "spinToStop",
-                duration: 4,
-                spins: 5,
-                callbackFinished: "wheelFinished()"
-            }
-        });
-
-        // Запускаем вращение
-        wheel.startAnimation();
-
-        // Устанавливаем точный сектор
-        wheel.animation.stopAngle = (360 / segments.length) * winnerIndex;
+        g.innerHTML += `
+            <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
+        `;
     }
+}
 
-    function wheelFinished() {
-        const winnerIndex = wheel.getIndicatedSegmentNumber() - 1;
+function spinWheel(segments, winnerIndex) {
+    drawWheel(segments);
 
-        const seg = wheel.segments[winnerIndex];
-        let segmentData;
+    const angle = 360 / segments.length;
+    const finalAngle = (360 * 5) - (winnerIndex * angle);
 
-        if (seg.text && seg.text.trim() !== "") {
-            segmentData = {
-                type: "action",
-                action: seg.text
-            };
-        } else {
-            segmentData = {
-                type: "vibration",
-                strength: 5,
-                duration: 10
-            };
-        }
+    const anim = document.getElementById("spinAnim");
+    anim.setAttribute("from", `0 200 200`);
+    anim.setAttribute("to", `${finalAngle} 200 200`);
+    anim.beginElement();
+}
 
-        ws.send(JSON.stringify({
-            type: "wheel_result",
-            profile: profileKey,
-            segment: segmentData
-        }));
+// ТЕСТ
+const testSegments = [
+    { action: "A" },
+    { action: "B" },
+    { action: "C" },
+    { action: "D" }
+];
 
-        setTimeout(() => {
-            document.getElementById("wheelCanvas").style.display = "none";
-        }, 1000);
-    }
-  </script>
+spinWheel(testSegments, 2);
+</script>
 
 </body>
 </html>
