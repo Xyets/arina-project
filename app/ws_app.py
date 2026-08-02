@@ -52,12 +52,6 @@ def safe_enqueue_vibration(profile_key, strength, duration):
 # ---------------- УТИЛИТА ДЛЯ РАССЫЛКИ ----------------
 
 def ws_send(data, role=None, profile_key=None):
-    """
-    Безопасная отправка сообщений всем подходящим клиентам.
-    - фильтрация по роли и профилю
-    - проверка закрытых сокетов
-    - аккуратная очистка мёртвых соединений
-    """
     if WS_EVENT_LOOP is None:
         print("⚠ ws_send: WS_EVENT_LOOP is None, message skipped:", data)
         return
@@ -66,28 +60,24 @@ def ws_send(data, role=None, profile_key=None):
     dead_sockets = []
 
     for ws in list(CONNECTED_SOCKETS):
-        # фильтрация по роли
+
         if role and CLIENT_TYPES.get(ws) != role:
             continue
 
-        # фильтрация по профилю
         if profile_key and CLIENT_PROFILES.get(ws) != profile_key:
             continue
 
-        # если сокет уже закрыт — помечаем на удаление
-        if ws.closed:
+        # НОВАЯ ПРАВИЛЬНАЯ ПРОВЕРКА
+        if ws.closed_code is not None:
             dead_sockets.append(ws)
             continue
 
         try:
             future = asyncio.run_coroutine_threadsafe(ws.send(message), WS_EVENT_LOOP)
-            # можно добавить timeout, если нужно:
-            # future.result(timeout=1)
         except Exception as e:
             print("❌ ws_send error:", e)
             dead_sockets.append(ws)
 
-    # очистка мёртвых сокетов
     for ws in dead_sockets:
         CONNECTED_SOCKETS.discard(ws)
         CLIENT_TYPES.pop(ws, None)
