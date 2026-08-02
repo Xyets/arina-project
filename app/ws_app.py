@@ -422,51 +422,50 @@ async def handle_get_queue(websocket, data):
 
 async def handle_wheel_result(websocket, data):
     profile_key = data.get("profile")
-    action = data.get("action")
+    seg = data.get("segment")
 
-    # Логи
-    if action.startswith("vibration:"):
-        add_log(profile_key, f"🏰 Вибрация (колесо): {action}")
-    else:
-        add_log(profile_key, f"🎬 Действие (колесо): {action}")
+    if not seg:
+        print("❌ wheel_result: segment missing")
+        return
 
-    # Вибрация
-    if action.startswith("vibration:"):
-        try:
-            _, strength, duration = action.split(":")
-            strength = int(strength)
-            duration = int(duration)
+    seg_type = seg.get("type")
 
-            safe_enqueue_vibration(profile_key, strength, duration)
+    # --- ВИБРАЦИЯ ---
+    if seg_type == "vibration":
+        strength = int(seg.get("strength", 0))
+        duration = int(seg.get("duration", 0))
 
-            ws_send({
-                "queue_update": True,
-                "queue": list(vibration_queues[profile_key]._queue)
-            }, role="panel", profile_key=profile_key)
+        add_log(profile_key, f"🏰 Вибрация (колесо): сила={strength}, время={duration}")
 
-        except Exception as e:
-            print("❌ Ошибка обработки вибрации колеса:", e)
+        safe_enqueue_vibration(profile_key, strength, duration)
 
-    # OBS реакция
-    elif action.startswith("action:"):
-        custom = action.replace("action:", "")
+        ws_send({
+            "queue_update": True,
+            "queue": list(vibration_queues[profile_key]._queue)
+        }, role="panel", profile_key=profile_key)
+
+    # --- ДЕЙСТВИЕ ---
+    elif seg_type == "action":
+        action_text = seg.get("action", "")
+
+        add_log(profile_key, f"🎬 Действие (колесо): {action_text}")
 
         ws_send({
             "reaction": {
-                "image": custom,
+                "image": action_text,
                 "duration": 5
             },
             "profile": profile_key
         }, role="obs", profile_key=profile_key)
 
-    # Повторная попытка
-    elif action == "wheel:retry":
+    # --- ПОВТОР ---
+    elif seg_type == "retry":
         ws_send({
             "type": "wheel_spin_retry",
             "profile": profile_key
         }, role="obs", profile_key=profile_key)
 
-    # Обновить логи
+    # --- ОБНОВИТЬ ЛОГИ ---
     ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
 
 

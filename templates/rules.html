@@ -275,27 +275,42 @@
 
   {% if rule.type == "wheel" %}
   <div class="wheel-segments" id="wheel-{{ rule.id }}" style="display:none; margin-top:10px; padding:10px; border-radius:10px; background:#f7f7f7;">
-      <h4>🎡 Сегменты колеса</h4>
+    <h4>🎡 Сегменты колеса</h4>
 
       {% if rule.segments %}
-          {% for seg in rule.segments %}
-              <div style="border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px;">
-                  <strong>Название:</strong> {{ seg.name }}<br>
-                  <strong>Шанс:</strong> {{ seg.chance }}%<br>
-                  <strong>Действие:</strong> {{ seg.action }}<br>
+        {% for seg in rule.segments %}
+          <div class="segment-card">
+            <div class="segment-title">🎯 {{ seg.name }}</div>
 
-                  <form method="POST" style="margin-top:5px;">
-                      <input type="hidden" name="delete_segment" value="{{ rule.id }}">
-                      <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
-                      <button type="submit" class="delete">Удалить сегмент</button>
-                  </form>
-              </div>
+              {% if seg.type == "vibration" %}
+                <div class="segment-action">
+                  <strong>Вибрация:</strong> сила {{ seg.strength }}, время {{ seg.duration }}s
+                </div>
+              {% elif seg.type == "action" %}
+                <div class="segment-action">
+                  <strong>Действие:</strong> {{ seg.action }}
+                </div>
+              {% endif %}
+
+            <div class="segment-chance-bar">
+              <div class="segment-chance-fill" style="width: {{ seg.chance }}%;"></div>
+            </div>
+
+              <small style="color:#555;">Шанс: {{ seg.chance }}%</small>
+
+              <form method="POST" style="margin-top:10px;">
+                <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+                <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+                <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
+              </form>
+    </div>
+
           {% endfor %}
       {% else %}
           <p style="color:#777;">Сегментов пока нет</p>
       {% endif %}
 
-      <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕ Добавить сегмент</button>
+    <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕ Добавить сегмент</button>
   </div>
   {% endif %}
 
@@ -340,25 +355,25 @@
           {% if rule.segments %}
             {% for seg in rule.segments %}
             <div class="segment-card">
-                <div class="segment-title">🎯 {{ seg.name }}</div>
+              <div class="segment-title">🎯 {{ seg.name }}</div>
 
-                <div class="segment-action">
-                    <strong>Действие:</strong> {{ seg.action }}
-                </div>
+              <div class="segment-action">
+                <strong>Действие:</strong> {{ seg.action }}
+              </div>
 
-                <div class="segment-chance-bar">
-                    <div class="segment-chance-fill" style="width: {{ seg.chance }}%;"></div>
-                </div>
+              <div class="segment-chance-bar">
+                <div class="segment-chance-fill" style="width: {{ seg.chance }}%;"></div>
+              </div>
 
-                <small style="color:#555;">Шанс: {{ seg.chance }}%</small>
+              <small style="color:#555;">Шанс: {{ seg.chance }}%</small>
 
-                <form method="POST" style="margin-top:10px;">
-                    <input type="hidden" name="delete_segment" value="{{ rule.id }}">
-                    <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
-                    <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
-                </form>
-            </div>
-            {% endfor %}
+              <form method="POST" style="margin-top:10px;">
+                <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+                <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+                <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
+              </form>
+          </div>
+          {% endfor %}
 
           {% else %}
             <p style="color:#777;">Сегментов пока нет</p>
@@ -379,16 +394,34 @@
       <h3>➕ Новый сегмент</h3>
 
       <form method="POST">
-        <input type="hidden" name="add_segment" value="{{ rule.id }}">
+          <input type="hidden" name="add_segment" value="{{ rule.id }}">
 
-        Название: <input type="text" name="seg_name" required><br>
-        Шанс (%): <input type="number" name="seg_chance" required><br>
-        Действие: <input type="text" name="seg_action" required><br>
+          Название: <input type="text" name="seg_name" required><br>
+          Шанс (%): <input type="number" name="seg_chance" required><br>
 
-        <button type="submit">💾 Добавить</button>
+          Тип:
+          <select name="seg_type" onchange="updateSegmentFields(this)">
+              <option value="vibration">Вибрация</option>
+              <option value="action">Действие</option>
+          </select><br>
+
+          <div class="seg-vibration-fields">
+              Сила: <input type="number" name="seg_strength"><br>
+              Время (сек): <input type="number" name="seg_duration"><br>
+          </div>
+
+          <div class="seg-action-fields hidden">
+              Действие: <input type="text" name="seg_action"><br>
+          </div>
+
+          <button type="submit">💾 Добавить</button>
       </form>
     </div>
   </div>
+
+
+
+
 
   {% endfor %}
 
@@ -514,6 +547,23 @@
   function toggleWheel(id) {
       const block = document.getElementById("wheel-" + id);
       block.style.display = block.style.display === "none" ? "block" : "none";
+  }
+  </script>
+  <script>
+  function updateSegmentFields(selectEl) {
+      const type = selectEl.value;
+      const modal = selectEl.closest(".modal-content");
+
+      const vib = modal.querySelector(".seg-vibration-fields");
+      const act = modal.querySelector(".seg-action-fields");
+
+      if (type === "vibration") {
+          vib.classList.remove("hidden");
+          act.classList.add("hidden");
+      } else {
+          vib.classList.add("hidden");
+          act.classList.remove("hidden");
+      }
   }
   </script>
 
