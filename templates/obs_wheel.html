@@ -10,23 +10,24 @@
       overflow: hidden;
     }
 
-    #wheel {
+    #wheelWrapper {
       position:absolute;
       top:50%;
       left:50%;
       transform:translate(-50%, -50%);
-      display:none;
-    }
-
-    #wheelSvg {
       width:500px;
       height:500px;
+      display:none;
 
-      /* КРИТИЧЕСКОЕ — вращение работает на SVG */
+      /* КРИТИЧЕСКОЕ — вращение работает на DIV */
       transform-origin: 50% 50%;
     }
 
-    /* Сердечко НЕ должно вращаться */
+    #wheelSvg {
+      width:100%;
+      height:100%;
+    }
+
     #pointer {
       transform-origin: 50% 50%;
       transform: rotate(0deg) !important;
@@ -35,8 +36,8 @@
 </head>
 <body>
 
-  <div id="wheel">
-    <svg id="wheelSvg" width="500" height="500" viewBox="0 0 400 400">
+  <div id="wheelWrapper">
+    <svg id="wheelSvg" viewBox="0 0 400 400">
 
       <!-- ВНЕШНИЙ КРУГ -->
       <circle cx="200" cy="200" r="170"
@@ -76,11 +77,10 @@
     };
 
     function startWheel(segments, winnerIndex) {
-        const wheel = document.getElementById("wheel");
+        const wrapper = document.getElementById("wheelWrapper");
         const segGroup = document.getElementById("wheelSegments");
-        const svg = document.getElementById("wheelSvg");
 
-        wheel.style.display = "block";
+        wrapper.style.display = "block";
         segGroup.innerHTML = "";
 
         const count = segments.length;
@@ -110,12 +110,12 @@
             `;
         }
 
-        // Плавное вращение — ВРАЩАЕМ ВЕСЬ SVG
+        // Плавное вращение — ВРАЩАЕМ DIV
         const fullTurns = 360 * 5;
         const finalAngle = fullTurns - (winnerIndex * angle);
 
-        svg.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
-        svg.style.transform = `rotate(${finalAngle}deg)`;
+        wrapper.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
+        wrapper.style.transform = `translate(-50%, -50%) rotate(${finalAngle}deg)`;
 
         // После остановки отправляем wheel_result
         setTimeout(() => {
@@ -134,10 +134,10 @@
                 segment: segmentData
             }));
 
-            // Сброс SVG
+            // Сброс
             setTimeout(() => {
-                wheel.style.display = "none";
-                svg.style.transform = "rotate(0deg)";
+                wrapper.style.display = "none";
+                wrapper.style.transform = "translate(-50%, -50%) rotate(0deg)";
             }, 1000);
 
         }, 4200);
