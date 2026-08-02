@@ -61,7 +61,9 @@ ws.onmessage = (event) => {
   try { data = JSON.parse(event.data); } catch { return; }
 
   if (data.type === "wheel_spin" && data.profile === profileKey) {
-      spinWheel(data.segments, data.winner_index);
+      const winnerIndex = Math.floor(Math.random() * data.segments.length);
+      spinWheel(data.segments, winnerIndex);
+
   }
 };
 
