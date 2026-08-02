@@ -106,27 +106,40 @@ function spinWheel(segments, winnerIndex) {
 
     const angle = 360 / segments.length;
 
-    // 6 оборотов + остановка
-    const finalAngle = (360 * 6) - (winnerIndex * angle);
+    // 8 оборотов + остановка (дольше, красивее)
+    const finalAngle = (360 * 8) - (winnerIndex * angle);
 
     let rotation = 0;
 
-    // ⭐ В 2 раза медленнее старт
-    let speed = 20;          // было 40 → теперь 20
+    // ⭐ Очень медленный старт
+    let speed = 5;            // было 20 → теперь 5
 
-    let minSpeed = 0.2;      // мягкая остановка
-    let decelStart = finalAngle - 1080; // замедляем за 3 оборота до цели
+    // ⭐ Максимальная скорость (колесо разгонится постепенно)
+    let maxSpeed = 25;        // было 40 → теперь мягче
+
+    // ⭐ Минимальная скорость перед остановкой
+    let minSpeed = 0.15;
+
+    // ⭐ Начинаем замедлять за 4 оборота до цели
+    let decelStart = finalAngle - 1440;
+
     let target = finalAngle;
 
     function animate() {
-        rotation += speed;
 
-        // ⭐ начинаем замедлять раньше
-        if (rotation >= decelStart) {
-            speed *= 0.96; // было 0.97 → теперь сильнее замедляет
+        // ⭐ Плавное ускорение в начале
+        if (speed < maxSpeed && rotation < 360) {
+            speed += 0.3; // ускоряемся очень плавно
         }
 
-        // ⭐ мягкая остановка
+        rotation += speed;
+
+        // ⭐ Плавное замедление заранее
+        if (rotation >= decelStart) {
+            speed *= 0.965; // сильнее замедление
+        }
+
+        // ⭐ Мягкая остановка
         if (speed < minSpeed) {
             rotation = target;
         }
