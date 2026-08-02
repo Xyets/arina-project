@@ -13,10 +13,11 @@ goal_bp = Blueprint("goal", __name__)
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session:
+        if "username" not in session:
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
+
 
 
 # -------------------- GET GOAL --------------------
@@ -24,7 +25,7 @@ def login_required(f):
 @goal_bp.route("/goal_data")
 @login_required
 def goal_data():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
 
     # ❗ В приватном режиме цели нет
@@ -42,7 +43,7 @@ def goal_data():
 @goal_bp.route("/goal_new", methods=["POST"])
 @login_required
 def goal_new():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
 
     if mode == "private":
@@ -104,7 +105,7 @@ def goal_add_points(user: str, amount: float):
 @goal_bp.route("/goal_reset", methods=["POST"])
 @login_required
 def goal_reset():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
 
     if mode == "private":

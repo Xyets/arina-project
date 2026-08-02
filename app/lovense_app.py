@@ -14,10 +14,11 @@ lovense_bp = Blueprint("lovense", __name__)
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session:
+        if "username" not in session:
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
+
 
 
 # -------------------- QR-КОД (АВТОМАТИЧЕСКИЙ) --------------------
@@ -25,7 +26,7 @@ def login_required(f):
 @lovense_bp.route("/qrcode")
 @login_required
 def qrcode_default():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 

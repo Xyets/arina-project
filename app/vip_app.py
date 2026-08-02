@@ -13,10 +13,11 @@ vip_bp = Blueprint("vip", __name__)
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session:
+        if "username" not in session:
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
+
 
 
 # -------------------- REMOVE MEMBER --------------------
@@ -24,7 +25,7 @@ def login_required(f):
 @vip_bp.route("/remove_member", methods=["POST"])
 @login_required
 def remove_member():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
@@ -48,7 +49,7 @@ def remove_member():
 @vip_bp.route("/vip", methods=["GET", "POST"])
 @login_required
 def vip_page():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
@@ -117,7 +118,7 @@ def vip_page():
 @vip_bp.route("/vip_data")
 @login_required
 def vip_data():
-    user = session["user"]
+    user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 

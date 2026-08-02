@@ -19,7 +19,7 @@ STATIC_REACTIONS_DIR = CONFIG["static_reactions_dir"]
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session:
+        if "username" not in session:
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
@@ -30,7 +30,8 @@ def login_required(f):
 @reactions_bp.route("/reactions", methods=["GET", "POST"])
 @login_required
 def reactions_page():
-    user = session["user"]
+    user = session["username"]
+
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 

@@ -16,7 +16,7 @@ rules_bp = Blueprint("rules", __name__)
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session:
+        if "username" not in session:
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
@@ -39,7 +39,8 @@ async def send_ws_vibration(profile_key, strength, duration):
 @rules_bp.route("/test_vibration", methods=["POST"])
 @login_required
 def test_vibration():
-    user = session["user"]
+    user = session["username"]
+
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
@@ -53,7 +54,8 @@ def test_vibration():
 @rules_bp.route("/test_rule/<int:index>", methods=["POST"])
 @login_required
 def test_rule(index):
-    user = session["user"]
+    user = session["username"]
+
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
@@ -100,7 +102,8 @@ def test_rule(index):
 @rules_bp.route("/rules", methods=["GET", "POST"])
 @login_required
 def rules_page():
-    user = session["user"]
+    user = session["username"]
+
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
