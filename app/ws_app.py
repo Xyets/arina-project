@@ -75,14 +75,10 @@ def ws_send(data, role=None, profile_key=None):
             continue
 
         # если сокет уже закрыт — помечаем на удаление
-        try:
-            if not ws.open:
-                dead_sockets.append(ws)
-                continue
-        except Exception:
-            # если объект не имеет .open — считаем его мёртвым
+        if ws.closed:
             dead_sockets.append(ws)
             continue
+
         try:
             future = asyncio.run_coroutine_threadsafe(ws.send(message), WS_EVENT_LOOP)
             # можно добавить timeout, если нужно:
