@@ -30,19 +30,15 @@
     <svg id="wheelSvg" width="500" height="500" viewBox="0 0 500 500">
 
       <!-- ВНЕШНИЙ КРУГ -->
-      <ellipse cx="200" cy="200" rx="170.1" ry="170.1"
-              style="fill:#FFC8DD;stroke:#AF6D85;stroke-width:3;" />
-
-      <!-- ВНУТРЕННИЙ КРУГ -->
-      <ellipse cx="200" cy="200" rx="146.5" ry="146.5"
-              style="fill:transparent;stroke:#AF6D85;stroke-width:3;" />
+      <circle cx="200" cy="200" r="170"
+              fill="#FFE6F0" stroke="#AF6D85" stroke-width="3" />
 
       <!-- СЕГМЕНТЫ -->
       <g id="wheelSegments" transform="translate(200,200) rotate(0)">
       </g>
 
-      <!-- СЕРДЕЧКО -->
-      <g transform="translate(200,50) scale(1.2)">
+      <!-- НЕПОДВИЖНОЕ СЕРДЕЧКО -->
+      <g transform="translate(200,40) scale(1.2)">
         <path d="M44.77,13.26 C56.68,6.28 62.73,3.51 70.57,1.7 C96.83,-0.14 91.45,28.66 87.46,34.74 C76.44,53.85 60.16,68.32 44.77,73.58 C28.58,65.12 12.73,50.17 5.36,34.74 C-4.23,16.8 5.25,3.81 19.24,1.47 C29.23,1.44 38.54,8.76 44.77,13.26 ZM44.77,30.93 C22.22,10.58 15.15,38.83 44.51,51.41 C71.71,44.63 72.47,11.54 44.77,30.93 Z"
               fill="#E91E68" stroke="#B2154E" stroke-width="3" />
       </g>
@@ -53,7 +49,6 @@
   <script>
     const profileKey = "{{ profile_key }}";
 
-    // ⭐ ТВОЙ РАБОЧИЙ WebSocket
     const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
     ws.onopen = () => {
@@ -83,20 +78,20 @@
         const count = segments.length;
         const angle = 360 / count;
 
-        // Рисуем сегменты
+        // Рисуем минималистичные сегменты
         for (let i = 0; i < count; i++) {
             const start = (i * angle) * Math.PI / 180;
             const end = ((i + 1) * angle) * Math.PI / 180;
 
-            const x1 = Math.cos(start) * 180;
-            const y1 = Math.sin(start) * 180;
-            const x2 = Math.cos(end) * 180;
-            const y2 = Math.sin(end) * 180;
+            const x1 = Math.cos(start) * 170;
+            const y1 = Math.sin(start) * 170;
+            const x2 = Math.cos(end) * 170;
+            const y2 = Math.sin(end) * 170;
 
             const path = `
                 M 0 0
                 L ${x1} ${y1}
-                A 180 180 0 0 1 ${x2} ${y2}
+                A 170 170 0 0 1 ${x2} ${y2}
                 Z
             `;
 
@@ -107,7 +102,7 @@
             `;
         }
 
-        // Анимация вращения
+        // Плавное вращение с замедлением
         const fullTurns = 360 * 5;
         const finalAngle = fullTurns - (winnerIndex * angle);
 
@@ -121,14 +116,12 @@
             const seg = segments[winnerIndex];
             let segmentData;
 
-            // Если сегмент содержит текст действия → это действие
             if (seg.action && seg.action.trim() !== "") {
                 segmentData = {
                     type: "action",
                     action: seg.action
                 };
             } else {
-                // Если действие пустое → это вибрация по умолчанию
                 segmentData = {
                     type: "vibration",
                     strength: 5,
@@ -142,14 +135,12 @@
                 segment: segmentData
             }));
 
-            // Прячем колесо
             setTimeout(() => {
                 wheel.style.display = "none";
                 segGroup.style.transform = "translate(200px,200px) rotate(0deg)";
             }, 1000);
 
         }, 4200);
-
     }
 
   </script>
