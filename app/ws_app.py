@@ -1,4 +1,7 @@
 print("🔥🔥🔥 WS_APP.PY LOADED 🔥🔥🔥")
+if __name__ != "__main__":
+    raise RuntimeError("ws_app.py must not be imported by Flask")
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
