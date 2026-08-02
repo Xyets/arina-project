@@ -224,8 +224,12 @@
         Мин: <input type="number" name="min" value="{{ rule.min }}" required><br>
         Макс: <input type="number" name="max" value="{{ rule.max }}" required><br>
 
-        Сила: <input type="number" name="strength" value="{{ rule.strength }}"><br>
-        Время: <input type="number" name="duration" value="{{ rule.duration }}"><br>
+        <div class="field-strength">
+          Сила: <input type="number" name="strength" value="{{ rule.strength }}">
+        </div>
+        <div class="field-duration">
+          Время: <input type="number" name="duration" value="{{ rule.duration }}">
+        </div>
 
         Тип:
         <select name="action_type">
@@ -234,7 +238,10 @@
           <option value="wheel" {% if rule.type == "wheel" %}selected{% endif %}>Колесо фортуны</option>
         </select><br>
 
-        Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
+        <div class="field-action">
+          Действие: <input type="text" name="action" value="{{ rule.action }}">
+        </div>
+        <br>
 
         <!-- Блок сегментов -->
         <div class="segments-block{% if rule.type != 'wheel' %} hidden{% endif %}" data-wheel-block>
