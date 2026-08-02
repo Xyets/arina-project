@@ -80,7 +80,8 @@ def test_rule(index):
         winner = segments[winner_index]
 
         # отправляем команду OBS запустить колесо
-        from ws_app import ws_send
+        from app.ws_app import ws_send
+
         ws_send({
             "type": "wheel_spin",
             "profile": profile_key,
