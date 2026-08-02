@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Колесо фортуны</title>
+<style>
+    body {
+        background: transparent;
+        margin: 0;
+        overflow: hidden;
+    }
+    #wheel {
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        border: 10px solid #fff;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: transform 4s ease-out;
+    }
+    #pointer {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-left: 30px solid transparent;
+        border-right: 30px solid transparent;
+        border-bottom: 60px solid red;
+        transform: translate(-50%, -300px);
+    }
+</style>
+</head>
+<body>
+
+<div id="pointer"></div>
+<canvas id="wheel" width="600" height="600"></canvas>
+
+<script>
+const ws = new WebSocket("ws://127.0.0.1:8765");
+
+ws.onopen = () => {
+    ws.send(JSON.stringify({
+        type: "hello",
+        role: "obs",
+        profile_key: "{{ profile_key }}"
+    }));
+};
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "wheel_spin") {
+        spinWheel(data);
+    }
+};
+
+function spinWheel(data) {
+    const segments = data.segments;
+    const winnerIndex = data.winner_index;
+
+    drawWheel(segments);
+
+    const wheel = document.getElementById("wheel");
+
+    const segmentAngle = 360 / segments.length;
+    const finalAngle = 360 * 5 + (360 - winnerIndex * segmentAngle);
+
+    wheel.style.transform = `translate(-50%, -50%) rotate(${finalAngle}deg)`;
+
+    setTimeout(() => {
+        ws.send(JSON.stringify({
+            type: "wheel_result",
+            profile: data.profile,
+            segment: segments[winnerIndex]
+        }));
+    }, 4500);
+}
+
+function drawWheel(segments) {
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const count = segments.length;
+    const angle = 2 * Math.PI / count;
+
+    for (let i = 0; i < count; i++) {
+        ctx.beginPath();
+        ctx.moveTo(300, 300);
+        ctx.arc(300, 300, 300, i * angle, (i + 1) * angle);
+        ctx.fillStyle = i % 2 === 0 ? "#ff8" : "#8f8";
+        ctx.fill();
+        ctx.save();
+        ctx.translate(300, 300);
+        ctx.rotate(i * angle + angle / 2);
+        ctx.fillStyle = "#000";
+        ctx.font = "20px Arial";
+        ctx.fillText(segments[i].name, 100, 10);
+        ctx.restore();
+    }
+}
+</script>
+
+</body>
+</html>

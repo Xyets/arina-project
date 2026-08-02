@@ -52,3 +52,15 @@ def obs_goal(user, mode):
         return render_template("obs_goal_arina.html", profile_key=profile_key)
     else:
         return render_template("obs_goal_irina.html", profile_key=profile_key)
+
+@obs_bp.route("/obs_wheel/<user>/<mode>")
+def obs_wheel(user, mode):
+    if mode not in ("private", "public"):
+        return abort(404)
+
+    profile_key = f"{user}_{mode}"
+
+    if profile_key not in CONFIG["profiles"]:
+        return abort(404)
+
+    return render_template("obs_wheel.html", profile_key=profile_key)
