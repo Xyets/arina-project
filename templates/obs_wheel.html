@@ -105,25 +105,26 @@ function spinWheel(segments, winnerIndex) {
     svg.style.display = "block";
 
     const angle = 360 / segments.length;
-    const finalAngle = (360 * 5) - (winnerIndex * angle);
+
+    // 6 полных оборотов + остановка на winnerIndex
+    const finalAngle = (360 * 6) - (winnerIndex * angle);
 
     let rotation = 0;
-    let speed = 25;
+    let speed = 40;          // начальная скорость (медленнее)
+    let minSpeed = 0.3;      // минимальная скорость перед остановкой
+    let decelStart = finalAngle - 720; // начинаем замедлять за 2 оборота до цели
     let target = finalAngle;
-    let slowing = false;
 
     function animate() {
         rotation += speed;
 
-        if (rotation >= target - 360) {
-            slowing = true;
+        // начинаем замедлять заранее
+        if (rotation >= decelStart) {
+            speed *= 0.97; // плавное замедление
         }
 
-        if (slowing) {
-            speed *= 0.97;
-        }
-
-        if (speed < 0.5) {
+        // когда скорость стала маленькой — мягко доводим до цели
+        if (speed < minSpeed) {
             rotation = target;
         }
 
