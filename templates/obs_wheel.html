@@ -123,20 +123,14 @@ function drawWheel(segments) {
     }
 }
 
-function sendResult(seg) {
+function sendResult(winnerIndex) {
     ws.send(JSON.stringify({
         type: "wheel_result",
         profile: profileKey,
-        segment: {
-            name: seg.name,
-            type: seg.type,          // vibration / action / retry
-            strength: seg.strength,  // сила вибрации
-            duration: seg.duration,  // время вибрации
-            action: seg.action,      // текст действия
-            chance: seg.chance       // шанс сегмента
-        }
+        winner_index: winnerIndex
     }));
 }
+
 
 function spinWheel(segments, winnerIndex) {
     drawWheel(segments);
@@ -177,7 +171,7 @@ function spinWheel(segments, winnerIndex) {
 
             g.setAttribute("transform", `rotate(${rotation} 200 200)`);
 
-            sendResult(segments[winnerIndex]);
+            sendResult(winnerIndex);
 
             setTimeout(() => {
                 svg.style.display = "none";
