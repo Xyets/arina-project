@@ -114,20 +114,42 @@
         segGroup.style.transition = "transform 4s cubic-bezier(.17,.67,.83,.67)";
         segGroup.style.transform = `translate(200px,200px) rotate(${finalAngle}deg)`;
 
+
         // После остановки отправляем wheel_result
         setTimeout(() => {
+
+            const seg = segments[winnerIndex];
+            let segmentData;
+
+            // Если сегмент содержит текст действия → это действие
+            if (seg.action && seg.action.trim() !== "") {
+                segmentData = {
+                    type: "action",
+                    action: seg.action
+                };
+            } else {
+                // Если действие пустое → это вибрация по умолчанию
+                segmentData = {
+                    type: "vibration",
+                    strength: 5,
+                    duration: 10
+                };
+            }
+
             ws.send(JSON.stringify({
                 type: "wheel_result",
                 profile: profileKey,
-                segment: segments[winnerIndex]
+                segment: segmentData
             }));
 
+            // Прячем колесо
             setTimeout(() => {
                 wheel.style.display = "none";
                 segGroup.style.transform = "translate(200px,200px) rotate(0deg)";
             }, 1000);
 
         }, 4200);
+
     }
 
   </script>
