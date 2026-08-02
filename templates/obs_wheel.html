@@ -106,40 +106,40 @@ function spinWheel(segments, winnerIndex) {
 
     const angle = 360 / segments.length;
 
-    // 8 оборотов + остановка (дольше, красивее)
+    // 8 оборотов + остановка
     const finalAngle = (360 * 8) - (winnerIndex * angle);
 
     let rotation = 0;
 
     // ⭐ Очень медленный старт
-    let speed = 5;            // было 20 → теперь 5
+    let speed = 5;
 
-    // ⭐ Максимальная скорость (колесо разгонится постепенно)
-    let maxSpeed = 25;        // было 40 → теперь мягче
+    // ⭐ Плавное ускорение
+    let maxSpeed = 25;
 
-    // ⭐ Минимальная скорость перед остановкой
+    // ⭐ Мягкая остановка
     let minSpeed = 0.15;
 
-    // ⭐ Начинаем замедлять за 4 оборота до цели
+    // ⭐ Замедление за 4 оборота до цели
     let decelStart = finalAngle - 1440;
 
     let target = finalAngle;
 
     function animate() {
 
-        // ⭐ Плавное ускорение в начале
+        // Плавное ускорение в начале
         if (speed < maxSpeed && rotation < 360) {
-            speed += 0.3; // ускоряемся очень плавно
+            speed += 0.3;
         }
 
         rotation += speed;
 
-        // ⭐ Плавное замедление заранее
+        // Плавное замедление заранее
         if (rotation >= decelStart) {
-            speed *= 0.965; // сильнее замедление
+            speed *= 0.965;
         }
 
-        // ⭐ Мягкая остановка
+        // Мягкая остановка
         if (speed < minSpeed) {
             rotation = target;
         }
@@ -149,10 +149,12 @@ function spinWheel(segments, winnerIndex) {
         if (rotation < target) {
             requestAnimationFrame(animate);
         } else {
+            // ⭐ ОСТАНОВИЛОСЬ — показываем 3 секунды
             sendResult(segments[winnerIndex]);
+
             setTimeout(() => {
                 svg.style.display = "none";
-            }, 1000);
+            }, 3000); // ← 3 секунды пауза
         }
     }
 
