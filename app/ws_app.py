@@ -299,15 +299,13 @@ async def handle_viewer_event(websocket, data):
         total = profile.get("total", 0)
         login_count = profile.get("login_count", 0)
         prev_login = profile.get("_previous_login", "нет данных")
-        last_login = profile.get("last_login", "нет данных")
 
         log_message = (
-            f"🔵 LOGIN | {name} (ID: {viewer_id}) | "
-            f"Заметки: {notes} | "
-            f"Донаты: {total} | "
+            f"🔵 LOGIN | {name} | "
+            f"📝 {notes} | "
+            f"💗 {total} | "
             f"Предыдущий вход: {prev_login} | "
-            f"Текущий вход: {last_login} | "
-            f"Входов всего: {login_count}"
+            f"Входов: {login_count}"
         )
 
         add_log(profile_key, log_message)
