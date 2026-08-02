@@ -162,13 +162,16 @@ function spinWheel(segments, winnerIndex) {
 
             g.setAttribute("transform", `rotate(${rotation} 200 200)`);
 
+            // ⭐ Отправляем выигравший сегмент
+            sendResult(segments[winnerIndex]);
+
+            // ⭐ Ждём 3 секунды
             setTimeout(() => {
                 svg.style.display = "none";
             }, 3000);
 
             return;
         }
-
         g.setAttribute("transform", `rotate(${rotation} 200 200)`);
 
         requestAnimationFrame(animate);
