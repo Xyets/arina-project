@@ -461,7 +461,20 @@
         const ruleIndex = btn.getAttribute("data-index");
         fetch(`/test_rule/${ruleIndex}`, { method: "POST" })
           .then(r => r.json())
-          .then(data => showToast(data.message || `Правило ${ruleIndex} проверено ✅`))
+          .then(data => {
+            showToast(data.message || `Правило ${ruleIndex} проверено ✅`);
+
+            // Если правило — колесо фортуны, отправляем в WebSocket
+            if (data.wheel_result) {
+              ws.send(JSON.stringify({
+                type: "wheel_result",
+                profile: data.wheel_result.profile,
+                segment: data.wheel_result.segment
+              }));
+            }
+          })
+
+
           .catch(() => showToast("Ошибка при проверке ❌"));
       });
     });
