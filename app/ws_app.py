@@ -477,6 +477,8 @@ async def handle_wheel_result(websocket, data):
             "type": "wheel_spin_retry",
             "profile": profile_key
         }, role="obs", profile_key=profile_key)
+
+        add_log(profile_key, "🔁 Колесо: повтор")
         return
 
 
