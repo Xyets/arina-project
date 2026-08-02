@@ -96,70 +96,56 @@ function drawWheel(segments) {
     }
 }
 
-function spinWheel(segments, winnerIndex) {
-    drawWheel(segments);
-
-    const svg = document.getElementById("wheelSvg");
+function drawWheel(segments) {
     const g = document.getElementById("segments");
-
-    svg.style.display = "block";
+    g.innerHTML = "";
 
     const count = segments.length;
     const angle = 360 / count;
 
-    // ⭐ СЕРДЕЧКО СМОТРИТ ВВЕРХ → значит сектор 0 должен быть ровно сверху
-    // Поэтому мы добавляем -angle/2 чтобы сердечко попадало в центр сегмента
-    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2;
+    for (let i = 0; i < count; i++) {
+        const start = (i * angle) * Math.PI / 180;
+        const end = ((i + 1) * angle) * Math.PI / 180;
 
-    let rotation = 0;
+        const x1 = 200 + Math.cos(start) * 170;
+        const y1 = 200 + Math.sin(start) * 170;
+        const x2 = 200 + Math.cos(end) * 170;
+        const y2 = 200 + Math.sin(end) * 170;
 
-    let speed = 5;        // медленный старт
-    let maxSpeed = 25;    // плавное ускорение
-    let minSpeed = 0.2;   // мягкая остановка
+        const path = `
+            M 200 200
+            L ${x1} ${y1}
+            A 170 170 0 0 1 ${x2} ${y2}
+            Z
+        `;
 
-    let decelStart = finalAngle - 1440; // замедление за 4 оборота
+        const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
-    let stopped = false;
+        // ⭐ Текст сегмента
+        const label = segments[i].name || segments[i].action || "";
 
-    function animate() {
+        // ⭐ Угол для текста — середина сегмента
+        const textAngle = (i * angle) + angle / 2;
 
-        if (stopped) return;
+        // ⭐ Координаты текста (внутри сегмента)
+        const textRadius = 110; // расстояние от центра
+        const tx = 200 + Math.cos(textAngle * Math.PI / 180) * textRadius;
+        const ty = 200 + Math.sin(textAngle * Math.PI / 180) * textRadius;
 
-        // ⭐ Плавное ускорение
-        if (speed < maxSpeed && rotation < 360) {
-            speed += 0.3;
-        }
+        g.innerHTML += `
+            <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
 
-        rotation += speed;
-
-        // ⭐ Плавное замедление
-        if (rotation >= decelStart) {
-            speed *= 0.965;
-        }
-
-        // ⭐ Мягкая остановка — БЕЗ ПЕРЕСКОКА
-        if (speed < minSpeed) {
-            stopped = true;
-
-            // ❗ ВАЖНО: НЕ меняем rotation → НЕТ скачка
-            // ❗ Просто фиксируем текущий угол
-            g.setAttribute("transform", `rotate(${rotation} 200 200)`);
-
-            sendResult(segments[winnerIndex]);
-
-            setTimeout(() => {
-                svg.style.display = "none";
-            }, 3000);
-
-            return;
-        }
-
-        g.setAttribute("transform", `rotate(${rotation} 200 200)`);
-
-        requestAnimationFrame(animate);
+            <text x="${tx}" y="${ty}"
+                  font-size="26"
+                  font-family="Arial"
+                  fill="#333"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  transform="rotate(${textAngle} ${tx} ${ty})">
+                ${label}
+            </text>
+        `;
     }
-
-    animate();
 }
 
 function sendResult(seg) {
