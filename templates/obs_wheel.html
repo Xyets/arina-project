@@ -104,62 +104,54 @@ function spinWheel(segments, winnerIndex) {
 
     svg.style.display = "block";
 
-    const angle = 360 / segments.length;
+    const count = segments.length;
+    const angle = 360 / count;
 
-    // 8 оборотов + остановка
-    const finalAngle = (360 * 8) - (winnerIndex * angle);
+    // ⭐ СЕРДЕЧКО СМОТРИТ ВВЕРХ → значит сектор 0 должен быть ровно сверху
+    // Поэтому мы добавляем -angle/2 чтобы сердечко попадало в центр сегмента
+    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2;
 
     let rotation = 0;
 
-    // ⭐ Очень медленный старт
-    let speed = 5;
+    let speed = 5;        // медленный старт
+    let maxSpeed = 25;    // плавное ускорение
+    let minSpeed = 0.2;   // мягкая остановка
 
-    // ⭐ Плавное ускорение
-    let maxSpeed = 25;
+    let decelStart = finalAngle - 1440; // замедление за 4 оборота
 
-    // ⭐ Мягкая остановка
-    let minSpeed = 0.15;
-
-    // ⭐ Замедление за 4 оборота до цели
-    let decelStart = finalAngle - 1440;
-
-    let target = finalAngle;
-
-    let stopped = false; // ← ключевой флаг
+    let stopped = false;
 
     function animate() {
 
-        if (stopped) return; // ← если остановлено — больше НИ ОДНОГО кадра
+        if (stopped) return;
 
-        // Плавное ускорение в начале
+        // ⭐ Плавное ускорение
         if (speed < maxSpeed && rotation < 360) {
             speed += 0.3;
         }
 
         rotation += speed;
 
-        // Плавное замедление заранее
+        // ⭐ Плавное замедление
         if (rotation >= decelStart) {
             speed *= 0.965;
         }
 
-        // Мягкая остановка
+        // ⭐ Мягкая остановка — БЕЗ ПЕРЕСКОКА
         if (speed < minSpeed) {
-            rotation = target;
-
-            // ⭐ ЖЁСТКАЯ ОСТАНОВКА — НИ ОДНОГО ЛИШНЕГО КАДРА
             stopped = true;
 
-            g.setAttribute("transform", `rotate(${target} 200 200)`);
+            // ❗ ВАЖНО: НЕ меняем rotation → НЕТ скачка
+            // ❗ Просто фиксируем текущий угол
+            g.setAttribute("transform", `rotate(${rotation} 200 200)`);
 
-            // показываем 3 секунды
             sendResult(segments[winnerIndex]);
 
             setTimeout(() => {
                 svg.style.display = "none";
             }, 3000);
 
-            return; // ← выходим, НЕ вызываем requestAnimationFrame
+            return;
         }
 
         g.setAttribute("transform", `rotate(${rotation} 200 200)`);
