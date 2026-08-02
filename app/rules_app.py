@@ -199,11 +199,26 @@ def rules_page():
                 if "segments" not in r:
                     r["segments"] = []
 
-                r["segments"].append({
+                seg_type = request.form["seg_type"]  # vibration / action / retry
+
+                segment = {
                     "name": request.form["seg_name"],
                     "chance": int(request.form["seg_chance"]),
-                    "action": request.form["seg_action"]
-                })
+                    "type": seg_type
+                }
+
+                if seg_type == "vibration":
+                    segment["strength"] = int(request.form["seg_strength"])
+                    segment["duration"] = int(request.form["seg_duration"])
+
+                elif seg_type == "action":
+                    segment["action"] = request.form["seg_action"]
+
+                elif seg_type == "retry":
+                    segment["action"] = ""  # не нужно, но пусть будет
+
+                r["segments"].append(segment)
+
 
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))

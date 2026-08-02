@@ -403,7 +403,9 @@
           <select name="seg_type" onchange="updateSegmentFields(this)">
               <option value="vibration">Вибрация</option>
               <option value="action">Действие</option>
-          </select><br>
+              <option value="retry">Повтор</option>
+          </select>
+
 
           <div class="seg-vibration-fields">
               Сила: <input type="number" name="seg_strength"><br>
@@ -413,6 +415,11 @@
           <div class="seg-action-fields hidden">
               Действие: <input type="text" name="seg_action"><br>
           </div>
+
+          <div class="seg-retry-fields hidden">
+              <p style="color:#777;">Этот сегмент просто повторяет колесо.</p>
+          </div>
+
 
           <button type="submit">💾 Добавить</button>
       </form>
@@ -562,23 +569,26 @@
       block.style.display = block.style.display === "none" ? "block" : "none";
   }
   </script>
-  <script>
-  function updateSegmentFields(selectEl) {
-      const type = selectEl.value;
-      const modal = selectEl.closest(".modal-content");
+<script>
+function updateSegmentFields(selectEl) {
+    const modal = selectEl.closest(".modal-content");
 
-      const vib = modal.querySelector(".seg-vibration-fields");
-      const act = modal.querySelector(".seg-action-fields");
+    const vib = modal.querySelector(".seg-vibration-fields");
+    const act = modal.querySelector(".seg-action-fields");
+    const retry = modal.querySelector(".seg-retry-fields");
 
-      if (type === "vibration") {
-          vib.classList.remove("hidden");
-          act.classList.add("hidden");
-      } else {
-          vib.classList.add("hidden");
-          act.classList.remove("hidden");
-      }
-  }
-  </script>
+    // Скрываем всё
+    vib.classList.add("hidden");
+    act.classList.add("hidden");
+    retry.classList.add("hidden");
+
+    // Показываем нужное
+    if (selectEl.value === "vibration") vib.classList.remove("hidden");
+    if (selectEl.value === "action") act.classList.remove("hidden");
+    if (selectEl.value === "retry") retry.classList.remove("hidden");
+}
+</script>
+
 
 
 </body>
