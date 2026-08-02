@@ -123,6 +123,14 @@ function drawWheel(segments) {
     }
 }
 
+function sendResult(seg) {
+    ws.send(JSON.stringify({
+        type: "wheel_result",
+        profile: profileKey,
+        segment: seg
+    }));
+}
+
 function spinWheel(segments, winnerIndex) {
     drawWheel(segments);
 
@@ -162,16 +170,15 @@ function spinWheel(segments, winnerIndex) {
 
             g.setAttribute("transform", `rotate(${rotation} 200 200)`);
 
-            // ⭐ Отправляем выигравший сегмент
             sendResult(segments[winnerIndex]);
 
-            // ⭐ Ждём 3 секунды
             setTimeout(() => {
                 svg.style.display = "none";
             }, 3000);
 
             return;
         }
+
         g.setAttribute("transform", `rotate(${rotation} 200 200)`);
 
         requestAnimationFrame(animate);
