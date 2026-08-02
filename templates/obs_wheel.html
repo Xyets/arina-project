@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>SVG Колесо фортуны</title>
+  <title>Колесо фортуны</title>
   <style>
     body {
       margin: 0;
@@ -90,16 +90,13 @@ function drawWheel(segments) {
 
         const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
-        // ⭐ Текст сегмента
         const label =
             (segments[i].name && segments[i].name.trim() !== "")
                 ? segments[i].name
                 : (segments[i].action || "");
 
-        // ⭐ Угол середины сегмента
         const textAngle = (i * angle) + angle / 2;
 
-        // ⭐ Координаты текста
         const textRadius = 110;
         const tx = 200 + Math.cos(textAngle * Math.PI / 180) * textRadius;
         const ty = 200 + Math.sin(textAngle * Math.PI / 180) * textRadius;
@@ -126,27 +123,58 @@ function drawWheel(segments) {
     }
 }
 
-function sendResult(seg) {
-    let segmentData;
+function spinWheel(segments, winnerIndex) {
+    drawWheel(segments);
 
-    if (seg.action && seg.action.trim() !== "") {
-        segmentData = {
-            type: "action",
-            action: seg.action
-        };
-    } else {
-        segmentData = {
-            type: "vibration",
-            strength: 5,
-            duration: 10
-        };
+    const svg = document.getElementById("wheelSvg");
+    const g = document.getElementById("segments");
+
+    svg.style.display = "block";
+
+    const count = segments.length;
+    const angle = 360 / count;
+
+    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2;
+
+    let rotation = 0;
+    let speed = 5;
+    let maxSpeed = 25;
+    let minSpeed = 0.2;
+    let decelStart = finalAngle - 1440;
+
+    let stopped = false;
+
+    function animate() {
+        if (stopped) return;
+
+        if (speed < maxSpeed && rotation < 360) {
+            speed += 0.3;
+        }
+
+        rotation += speed;
+
+        if (rotation >= decelStart) {
+            speed *= 0.965;
+        }
+
+        if (speed < minSpeed) {
+            stopped = true;
+
+            g.setAttribute("transform", `rotate(${rotation} 200 200)`);
+
+            setTimeout(() => {
+                svg.style.display = "none";
+            }, 3000);
+
+            return;
+        }
+
+        g.setAttribute("transform", `rotate(${rotation} 200 200)`);
+
+        requestAnimationFrame(animate);
     }
 
-    ws.send(JSON.stringify({
-        type: "wheel_result",
-        profile: profileKey,
-        segment: segmentData
-    }));
+    animate();
 }
 </script>
 
