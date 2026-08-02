@@ -127,7 +127,14 @@ function sendResult(seg) {
     ws.send(JSON.stringify({
         type: "wheel_result",
         profile: profileKey,
-        segment: seg
+        segment: {
+            name: seg.name,
+            type: seg.type,          // vibration / action / retry
+            strength: seg.strength,  // сила вибрации
+            duration: seg.duration,  // время вибрации
+            action: seg.action,      // текст действия
+            chance: seg.chance       // шанс сегмента
+        }
     }));
 }
 
