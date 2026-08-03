@@ -17,6 +17,10 @@ nano /etc/systemd/system/arina.service
 
 journalctl -u arina_ws.service -n 50 --no-pager
 
+
+lovense_service.py
+
+vibration_manager.py
 d
  тень под внешний круг (	<defs>
 		<filter id="filter_1" style="color-interpolation-filters:sRGB" primitiveUnits="userSpaceOnUse" x="-0.066" y="-0.065" width="1.132" height="1.13">

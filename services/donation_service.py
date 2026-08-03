@@ -1,7 +1,4 @@
-# services/donation_service.py
-
 import json
-from config import CONFIG
 
 from services.redis_client import redis_client
 from services.stats_service import update_stats
@@ -11,13 +8,16 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal
+from app.goal_app import goal_add_points
 
 
 # ---------------- RULES ----------------
 
 def apply_rule(profile_key, amount, text):
-    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
-    rules = load_rules(rules_file)
+    """
+    Применяет правила вибраций/действий/колеса по profile_key.
+    """
+    rules = load_rules(profile_key)
 
     for rule in rules.get("rules", []):
         if rule["min"] <= amount <= rule["max"]:
@@ -40,6 +40,7 @@ def apply_rule(profile_key, amount, text):
                     "text": text,
                 },
             )
+
             # WHEEL
             if rule.get("type") == "wheel":
                 return {"kind": "wheel", "segments": rule.get("segments", [])}
@@ -69,21 +70,17 @@ def handle_donation(profile_key, user_id, name, amount, text):
     rule_result = apply_rule(profile_key, amount, text)
 
     # --- WHEEL ---
-    # --- WHEEL ---
     if rule_result and rule_result["kind"] == "wheel":
         segments = rule_result["segments"]
 
         if segments:
-            # отправляем колесо в OBS — без выбора победителя
             redis_client.publish("obs_reactions", json.dumps({
                 "wheel_spin": True,
                 "profile": profile_key,
                 "segments": segments
             }))
 
-        # возвращаем результат и выходим
         return {"goal": None, "rule": rule_result}
-
 
     # 2. Логируем
     if rule_result and rule_result["kind"] == "action":
@@ -108,17 +105,13 @@ def handle_donation(profile_key, user_id, name, amount, text):
     # 4. VIP обновление
     update_vip(profile_key, user_id, name=name, amount=amount)
 
-    # 5. Обновление цели
+    # 5. Обновление цели (всегда public)
     user = profile_key.split("_")[0]
-    public_key = f"{user}_public"
-    goal_file = CONFIG["profiles"][public_key]["goal_file"]
-
-    from app.goal_app import goal_add_points
     goal_add_points(user, amount)
 
-    goal = load_goal(goal_file)
+    public_key = f"{user}_public"
+    goal = load_goal(public_key)
 
-    # отправляем обновление цели через Redis → ws_app → OBS
     redis_client.publish("obs_reactions", json.dumps({
         "goal_update": True,
         "goal": {
@@ -130,18 +123,15 @@ def handle_donation(profile_key, user_id, name, amount, text):
     }))
 
     # 6. Статистика
-    stats_file = CONFIG["profiles"][profile_key]["stats_file"]
-
     if rule_result and rule_result["kind"] == "action":
-        update_stats(stats_file, "actions", amount)
+        update_stats(profile_key, "actions", amount)
     elif rule_result and rule_result["kind"] == "vibration":
-        update_stats(stats_file, "vibrations", amount)
+        update_stats(profile_key, "vibrations", amount)
     else:
-        update_stats(stats_file, "other", amount)
+        update_stats(profile_key, "other", amount)
 
     # 7. OBS реакции
-    reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
-    reaction_event = apply_reaction_rule(reactions_file, amount)
+    reaction_event = apply_reaction_rule(profile_key, amount)
 
     if reaction_event:
         payload = {

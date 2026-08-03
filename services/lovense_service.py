@@ -2,30 +2,23 @@ import json
 import aiohttp
 from typing import Optional, Dict, Any
 
-from config import CONFIG
 from services.redis_client import redis_client
+from services.database import get_profile_by_key, get_model_by_id
 
 
-# ---------------- ПРОФИЛИ ----------------
+# ---------------- UTOKEN ----------------
 
-def _load_profile(profile_key: str) -> Optional[Dict[str, Any]]:
-    profile = CONFIG["profiles"].get(profile_key)
-    if not profile:
-        print(f"❌ Профиль {profile_key} не найден в CONFIG")
-        return None
-    return profile
-
-
-# ---------------- REDIS ----------------
-
-def _get_utoken_from_redis(uid: str) -> Optional[str]:
-    raw = redis_client.hget("connected_users", uid)
+def _get_utoken(profile_key: str) -> Optional[str]:
+    """
+    Получает utoken из Redis по profile_key.
+    """
+    raw = redis_client.hget("connected_users", profile_key)
     if not raw:
         return None
 
     try:
-        user_data = json.loads(raw)
-        return user_data.get("utoken")
+        data = json.loads(raw)
+        return data.get("utoken")
     except Exception:
         return None
 
@@ -33,12 +26,23 @@ def _get_utoken_from_redis(uid: str) -> Optional[str]:
 # ---------------- CLOUD API ----------------
 
 async def start_vibration_cloud_async(profile_key: str, strength: int, duration: int):
-    profile = _load_profile(profile_key)
+    """
+    Запускает вибрацию через Lovense Cloud API.
+    """
+    profile = get_profile_by_key(profile_key)
     if not profile:
+        print(f"❌ Профиль {profile_key} не найден")
         return
 
-    uid = profile["uid"]
-    utoken = _get_utoken_from_redis(uid)
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        print(f"❌ Модель для профиля {profile_key} не найдена")
+        return
+
+    uid = model["uid"]
+    developer_token = model["lovense_token"]
+    utoken = _get_utoken(profile_key)
+
     if not utoken:
         print(f"❌ [{profile_key}] utoken отсутствует — игрушка не подключена")
         return
@@ -46,31 +50,39 @@ async def start_vibration_cloud_async(profile_key: str, strength: int, duration:
     url = "https://api.lovense.com/api/lan/v2/command"
 
     payload = {
-        "token": profile["DEVELOPER_TOKEN"],
+        "token": developer_token,
         "uid": uid,
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": duration,   # 🔥 снова даём duration в Lovense
+        "timeSec": duration,
     }
 
     try:
         async with aiohttp.ClientSession() as session:
-            await session.post(url, json=payload, timeout=1)
-    except Exception:
-        pass
+            await session.post(url, json=payload, timeout=2)
+    except Exception as e:
+        print("Ошибка Cloud API:", e)
 
 
 async def stop_vibration_cloud_async(profile_key: str):
     """
     Останавливает вибрацию мгновенно.
     """
-    profile = _load_profile(profile_key)
+    profile = get_profile_by_key(profile_key)
     if not profile:
+        print(f"❌ Профиль {profile_key} не найден")
         return
 
-    uid = profile["uid"]
-    utoken = _get_utoken_from_redis(uid)
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        print(f"❌ Модель для профиля {profile_key} не найдена")
+        return
+
+    uid = model["uid"]
+    developer_token = model["lovense_token"]
+    utoken = _get_utoken(profile_key)
+
     if not utoken:
         print(f"❌ [{profile_key}] utoken отсутствует — игрушка не подключена")
         return
@@ -78,7 +90,7 @@ async def stop_vibration_cloud_async(profile_key: str):
     url = "https://api.lovense.com/api/lan/v2/command"
 
     payload = {
-        "token": profile["DEVELOPER_TOKEN"],
+        "token": developer_token,
         "uid": uid,
         "utoken": utoken,
         "command": "Function",
@@ -88,18 +100,21 @@ async def stop_vibration_cloud_async(profile_key: str):
 
     try:
         async with aiohttp.ClientSession() as session:
-            await session.post(url, json=payload, timeout=1)
-    except Exception:
-        pass
+            await session.post(url, json=payload, timeout=2)
+    except Exception as e:
+        print("Ошибка Cloud API:", e)
+
+
 # ---------------- СОВМЕСТИМОСТЬ С WS_APP ----------------
 
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
     """
-    Эта функция нужна для совместимости с ws_app.py.
-    Она вызывает start/stop в зависимости от силы.
-    duration игнорируется — длительность контролирует vibration_worker.
+    Совместимость с ws_app:
+    - если strength > 0 → старт вибрации
+    - если strength == 0 → стоп вибрации
+    duration игнорируется — worker сам управляет временем.
     """
     if strength > 0:
-        await start_vibration_cloud_async(profile_key, strength)
+        await start_vibration_cloud_async(profile_key, strength, duration)
     else:
         await stop_vibration_cloud_async(profile_key)

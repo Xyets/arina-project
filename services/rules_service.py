@@ -1,19 +1,26 @@
-# services/rules_service.py
-
 import json
 import os
 from pathlib import Path
 from typing import Dict, Any
 
+BASE_DIR = Path("data/rules")
+
+
+def _get_rules_path(profile_key: str) -> Path:
+    """
+    Возвращает путь к rules-файлу для данного профиля.
+    """
+    return BASE_DIR / f"rules_{profile_key}.json"
+
 
 # ---------------- LOAD ----------------
 
-def load_rules(path: str) -> Dict[str, Any]:
+def load_rules(profile_key: str) -> Dict[str, Any]:
     """
-    Загружает правила вибраций/действий из файла по ПОЛНОМУ пути.
+    Загружает правила вибраций/действий по profile_key.
     Если файла нет или он повреждён — возвращает пустую структуру.
     """
-    path = Path(path)
+    path = _get_rules_path(profile_key)
 
     if not path.exists():
         return {"rules": []}
@@ -27,12 +34,12 @@ def load_rules(path: str) -> Dict[str, Any]:
 
 # ---------------- SAVE ----------------
 
-def save_rules(path: str, rules: Dict[str, Any]) -> None:
+def save_rules(profile_key: str, rules: Dict[str, Any]) -> None:
     """
-    Сохраняет правила вибраций/действий в файл по ПОЛНОМУ пути.
+    Сохраняет правила вибраций/действий по profile_key.
     Запись атомарная: сначала .tmp, затем замена.
     """
-    path = Path(path)
+    path = _get_rules_path(profile_key)
     tmp = path.with_suffix(".json.tmp")
 
     # гарантируем, что каталог существует

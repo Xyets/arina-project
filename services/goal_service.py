@@ -4,12 +4,22 @@ from pathlib import Path
 from typing import Dict, Any
 
 
-def load_goal(path: str) -> Dict[str, Any]:
+BASE_DIR = Path("data/goals")
+
+
+def _get_goal_path(profile_key: str) -> Path:
     """
-    Загружает цель из файла по ПОЛНОМУ пути.
-    Если файла нет — возвращает пустую структуру.
+    Возвращает путь к goal-файлу для данного профиля.
     """
-    path = Path(path)
+    return BASE_DIR / f"goal_{profile_key}.json"
+
+
+def load_goal(profile_key: str) -> Dict[str, Any]:
+    """
+    Загружает цель по profile_key.
+    Если файла нет — создаёт пустую структуру.
+    """
+    path = _get_goal_path(profile_key)
 
     if not path.exists():
         return {"title": "", "target": 0, "current": 0}
@@ -21,12 +31,12 @@ def load_goal(path: str) -> Dict[str, Any]:
         return {"title": "", "target": 0, "current": 0}
 
 
-def save_goal(path: str, goal: Dict[str, Any]) -> None:
+def save_goal(profile_key: str, goal: Dict[str, Any]) -> None:
     """
-    Сохраняет цель в файл по ПОЛНОМУ пути.
+    Сохраняет цель по profile_key.
     Запись атомарная: сначала .tmp, затем замена.
     """
-    path = Path(path)
+    path = _get_goal_path(profile_key)
     tmp = path.with_suffix(".json.tmp")
 
     # гарантируем, что каталог существует

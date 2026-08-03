@@ -7,14 +7,23 @@ from typing import Dict, Any, Optional
 
 from services.audit import audit_event
 
+BASE_DIR = Path("data/vip")
+
+
+def _get_vip_path(profile_key: str) -> Path:
+    """
+    Возвращает путь к VIP-файлу для данного профиля.
+    """
+    return BASE_DIR / f"vip_{profile_key}.json"
+
 
 # ---------------- LOAD ----------------
 
-def load_vip_file(path: str) -> Dict[str, Any]:
+def load_vip(profile_key: str) -> Dict[str, Any]:
     """
-    Загружает VIP-данные из файла по ПОЛНОМУ пути.
+    Загружает VIP-данные по profile_key.
     """
-    path = Path(path)
+    path = _get_vip_path(profile_key)
 
     if not path.exists():
         return {}
@@ -28,11 +37,12 @@ def load_vip_file(path: str) -> Dict[str, Any]:
 
 # ---------------- SAVE ----------------
 
-def save_vip_file(path: str, vip_data: Dict[str, Any]) -> None:
+def save_vip(profile_key: str, vip_data: Dict[str, Any]) -> None:
     """
-    Сохраняет VIP-данные в файл по ПОЛНОМУ пути.
+    Сохраняет VIP-данные по profile_key.
+    Делает резервную копию и атомарную запись.
     """
-    path = Path(path)
+    path = _get_vip_path(profile_key)
     tmp = path.with_suffix(".json.tmp")
 
     # резервная копия
@@ -41,6 +51,8 @@ def save_vip_file(path: str, vip_data: Dict[str, Any]) -> None:
         shutil.copy(path, backup)
 
     # атомарная запись
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(vip_data, f, indent=2, ensure_ascii=False)
         f.flush()
@@ -51,8 +63,6 @@ def save_vip_file(path: str, vip_data: Dict[str, Any]) -> None:
 
 # ---------------- UPDATE ----------------
 
-from config import CONFIG
-
 def update_vip(
     profile_key: str,
     user_id: str,
@@ -60,10 +70,13 @@ def update_vip(
     amount: float = 0.0,
     event: Optional[str] = None
 ) -> Dict[str, Any]:
-
-    # путь берём из CONFIG
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
-    vip_data = load_vip_file(vip_file)
+    """
+    Обновляет VIP-данные:
+    - имя
+    - сумма донатов
+    - события входа/выхода
+    """
+    vip_data = load_vip(profile_key)
 
     # создаём запись, если нет
     if user_id not in vip_data:
@@ -111,5 +124,5 @@ def update_vip(
         elif event == "logout":
             user["_just_logged_in"] = False
 
-    save_vip_file(vip_file, vip_data)
+    save_vip(profile_key, vip_data)
     return user

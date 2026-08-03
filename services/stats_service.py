@@ -4,15 +4,24 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Tuple
 
+BASE_DIR = Path("data/stats")
+
+
+def _get_stats_path(profile_key: str) -> Path:
+    """
+    Возвращает путь к stats-файлу для данного профиля.
+    """
+    return BASE_DIR / f"stats_{profile_key}.json"
+
 
 # ---------------- LOAD ----------------
 
-def load_stats(path: str) -> Dict[str, Dict]:
+def load_stats(profile_key: str) -> Dict[str, Dict]:
     """
-    Загружает статистику из файла по ПОЛНОМУ пути.
+    Загружает статистику по profile_key.
     Если файла нет или он повреждён — возвращает пустую структуру.
     """
-    path = Path(path)
+    path = _get_stats_path(profile_key)
 
     if not path.exists():
         return {}
@@ -26,12 +35,12 @@ def load_stats(path: str) -> Dict[str, Dict]:
 
 # ---------------- SAVE ----------------
 
-def save_stats(path: str, stats: Dict[str, Dict]) -> None:
+def save_stats(profile_key: str, stats: Dict[str, Dict]) -> None:
     """
-    Сохраняет статистику в файл по ПОЛНОМУ пути.
+    Сохраняет статистику по profile_key.
     Запись атомарная: сначала .tmp, затем замена.
     """
-    path = Path(path)
+    path = _get_stats_path(profile_key)
     tmp = path.with_suffix(".json.tmp")
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -46,12 +55,12 @@ def save_stats(path: str, stats: Dict[str, Dict]) -> None:
 
 # ---------------- UPDATE CATEGORY ----------------
 
-def update_stats(path: str, category: str, amount: float = 0.0) -> None:
+def update_stats(profile_key: str, category: str, amount: float = 0.0) -> None:
     """
     Обновляет статистику по категории (vibrations/actions/other).
     amount = количество донатов (обычно 1).
     """
-    stats = load_stats(path)
+    stats = load_stats(profile_key)
     today = datetime.now().strftime("%Y-%m-%d")
 
     if today not in stats:
@@ -71,16 +80,16 @@ def update_stats(path: str, category: str, amount: float = 0.0) -> None:
         + stats[today]["other"]
     )
 
-    save_stats(path, stats)
+    save_stats(profile_key, stats)
 
 
 # ---------------- UPDATE DONATION SUM ----------------
 
-def update_donations_sum(path: str, amount: float = 0.0) -> None:
+def update_donations_sum(profile_key: str, amount: float = 0.0) -> None:
     """
     Обновляет сумму донатов за день (в поинтах).
     """
-    stats = load_stats(path)
+    stats = load_stats(profile_key)
     today = datetime.now().strftime("%Y-%m-%d")
 
     if today not in stats:
@@ -94,7 +103,7 @@ def update_donations_sum(path: str, amount: float = 0.0) -> None:
 
     stats[today]["donations_sum"] += float(amount)
 
-    save_stats(path, stats)
+    save_stats(profile_key, stats)
 
 
 # ---------------- CALCULATE ----------------
@@ -132,7 +141,7 @@ def calculate_stats(
         total = float(data["total"])
 
         # ARCHI (только Irina)
-        if user == "Irina":
+        if user.lower() == "irina":
             archi_fee = vibr * 0.7 * 0.1
         else:
             archi_fee = 0.0
