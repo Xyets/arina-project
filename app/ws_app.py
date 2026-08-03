@@ -446,14 +446,13 @@ async def handle_wheel_result(websocket, data):
     profile_key = data.get("profile")
     winner_index = data.get("winner_index")
 
-
-
     profile = get_profile_by_key(profile_key)
     if not profile:
         print("❌ wheel_result: unknown profile_key")
         return
 
-    rules_file = profile["rules_file"]
+    # Автоматический выбор файла правил
+    rules_file = f"data/rules/rules_{profile_key}.json"
 
     from services.rules_service import load_rules
     rules = load_rules(rules_file).get("rules", [])

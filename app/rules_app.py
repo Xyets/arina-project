@@ -71,7 +71,7 @@ def test_rule(index):
     if not profile:
         return {"status": "error", "message": "Профиль не найден"}
 
-    # Автоматический выбор файла
+    # Автоматический выбор файла правил
     rules_file = f"data/rules/rules_{profile_key}.json"
 
     rules = load_rules(rules_file).get("rules", [])
@@ -81,17 +81,29 @@ def test_rule(index):
 
     rule = rules[index]
 
+    # CUSTOM
     if rule.get("type") == "custom":
         return {"status": "ok", "message": f"Действие: {rule['action']}"}
 
+    # WHEEL
     if rule.get("type") == "wheel":
         segments = rule.get("segments", [])
         if not segments:
             return {"status": "error", "message": "Нет сегментов"}
 
         asyncio.run(send_ws_wheel_spin(profile_key, segments))
+        return {"status": "ok", "message": "Колесо запущено!"}
 
-        return {"status": "ok", "message": "Колесо запущено! Результат появится в логах."}
+    # VIBRATION
+    if rule.get("type") == "vibration":
+        strength = rule.get("strength", 1)
+        duration = rule.get("duration", 5)
+
+        asyncio.run(send_ws_vibration(profile_key, strength, duration))
+        return {"status": "ok", "message": "Вибрация отправлена"}
+
+    # Если тип неизвестен
+    return {"status": "error", "message": "Неизвестный тип правила"}
 
 
 # -------------------- RULES PAGE --------------------
