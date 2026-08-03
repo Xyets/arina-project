@@ -19,7 +19,6 @@
       transform: translate(-50%, -50%);
       display:none;
     }
-
     #pointer {
       position:absolute;
       top:50%;
@@ -29,6 +28,11 @@
       height:60px;
       z-index:10;
     }
+
+    #heartPointer {
+    pointer-events:none;
+    }
+
   </style>
 </head>
 <body>
@@ -209,10 +213,7 @@
 
     </g>
     
-    <g id="pointer" transform="translate(152.79, 44)">
-    <!-- НОВАЯ ТЕНЬ -->
-
-        <!-- НОВОЕ СЕРДЕЧКО -->
+    <g id="heartPointer" transform="translate(152.79, 44)">
         <path d="M129.31,24.72 
                 C134.67,-0.67 158.95,3.94 157.17,22.58 
                 C156.25,33.17 141.04,56.38 128.93,76.87 
@@ -221,11 +222,9 @@
                 C96.74,6.63 124.92,-1.14 129.31,24.72 Z"
             fill="#FF9ABF"
             stroke="#AF6D85"
-            stroke-linecap="round"
-            stroke-linejoin="miter"
-            stroke-miterlimit="11.47"
             stroke-width="0.95" />
     </g>
+
 
     <g id="decorLayer" transform="translate(24.57, 22.73)">
    
