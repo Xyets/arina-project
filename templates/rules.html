@@ -277,7 +277,8 @@
 
   <!-- Список правил -->
   {% for rule in rules %}
-  <div class="rule-card" data-rule-id="{{ rule.id }}"
+  <div class="rule-card"
+      data-rule-id="{{ rule.id }}"
       data-min="{{ rule.min }}"
       data-max="{{ rule.max }}"
       data-strength="{{ rule.strength }}"
@@ -290,14 +291,12 @@
 
           <div class="rule-actions">
 
-              <!-- Тестировать правило -->
               <button type="button"
                       class="testRuleBtn btn-main"
                       data-index="{{ loop.index0 }}">
                   🔊
               </button>
 
-              <!-- Удалить -->
               <form method="POST" class="inline">
                   <button type="submit"
                           name="delete_rule"
@@ -307,7 +306,6 @@
                   </button>
               </form>
 
-              <!-- Редактировать / сегменты -->
               {% if rule.type == "wheel" %}
                   <button type="button"
                           class="btn-main"
@@ -400,6 +398,7 @@
 
   </div>
   {% endfor %}
+
 
 
 
