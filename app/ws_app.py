@@ -451,11 +451,9 @@ async def handle_wheel_result(websocket, data):
         print("❌ wheel_result: unknown profile_key")
         return
 
-    # Автоматический выбор файла правил
-    rules_file = f"data/rules/rules_{profile_key}.json"
-
+    # Читаем правила по profile_key
     from services.rules_service import load_rules
-    rules = load_rules(rules_file).get("rules", [])
+    rules = load_rules(profile_key).get("rules", [])
 
     # Находим правило типа wheel
     wheel_rule = None
@@ -486,14 +484,12 @@ async def handle_wheel_result(websocket, data):
         duration = int(seg.get("duration", 0))
 
         add_log(profile_key, f"🏰 Вибрация (колесо): сила={strength}, время={duration}")
-
         safe_enqueue_vibration(profile_key, strength, duration)
 
         ws_send({
             "queue_update": True,
             "queue": list(vibration_queues[profile_key]._queue)
         }, role="panel", profile_key=profile_key)
-
         return
 
     # --- ДЕЙСТВИЕ ---
@@ -522,7 +518,6 @@ async def handle_wheel_result(websocket, data):
 
         add_log(profile_key, "🔁 Колесо: повтор")
         return
-
 
 # ---------------- ОСНОВНОЙ WS HANDLER ----------------
 
