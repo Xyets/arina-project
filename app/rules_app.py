@@ -4,7 +4,7 @@ import uuid
 import json
 import asyncio
 import websockets
-
+import os
 from services.rules_service import load_rules, save_rules
 from services.database import get_profile_by_key
 
