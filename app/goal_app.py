@@ -1,7 +1,6 @@
 from flask import Blueprint, request, session, jsonify, redirect, url_for
 from functools import wraps
 
-from config import CONFIG
 from services.goal_service import load_goal, save_goal
 from app.ws_app import ws_send
 from services.database import get_profile_by_key
@@ -19,6 +18,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+
 # -------------------- GET GOAL --------------------
 
 @goal_bp.route("/goal_data")
@@ -33,10 +33,11 @@ def goal_data():
 
     profile_key = f"{user}_{mode}"
     profile = get_profile_by_key(profile_key)
-    goal_file = profile["goal_file"]
 
+    if not profile:
+        return {"title": "", "target": 0, "current": 0}
 
-    return load_goal(goal_file)
+    return load_goal(profile_key)
 
 
 # -------------------- CREATE NEW GOAL --------------------
@@ -52,8 +53,9 @@ def goal_new():
 
     profile_key = f"{user}_{mode}"
     profile = get_profile_by_key(profile_key)
-    goal_file = profile["goal_file"]
 
+    if not profile:
+        return {"status": "error", "message": "Профиль не найден"}
 
     title = request.form.get("title", "")
     target = int(request.form.get("target", 0))
@@ -64,18 +66,16 @@ def goal_new():
         "current": 0
     }
 
-    save_goal(goal_file, goal)
+    save_goal(profile_key, goal)
 
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
-        profile_key=f"{user}_{mode}"
+        profile_key=profile_key
     )
 
-
-
     return {"status": "ok"}
-    
+
 
 # -------------------- AUTO UPDATE GOAL (DONATION) --------------------
 
@@ -83,9 +83,11 @@ def goal_add_points(user: str, amount: float):
     mode = "public"
     profile_key = f"{user}_{mode}"
     profile = get_profile_by_key(profile_key)
-    goal_file = profile["goal_file"]
 
-    goal = load_goal(goal_file)
+    if not profile:
+        return
+
+    goal = load_goal(profile_key)
 
     if goal["target"] <= 0:
         return
@@ -95,14 +97,13 @@ def goal_add_points(user: str, amount: float):
     if goal["current"] > goal["target"]:
         goal["current"] = goal["target"]
 
-    save_goal(goal_file, goal)
+    save_goal(profile_key, goal)
 
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
         profile_key=profile_key
     )
-
 
 
 # -------------------- RESET GOAL --------------------
@@ -118,20 +119,19 @@ def goal_reset():
 
     profile_key = f"{user}_{mode}"
     profile = get_profile_by_key(profile_key)
-    goal_file = profile["goal_file"]
 
+    if not profile:
+        return {"status": "error", "message": "Профиль не найден"}
 
-    goal = load_goal(goal_file)
+    goal = load_goal(profile_key)
     goal["current"] = 0
 
-    save_goal(goal_file, goal)
+    save_goal(profile_key, goal)
 
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
         profile_key=profile_key
     )
-
-
 
     return {"status": "ok"}

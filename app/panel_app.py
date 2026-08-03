@@ -83,7 +83,7 @@ def index():
     profile_key = profile["profile_key"]
 
     logs = load_logs_from_file(profile_key)
-    goal = load_goal(profile["goal_file"])
+    goal = load_goal(profile_key)
 
     return render_template(
         "index.html",

@@ -5,14 +5,14 @@ import os
 import json
 from werkzeug.utils import secure_filename
 
-from config import CONFIG
 from services.reactions_service import load_reaction_rules, save_reaction_rules
 from services.redis_client import redis_client
 from services.database import get_profile_by_key
 
 reactions_bp = Blueprint("reactions", __name__)
 
-STATIC_REACTIONS_DIR = CONFIG["static_reactions_dir"]
+# Папка для хранения изображений реакций
+STATIC_REACTIONS_DIR = os.path.join("static", "reactions")
 
 
 # -------------------- AUTH --------------------
@@ -39,9 +39,8 @@ def reactions_page():
     if not profile:
         return "Профиль не найден", 404
 
-    reactions_file = profile["reactions_file"]
-    rules = load_reaction_rules(reactions_file)
-
+    # Загружаем правила реакций по profile_key
+    rules = load_reaction_rules(profile_key)
     rules["rules"].sort(key=lambda r: r.get("min_points", 0))
 
     # ADD RULE
@@ -67,7 +66,7 @@ def reactions_page():
             new_rule["image"] = f"reactions/{filename}"
 
         rules["rules"].append(new_rule)
-        save_reaction_rules(reactions_file, rules)
+        save_reaction_rules(profile_key, rules)
 
         return redirect(url_for("reactions.reactions_page"))
 
@@ -75,7 +74,7 @@ def reactions_page():
     if request.method == "POST" and "delete_reaction_rule" in request.form:
         rule_id = request.form["delete_reaction_rule"]
         rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
-        save_reaction_rules(reactions_file, rules)
+        save_reaction_rules(profile_key, rules)
         return redirect(url_for("reactions.reactions_page"))
 
     # EDIT RULE
@@ -101,7 +100,7 @@ def reactions_page():
 
                 break
 
-        save_reaction_rules(reactions_file, rules)
+        save_reaction_rules(profile_key, rules)
         return redirect(url_for("reactions.reactions_page"))
 
     return render_template(
@@ -130,8 +129,8 @@ def test_reaction():
     if not profile:
         return jsonify({"status": "error", "message": "profile not found"}), 404
 
-    reactions_file = profile["reactions_file"]
-    rules = load_reaction_rules(reactions_file)["rules"]
+    # Загружаем правила реакций по profile_key
+    rules = load_reaction_rules(profile_key)["rules"]
 
     rule = next((r for r in rules if r["id"] == rule_id), None)
     if not rule:
