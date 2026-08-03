@@ -203,14 +203,12 @@
 
           <div class="rule-actions">
 
-              <!-- Проверить правило -->
               <button type="button"
                       class="btn-icon testRuleBtn"
                       data-index="{{ loop.index0 }}">
                   🔊
               </button>
 
-              <!-- Удалить правило -->
               <form method="POST" class="inline">
                   <button type="submit"
                           name="delete_rule"
@@ -221,15 +219,12 @@
               </form>
 
               {% if rule.type == "wheel" %}
-
-                  <!-- Показать сегменты -->
                   <button type="button"
                           class="btn-icon btn-folder"
                           onclick="document.getElementById('wheel-{{ rule.id }}').classList.toggle('hidden')">
                       📂
                   </button>
 
-                  <!-- Добавить сегмент -->
                   <button type="button"
                           class="btn-icon btn-add"
                           onclick="openSegmentModal('{{ rule.id }}')">
@@ -237,16 +232,14 @@
                   </button>
 
               {% else %}
-
-                  <!-- Редактировать правило -->
                   <button type="button"
                           class="btn-icon btn-edit"
                           onclick="openRuleModal('{{ rule.id }}')">
                       ✏️
                   </button>
-
               {% endif %}
           </div>
+
 
 
       </div>
@@ -310,7 +303,7 @@
               <p class="no-segments">Сегментов пока нет</p>
           {% endif %}
 
-          <button type="button" class="btn-main btn-add-seg" onclick="openSegmentModal('{{ rule.id }}')">
+          <button type="button" onclick="openSegmentModal('{{ rule.id }}')">
               ➕ Добавить сегмент
           </button>
 
