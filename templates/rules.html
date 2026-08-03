@@ -262,6 +262,21 @@
       .btn-delete:hover {
           background: #f28497;
       }
+      .add-segment-btn {
+          background: #a3d8f4;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 20px;
+          color: white;
+          cursor: pointer;
+          font-size: 14px;
+          transition: 0.3s;
+          margin-top: 10px;
+      }
+
+      .add-segment-btn:hover {
+          background: #74c0e3;
+      }
 
   </style>
 
@@ -425,9 +440,12 @@
               <p class="no-segments">Сегментов пока нет</p>
           {% endif %}
 
-          <button type="button" onclick="openSegmentModal('{{ rule.id }}')">
+          <button type="button"
+                  onclick="openSegmentModal('{{ rule.id }}')"
+                  class="add-segment-btn">
               ➕ Добавить сегмент
           </button>
+
 
 
       </div>
