@@ -368,6 +368,7 @@ ws.onmessage = (event) => {
   if (data.type === "wheel_spin" && data.profile === profileKey) {
       const winnerIndex = Math.floor(Math.random() * data.segments.length);
       spinWheel(data.segments, winnerIndex);
+
   }
 };
 
@@ -382,8 +383,8 @@ function drawWheel(segments) {
     const centerX = 152.79;
     const centerY = 192.55;
 
-    const radius = 108;
-    const textRadius = 75;
+    const radius = 108;      // ⭐ новый радиус твоего круга
+    const textRadius = 75;   // ⭐ текст ближе к центру
 
     for (let i = 0; i < count; i++) {
 
@@ -444,18 +445,14 @@ function sendResult(winnerIndex) {
     }));
 }
 
-function resetWheel() {
-    const wheelInner = document.getElementById("wheelInner");
-    wheelInner.setAttribute("transform", "rotate(0 152.79 192.55)");
-}
 
 function spinWheel(segments, winnerIndex) {
     drawWheel(segments);
 
+    const svg = document.getElementById("wheelSvg");
     const wheelInner = document.getElementById("wheelInner");
 
-    // колесо всегда видно — не скрываем SVG
-    resetWheel();
+    svg.style.display = "block";
 
     const count = segments.length;
     const angle = 360 / count;
@@ -490,10 +487,9 @@ function spinWheel(segments, winnerIndex) {
 
             sendResult(winnerIndex);
 
-            // через 1 секунду сбрасываем колесо
             setTimeout(() => {
-                resetWheel();
-            }, 1000);
+                svg.style.display = "none";
+            }, 3000);
 
             return;
         }
