@@ -9,16 +9,6 @@
       background: transparent;
       overflow: hidden;
     }
-    #pointer {
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%, -210px);
-    width:60px;
-    height:60px;
-    z-index:10;
-    pointer-events:none;
-    }
 
     #wheelSvg {
       width: 500px;
@@ -26,13 +16,19 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      transform:
-        translate(-50%, -50%)
-        translate(152.79px, 44.55px);
+      transform: translate(-50%, -50%);
       display:none;
     }
 
-
+    #pointer {
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -210px);
+      width:60px;
+      height:60px;
+      z-index:10;
+    }
   </style>
 </head>
 <body>
@@ -213,32 +209,23 @@
 
     </g>
     
-    <div id="pointer">
-        <svg viewBox="0 0 200 200">
-            <path d="M129.31,47.45 
-                    C134.67,22.06 158.95,26.67 157.17,45.31 
-                    C156.25,55.9 141.04,79.11 128.93,99.6 
-                    L109.27,68.59 
-                    C104.32,60 100.99,52.49 99.4,46.22 
-                    C96.74,29.36 124.92,21.59 129.31,47.45 Z"
-                fill="#9B9A9C"
-                stroke="#9B9A9C"
-                stroke-width="0.95"
-                filter="url(#pointerShadowFilter)" />
+    <g id="pointer" transform="translate(152.79, 44)">
+    <!-- НОВАЯ ТЕНЬ -->
 
-            <!-- СЕРДЕЧКО -->
-            <path d="M129.31,24.72 
-                    C134.67,-0.67 158.95,3.94 157.17,22.58 
-                    C156.25,33.17 141.04,56.38 128.93,76.87 
-                    L109.27,45.86 
-                    C104.32,37.27 100.99,29.76 99.4,23.49 
-                    C96.74,6.63 124.92,-1.14 129.31,24.72 Z"
-                fill="#FF9ABF"
-                stroke="#AF6D85"
-                stroke-width="0.95" />
-        </svg>
-    </div>
-
+        <!-- НОВОЕ СЕРДЕЧКО -->
+        <path d="M129.31,24.72 
+                C134.67,-0.67 158.95,3.94 157.17,22.58 
+                C156.25,33.17 141.04,56.38 128.93,76.87 
+                L109.27,45.86 
+                C104.32,37.27 100.99,29.76 99.4,23.49 
+                C96.74,6.63 124.92,-1.14 129.31,24.72 Z"
+            fill="#FF9ABF"
+            stroke="#AF6D85"
+            stroke-linecap="round"
+            stroke-linejoin="miter"
+            stroke-miterlimit="11.47"
+            stroke-width="0.95" />
+    </g>
 
     <g id="decorLayer" transform="translate(24.57, 22.73)">
    
