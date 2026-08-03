@@ -11,6 +11,24 @@ journalctl -u arina-ws.service -f
 ss -tulpn | grep -E '5000|8765'
 
 
+reactions.html — тоже
+
+vip.html — уже почти готов, но нужно проверить
+
+stats.html
+
+stats_history.html
+
+obs_goal_.html*
+
+obs_reactions.html
+
+obs_wheel.html
+
+qrcode.html
+
+index.html / login.html — обычно чистые
+
 конфиг нгинкс sudo nano /etc/nginx/sites-available/arina.conf
 sudo nano /root/arina-project/wsgi.py
 nano /etc/systemd/system/arina.service
