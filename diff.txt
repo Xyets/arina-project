@@ -1,0 +1,2418 @@
+diff --git a/app/goal_app.py b/app/goal_app.py
+index ab86f3c..fc769ab 100644
+--- a/app/goal_app.py
++++ b/app/goal_app.py
+@@ -13,18 +13,17 @@ goal_bp = Blueprint("goal", __name__)
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+ 
+-
+ # -------------------- GET GOAL --------------------
+ 
+ @goal_bp.route("/goal_data")
+ @login_required
+ def goal_data():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+ 
+     # ❗ В приватном режиме цели нет
+@@ -42,7 +41,7 @@ def goal_data():
+ @goal_bp.route("/goal_new", methods=["POST"])
+ @login_required
+ def goal_new():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+ 
+     if mode == "private":
+@@ -104,7 +103,7 @@ def goal_add_points(user: str, amount: float):
+ @goal_bp.route("/goal_reset", methods=["POST"])
+ @login_required
+ def goal_reset():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+ 
+     if mode == "private":
+diff --git a/app/lovense_app.py b/app/lovense_app.py
+index 0890535..c5a23d0 100644
+--- a/app/lovense_app.py
++++ b/app/lovense_app.py
+@@ -14,18 +14,19 @@ lovense_bp = Blueprint("lovense", __name__)
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+ 
+ 
++
+ # -------------------- QR-КОД (АВТОМАТИЧЕСКИЙ) --------------------
+ 
+ @lovense_bp.route("/qrcode")
+ @login_required
+ def qrcode_default():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+diff --git a/app/obs_app.py b/app/obs_app.py
+index 8658d7d..0126673 100644
+--- a/app/obs_app.py
++++ b/app/obs_app.py
+@@ -51,4 +51,16 @@ def obs_goal(user, mode):
+     if user.lower() == "arina":
+         return render_template("obs_goal_arina.html", profile_key=profile_key)
+     else:
+-        return render_template("obs_goal_irina.html", profile_key=profile_key)
+\ No newline at end of file
++        return render_template("obs_goal_irina.html", profile_key=profile_key)
++
++@obs_bp.route("/obs_wheel/<user>/<mode>")
++def obs_wheel(user, mode):
++    if mode not in ("private", "public"):
++        return abort(404)
++
++    profile_key = f"{user}_{mode}"
++
++    if profile_key not in CONFIG["profiles"]:
++        return abort(404)
++
++    return render_template("obs_wheel.html", profile_key=profile_key)
+diff --git a/app/panel_app.py b/app/panel_app.py
+index 16a3e03..9de2f76 100644
+--- a/app/panel_app.py
++++ b/app/panel_app.py
+@@ -1,3 +1,4 @@
++from services.database import get_model_by_username, get_connection
+ from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+ from functools import wraps
+ 
+@@ -15,47 +16,51 @@ panel_bp = Blueprint("panel", __name__)
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+ 
++def get_profile_from_db(username, mode):
++    conn = get_connection()
++    cur = conn.cursor()
++    profile_key = f"{username}_{mode}"
++    cur.execute("SELECT * FROM profiles WHERE profile_key = ?", (profile_key,))
++    row = cur.fetchone()
++    conn.close()
++    return row
+ 
+ @panel_bp.route("/login", methods=["GET", "POST"])
+ def login():
+     if request.method == "POST":
+-        user = request.form.get("username", "").strip()
++        username = request.form.get("username", "").strip()
+         pwd = request.form.get("password", "").strip()
+ 
+-        users_cfg = CONFIG.get("USERS", {})
++        model = get_model_by_username(username)
+ 
+-        user_key = None
+-        for u in users_cfg:
+-            if u.lower() == user.lower():
+-                user_key = u
+-                break
++        if not model:
++            return render_template("login.html", error="Неверный логин или пароль")
+ 
+-        if user_key and users_cfg.get(user_key) == pwd:
+-            session["user"] = user_key
+-            session["mode"] = "private"
++        if model["password_hash"] != pwd:
++            return render_template("login.html", error="Неверный логин или пароль")
+ 
+-            profile_key = f"{user_key}_private"
+-            audit_event(profile_key, "auth", {"type": "login"})
++        # Авторизация успешна
++        session["user_id"] = model["id"]
++        session["username"] = model["username"]
++        session["mode"] = "private"
+ 
+-            return redirect(url_for("panel.index"))
+-
+-        return render_template("login.html", error="Неверный логин или пароль")
++        return redirect(url_for("panel.index"))
+ 
+     return render_template("login.html")
+ 
+ 
+ @panel_bp.route("/logout")
+ def logout():
+-    user = session.get("user")
++    username = session.get("username")
+     mode = session.get("mode", "private")
+ 
+-    if user:
+-        profile_key = f"{user}_{mode}"
++    if username:
++        profile_key = f"{username}_{mode}"
+         audit_event(profile_key, mode, {"type": "logout"})
+ 
+     session.clear()
+@@ -67,19 +72,21 @@ def logout():
+ @panel_bp.route("/")
+ @login_required
+ def index():
+-    user = session["user"]
++    username = session["username"]
+     mode = session.get("mode", "private")
+-    profile_key = f"{user}_{mode}"
+ 
+-    profile = CONFIG["profiles"][profile_key]
+-    logs = load_logs_from_file(profile_key)
++    profile = get_profile_from_db(username, mode)
++    if not profile:
++        return "Профиль не найден", 404
+ 
+-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+-    goal = load_goal(goal_file)
++    profile_key = profile["profile_key"]
++
++    logs = load_logs_from_file(profile_key)
++    goal = load_goal(profile["goal_file"])
+ 
+     return render_template(
+         "index.html",
+-        user=user,
++        user=username,
+         profile=profile,
+         logs=logs,
+         current_mode=mode,
+@@ -101,7 +108,7 @@ def set_mode():
+     
+     session["mode"] = mode
+ 
+-    redis_client.hset("user_modes", session["user"], mode)
++    redis_client.hset("user_modes", session["username"], mode)
+ 
+     return {"status": "ok", "mode": mode}
+ 
+@@ -111,7 +118,7 @@ def set_mode():
+ @panel_bp.route("/logs_data")
+ @login_required
+ def logs_data():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -122,7 +129,7 @@ def logs_data():
+ @panel_bp.route("/clear_logs", methods=["POST"])
+ @login_required
+ def clear_logs():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+diff --git a/app/reactions_app.py b/app/reactions_app.py
+index 2ca811f..560ebe6 100644
+--- a/app/reactions_app.py
++++ b/app/reactions_app.py
+@@ -19,7 +19,7 @@ STATIC_REACTIONS_DIR = CONFIG["static_reactions_dir"]
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+@@ -30,7 +30,8 @@ def login_required(f):
+ @reactions_bp.route("/reactions", methods=["GET", "POST"])
+ @login_required
+ def reactions_page():
+-    user = session["user"]
++    user = session["username"]
++
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+diff --git a/app/rules_app.py b/app/rules_app.py
+index c5de30c..acde2f4 100644
+--- a/app/rules_app.py
++++ b/app/rules_app.py
+@@ -16,7 +16,7 @@ rules_bp = Blueprint("rules", __name__)
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+@@ -33,13 +33,21 @@ async def send_ws_vibration(profile_key, strength, duration):
+             "duration": duration
+         }))
+ 
++async def send_ws_wheel_spin(profile_key, segments):
++    async with websockets.connect("ws://127.0.0.1:8765") as ws:
++        await ws.send(json.dumps({
++            "type": "wheel_spin",
++            "profile": profile_key,
++            "segments": segments
++        }))
+ 
+ # -------------------- TEST VIBRATION --------------------
+ 
+ @rules_bp.route("/test_vibration", methods=["POST"])
+ @login_required
+ def test_vibration():
+-    user = session["user"]
++    user = session["username"]
++
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -53,7 +61,8 @@ def test_vibration():
+ @rules_bp.route("/test_rule/<int:index>", methods=["POST"])
+ @login_required
+ def test_rule(index):
+-    user = session["user"]
++    user = session["username"]
++
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -73,26 +82,12 @@ def test_rule(index):
+         if not segments:
+             return {"status": "error", "message": "Нет сегментов"}
+ 
+-        import random
+-        winner_index = random.randint(0, len(segments) - 1)
+-        winner = segments[winner_index]
+-
+-        # отправляем команду OBS запустить колесо
+-        from ws_app import ws_send
+-        ws_send({
+-            "type": "wheel_spin",
+-            "profile": profile_key,
+-            "segments": segments,
+-            "winner_index": winner_index,
+-            "action": winner["action"]
+-        }, role="obs", profile_key=profile_key)
+-
+-        return {"status": "ok", "message": f"Колесо запущено! Выпал сегмент: {winner['name']}"}
+-
+-
+-    asyncio.run(send_ws_vibration(profile_key, rule["strength"], rule["duration"]))
++        asyncio.run(send_ws_wheel_spin(
++            profile_key,
++            segments
++        ))
+ 
+-    return {"status": "ok", "message": "Вибрация отправлена по правилу"}
++        return {"status": "ok", "message": "Колесо запущено! Результат появится в логах."}
+ 
+ 
+ # -------------------- RULES PAGE --------------------
+@@ -100,7 +95,8 @@ def test_rule(index):
+ @rules_bp.route("/rules", methods=["GET", "POST"])
+ @login_required
+ def rules_page():
+-    user = session["user"]
++    user = session["username"]
++
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -189,11 +185,26 @@ def rules_page():
+                 if "segments" not in r:
+                     r["segments"] = []
+ 
+-                r["segments"].append({
++                seg_type = request.form["seg_type"]  # vibration / action / retry
++
++                segment = {
+                     "name": request.form["seg_name"],
+                     "chance": int(request.form["seg_chance"]),
+-                    "action": request.form["seg_action"]
+-                })
++                    "type": seg_type
++                }
++
++                if seg_type == "vibration":
++                    segment["strength"] = int(request.form["seg_strength"])
++                    segment["duration"] = int(request.form["seg_duration"])
++
++                elif seg_type == "action":
++                    segment["action"] = request.form["seg_action"]
++
++                elif seg_type == "retry":
++                    segment["action"] = ""  # не нужно, но пусть будет
++
++                r["segments"].append(segment)
++
+ 
+         save_rules(rules_file, rules)
+         return redirect(url_for("rules.rules_page"))
+diff --git a/app/stats_app.py b/app/stats_app.py
+index 3812a0e..8c8b6bd 100644
+--- a/app/stats_app.py
++++ b/app/stats_app.py
+@@ -14,18 +14,19 @@ stats_bp = Blueprint("stats", __name__)
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+ 
+ 
++
+ # -------------------- СТРАНИЦА СТАТИСТИКИ --------------------
+ 
+ @stats_bp.route("/stats")
+ @login_required
+ def stats_page():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -59,7 +60,7 @@ def stats_page():
+ @stats_bp.route("/stats_history")
+ @login_required
+ def stats_history():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -92,7 +93,7 @@ def stats_history():
+ @stats_bp.route("/close_period", methods=["POST"])
+ @login_required
+ def close_period():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+diff --git a/app/vip_app.py b/app/vip_app.py
+index 20e228c..a80a99f 100644
+--- a/app/vip_app.py
++++ b/app/vip_app.py
+@@ -13,18 +13,19 @@ vip_bp = Blueprint("vip", __name__)
+ def login_required(f):
+     @wraps(f)
+     def wrapper(*args, **kwargs):
+-        if "user" not in session:
++        if "username" not in session:
+             return redirect(url_for("panel.login"))
+         return f(*args, **kwargs)
+     return wrapper
+ 
+ 
++
+ # -------------------- REMOVE MEMBER --------------------
+ 
+ @vip_bp.route("/remove_member", methods=["POST"])
+ @login_required
+ def remove_member():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -48,7 +49,7 @@ def remove_member():
+ @vip_bp.route("/vip", methods=["GET", "POST"])
+ @login_required
+ def vip_page():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+@@ -117,7 +118,7 @@ def vip_page():
+ @vip_bp.route("/vip_data")
+ @login_required
+ def vip_data():
+-    user = session["user"]
++    user = session["username"]
+     mode = session.get("mode", "private")
+     profile_key = f"{user}_{mode}"
+ 
+diff --git a/app/ws_app.py b/app/ws_app.py
+index 3a38c6c..a3bc58c 100644
+--- a/app/ws_app.py
++++ b/app/ws_app.py
+@@ -1,4 +1,4 @@
+-print("🔥🔥🔥 WS_APP.PY LOADED 🔥🔥🔥")
++
+ import sys
+ import os
+ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+@@ -25,26 +25,60 @@ CLIENT_TYPES = {}          # ws -> "panel" / "obs"
+ CLIENT_PROFILES = {}       # ws -> profile_key
+ WS_EVENT_LOOP = None
+ 
++MAX_QUEUE_SIZE = 50  # максимум вибраций в очереди на профиль
++
++
++def safe_enqueue_vibration(profile_key, strength, duration):
++    """
++    Добавляет вибрацию в очередь с ограничением размера.
++    Если очередь переполнена — удаляем самый старый элемент.
++    """
++    if profile_key not in vibration_queues:
++        print(f"⚠ safe_enqueue_vibration: unknown profile_key {profile_key}")
++        return
++
++    q = vibration_queues[profile_key]
++
++    # если очередь слишком большая — удаляем старые элементы
++    while q.qsize() >= MAX_QUEUE_SIZE:
++        try:
++            q.get_nowait()
++            q.task_done()
++        except Exception:
++            break
++
++    q.put_nowait((strength, duration))
+ 
+ # ---------------- УТИЛИТА ДЛЯ РАССЫЛКИ ----------------
+ 
+ def ws_send(data, role=None, profile_key=None):
++    if WS_EVENT_LOOP is None:
++        print("⚠ ws_send: WS_EVENT_LOOP is None, message skipped:", data)
++        return
++
+     message = json.dumps(data)
++    dead_sockets = []
+ 
+     for ws in list(CONNECTED_SOCKETS):
+-        try:
+-            if role and CLIENT_TYPES.get(ws) != role:
+-                continue
+ 
+-            if profile_key and CLIENT_PROFILES.get(ws) != profile_key:
+-                continue
++        if role and CLIENT_TYPES.get(ws) != role:
++            continue
+ 
+-            asyncio.run_coroutine_threadsafe(ws.send(message), WS_EVENT_LOOP)
++        if profile_key and CLIENT_PROFILES.get(ws) != profile_key:
++            continue
++
++        try:
++            # единственный корректный способ проверить сокет в websockets 12.x+
++            future = asyncio.run_coroutine_threadsafe(ws.send(message), WS_EVENT_LOOP)
++        except Exception as e:
++            print("❌ ws_send error:", e)
++            dead_sockets.append(ws)
++
++    for ws in dead_sockets:
++        CONNECTED_SOCKETS.discard(ws)
++        CLIENT_TYPES.pop(ws, None)
++        CLIENT_PROFILES.pop(ws, None)
+ 
+-        except Exception:
+-            CONNECTED_SOCKETS.discard(ws)
+-            CLIENT_TYPES.pop(ws, None)
+-            CLIENT_PROFILES.pop(ws, None)
+ 
+ 
+ # ---------------- ВИБРАЦИИ ----------------
+@@ -86,11 +120,17 @@ async def vibration_worker(profile_key):
+             print(f"⏳ [{profile_key}] WAITING {duration}s OR STOP…")
+             stopped = False
+ 
+-            for i in range(duration * 10):
+-                await asyncio.sleep(0.1)
++            # ждём либо истечение времени, либо stop_event
++            total_time = duration
++            step = 0.1
++            elapsed = 0.0
++
++            while elapsed < total_time:
++                await asyncio.sleep(step)
++                elapsed += step
+ 
+                 if stop_events[profile_key].is_set():
+-                    print(f"🛑 [{profile_key}] STOP RECEIVED DURING WAIT at {i*0.1:.1f}s")
++                    print(f"🛑 [{profile_key}] STOP RECEIVED DURING WAIT at {elapsed:.1f}s")
+ 
+                     print(f"📤 [{profile_key}] SENDING STOP COMMAND TO LOVENSE…")
+                     await stop_vibration_cloud_async(profile_key)
+@@ -102,6 +142,7 @@ async def vibration_worker(profile_key):
+                     stopped = True
+                     break
+ 
++
+             if not stopped:
+                 print(f"⏳ [{profile_key}] NATURAL END OF VIBRATION — SENDING STOP")
+                 await stop_vibration_cloud_async(profile_key)
+@@ -125,7 +166,12 @@ async def redis_listener():
+     print("🔥 Redis listener started")
+ 
+     while True:
+-        msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=0)
++        try:
++            msg = pubsub.get_message(ignore_subscribe_messages=True, timeout=0.1)
++        except Exception as e:
++            print("❌ Redis pubsub error:", e)
++            await asyncio.sleep(0.5)
++            continue
+ 
+         if msg:
+             try:
+@@ -138,310 +184,385 @@ async def redis_listener():
+                 # ---------- VIBRATIONS ----------
+                 if "strength" in data and "duration" in data and "profile_key" in data:
+                     pk = data["profile_key"]
+-                    vibration_queues[pk].put_nowait((data["strength"], data["duration"]))
+-                    print(f"🔥 Redis vibration queued for {pk}: {data['strength']} / {data['duration']}")
++                    if pk not in vibration_queues:
++                        print(f"⚠ Redis: unknown profile_key {pk}, skipping vibration")
++                    else:
++                        safe_enqueue_vibration(pk, data["strength"], data["duration"])
++                        print(f"🔥 Redis vibration queued for {pk}: {data['strength']} / {data['duration']}")
+ 
+-                    # 🔥 ДОБАВЬ ЭТО
+-                    ws_send({
+-                        "queue_update": True,
+-                        "queue": list(vibration_queues[pk]._queue)
+-                    }, role="panel", profile_key=pk)
++                        ws_send({
++                            "queue_update": True,
++                            "queue": list(vibration_queues[pk]._queue)
++                        }, role="panel", profile_key=pk)
+ 
+                     continue
+ 
+-
+                 # ---------- OBS REACTIONS ----------
+                 profile_key = data.get("profile")
++                # ---------- WHEEL SPIN ----------
++                if data.get("wheel_spin"):
++                    ws_send({
++                        "type": "wheel_spin",
++                        "profile": data["profile"],
++                        "segments": data["segments"]
++                    }, role="obs", profile_key=data["profile"])
++                    continue
++                # ---------- OTHER OBS REACTIONS ----------
+                 ws_send(data, role="obs", profile_key=profile_key)
+ 
+             except Exception as e:
+                 print("❌ Redis parse error:", e)
+ 
+-        await asyncio.sleep(0.01)
++        # чуть меньше частота опроса
++        await asyncio.sleep(0.05)
+ 
+ 
++async def handle_ping(websocket):
++    await websocket.send(json.dumps({"type": "pong"}))
+ 
+-# ---------------- ОСНОВНОЙ WS HANDLER ----------------
++async def handle_hello(websocket, data):
++    role = data.get("role")
++    profile_key = data.get("profile_key")
+ 
+-async def ws_handler(websocket):
+-    CONNECTED_SOCKETS.add(websocket)
+-    CLIENT_TYPES[websocket] = None
++    if role == "panel":
++        CLIENT_TYPES[websocket] = "panel"
++        CLIENT_PROFILES[websocket] = profile_key
+ 
+-    try:
+-        async for message in websocket:
+-            print("📩 WS received:", message)
++        try:
++            user, mode = profile_key.split("_")
++            redis_client.hset("user_modes", user, mode)
++        except Exception as e:
++            print("❌ Ошибка обновления режима:", e)
++
++        if profile_key in vibration_queues:
++            ws_send({
++                "queue_update": True,
++                "queue": list(vibration_queues[profile_key]._queue)
++            }, role="panel", profile_key=profile_key)
++
++        await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
++        return
+ 
+-            try:
+-                data = json.loads(message)
+-            except Exception:
+-                continue
++    if role == "obs":
++        CLIENT_TYPES[websocket] = "obs"
++        CLIENT_PROFILES[websocket] = profile_key
++        await websocket.send(json.dumps({"status": "hello_ok", "role": "obs"}))
++        return
+ 
+-            msg_type = data.get("type")
+-            if msg_type is None and "amount" in data:
+-                msg_type = "donation"
++    await websocket.send(json.dumps({"error": "unknown_role"}))
+ 
+-            # ---------- PING ----------
+-            if msg_type == "ping":
+-                await websocket.send(json.dumps({"type": "pong"}))
+-                continue
++async def handle_viewer_event(websocket, data):
++    event = data["event"].lower()
++    viewer_id = data.get("user_id")
++    viewer_name = data.get("name", "Анонимно")
++    text = data.get("text", "")
++    user = data.get("user")
+ 
+-            # ---------- HELLO ----------
+-            if msg_type == "hello":
+-                role = data.get("role")
+-                profile_key = data.get("profile_key")
+-
+-                if role == "panel":
+-                    CLIENT_TYPES[websocket] = "panel"
+-                    CLIENT_PROFILES[websocket] = profile_key
+-
+-                    # сохраняем режим пользователя
+-                    try:
+-                        user, mode = profile_key.split("_")
+-                        redis_client.hset("user_modes", user, mode)
+-                    except Exception as e:
+-                        print("❌ Ошибка обновления режима:", e)
+-
+-                    # отправляем актуальную очередь (только будущие вибрации)
+-                    if profile_key in vibration_queues:
+-                        ws_send({
+-                            "queue_update": True,
+-                            "queue": list(vibration_queues[profile_key]._queue)
+-                        }, role="panel", profile_key=profile_key)
++    mode = redis_client.hget("user_modes", user)
++    if isinstance(mode, bytes):
++        mode = mode.decode("utf-8")
++    if mode not in ("private", "public"):
++        mode = "private"
+ 
+-                    await websocket.send(json.dumps({"status": "hello_ok", "role": "panel"}))
+-                    continue
++    profile_key = f"{user}_{mode}"
+ 
+-                if role == "obs":
+-                    CLIENT_TYPES[websocket] = "obs"
+-                    CLIENT_PROFILES[websocket] = profile_key
+-                    await websocket.send(json.dumps({"status": "hello_ok", "role": "obs"}))
+-                    continue
++    profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
+ 
+-                await websocket.send(json.dumps({"error": "unknown_role"}))
+-                continue
++    ws_send({
++        "vip_update": True,
++        "user_id": viewer_id,
++        "profile_key": profile_key
++    }, role="panel", profile_key=profile_key)
+ 
+-            # ---------- VIEWER LOGIN / LOGOUT ----------
+-            if "event" in data:
+-                event = data["event"].lower()
+-                viewer_id = data.get("user_id")
+-                viewer_name = data.get("name", "Анонимно")
+-                text = data.get("text", "")
+-                user = data.get("user")
+-
+-                mode = redis_client.hget("user_modes", user)
+-                if isinstance(mode, bytes):
+-                    mode = mode.decode("utf-8")
+-                if mode not in ("private", "public"):
+-                    mode = "private"
+-
+-                profile_key = f"{user}_{mode}"
+-
+-                # 🔥 вызываем update_vip ТОЛЬКО ОДИН РАЗ
+-                profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
+-
+-                # обновляем VIP
+-                ws_send({
+-                    "vip_update": True,
+-                    "user_id": viewer_id,
+-                    "profile_key": profile_key
+-                }, role="panel", profile_key=profile_key)
+-
+-                # popup только при login
+-                if event == "login":
+-                    ws_send({
+-                        "entry": {
+-                            "name": viewer_name,
+-                            "visits": profile["login_count"],
+-                            "total_tips": profile["total"],
+-                            "notes": profile.get("notes", "")
+-                        }
+-                    }, role="panel", profile_key=profile_key)
++    if event == "login":
++        ws_send({
++            "entry": {
++                "name": viewer_name,
++                "visits": profile["login_count"],
++                "total_tips": profile["total"],
++                "notes": profile.get("notes", "")
++            }
++        }, role="panel", profile_key=profile_key)
++
++        # --- Расширенный лог ---
++        name = profile.get("name", viewer_name)
++        notes = profile.get("notes", "").strip() or "нет"
++        total = profile.get("total", 0)
++        login_count = profile.get("login_count", 0)
++        prev_login = profile.get("_previous_login", "нет данных")
++
++        log_message = (
++            f"🔵 LOGIN | {name} | "
++            f"📝 {notes} | "
++            f"💗 {total} | "
++            f"Предыдущий вход: {prev_login} | "
++            f"Входов: {login_count}"
++        )
++
++        add_log(profile_key, log_message)
++
++
++    elif event == "logout":
++        add_log(profile_key, f"🔴 LOGOUT | {viewer_name} ({viewer_id})")
++
++    else:
++        add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
++
++    ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
++
++async def handle_donation_event(websocket, data):
++    from services.donation_service import handle_donation
++
++    user = data.get("user")
++    user_id = data.get("user_id")
++    name = (data.get("name") or "Аноним").strip()
++    text = data.get("text", "")
++    amount = float(data.get("amount") or 0)
++
++    mode = redis_client.hget("user_modes", user)
++    if isinstance(mode, bytes):
++        mode = mode.decode("utf-8")
++    if mode not in ("private", "public"):
++        mode = "private"
++
++    profile_key = f"{user}_{mode}"
++
++    if not user_id or amount <= 0:
++        await websocket.send(json.dumps({"error": "invalid_donation"}))
++        return
++
++    result = handle_donation(profile_key, user_id, name, amount, text)
++
++    ws_send({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
++    ws_send({"goal_update": True, "goal": result["goal"]}, role="panel", profile_key=profile_key)
++    ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
++
++async def handle_stop(websocket, data):
++    profile_key = data.get("profile_key")
++
++    if profile_key not in stop_events:
++        stop_events[profile_key] = asyncio.Event()
++
++    stop_events[profile_key].set()
++
++    await send_vibration_cloud_async(profile_key, 0, 0)
++
++    ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
++    ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
++
++async def handle_vibration(websocket, data):
++    profile_key = data.get("profile_key")
++    strength = data.get("strength")
++    duration = data.get("duration")
++
++    if not profile_key or strength is None or duration is None:
++        return
+ 
+-                    add_log(profile_key, f"🔵 LOGIN | {viewer_name} ({viewer_id})")
++    safe_enqueue_vibration(profile_key, strength, duration)
++
++    ws_send({
++        "queue_update": True,
++        "queue": list(vibration_queues[profile_key]._queue)
++    }, role="panel", profile_key=profile_key)
+ 
+-                elif event == "logout":
+-                    add_log(profile_key, f"🔴 LOGOUT | {viewer_name} ({viewer_id})")
++    ws_send({
++        "vibration": {
++            "strength": strength,
++            "duration": duration,
++            "target": profile_key
++        }
++    }, role="panel", profile_key=profile_key)
+ 
+-                else:
+-                    add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
++    ws_send({
++        "vibration": {
++            "strength": strength,
++            "duration": duration,
++            "target": profile_key
++        }
++    }, role="obs", profile_key=profile_key)
+ 
+-                ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+-                continue
++async def handle_clear_queue(websocket, data):
++    profile_key = data.get("profile_key")
+ 
+-            # ---------- DONATION ----------
+-            if msg_type == "donation":
+-                from services.donation_service import handle_donation
++    if profile_key in vibration_queues:
++        q = vibration_queues[profile_key]
++        while not q.empty():
++            try:
++                q.get_nowait()
++                q.task_done()
++            except:
++                break
+ 
+-                user = data.get("user")
+-                user_id = data.get("user_id")
+-                name = (data.get("name") or "Аноним").strip()
+-                text = data.get("text", "")
+-                amount = float(data.get("amount") or 0)
++    ws_send({
++        "queue_update": True,
++        "queue": []
++    }, role="panel", profile_key=profile_key)
+ 
+-                mode = redis_client.hget("user_modes", user)
+-                if isinstance(mode, bytes):
+-                    mode = mode.decode("utf-8")
+-                if mode not in ("private", "public"):
+-                    mode = "private"
++async def handle_get_queue(websocket, data):
++    profile_key = data.get("profile_key")
+ 
+-                profile_key = f"{user}_{mode}"
++    if profile_key in vibration_queues:
++        q = list(vibration_queues[profile_key]._queue)
++    else:
++        q = []
+ 
+-                if not user_id or amount <= 0:
+-                    await websocket.send(json.dumps({"error": "invalid_donation"}))
+-                    continue
++    ws_send({
++        "queue_update": True,
++        "queue": q
++    }, role="panel", profile_key=profile_key)
+ 
+-                result = handle_donation(profile_key, user_id, name, amount, text)
++async def handle_wheel_result(websocket, data):
++    profile_key = data.get("profile")
++    winner_index = data.get("winner_index")
+ 
+-                ws_send({"vip_update": True, "user_id": user_id, "profile_key": profile_key})
+-                ws_send({"goal_update": True, "goal": result["goal"]}, role="panel", profile_key=profile_key)
+-                ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+-                continue
++    if profile_key not in CONFIG["profiles"]:
++        print("❌ wheel_result: unknown profile_key")
++        return
+ 
+-            # ---------- STOP ----------
+-            if msg_type == "stop":
+-                profile_key = data.get("profile_key")
++    # Загружаем правила
++    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
++    from services.rules_service import load_rules
++    rules = load_rules(rules_file).get("rules", [])
+ 
+-                if profile_key not in stop_events:
+-                    stop_events[profile_key] = asyncio.Event()
++    # Находим правило типа wheel
++    wheel_rule = None
++    for r in rules:
++        if r.get("type") == "wheel":
++            wheel_rule = r
++            break
+ 
+-                stop_events[profile_key].set()
++    if not wheel_rule:
++        print("❌ wheel_result: wheel rule not found")
++        return
+ 
+-                loop = asyncio.get_running_loop()
+-                await send_vibration_cloud_async(profile_key, 0, 0)
++    segments = wheel_rule.get("segments", [])
++    if not segments:
++        print("❌ wheel_result: no segments")
++        return
+ 
++    if winner_index < 0 or winner_index >= len(segments):
++        print("❌ wheel_result: invalid winner_index")
++        return
+ 
+-                ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
+-                ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
++    seg = segments[winner_index]
++    seg_type = seg.get("type")
+ 
+-                # ❗ очередь НЕ обновляем — это важно
+-                continue
+-            # ---------- WHEEL RESULT ----------
+-            if msg_type == "wheel_result":
+-                profile_key = data.get("profile")
+-                action = data.get("action")
++    # --- ВИБРАЦИЯ ---
++    if seg_type == "vibration":
++        strength = int(seg.get("strength", 0))
++        duration = int(seg.get("duration", 0))
+ 
+-                # 🎡 ЛОГИ
+-                if action.startswith("vibration:"):
+-                    add_log(profile_key, f"🏰 Вибрация (колесо): {action}")
+-                else:
+-                    add_log(profile_key, f"🎬 Действие (колесо): {action}")
++        add_log(profile_key, f"🏰 Вибрация (колесо): сила={strength}, время={duration}")
+ 
+-                # 🔊 ЕСЛИ ВЫПАЛА ВИБРАЦИЯ
+-                if action.startswith("vibration:"):
+-                    try:
+-                        _, strength, duration = action.split(":")
+-                        strength = int(strength)
+-                        duration = int(duration)
++        safe_enqueue_vibration(profile_key, strength, duration)
+ 
+-                        vibration_queues[profile_key].put_nowait((strength, duration))
++        ws_send({
++            "queue_update": True,
++            "queue": list(vibration_queues[profile_key]._queue)
++        }, role="panel", profile_key=profile_key)
+ 
+-                        ws_send({
+-                            "queue_update": True,
+-                            "queue": list(vibration_queues[profile_key]._queue)
+-                        }, role="panel", profile_key=profile_key)
++        return
+ 
+-                    except Exception as e:
+-                        print("❌ Ошибка обработки вибрации колеса:", e)
++    # --- ДЕЙСТВИЕ ---
++    if seg_type == "action":
++        action_text = seg.get("action", "")
+ 
+-                # 🎬 ЕСЛИ ВЫПАЛО ДЕЙСТВИЕ
+-                elif action.startswith("action:"):
+-                    custom = action.replace("action:", "")
++        add_log(profile_key, f"🎬 Действие (колесо): {action_text}")
+ 
+-                    ws_send({
+-                        "reaction": {
+-                            "image": custom,
+-                            "duration": 5
+-                        },
+-                        "profile": profile_key
+-                    }, role="obs", profile_key=profile_key)
+-
+-                # 🔁 ЕСЛИ ВЫПАЛА ПОВТОРНАЯ ПОПЫТКА
+-                elif action == "wheel:retry":
+-                    ws_send({
+-                        "type": "wheel_spin_retry",
+-                        "profile": profile_key
+-                    }, role="obs", profile_key=profile_key)
++        ws_send({
++            "reaction": {
++                "image": action_text,
++                "duration": 5
++            },
++            "profile": profile_key
++        }, role="obs", profile_key=profile_key)
++
++        ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
++        return
++
++    # --- ПОВТОР ---
++    if seg_type == "retry":
++        ws_send({
++            "type": "wheel_spin_retry",
++            "profile": profile_key
++        }, role="obs", profile_key=profile_key)
++
++        add_log(profile_key, "🔁 Колесо: повтор")
++        return
++
++
++# ---------------- ОСНОВНОЙ WS HANDLER ----------------
+ 
+-                # 🔄 ОБНОВИТЬ ЛОГИ НА ПАНЕЛИ
+-                ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
++async def ws_handler(websocket):
++    CONNECTED_SOCKETS.add(websocket)
++    CLIENT_TYPES[websocket] = None
++
++    try:
++        async for message in websocket:
++            print("📩 WS received:", message)
++
++            # JSON парсинг
++            try:
++                data = json.loads(message)
++            except Exception:
++                print("⚠ Невозможно распарсить JSON:", message)
+                 continue
+ 
++            # Определяем тип сообщения
++            msg_type = data.get("type")
+ 
+-            # ---------- ВИБРАЦИИ ОТ ПАНЕЛИ ----------
+-            if msg_type == "vibration":
+-                profile_key = data.get("profile_key")
+-                strength = data.get("strength")
+-                duration = data.get("duration")
++            # Донаты приходят без type
++            if msg_type is None and "amount" in data:
++                msg_type = "donation"
+ 
+-                if not profile_key or strength is None or duration is None:
+-                    continue
++            # ---------- РОУТЕР СООБЩЕНИЙ ----------
++            if msg_type == "ping":
++                await handle_ping(websocket)
++                continue
++
++            if msg_type == "hello":
++                await handle_hello(websocket, data)
++                continue
+ 
+-                # добавляем в очередь
+-                vibration_queues[profile_key].put_nowait((strength, duration))
+-
+-                # 🔥 обновляем очередь (показываем будущие вибрации)
+-                ws_send({
+-                    "queue_update": True,
+-                    "queue": list(vibration_queues[profile_key]._queue)
+-                }, role="panel", profile_key=profile_key)
+-
+-                # визуальное уведомление
+-                ws_send({
+-                    "vibration": {
+-                        "strength": strength,
+-                        "duration": duration,
+-                        "target": profile_key
+-                    }
+-                }, role="panel", profile_key=profile_key)
+-
+-                ws_send({
+-                    "vibration": {
+-                        "strength": strength,
+-                        "duration": duration,
+-                        "target": profile_key
+-                    }
+-                }, role="obs", profile_key=profile_key)
++            if "event" in data:
++                await handle_viewer_event(websocket, data)
++                continue
+ 
++            if msg_type == "donation":
++                await handle_donation_event(websocket, data)
++                continue
++
++            if msg_type == "stop":
++                await handle_stop(websocket, data)
++                continue
++
++            if msg_type == "vibration":
++                await handle_vibration(websocket, data)
+                 continue
+ 
+-            # ---------- CLEAR QUEUE ----------
+             if msg_type == "clear_queue":
+-                profile_key = data.get("profile_key")
+-
+-                if profile_key in vibration_queues:
+-                    q = vibration_queues[profile_key]
+-
+-                    # очищаем ТЕКУЩУЮ очередь, не создавая новую
+-                    while not q.empty():
+-                        try:
+-                            q.get_nowait()
+-                            q.task_done()
+-                        except:
+-                            break
+-
+-                ws_send({
+-                    "queue_update": True,
+-                    "queue": []
+-                }, role="panel", profile_key=profile_key)
++                await handle_clear_queue(websocket, data)
+                 continue
+ 
+-            # ---------- GET QUEUE ----------
+             if msg_type == "get_queue":
+-                profile_key = data.get("profile_key")
+-
+-                if profile_key in vibration_queues:
+-                    q = list(vibration_queues[profile_key]._queue)
+-                else:
+-                    q = []
++                await handle_get_queue(websocket, data)
++                continue
+ 
+-                ws_send({
+-                    "queue_update": True,
+-                    "queue": q
+-                }, role="panel", profile_key=profile_key)
++            if msg_type == "wheel_result":
++                await handle_wheel_result(websocket, data)
++                continue
+ 
++            if msg_type == "wheel_spin":
++                profile_key = data.get("profile")
++                # просто пробрасываем колесо в OBS
++                ws_send(data, role="obs", profile_key=profile_key)
+                 continue
+ 
++            # Если тип неизвестен
++            print("⚠ Unknown WS message type:", msg_type)
++
+     finally:
++        # Удаляем сокет при отключении
+         CONNECTED_SOCKETS.discard(websocket)
+         CLIENT_TYPES.pop(websocket, None)
+         CLIENT_PROFILES.pop(websocket, None)
+@@ -453,14 +574,27 @@ async def ws_server():
+     global WS_EVENT_LOOP
+     WS_EVENT_LOOP = asyncio.get_running_loop()
+ 
+-    profile_keys = list(CONFIG["profiles"].keys())
++    from services.database import get_connection
++
++    def get_all_profile_keys():
++        conn = get_connection()
++        cur = conn.cursor()
++        cur.execute("SELECT profile_key FROM profiles")
++        rows = cur.fetchall()
++        conn.close()
++        return [r["profile_key"] for r in rows]
++
++    # 👉 ВОТ ЭТА СТРОКА БЫЛА ОТСУТСТВУЮЩЕЙ
++    profile_keys = get_all_profile_keys()
++
+     print("🔥 WS SERVER PROFILE KEYS:", profile_keys)
++
+     # Инициализация очередей и STOP событий
+     init_vibration_queues(profile_keys)
+ 
+-
+     # Запуск фоновых задач
+     asyncio.create_task(redis_listener())
++
+     for key in profile_keys:
+         print("🚀 STARTING WORKER FOR", key)
+         asyncio.create_task(vibration_worker(key))
+@@ -474,4 +608,5 @@ def run_websocket_server():
+ 
+ 
+ if __name__ == "__main__":
+-    run_websocket_server()
+\ No newline at end of file
++    run_websocket_server()
++
+diff --git a/main.py b/main.py
+index 24f2b29..8560148 100644
+--- a/main.py
++++ b/main.py
+@@ -13,14 +13,16 @@ from app.lovense_app import lovense_bp
+ from services.maintenance_service import periodic_backup_cleanup
+ 
+ from config import CONFIG
++from services.database import init_db
++
+ 
+ 
+ def create_app():
+     app = Flask(__name__)
+     app.secret_key = CONFIG["secret_key"]
+     app.config.update(
+-        SESSION_COOKIE_SECURE=True,
+-        SESSION_COOKIE_SAMESITE="None"
++        SESSION_COOKIE_SECURE=False,
++        SESSION_COOKIE_SAMESITE="Lax"
+     )
+     CORS(app)
+ 
+diff --git a/services/database.py b/services/database.py
+new file mode 100644
+index 0000000..ccf5538
+--- /dev/null
++++ b/services/database.py
+@@ -0,0 +1,115 @@
++import sqlite3
++import os
++
++DB_PATH = "data/models.db"
++
++def get_connection():
++    os.makedirs("data", exist_ok=True)
++    conn = sqlite3.connect(DB_PATH)
++    conn.row_factory = sqlite3.Row
++    return conn
++
++
++def init_db():
++    conn = get_connection()
++    cur = conn.cursor()
++
++    # Таблица моделей
++    cur.execute("""
++    CREATE TABLE IF NOT EXISTS models (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        username TEXT UNIQUE NOT NULL,
++        password_hash TEXT NOT NULL,
++        display_name TEXT NOT NULL,
++        lovense_token TEXT,
++        uid TEXT UNIQUE,
++        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
++    );
++    """)
++
++    # Таблица профилей
++    cur.execute("""
++    CREATE TABLE IF NOT EXISTS profiles (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        model_id INTEGER NOT NULL,
++        profile_key TEXT UNIQUE NOT NULL,
++        mode TEXT NOT NULL CHECK (mode IN ('private', 'public')),
++        rules_file TEXT NOT NULL,
++        vip_file TEXT NOT NULL,
++        stats_file TEXT NOT NULL,
++        goal_file TEXT NOT NULL,
++        reactions_file TEXT NOT NULL,
++        FOREIGN KEY (model_id) REFERENCES models(id) ON DELETE CASCADE
++    );
++    """)
++
++    conn.commit()
++    conn.close()
++def create_model(username, password_hash, display_name, lovense_token, uid):
++    conn = get_connection()
++    cur = conn.cursor()
++
++    cur.execute("""
++        INSERT INTO models (username, password_hash, display_name, lovense_token, uid)
++        VALUES (?, ?, ?, ?, ?)
++    """, (username, password_hash, display_name, lovense_token, uid))
++
++    conn.commit()
++    model_id = cur.lastrowid
++    conn.close()
++    return model_id
++
++
++def get_model_by_username(username):
++    conn = get_connection()
++    cur = conn.cursor()
++
++    cur.execute("SELECT * FROM models WHERE username = ?", (username,))
++    row = cur.fetchone()
++
++    conn.close()
++    return row
++def create_profiles_for_model(model_id, username):
++    base = f"data"
++
++    private_key = f"{username}_private"
++    public_key = f"{username}_public"
++
++    def make_files(profile_key):
++        return {
++            "rules": f"{base}/rules/rules_{profile_key}.json",
++            "vip": f"{base}/vip/vip_{profile_key}.json",
++            "stats": f"{base}/stats/stats_{profile_key}.json",
++            "goal": f"{base}/goals/goal_{profile_key}.json",
++            "reactions": f"{base}/reactions/reactions_{profile_key}.json",
++        }
++
++    for mode, key in [("private", private_key), ("public", public_key)]:
++        files = make_files(key)
++
++        # создаём пустые файлы если их нет
++        for f in files.values():
++            os.makedirs(os.path.dirname(f), exist_ok=True)
++            if not os.path.exists(f):
++                with open(f, "w", encoding="utf-8") as fp:
++                    fp.write("{}")
++
++        conn = get_connection()
++        cur = conn.cursor()
++
++        cur.execute("""
++            INSERT INTO profiles (model_id, profile_key, mode, rules_file, vip_file, stats_file, goal_file, reactions_file)
++            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
++        """, (
++            model_id,
++            key,
++            mode,
++            files["rules"],
++            files["vip"],
++            files["stats"],
++            files["goal"],
++            files["reactions"]
++        ))
++
++        conn.commit()
++        conn.close()
+diff --git a/services/donation_service.py b/services/donation_service.py
+index c9344fa..525cd5f 100644
+--- a/services/donation_service.py
++++ b/services/donation_service.py
+@@ -40,6 +40,9 @@ def apply_rule(profile_key, amount, text):
+                     "text": text,
+                 },
+             )
++            # WHEEL
++            if rule.get("type") == "wheel":
++                return {"kind": "wheel", "segments": rule.get("segments", [])}
+ 
+             # ACTION
+             if action and action.strip():
+@@ -65,6 +68,23 @@ def handle_donation(profile_key, user_id, name, amount, text):
+     # 1. Применяем правила
+     rule_result = apply_rule(profile_key, amount, text)
+ 
++    # --- WHEEL ---
++    # --- WHEEL ---
++    if rule_result and rule_result["kind"] == "wheel":
++        segments = rule_result["segments"]
++
++        if segments:
++            # отправляем колесо в OBS — без выбора победителя
++            redis_client.publish("obs_reactions", json.dumps({
++                "wheel_spin": True,
++                "profile": profile_key,
++                "segments": segments
++            }))
++
++        # возвращаем результат и выходим
++        return {"goal": None, "rule": rule_result}
++
++
+     # 2. Логируем
+     if rule_result and rule_result["kind"] == "action":
+         add_log(profile_key, f"💸 | {name} → {amount} 🎬 Действие: {rule_result['action_text']}")
+diff --git a/services/vibration_manager.py b/services/vibration_manager.py
+index fcd0a75..4cdaabe 100644
+--- a/services/vibration_manager.py
++++ b/services/vibration_manager.py
+@@ -1,12 +1,14 @@
+ # services/vibration_manager.py
+ 
+ import asyncio
+-from typing import Dict, Optional
++from typing import Dict
+ 
+-# ГЛОБАЛЬНЫЕ структуры — единый источник истины
++# ГЛОБАЛЬНЫЕ структуры
+ vibration_queues: Dict[str, asyncio.Queue] = {}
+ stop_events: Dict[str, asyncio.Event] = {}
+ 
++MAX_QUEUE_SIZE = 50  # максимум вибраций в очереди
++
+ 
+ # ---------------- ВСПОМОГАТЕЛЬНЫЕ ----------------
+ 
+@@ -39,17 +41,37 @@ def get_vibration_queue(profile_key: str) -> asyncio.Queue:
+ 
+ # ---------------- ОЧЕРЕДЬ ВИБРАЦИЙ ----------------
+ 
+-def enqueue_vibration(profile_key: str, strength: int, duration: int) -> None:
++def safe_enqueue(profile_key: str, strength: int, duration: int) -> None:
++    """
++    Безопасное добавление вибрации в очередь с ограничением размера.
++    """
++    ensure_profile(profile_key)
++    q = vibration_queues[profile_key]
++
++    # ограничение размера очереди
++    while q.qsize() >= MAX_QUEUE_SIZE:
++        try:
++            q.get_nowait()
++            q.task_done()
++        except Exception:
++            break
++
++    q.put_nowait((strength, duration))
++
++
++def clear_queue(profile_key: str) -> None:
+     """
+-    Кладёт вибрацию в очередь.
++    Полностью очищает очередь вибраций.
+     """
+     ensure_profile(profile_key)
+     q = vibration_queues[profile_key]
+ 
+-    try:
+-        q.put_nowait((strength, duration))
+-    except Exception as e:
+-        print(f"⚠️ Ошибка enqueue_vibration для {profile_key}: {e}")
++    while not q.empty():
++        try:
++            q.get_nowait()
++            q.task_done()
++        except Exception:
++            break
+ 
+ 
+ # ---------------- ОСТАНОВКА ----------------
+@@ -61,3 +83,11 @@ def stop_vibration(profile_key: str) -> None:
+     """
+     ensure_profile(profile_key)
+     stop_events[profile_key].set()
++
++
++def clear_stop_flag(profile_key: str) -> None:
++    """
++    Сбрасывает stop_event перед новой вибрацией.
++    """
++    ensure_profile(profile_key)
++    stop_events[profile_key].clear()
+diff --git a/templates/index.html b/templates/index.html
+index e802308..4bde0a5 100644
+--- a/templates/index.html
++++ b/templates/index.html
+@@ -422,6 +422,24 @@
+         🧹 Очистить очередь
+       </button>
+     </div>
++
++    
++    <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
++    <div id="toast" class="toast"></div>
++    <div id="entryPopup" style="display:none;"></div>
++
++    <!-- Модалка цели -->
++    <div id="goalModal" class="modal">
++      <div class="modal-content">
++        <h3>Новая цель</h3>
++        <form id="goalForm">
++          <input name="title" placeholder="Название цели">
++          <input name="target" placeholder="Сколько нужно" type="number">
++          <button type="submit">Сохранить</button>
++        </form>
++      </div>
++    </div>
++
+     <!-- JS -->
+     <script>
+ 
+@@ -867,22 +885,6 @@
+           }); // первичная отрисовка
+     </script>
+ 
+-    <div id="vibrationTimersContainer" style="position:fixed; top:20px; right:20px; z-index:9999;"></div>
+-    <div id="toast" class="toast"></div>
+-    <div id="entryPopup" style="display:none;"></div>
+-
+-    <!-- Модалка цели -->
+-    <div id="goalModal" class="modal">
+-      <div class="modal-content">
+-        <h3>Новая цель</h3>
+-        <form id="goalForm">
+-          <input name="title" placeholder="Название цели">
+-          <input name="target" placeholder="Сколько нужно" type="number">
+-          <button type="submit">Сохранить</button>
+-        </form>
+-      </div>
+-    </div>
+-
+     <script>
+     function openGoalModal() {
+       document.getElementById("goalModal").style.display = "block";
+diff --git a/templates/obs_wheel.html b/templates/obs_wheel.html
+new file mode 100644
+index 0000000..9e2e21c
+--- /dev/null
++++ b/templates/obs_wheel.html
+@@ -0,0 +1,507 @@
++<!DOCTYPE html>
++<html lang="ru">
++<head>
++  <meta charset="UTF-8">
++  <title>Колесо фортуны</title>
++  <style>
++    body {
++      margin: 0;
++      background: transparent;
++      overflow: hidden;
++    }
++
++    #wheelSvg {
++      width: 500px;
++      height: 500px;
++      position: absolute;
++      top: 50%;
++      left: 50%;
++      transform: translate(-50%, -50%);
++      display:none;
++    }
++    #pointer {
++      position:absolute;
++      top:50%;
++      left:50%;
++      transform:translate(-50%, -210px);
++      width:60px;
++      height:60px;
++      z-index:10;
++    }
++
++    #heartPointer {
++    pointer-events:none;
++    }
++
++  </style>
++</head>
++<body>
++
++
++
++<svg id="wheelSvg" viewBox="0 0 305.58 373.8">
++
++    <!-- СТАТИЧНАЯ ТЕНЬ -->
++    <g id="staticLayer" transform="translate(24.57, 22.73)">
++        <defs>
++            <filter id="outerShadowFilter" x="-0.066" y="-0.065" width="1.132" height="1.13">
++                <feGaussianBlur in="SourceGraphic" stdDeviation="9.81" />
++            </filter>
++
++            <filter id="pointerShadowFilter" x="-0.309" y="-0.257" width="1.618" height="1.514">
++                <feGaussianBlur in="SourceGraphic" stdDeviation="10.58" />
++            </filter>
++        </defs>
++
++        <!-- НОВАЯ ТЕНЬ -->
++        <path d="M172.69,296.91 
++                C188.9,293.98 188.51,293.96 206.12,285.69 
++                L215.57,280.74 
++                C220.58,277.74 228.36,272.69 231.26,270.33 
++                L235.83,266.47 
++                C239.2,263.17 243.35,258.93 245.79,256.36 
++                L248.85,253.11 
++                C250.17,251.57 255.18,244.68 256.74,242.56 
++                L259.87,238.03 
++                C263.05,231.96 266.68,225.05 267.1,224 
++                L268.42,220.94 
++                C269.28,218.69 271.77,211.89 272.18,210.85 
++                L273.03,208.62 
++                C273.68,205.49 274.53,202.51 274.97,201.33 
++                L275.77,198.02 
++                C276.04,196.39 277.21,189.5 277.42,188.15 
++                L277.97,183.92 
++                C277.97,181.64 278.02,173.07 278.01,171.41 
++                L278.05,165.41 
++                C277.94,158.01 277.11,149.27 276.43,144.88 
++                L275.26,139.4 
++                C274.69,136.46 273.14,131.05 272.45,128.89 
++                L271.41,125.33 
++                C270.84,123.77 268.41,117.78 267.39,115.3 
++                L266.31,113.31 
++                C265.04,110.61 262.84,106.45 261.94,104.82 
++                L260.41,102.44 
++                C258.97,99.91 257.04,97.05 255.58,95.11 
++                L252.99,91.91 
++                C249.76,87.75 247,84.42 245.49,82.89 
++                L242.92,79.98 
++                C240.8,77.69 236.53,73.8 234.16,71.78 
++                L231.89,69.79 
++                C230.42,68.69 226.5,65.67 224.78,64.34 
++                L221.97,62.45 
++                C218.9,60.54 214.59,58.1 212.27,56.85 
++                L209.8,55.35 
++                C207.47,54.13 203.33,52.13 201.58,51.31 
++                L199.27,50.26 
++                C196.44,49.2 192.67,47.85 191.63,47.55 
++                L188.08,46.42 
++                C184.63,45.69 180.52,44.69 178.02,44.02 
++                L174.91,43.38 
++                C172.7,43.12 166.01,42.34 164.77,42.19 
++                L161.53,42.13 
++                C159.19,41.97 153.39,41.93 150.61,41.95 
++                L147.03,42 
++                C144.57,42.16 137.26,42.74 132.95,43.1 
++                L128.06,43.89 
++                C125.64,44.5 119.67,45.89 117.21,46.45 
++                L113.23,47.6 
++                C111.54,48.21 105.91,50.15 104.88,50.57 
++                L103.24,51.38 
++                C100.88,52.57 98.23,53.91 97.65,54.25 
++                L95.95,55 
++                C93.62,56.4 91.01,57.98 90.59,58.24 
++                L88.8,59.22 
++                C87.33,60.01 85.24,61.27 84.35,61.85 
++                L83.38,62.47 
++                C82.68,62.97 80.49,64.45 80.13,64.71 
++                L79.21,65.27 
++                C78.6,65.85 76.81,67.44 76.5,67.74 
++                L75.56,68.43 
++                C74.85,68.96 73.37,70.29 72.74,70.89 
++                L72.16,71.23 
++                C71.4,71.75 68.63,74.29 67.24,75.6 
++                L64.76,77.81 
++                C63.67,79.07 60.85,81.91 59.6,83.12 
++                L58.21,84.76 
++                C57.32,85.81 54.71,88.76 54.28,89.34 
++                L52.59,91.6 
++                C50.63,94.19 48.47,97.31 47.53,99.05 
++                L45.93,101.14 
++                C45.06,102.74 42.3,107.81 41.84,108.68 
++                L40.26,112.16 
++                C39.12,114.32 37.12,119.12 36.44,120.88 
++                L35.44,123.7 
++                C34.59,126.02 33.23,130.03 32.66,131.78 
++                L31.42,136.12 
++                C30.54,139.53 29.61,144.32 29.29,146.36 
++                L29.09,149.94 
++                C28.57,154 28.28,158.17 28.15,160.91 
++                L27.99,164.7 
++                C27.94,166.55 27.47,172.86 27.54,175.57 
++                L27.79,179.78 
++                C27.86,181.58 28.25,185.78 28.59,188.14 
++                L29.16,192.89 
++                C29.98,197.26 30.37,199.26 30.45,199.82 
++                L31.48,203.28 
++                C32.28,206.91 33.71,211.17 34.43,212.89 
++                L35.24,215.23 
++                C36.3,218.11 37.21,220.51 37.71,221.69 
++                L38.73,223.84 
++                C40.47,227.82 42.05,230.13 42.64,231.25 
++                L44.03,233.73 
++                C45.63,236.12 46.85,237.89 47.34,238.74 
++                L49,241.37 
++                C49.75,242.06 51.53,244.75 52.81,246.48 
++                L54.18,248.19 
++                C54.91,249.31 57.42,252.38 58.08,253.28 
++                L59.91,255.37 
++                C62.21,257.97 64.01,259.9 65.31,261.18 
++                L66.4,262.52 
++                C67.68,263.8 70.94,266.47 71.82,267.16 
++                L73.37,268.62 
++                C74.3,269.31 77.17,271.58 77.62,271.86 
++                L78.73,272.82 
++                C79.56,273.36 81.83,275.15 82.19,275.4 
++                L83.61,276.33 
++                C84.21,276.8 86.18,278.13 87.02,278.69 
++                L88.29,279.33 
++                C90.15,280.41 92.16,281.61 93.63,282.51 
++                L96.43,284.16 
++                C99.98,286.14 102.29,287.3 103.35,287.65 
++                L106.71,289.07 
++                C108.77,289.91 111.34,290.9 112.89,291.46 
++                L115.06,292.18 
++                C119.5,293.28 123.92,294.27 126.77,294.84 
++                L130.66,295.6 
++                C137.34,296.95 140.46,297.67 150.11,297.71 
++                L172.69,296.91 Z"
++            fill="#9B9A9C"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="0.95"
++            filter="url(#outerShadowFilter)" />
++
++        <!-- НОВЫЙ ВНЕШНИЙ КРУГ -->
++        <path d="M256.46,169.97 
++                C256.46,240.65 199.16,297.95 128.48,297.95 
++                C57.8,297.95 0.5,240.65 0.5,169.97 
++                C0.5,99.29 57.8,41.99 128.48,41.99 
++                C199.16,41.99 256.46,99.29 256.46,169.97 Z"
++            fill="#FFAFCC"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="1" />
++    </g>
++
++    <!-- ========================= -->
++    <!-- ВНУТРЕННИЙ КРУГ + СЕКТОРА (ВРАЩАЮТСЯ) — НОВАЯ ВЕРСИЯ -->
++    <!-- ========================= -->
++    <g id="wheelInner" transform="translate(24.57, 22.73)">
++
++        <!-- ПРАВИЛЬНЫЙ ВНУТРЕННИЙ КРУГ -->
++        <circle cx="152.79" cy="192.55" r="108"
++                fill="#FEDDE4"
++                stroke="#AF6D85"
++                stroke-width="0.95" />
++
++        <!-- СЕКТОРА (JS вставляет сюда) -->
++        <g id="segments"></g>
++
++    </g>
++    
++    <g id="heartPointer" transform="translate(25, 20)">
++        <path d="M129.31,24.72 
++                C134.67,-0.67 158.95,3.94 157.17,22.58 
++                C156.25,33.17 141.04,56.38 128.93,76.87 
++                L109.27,45.86 
++                C104.32,37.27 100.99,29.76 99.4,23.49 
++                C96.74,6.63 124.92,-1.14 129.31,24.72 Z"
++            fill="#FF9ABF"
++            stroke="#AF6D85"
++            stroke-width="0.95" />
++    </g>
++
++
++    <g id="decorLayer" transform="translate(24.57, 22.73)">
++   
++        <!-- ПИН В ЦЕНТРЕ (СТАТИЧНЫЙ) — НОВАЯ ВЕРСИЯ -->
++        <path d="M141.72,169.97 
++                C141.72,177.42 135.68,183.47 128.22,183.47 
++                C120.77,183.47 114.73,177.42 114.73,169.97 
++                C114.73,162.51 120.77,156.47 128.22,156.47 
++                C135.68,156.47 141.72,162.51 141.72,169.97 Z"
++            fill="#FFFFFF"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="0.95" />
++
++
++        <!-- ДЕКОР (СТАТИЧНЫЙ) — НОВАЯ ВЕРСИЯ -->
++
++        <!-- Элемент 1 -->
++        <path d="M148.04,9.09 
++                C146.98,16.7 146.08,19.47 139.77,21.64 
++                C147.73,23.23 146.64,26.37 148.29,35.57 
++                C149.43,26.12 149.21,23.33 155.65,21.37 
++                C149.15,19.92 149.3,16.52 148.04,9.09 Z"
++            fill="#FFFDB9"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="1" />
++
++        <!-- Элемент 2 -->
++        <path d="M118.26,49.42 
++                C117.55,54.02 116.96,55.69 112.78,57 
++                C118.05,57.96 117.33,59.86 118.43,65.42 
++                C119.18,59.71 119.03,58.03 123.31,56.84 
++                C118.99,55.97 119.09,53.91 118.26,49.42 Z"
++            fill="#FFFDB9"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="1" />
++
++        <!-- Группа 2 -->
++
++        <path d="M171.15,277.1 
++                C171.15,281.42 174.4,286.18 179.49,286.18 
++                C180.6,286.18 182.74,285.24 183.56,284.68 
++                C184.92,288.02 187.52,292.26 191.38,292.26 
++                C196.07,292.26 199.58,287.56 200.15,283.06 
++                C200.61,283.13 202.07,283.68 202.55,283.68 
++                C207.64,283.68 211.37,279.57 211.37,274.53 
++                C211.37,270.45 208.67,266.99 204.95,265.82 
++                C205.76,264.46 206.23,262.87 206.23,261.18 
++                C206.23,256.13 202.1,252.04 197.02,252.04 
++                C193.64,252.04 190.69,253.84 189.09,256.53 
++                C187.49,255.19 185.42,254.39 183.16,254.39 
++                C178.07,254.39 173.95,258.48 173.95,263.52 
++                C173.95,265.61 175.46,267.5 176.65,269.04 
++                C173.6,270.53 171.15,272.78 171.15,277.1 Z"
++            fill="#FFF1F4"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="0.95" />
++
++        <path d="M197.51,272.15 
++                C197.51,275.6 194.71,278.4 191.26,278.4 
++                C187.81,278.4 185.01,275.6 185.01,272.15 
++                C185.01,268.7 187.81,265.9 191.26,265.9 
++                C194.71,265.9 197.51,268.7 197.51,272.15 Z"
++            fill="#FFF600"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="0.95" />
++
++        <!-- Группа 12 -->
++        <path d="M200.37,243.75 
++                C200.37,246.12 202.15,248.71 204.93,248.71 
++                C205.54,248.71 206.71,248.2 207.16,247.9 
++                C207.9,249.72 209.32,252.04 211.43,252.04 
++                C214,252.04 215.92,249.47 216.23,247.01 
++                C216.48,247.05 217.28,247.35 217.54,247.35 
++                C220.32,247.35 222.36,245.11 222.36,242.35 
++                C222.36,240.12 220.89,238.23 218.85,237.59 
++                C219.3,236.84 219.55,235.97 219.55,235.05 
++                C219.55,232.29 217.3,230.05 214.52,230.05 
++                C212.67,230.05 211.06,231.04 210.18,232.51 
++                C209.31,231.78 208.17,231.34 206.94,231.34 
++                C204.16,231.34 201.91,233.57 201.91,236.33 
++                C201.91,237.47 202.73,238.51 203.38,239.35 
++                C201.71,240.16 200.37,241.39 200.37,243.75 Z"
++            fill="#FFF1F4"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="1" />
++
++        <path d="M214.78,241.05 
++                C214.78,242.93 213.25,244.46 211.37,244.46 
++                C209.48,244.46 207.95,242.93 207.95,241.05 
++                C207.95,239.16 209.48,237.63 211.37,237.63 
++                C213.25,237.63 214.78,239.16 214.78,241.05 Z"
++            fill="#FFF600"
++            stroke="#AF6D85"
++            stroke-linecap="round"
++            stroke-linejoin="miter"
++            stroke-miterlimit="11.47"
++            stroke-width="1" />
++
++    </g>
++
++
++
++
++
++</svg>
++
++<script>
++const profileKey = "{{ profile_key }}";
++const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
++
++ws.onopen = () => {
++  ws.send(JSON.stringify({
++    type: "hello",
++    role: "obs",
++    profile_key: profileKey
++  }));
++};
++
++ws.onmessage = (event) => {
++  let data;
++  try { data = JSON.parse(event.data); } catch { return; }
++
++  if (data.type === "wheel_spin" && data.profile === profileKey) {
++      const winnerIndex = Math.floor(Math.random() * data.segments.length);
++      spinWheel(data.segments, winnerIndex);
++
++  }
++};
++
++function drawWheel(segments) {
++    const g = document.getElementById("segments");
++    g.innerHTML = "";
++
++    const count = segments.length;
++    const angle = 360 / count;
++    const offset = 90;
++
++    const centerX = 152.79;
++    const centerY = 192.55;
++
++    const radius = 108;      // ⭐ новый радиус твоего круга
++    const textRadius = 75;   // ⭐ текст ближе к центру
++
++    for (let i = 0; i < count; i++) {
++
++        const start = ((i * angle) + offset) * Math.PI / 180;
++        const end = (((i + 1) * angle) + offset) * Math.PI / 180;
++
++        const x1 = centerX + Math.cos(start) * radius;
++        const y1 = centerY + Math.sin(start) * radius;
++        const x2 = centerX + Math.cos(end) * radius;
++        const y2 = centerY + Math.sin(end) * radius;
++
++        const path = `
++            M ${centerX} ${centerY}
++            L ${x1} ${y1}
++            A ${radius} ${radius} 0 0 1 ${x2} ${y2}
++            Z
++        `;
++
++        const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
++
++        const label =
++            (segments[i].name && segments[i].name.trim() !== "")
++                ? segments[i].name
++                : (segments[i].action || "");
++
++        const textAngle = (i * angle) + angle / 2 + offset;
++
++        const tx = centerX + Math.cos(textAngle * Math.PI / 180) * textRadius;
++        const ty = centerY + Math.sin(textAngle * Math.PI / 180) * textRadius;
++
++        let html = `
++            <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
++        `;
++
++        if (label.trim() !== "") {
++            html += `
++                <text x="${tx}" y="${ty}"
++                      font-size="15"
++                      font-family="Noto Sans JP"
++                      fill="#333"
++                      text-anchor="middle"
++                      dominant-baseline="middle"
++                      transform="rotate(${textAngle} ${tx} ${ty})">
++                    ${label}
++                </text>
++            `;
++        }
++
++        g.innerHTML += html;
++    }
++}
++
++function sendResult(winnerIndex) {
++    ws.send(JSON.stringify({
++        type: "wheel_result",
++        profile: profileKey,
++        winner_index: winnerIndex
++    }));
++}
++
++
++function spinWheel(segments, winnerIndex) {
++    drawWheel(segments);
++
++    const svg = document.getElementById("wheelSvg");
++    const wheelInner = document.getElementById("wheelInner");
++
++    svg.style.display = "block";
++
++    const count = segments.length;
++    const angle = 360 / count;
++
++    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2 + 90;
++
++    let rotation = 0;
++    let speed = 5;
++    let maxSpeed = 25;
++    let minSpeed = 0.2;
++    let decelStart = finalAngle - 1440;
++
++    let stopped = false;
++
++    function animate() {
++        if (stopped) return;
++
++        if (speed < maxSpeed && rotation < 360) {
++            speed += 0.3;
++        }
++
++        rotation += speed;
++
++        if (rotation >= decelStart) {
++            speed *= 0.965;
++        }
++
++        if (speed < minSpeed) {
++            stopped = true;
++
++            wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
++
++            sendResult(winnerIndex);
++
++            setTimeout(() => {
++                svg.style.display = "none";
++            }, 3000);
++
++            return;
++        }
++
++        wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
++
++        requestAnimationFrame(animate);
++    }
++
++    animate();
++}
++</script>
++
++</body>
++</html>
+\ No newline at end of file
+diff --git a/templates/rules.html b/templates/rules.html
+index 9ed817f..65f17a8 100644
+--- a/templates/rules.html
++++ b/templates/rules.html
+@@ -139,6 +139,63 @@
+     .hidden {
+       display: none;
+   }
++    /* --- Красивые карточки сегментов --- */
++    .segment-card {
++        background: #ffffff;
++        border-radius: 12px;
++        padding: 14px;
++        margin-bottom: 12px;
++        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
++        border-left: 6px solid #74c0e3;
++        animation: fadeSegment 0.3s ease;
++    }
++
++    .segment-title {
++        font-size: 15px;
++        font-weight: 600;
++        color: #333;
++        margin-bottom: 6px;
++    }
++
++    .segment-action {
++        font-size: 14px;
++        color: #666;
++        margin-bottom: 10px;
++    }
++
++    .segment-chance-bar {
++        height: 8px;
++        background: #e6e6e6;
++        border-radius: 6px;
++        overflow: hidden;
++        margin-bottom: 10px;
++    }
++
++    .segment-chance-fill {
++        height: 100%;
++        background: linear-gradient(90deg, #74c0e3, #a3d8f4);
++        width: 0%;
++        transition: width 0.4s ease;
++    }
++
++    .segment-delete-btn {
++        background: #f7a8b8;
++        border: none;
++        padding: 6px 12px;
++        border-radius: 8px;
++        cursor: pointer;
++        color: white;
++        font-size: 13px;
++    }
++
++    .segment-delete-btn:hover {
++        background: #f28497;
++    }
++
++    @keyframes fadeSegment {
++        from { opacity: 0; transform: translateY(5px); }
++        to { opacity: 1; transform: translateY(0); }
++    }
+ 
+   
+   </style>
+@@ -192,14 +249,19 @@
+         </form>
+         <!-- Редактировать -->
+         {% if rule.type == "wheel" %}
++            <button type="button" onclick="toggleWheel('{{ rule.id }}')">📂</button>
+             <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕</button>
+         {% else %}
+             <button type="button" onclick="openModal('{{ rule.id }}')">✏️</button>
+         {% endif %}
+ 
++
+       </div>
+     </div>
++    {% if rule.type != "wheel" %}
+     <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
++    {% endif %}
++
+     <p>Действие:
+       {% if rule.type == "wheel" %}
+           🎡 Колесо фортуны
+@@ -211,6 +273,47 @@
+     </p>
+   </div>
+ 
++  {% if rule.type == "wheel" %}
++  <div class="wheel-segments" id="wheel-{{ rule.id }}" style="display:none; margin-top:10px; padding:10px; border-radius:10px; background:#f7f7f7;">
++    <h4>🎡 Сегменты колеса</h4>
++
++      {% if rule.segments %}
++        {% for seg in rule.segments %}
++          <div class="segment-card">
++            <div class="segment-title">🎯 {{ seg.name }}</div>
++
++              {% if seg.type == "vibration" %}
++                <div class="segment-action">
++                  <strong>Вибрация:</strong> сила {{ seg.strength }}, время {{ seg.duration }}s
++                </div>
++              {% elif seg.type == "action" %}
++                <div class="segment-action">
++                  <strong>Действие:</strong> {{ seg.action }}
++                </div>
++              {% endif %}
++
++            <div class="segment-chance-bar">
++              <div class="segment-chance-fill" style="width: {{ seg.chance }}%;"></div>
++            </div>
++
++              <small style="color:#555;">Шанс: {{ seg.chance }}%</small>
++
++              <form method="POST" style="margin-top:10px;">
++                <input type="hidden" name="delete_segment" value="{{ rule.id }}">
++                <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
++                <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
++              </form>
++    </div>
++
++          {% endfor %}
++      {% else %}
++          <p style="color:#777;">Сегментов пока нет</p>
++      {% endif %}
++
++    <button type="button" onclick="openSegmentModal('{{ rule.id }}')">➕ Добавить сегмент</button>
++  </div>
++  {% endif %}
++
+   <!-- Модальное окно редактирования -->
+   {% if rule.type != "wheel" %}
+   <div id="modal-{{ rule.id }}" class="modal">
+@@ -224,8 +327,12 @@
+         Мин: <input type="number" name="min" value="{{ rule.min }}" required><br>
+         Макс: <input type="number" name="max" value="{{ rule.max }}" required><br>
+ 
+-        Сила: <input type="number" name="strength" value="{{ rule.strength }}"><br>
+-        Время: <input type="number" name="duration" value="{{ rule.duration }}"><br>
++        <div class="field-strength">
++          Сила: <input type="number" name="strength" value="{{ rule.strength }}">
++        </div>
++        <div class="field-duration">
++          Время: <input type="number" name="duration" value="{{ rule.duration }}">
++        </div>
+ 
+         Тип:
+         <select name="action_type">
+@@ -234,7 +341,10 @@
+           <option value="wheel" {% if rule.type == "wheel" %}selected{% endif %}>Колесо фортуны</option>
+         </select><br>
+ 
+-        Действие: <input type="text" name="action" value="{{ rule.action }}"><br><br>
++        <div class="field-action">
++          Действие: <input type="text" name="action" value="{{ rule.action }}">
++        </div>
++        <br>
+ 
+         <!-- Блок сегментов -->
+         <div class="segments-block{% if rule.type != 'wheel' %} hidden{% endif %}" data-wheel-block>
+@@ -244,18 +354,27 @@
+ 
+           {% if rule.segments %}
+             {% for seg in rule.segments %}
+-              <div style="border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px;">
+-                <strong>Название:</strong> {{ seg.name }}<br>
+-                <strong>Шанс:</strong> {{ seg.chance }}%<br>
+-                <strong>Действие:</strong> {{ seg.action }}<br>
+-
+-                <form method="POST" style="margin-top:5px;">
+-                  <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+-                  <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+-                  <button type="submit" class="delete">Удалить сегмент</button>
+-                </form>
++            <div class="segment-card">
++              <div class="segment-title">🎯 {{ seg.name }}</div>
++
++              <div class="segment-action">
++                <strong>Действие:</strong> {{ seg.action }}
++              </div>
++
++              <div class="segment-chance-bar">
++                <div class="segment-chance-fill" style="width: {{ seg.chance }}%;"></div>
+               </div>
+-            {% endfor %}
++
++              <small style="color:#555;">Шанс: {{ seg.chance }}%</small>
++
++              <form method="POST" style="margin-top:10px;">
++                <input type="hidden" name="delete_segment" value="{{ rule.id }}">
++                <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
++                <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
++              </form>
++          </div>
++          {% endfor %}
++
+           {% else %}
+             <p style="color:#777;">Сегментов пока нет</p>
+           {% endif %}
+@@ -275,17 +394,42 @@
+       <h3>➕ Новый сегмент</h3>
+ 
+       <form method="POST">
+-        <input type="hidden" name="add_segment" value="{{ rule.id }}">
++          <input type="hidden" name="add_segment" value="{{ rule.id }}">
++
++          Название: <input type="text" name="seg_name" required><br>
++          Шанс (%): <input type="number" name="seg_chance" required><br>
+ 
+-        Название: <input type="text" name="seg_name" required><br>
+-        Шанс (%): <input type="number" name="seg_chance" required><br>
+-        Действие: <input type="text" name="seg_action" required><br>
++          Тип:
++          <select name="seg_type" onchange="updateSegmentFields(this)">
++              <option value="vibration">Вибрация</option>
++              <option value="action">Действие</option>
++              <option value="retry">Повтор</option>
++          </select>
+ 
+-        <button type="submit">💾 Добавить</button>
++
++          <div class="seg-vibration-fields">
++              Сила: <input type="number" name="seg_strength"><br>
++              Время (сек): <input type="number" name="seg_duration"><br>
++          </div>
++
++          <div class="seg-action-fields hidden">
++              Действие: <input type="text" name="seg_action"><br>
++          </div>
++
++          <div class="seg-retry-fields hidden">
++              <p style="color:#777;">Этот сегмент просто повторяет колесо.</p>
++          </div>
++
++
++          <button type="submit">💾 Добавить</button>
+       </form>
+     </div>
+   </div>
+ 
++
++
++
++
+   {% endfor %}
+ 
+   <!-- Добавить новое правило -->
+@@ -324,7 +468,20 @@
+         const ruleIndex = btn.getAttribute("data-index");
+         fetch(`/test_rule/${ruleIndex}`, { method: "POST" })
+           .then(r => r.json())
+-          .then(data => showToast(data.message || `Правило ${ruleIndex} проверено ✅`))
++          .then(data => {
++            showToast(data.message || `Правило ${ruleIndex} проверено ✅`);
++
++            // Если правило — колесо фортуны, отправляем в WebSocket
++            if (data.wheel_result) {
++              ws.send(JSON.stringify({
++                type: "wheel_result",
++                profile: data.wheel_result.profile,
++                segment: data.wheel_result.segment
++              }));
++            }
++          })
++
++
+           .catch(() => showToast("Ошибка при проверке ❌"));
+       });
+     });
+@@ -406,5 +563,33 @@
+     });
+   </script>
+ 
++  <script>
++  function toggleWheel(id) {
++      const block = document.getElementById("wheel-" + id);
++      block.style.display = block.style.display === "none" ? "block" : "none";
++  }
++  </script>
++<script>
++function updateSegmentFields(selectEl) {
++    const modal = selectEl.closest(".modal-content");
++
++    const vib = modal.querySelector(".seg-vibration-fields");
++    const act = modal.querySelector(".seg-action-fields");
++    const retry = modal.querySelector(".seg-retry-fields");
++
++    // Скрываем всё
++    vib.classList.add("hidden");
++    act.classList.add("hidden");
++    retry.classList.add("hidden");
++
++    // Показываем нужное
++    if (selectEl.value === "vibration") vib.classList.remove("hidden");
++    if (selectEl.value === "action") act.classList.remove("hidden");
++    if (selectEl.value === "retry") retry.classList.remove("hidden");
++}
++</script>
++
++
++
+ </body>
+ </html>
+diff --git "a/\320\265" "b/\320\265"
+index 9ced860..5c214ee 100644
+--- "a/\320\265"
++++ "b/\320\265"
+@@ -17,3 +17,39 @@ nano /etc/systemd/system/arina.service
+ 
+ journalctl -u arina_ws.service -n 50 --no-pager
+ 
++d
++ тень под внешний круг (	<defs>
++		<filter id="filter_1" style="color-interpolation-filters:sRGB" primitiveUnits="userSpaceOnUse" x="-0.066" y="-0.065" width="1.132" height="1.13">
++			<feGaussianBlur in="SourceGraphic" stdDeviation="9.81" />
++		</filter>
++	</defs>
++	<path d="M172.69,282.49 C188.9,279.57 188.51,279.54 206.12,271.28 L215.57,266.32 C220.58,263.33 228.36,258.27 231.26,255.92 L235.83,252.06 C239.2,248.76 243.35,244.52 245.79,241.95 L248.85,238.69 C250.17,237.16 255.18,230.26 256.74,228.15 L259.87,223.62 C263.05,217.55 266.68,210.63 267.1,209.59 L268.42,206.53 C269.28,204.27 271.77,197.47 272.18,196.44 L273.03,194.21 C273.68,191.08 274.53,188.1 274.97,186.91 L275.77,183.61 C276.04,181.98 277.21,175.09 277.42,173.74 L277.97,169.51 C277.97,167.22 278.02,158.66 278.01,157 L278.05,151 C277.94,143.6 277.11,134.85 276.43,130.46 L275.26,124.99 C274.69,122.05 273.14,116.64 272.45,114.48 L271.41,110.92 C270.84,109.36 268.41,103.36 267.39,100.88 L266.31,98.89 C265.04,96.2 262.84,92.03 261.94,90.41 L260.41,88.03 C258.97,85.49 257.04,82.63 255.58,80.7 L252.99,77.49 C249.76,73.34 247,70.01 245.49,68.48 L242.92,65.56 C240.8,63.27 236.53,59.39 234.16,57.37 L231.89,55.37 C230.42,54.27 226.5,51.26 224.78,49.93 L221.97,48.03 C218.9,46.13 214.59,43.68 212.27,42.44 L209.8,40.94 C207.47,39.72 203.33,37.72 201.58,36.89 L199.27,35.85 C196.44,34.79 192.67,33.43 191.63,33.13 L188.08,32 C184.63,31.28 180.52,30.28 178.02,29.6 L174.91,28.97 C172.7,28.71 166.01,27.93 164.77,27.77 L161.53,27.72 C159.19,27.56 153.39,27.51 150.61,27.53 L147.03,27.58 C144.57,27.74 137.26,28.33 132.95,28.69 L128.06,29.48 C125.64,30.09 119.67,31.48 117.21,32.03 L113.23,33.19 C111.54,33.8 105.91,35.74 104.88,36.15 L103.24,36.97 C100.88,38.15 98.23,39.5 97.65,39.83 L95.95,40.59 C93.62,41.99 91.01,43.56 90.59,43.83 L88.8,44.81 C87.33,45.59 85.24,46.86 84.35,47.43 L83.38,48.06 C82.68,48.55 80.49,50.04 80.13,50.3 L79.21,50.86 C78.6,51.44 76.81,53.03 76.5,53.33 L75.56,54.02 C74.85,54.54 73.37,55.87 72.74,56.48 L72.16,56.82 C71.4,57.34 68.63,59.87 67.24,61.19 L64.76,63.4 C63.67,64.65 60.85,67.5 59.6,68.71 L58.21,70.35 C57.32,71.4 54.71,74.35 54.28,74.92 L52.59,77.19 C50.63,79.78 48.47,82.9 47.53,84.64 L45.93,86.73 C45.06,88.33 42.3,93.4 41.84,94.27 L40.26,97.75 C39.12,99.91 37.12,104.7 36.44,106.46 L35.44,109.29 C34.59,111.6 33.23,115.62 32.66,117.37 L31.42,121.71 C30.54,125.12 29.61,129.91 29.29,131.94 L29.09,135.52 C28.57,139.59 28.28,143.75 28.15,146.5 L27.99,150.29 C27.94,152.14 27.47,158.45 27.54,161.16 L27.79,165.36 C27.86,167.16 28.25,171.37 28.59,173.72 L29.16,178.48 C29.98,182.85 30.37,184.84 30.45,185.41 L31.48,188.86 C32.28,192.5 33.71,196.75 34.43,198.47 L35.24,200.82 C36.3,203.7 37.21,206.1 37.71,207.28 L38.73,209.42 C40.47,213.41 42.05,215.72 42.64,216.83 L44.03,219.31 C45.63,221.71 46.85,223.47 47.34,224.33 L49,226.95 C49.75,227.65 51.53,230.33 52.81,232.07 L54.18,233.78 C54.91,234.89 57.42,237.96 58.08,238.87 L59.91,240.96 C62.21,243.55 64.01,245.49 65.31,246.77 L66.4,248.11 C67.68,249.38 70.94,252.06 71.82,252.74 L73.37,254.2 C74.3,254.89 77.17,257.16 77.62,257.45 L78.73,258.41 C79.56,258.95 81.83,260.74 82.19,260.98 L83.61,261.92 C84.21,262.38 86.18,263.72 87.02,264.28 L88.29,264.92 C90.15,266 92.16,267.2 93.63,268.1 L96.43,269.75 C99.98,271.73 102.29,272.89 103.35,273.24 L106.71,274.66 C108.77,275.49 111.34,276.48 112.89,277.05 L115.06,277.77 C119.5,278.87 123.92,279.85 126.77,280.42 L130.66,281.19 C137.34,282.54 140.46,283.25 150.11,283.29 L172.69,282.49 Z" fill-rule="evenodd" style="fill:#9B9A9C;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;filter:url(#filter_1)" />
++)
++ внешний круг не крутится(<svg xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2047.98" height="2048" viewBox="0 0 256.96 256.96" preserveAspectRatio="xMidYMid meet">
++	<path d="M256.46,128.48 C256.46,199.16 199.16,256.46 128.48,256.46 C57.8,256.46 0.5,199.16 0.5,128.48 C0.5,57.8 57.8,0.5 128.48,0.5 C199.16,0.5 256.46,57.8 256.46,128.48 Z" fill-rule="evenodd" style="fill:#FFAFCC;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:1;" />
++</svg>)
++внутрений круг которй делится на сектора и крутится (	<path d="M217.94,109.21 C217.94,169.26 169.26,217.94 109.21,217.94 C49.15,217.94 0.47,169.26 0.47,109.21 C0.47,49.15 49.15,0.47 109.21,0.47 C169.26,0.47 217.94,49.15 217.94,109.21 Z" fill-rule="evenodd" style="fill:#FEDDE4;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;" />
++)
++тень под сердечко указатель выйгрыша(	<defs>
++		<filter id="filter_1" style="color-interpolation-filters:sRGB" primitiveUnits="userSpaceOnUse" x="-0.309" y="-0.257" width="1.618" height="1.514">
++			<feGaussianBlur in="SourceGraphic" stdDeviation="10.58" />
++		</filter>
++	</defs>
++	<path d="M59.95,47.45 C65.3,22.06 89.58,26.67 87.81,45.31 C86.88,55.9 71.67,79.11 59.57,99.6 L39.91,68.59 C34.95,60 31.62,52.49 30.03,46.22 C27.37,29.36 55.56,21.59 59.95,47.45 Z" fill-rule="evenodd" style="fill:#9B9A9C;stroke:#9B9A9C;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;filter:url(#filter_1)" />
++)
++сердечко указатель выйгрыша (	<path d="M30.56,18.07 C35.92,-7.32 60.2,-2.72 58.42,15.93 C57.5,26.52 42.29,49.73 30.18,70.22 L10.52,39.21 C5.57,30.62 2.24,23.1 0.65,16.83 C-2.01,-0.03 26.17,-7.79 30.56,18.07 Z" fill-rule="evenodd" style="fill:#FF9ABF;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;" />
++)
++пин в серединке какбудто гвоздик не двигается (	<path d="M27.47,13.97 C27.47,21.43 21.43,27.47 13.97,27.47 C6.52,27.47 0.47,21.43 0.47,13.97 C0.47,6.52 6.52,0.47 13.97,0.47 C21.43,0.47 27.47,6.52 27.47,13.97 Z" fill-rule="evenodd" style="fill:#FFFFFF;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;" />
++)
++и еще элементы декора (	<path d="M8.76,0.5 C7.71,8.11 6.81,10.88 0.5,13.05 C8.45,14.64 7.36,17.78 9.02,26.98 C10.16,17.53 9.94,14.74 16.38,12.78 C9.88,11.33 10.03,7.93 8.76,0.5 Z" fill-rule="evenodd" style="fill:#FFFDB9;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:1;" />
++
++	<path d="M5.98,0.5 C5.28,5.1 4.68,6.77 0.5,8.08 C5.77,9.04 5.05,10.95 6.15,16.51 C6.91,10.8 6.76,9.11 11.03,7.92 C6.72,7.05 6.82,4.99 5.98,0.5 Z" fill-rule="evenodd" style="fill:#FFFDB9;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:1;" />
++
++	<g id="Группа2">
++		<path d="M0.47,25.53 C0.47,29.86 3.73,34.61 8.81,34.61 C9.93,34.61 12.07,33.68 12.88,33.11 C14.25,36.46 16.84,40.69 20.7,40.69 C25.39,40.69 28.91,36 29.48,31.49 C29.94,31.56 31.4,32.11 31.88,32.11 C36.96,32.11 40.69,28.01 40.69,22.96 C40.69,18.88 38,15.43 34.27,14.25 C35.09,12.89 35.55,11.31 35.55,9.61 C35.55,4.56 31.43,0.47 26.34,0.47 C22.97,0.47 20.02,2.28 18.41,4.97 C16.81,3.63 14.74,2.82 12.48,2.82 C7.4,2.82 3.28,6.91 3.28,11.96 C3.28,14.04 4.79,15.94 5.97,17.48 C2.92,18.97 0.47,21.21 0.47,25.53 Z" fill-rule="evenodd" style="fill:#FFF1F4;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;" />
++		<path d="M26.83,20.58 C26.83,24.03 24.03,26.83 20.58,26.83 C17.13,26.83 14.33,24.03 14.33,20.58 C14.33,17.13 17.13,14.33 20.58,14.33 C24.03,14.33 26.83,17.13 26.83,20.58 Z" fill-rule="evenodd" style="fill:#FFF600;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:0.95;" />
++	</g>
++	<g id="Группа 12">
++		<path d="M0.5,14.2 C0.5,16.56 2.28,19.16 5.06,19.16 C5.67,19.16 6.84,18.65 7.28,18.34 C8.03,20.17 9.45,22.49 11.56,22.49 C14.12,22.49 16.05,19.92 16.36,17.46 C16.61,17.5 17.41,17.8 17.67,17.8 C20.45,17.8 22.49,15.55 22.49,12.79 C22.49,10.56 21.01,8.67 18.98,8.03 C19.42,7.29 19.68,6.42 19.68,5.49 C19.68,2.74 17.42,0.5 14.64,0.5 C12.8,0.5 11.18,1.49 10.31,2.96 C9.43,2.22 8.3,1.78 7.07,1.78 C4.29,1.78 2.03,4.02 2.03,6.78 C2.03,7.92 2.86,8.95 3.51,9.8 C1.84,10.61 0.5,11.84 0.5,14.2 Z" fill-rule="evenodd" style="fill:#FFF1F4;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:1;" />
++		<path d="M14.91,11.49 C14.91,13.38 13.38,14.91 11.49,14.91 C9.61,14.91 8.08,13.38 8.08,11.49 C8.08,9.61 9.61,8.08 11.49,8.08 C13.38,8.08 14.91,9.61 14.91,11.49 Z" fill-rule="evenodd" style="fill:#FFF600;stroke:#AF6D85;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:11.47;stroke-width:1;" />
++	</g>)
+\ No newline at end of file
