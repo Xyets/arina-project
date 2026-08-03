@@ -436,15 +436,15 @@ function drawWheel(segments) {
         const x2 = centerX + Math.cos(end) * 170;
         const y2 = centerY + Math.sin(end) * 170;
 
-        M ${centerX} ${centerY}
 
 
         const path = `
-            M 200 200
+            M ${centerX} ${centerY}
             L ${x1} ${y1}
             A 170 170 0 0 1 ${x2} ${y2}
             Z
         `;
+
 
         const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
