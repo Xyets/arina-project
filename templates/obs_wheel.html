@@ -421,30 +421,30 @@ function drawWheel(segments) {
 
     const count = segments.length;
     const angle = 360 / count;
-    const offset = 90; // указатель сверху
+    const offset = 90;
+
+    const centerX = 152.79;
+    const centerY = 192.55;
+
+    const radius = 108;      // ⭐ новый радиус твоего круга
+    const textRadius = 75;   // ⭐ текст ближе к центру
 
     for (let i = 0; i < count; i++) {
 
         const start = ((i * angle) + offset) * Math.PI / 180;
         const end = (((i + 1) * angle) + offset) * Math.PI / 180;
 
-        const centerX = 152.79;
-        const centerY = 192.55;
-
-        const x1 = centerX + Math.cos(start) * 170;
-        const y1 = centerY + Math.sin(start) * 170;
-        const x2 = centerX + Math.cos(end) * 170;
-        const y2 = centerY + Math.sin(end) * 170;
-
-
+        const x1 = centerX + Math.cos(start) * radius;
+        const y1 = centerY + Math.sin(start) * radius;
+        const x2 = centerX + Math.cos(end) * radius;
+        const y2 = centerY + Math.sin(end) * radius;
 
         const path = `
             M ${centerX} ${centerY}
             L ${x1} ${y1}
-            A 170 170 0 0 1 ${x2} ${y2}
+            A ${radius} ${radius} 0 0 1 ${x2} ${y2}
             Z
         `;
-
 
         const color = i % 2 === 0 ? "#FFC8DD" : "#FFAFCC";
 
@@ -455,7 +455,6 @@ function drawWheel(segments) {
 
         const textAngle = (i * angle) + angle / 2 + offset;
 
-        const textRadius = 110;
         const tx = centerX + Math.cos(textAngle * Math.PI / 180) * textRadius;
         const ty = centerY + Math.sin(textAngle * Math.PI / 180) * textRadius;
 
@@ -466,7 +465,7 @@ function drawWheel(segments) {
         if (label.trim() !== "") {
             html += `
                 <text x="${tx}" y="${ty}"
-                      font-size="26"
+                      font-size="22"
                       font-family="Arial"
                       fill="#333"
                       text-anchor="middle"
