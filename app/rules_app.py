@@ -4,6 +4,7 @@ import uuid
 import json
 import asyncio
 import websockets
+import os
 
 from services.rules_service import load_rules, save_rules
 from services.database import get_profile_by_key
@@ -70,7 +71,9 @@ def test_rule(index):
     if not profile:
         return {"status": "error", "message": "Профиль не найден"}
 
-    rules_file = profile["rules_file"]
+    # Автоматический выбор файла
+    rules_file = f"data/rules/rules_{profile_key}.json"
+
     rules = load_rules(rules_file).get("rules", [])
 
     if index < 0 or index >= len(rules):
@@ -86,10 +89,7 @@ def test_rule(index):
         if not segments:
             return {"status": "error", "message": "Нет сегментов"}
 
-        asyncio.run(send_ws_wheel_spin(
-            profile_key,
-            segments
-        ))
+        asyncio.run(send_ws_wheel_spin(profile_key, segments))
 
         return {"status": "ok", "message": "Колесо запущено! Результат появится в логах."}
 
@@ -107,10 +107,17 @@ def rules_page():
     if not profile:
         return "Профиль не найден", 404
 
-    rules_file = profile["rules_file"]
+    # Автоматический выбор файла правил
+    rules_file = f"data/rules/rules_{profile_key}.json"
+
+    # Если файла нет — создаём пустой
+    if not os.path.exists(rules_file):
+        with open(rules_file, "w", encoding="utf-8") as f:
+            json.dump({"rules": [], "default": [1, 5]}, f, ensure_ascii=False)
+
     rules = load_rules(rules_file)
 
-    # ADD
+    # ADD RULE
     if request.method == "POST" and "add_rule" in request.form:
         action_type = request.form.get("action_type")
 
@@ -124,15 +131,12 @@ def rules_page():
             "action": None
         }
 
-        # Вибрация
         if action_type == "vibration":
             new_rule["action"] = None
 
-        # Кастомное действие
         elif action_type == "custom":
             new_rule["action"] = request.form["action"].strip() or None
 
-        # Колесо фортуны
         elif action_type == "wheel":
             new_rule["type"] = "wheel"
             new_rule["action"] = "wheel"
@@ -142,14 +146,14 @@ def rules_page():
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # DELETE
+    # DELETE RULE
     if request.method == "POST" and "delete_rule" in request.form:
         rule_id = request.form["delete_rule"]
         rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # EDIT
+    # EDIT RULE
     if request.method == "POST" and "edit_rule" in request.form:
         rule_id = request.form["edit_rule"]
 
@@ -163,15 +167,12 @@ def rules_page():
                 action_type = request.form.get("action_type")
                 r["type"] = action_type
 
-                # Вибрация
                 if action_type == "vibration":
                     r["action"] = None
 
-                # Кастомное действие
                 elif action_type == "custom":
                     r["action"] = request.form["action"].strip() or None
 
-                # Колесо фортуны
                 elif action_type == "wheel":
                     r["type"] = "wheel"
                     if "segments" not in r:
@@ -189,7 +190,7 @@ def rules_page():
                 if "segments" not in r:
                     r["segments"] = []
 
-                seg_type = request.form["seg_type"]  # vibration / action / retry
+                seg_type = request.form["seg_type"]
 
                 segment = {
                     "name": request.form["seg_name"],
