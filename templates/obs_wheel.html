@@ -503,7 +503,7 @@ function spinWheel(segments, winnerIndex) {
         if (speed < minSpeed) {
             stopped = true;
 
-            wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.7)`);
+            wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
 
             sendResult(winnerIndex);
 
@@ -514,7 +514,7 @@ function spinWheel(segments, winnerIndex) {
             return;
         }
 
-        wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.7)`);
+        wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
 
         requestAnimationFrame(animate);
     }
