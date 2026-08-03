@@ -115,21 +115,6 @@ def rules_page():
     profile = get_profile_by_key(profile_key)
     if not profile:
         return "Профиль не найден", 404
-    # ================= DEBUG LOGS =================
-    print("========== RULES DEBUG ==========")
-    print(f"[RULES DEBUG] profile_key={profile_key}")
-    print(f"[RULES DEBUG] rules_file_from_db={profile['rules_file']}")
-    print(f"[RULES DEBUG] file_exists={os.path.exists(profile['rules_file'])}")
-    print(f"[RULES DEBUG] full_path={os.path.abspath(profile['rules_file'])}")
-
-    try:
-        with open(profile["rules_file"], "r", encoding="utf-8") as f:
-            print("[RULES DEBUG] file_content_preview=", f.read()[:200])
-    except Exception as e:
-        print("[RULES DEBUG] ERROR reading file:", e)
-
-    print("=================================")
-    # ==============================================
 
     # Читаем путь к файлу правил из БД
     rules_file = profile["rules_file"]

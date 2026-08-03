@@ -214,6 +214,38 @@
       .segment-delete-btn:hover {
           background: #f28497;
       }
+      .rule-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 10px;
+      }
+
+      .rule-actions button {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #a3d8f4;
+          border: none;
+          padding: 8px 14px;
+          border-radius: 8px;
+          cursor: pointer;
+          color: white;
+          font-size: 14px;
+          transition: 0.3s;
+      }
+
+      .rule-actions .btn-delete {
+          background: #f7a8b8;
+      }
+
+      .rule-actions .btn-edit {
+          background: #c3c3f5;
+      }
+
+      .rule-actions button:hover {
+          opacity: 0.85;
+      }
+
 
       @keyframes fadeIn {
           from { opacity: 0; }
@@ -229,6 +261,100 @@
           from { opacity: 0; transform: translateY(5px); }
           to { opacity: 1; transform: translateY(0); }
       }
+      /* --- Ровные кнопки с иконками --- */
+      .rule-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+      }
+
+      .btn-icon {
+          width: 42px;
+          height: 42px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          background: #a3d8f4;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 20px;
+          color: white;
+          transition: 0.25s;
+      }
+
+      .btn-icon:hover {
+          opacity: 0.85;
+      }
+
+      .btn-delete {
+          background: #f7a8b8;
+      }
+
+      .btn-folder {
+          background: #c3c3f5;
+      }
+
+      .btn-add {
+          background: #74c0e3;
+      }
+
+      .btn-edit {
+          background: #9ed39e;
+      }
+      .btn-large {
+          padding: 12px 22px;
+          font-size: 16px;
+          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+      }
+      .btn-add-seg {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          font-size: 15px;
+      }
+      /* --- Ровные модалки --- */
+      .modal-content label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 600;
+          color: #444;
+      }
+
+      .modal-content input,
+      .modal-content select {
+          width: 100%;
+          margin-bottom: 12px;
+          padding: 8px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
+      }
+
+      .modal-content .seg-vibration-fields,
+      .modal-content .seg-action-fields,
+      .modal-content .seg-retry-fields {
+          margin-bottom: 14px;
+      }
+      .segment-card {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+      }
+      .btn-delete-small {
+          background: #f7a8b8;
+          border: none;
+          padding: 6px 10px;
+          border-radius: 8px;
+          cursor: pointer;
+          color: white;
+          font-size: 13px;
+      }
+
   </style>
 
 </head>
@@ -238,7 +364,7 @@
 
   <!-- Кнопка проверки вибрации -->
   <div class="center">
-      <button id="testVibrationBtn" class="btn-main">
+      <button id="testVibrationBtn" class="btn-main btn-large">
           🔊 Проверить вибрацию (default)
       </button>
   </div>
@@ -290,41 +416,52 @@
 
           <div class="rule-actions">
 
+              <!-- Проверить правило -->
               <button type="button"
-                      class="testRuleBtn btn-main"
+                      class="btn-icon testRuleBtn"
                       data-index="{{ loop.index0 }}">
                   🔊
               </button>
 
+              <!-- Удалить правило -->
               <form method="POST" class="inline">
                   <button type="submit"
                           name="delete_rule"
                           value="{{ rule.id }}"
-                          class="delete">
-                      ❌
+                          class="btn-icon btn-delete">
+                      🗑
                   </button>
               </form>
 
               {% if rule.type == "wheel" %}
+
+                  <!-- Показать сегменты -->
                   <button type="button"
-                          class="btn-main"
+                          class="btn-icon btn-folder"
                           onclick="document.getElementById('wheel-{{ rule.id }}').classList.toggle('hidden')">
                       📂
                   </button>
 
+                  <!-- Добавить сегмент -->
                   <button type="button"
-                          class="btn-main"
+                          class="btn-icon btn-add"
                           onclick="openSegmentModal('{{ rule.id }}')">
                       ➕
                   </button>
+
               {% else %}
+
+                  <!-- Редактировать правило -->
                   <button type="button"
-                          class="btn-main"
+                          class="btn-icon btn-edit"
                           onclick="openRuleModal('{{ rule.id }}')">
                       ✏️
                   </button>
+
               {% endif %}
           </div>
+
+
       </div>
 
       {% if rule.type != "wheel" %}
@@ -386,11 +523,10 @@
               <p class="no-segments">Сегментов пока нет</p>
           {% endif %}
 
-          <button type="button"
-                  class="btn-main"
-                  onclick="openSegmentModal('{{ rule.id }}')">
+          <button type="button" class="btn-main btn-add-seg" onclick="openSegmentModal('{{ rule.id }}')">
               ➕ Добавить сегмент
           </button>
+
 
       </div>
       {% endif %}
@@ -438,7 +574,7 @@
                   <input type="text" name="action" id="edit_action">
               </div>
 
-              <button type="submit" class="btn-main">💾 Сохранить</button>
+              <button type="submit" class="btn-main btn-large">💾 Сохранить</button>
           </form>
       </div>
   </div>
@@ -483,7 +619,7 @@
                   <p style="color:#777;">Этот сегмент повторяет колесо.</p>
               </div>
 
-              <button type="submit" class="btn-main">💾 Добавить</button>
+              <button type="submit" class="btn-main btn-large">💾 Добавить</button>
           </form>
       </div>
   </div>
@@ -521,7 +657,7 @@
               <input type="text" name="action">
           </div>
 
-          <button type="submit" name="add_rule" class="btn-main">Добавить</button>
+          <button type="submit" name="add_rule" class="btn-main btn-large">Добавить</button>
       </form>
   </div>
 
