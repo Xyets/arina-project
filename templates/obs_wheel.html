@@ -428,10 +428,16 @@ function drawWheel(segments) {
         const start = ((i * angle) + offset) * Math.PI / 180;
         const end = (((i + 1) * angle) + offset) * Math.PI / 180;
 
-        const x1 = 200 + Math.cos(start) * 170;
-        const y1 = 200 + Math.sin(start) * 170;
-        const x2 = 200 + Math.cos(end) * 170;
-        const y2 = 200 + Math.sin(end) * 170;
+        const centerX = 152.79;
+        const centerY = 192.55;
+
+        const x1 = centerX + Math.cos(start) * 170;
+        const y1 = centerY + Math.sin(start) * 170;
+        const x2 = centerX + Math.cos(end) * 170;
+        const y2 = centerY + Math.sin(end) * 170;
+
+        M ${centerX} ${centerY}
+
 
         const path = `
             M 200 200
@@ -450,8 +456,8 @@ function drawWheel(segments) {
         const textAngle = (i * angle) + angle / 2 + offset;
 
         const textRadius = 110;
-        const tx = 200 + Math.cos(textAngle * Math.PI / 180) * textRadius;
-        const ty = 200 + Math.sin(textAngle * Math.PI / 180) * textRadius;
+        const tx = centerX + Math.cos(textAngle * Math.PI / 180) * textRadius;
+        const ty = centerY + Math.sin(textAngle * Math.PI / 180) * textRadius;
 
         let html = `
             <path d="${path}" fill="${color}" stroke="#AF6D85" stroke-width="2"></path>
