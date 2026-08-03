@@ -113,3 +113,28 @@ def create_profiles_for_model(model_id, username):
 
         conn.commit()
         conn.close()
+
+def get_model_by_id(model_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM models WHERE id = ?", (model_id,))
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+def get_profile_by_key(profile_key):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM profiles WHERE profile_key = ?", (profile_key,))
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+def get_model_by_uid(uid):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM models WHERE uid = ?", (uid,))
+    row = cur.fetchone()
+    conn.close()
+    return row
+

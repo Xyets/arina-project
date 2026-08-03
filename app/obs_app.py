@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, abort
-from config import CONFIG
+from services.database import get_profile_by_key
 
 obs_bp = Blueprint(
     "obs",
@@ -8,7 +8,7 @@ obs_bp = Blueprint(
     static_url_path="/obs_static"
 )
 
-
+# -------------------- OBS ALERT --------------------
 
 @obs_bp.route("/obs_alert/<user>/<mode>")
 def obs_alert(user, mode):
@@ -16,12 +16,15 @@ def obs_alert(user, mode):
         return abort(404)
 
     profile_key = f"{user}_{mode}"
+    profile = get_profile_by_key(profile_key)
 
-    if profile_key not in CONFIG["profiles"]:
+    if not profile:
         return abort(404)
 
     return render_template("obs_alert.html", profile_key=profile_key)
 
+
+# -------------------- OBS REACTIONS --------------------
 
 @obs_bp.route("/obs_reactions/<user>/<mode>")
 def obs_reactions(user, mode):
@@ -29,13 +32,15 @@ def obs_reactions(user, mode):
         return abort(404)
 
     profile_key = f"{user}_{mode}"
+    profile = get_profile_by_key(profile_key)
 
-    if profile_key not in CONFIG["profiles"]:
+    if not profile:
         return abort(404)
 
     return render_template("obs_reactions.html", profile_key=profile_key)
 
 
+# -------------------- OBS GOAL --------------------
 
 @obs_bp.route("/obs_goal/<user>/<mode>")
 def obs_goal(user, mode):
@@ -43,15 +48,21 @@ def obs_goal(user, mode):
         return abort(404)
 
     profile_key = f"{user}_{mode}"
+    profile = get_profile_by_key(profile_key)
 
-    if profile_key not in CONFIG["profiles"]:
+    if not profile:
         return abort(404)
 
-    # Выбор шаблона по имени пользователя
-    if user.lower() == "arina":
+    # Автоматический выбор шаблона по имени модели
+    username = user.lower()
+
+    if username == "arina":
         return render_template("obs_goal_arina.html", profile_key=profile_key)
     else:
         return render_template("obs_goal_irina.html", profile_key=profile_key)
+
+
+# -------------------- OBS WHEEL --------------------
 
 @obs_bp.route("/obs_wheel/<user>/<mode>")
 def obs_wheel(user, mode):
@@ -59,8 +70,9 @@ def obs_wheel(user, mode):
         return abort(404)
 
     profile_key = f"{user}_{mode}"
+    profile = get_profile_by_key(profile_key)
 
-    if profile_key not in CONFIG["profiles"]:
+    if not profile:
         return abort(404)
 
     return render_template("obs_wheel.html", profile_key=profile_key)

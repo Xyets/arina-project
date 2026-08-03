@@ -5,8 +5,8 @@ import json
 import asyncio
 import websockets
 
-from config import CONFIG
 from services.rules_service import load_rules, save_rules
+from services.database import get_profile_by_key
 
 rules_bp = Blueprint("rules", __name__)
 
@@ -33,6 +33,7 @@ async def send_ws_vibration(profile_key, strength, duration):
             "duration": duration
         }))
 
+
 async def send_ws_wheel_spin(profile_key, segments):
     async with websockets.connect("ws://127.0.0.1:8765") as ws:
         await ws.send(json.dumps({
@@ -41,13 +42,13 @@ async def send_ws_wheel_spin(profile_key, segments):
             "segments": segments
         }))
 
+
 # -------------------- TEST VIBRATION --------------------
 
 @rules_bp.route("/test_vibration", methods=["POST"])
 @login_required
 def test_vibration():
     user = session["username"]
-
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
@@ -62,11 +63,14 @@ def test_vibration():
 @login_required
 def test_rule(index):
     user = session["username"]
-
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return {"status": "error", "message": "Профиль не найден"}
+
+    rules_file = profile["rules_file"]
     rules = load_rules(rules_file).get("rules", [])
 
     if index < 0 or index >= len(rules):
@@ -96,11 +100,14 @@ def test_rule(index):
 @login_required
 def rules_page():
     user = session["username"]
-
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    rules_file = profile["rules_file"]
     rules = load_rules(rules_file)
 
     # ADD
@@ -127,10 +134,9 @@ def rules_page():
 
         # Колесо фортуны
         elif action_type == "wheel":
-            new_rule["type"] = "wheel"      # ← ЭТО ГЛАВНОЕ
-            new_rule["action"] = "wheel"    # можно оставить, но не обязательно
+            new_rule["type"] = "wheel"
+            new_rule["action"] = "wheel"
             new_rule["segments"] = []
-        # пока пусто
 
         rules["rules"].append(new_rule)
         save_rules(rules_file, rules)
@@ -171,8 +177,6 @@ def rules_page():
                     if "segments" not in r:
                         r["segments"] = []
 
-
-
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
@@ -201,13 +205,13 @@ def rules_page():
                     segment["action"] = request.form["seg_action"]
 
                 elif seg_type == "retry":
-                    segment["action"] = ""  # не нужно, но пусть будет
+                    segment["action"] = ""
 
                 r["segments"].append(segment)
 
-
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
+
     # DELETE SEGMENT
     if request.method == "POST" and "delete_segment" in request.form:
         rule_id = request.form["delete_segment"]

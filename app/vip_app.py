@@ -3,7 +3,7 @@ from functools import wraps
 from datetime import datetime
 
 from services.vip_service import load_vip_file, save_vip_file
-from config import CONFIG
+from services.database import get_profile_by_key
 
 vip_bp = Blueprint("vip", __name__)
 
@@ -19,7 +19,6 @@ def login_required(f):
     return wrapper
 
 
-
 # -------------------- REMOVE MEMBER --------------------
 
 @vip_bp.route("/remove_member", methods=["POST"])
@@ -29,11 +28,16 @@ def remove_member():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return {"status": "error", "message": "Профиль не найден"}, 404
+
+    vip_file = profile["vip_file"]
+
     user_id = request.form.get("user_id")
     if not user_id:
         return {"status": "error", "message": "Нет user_id"}, 400
 
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
     vip_data = load_vip_file(vip_file)
 
     if user_id in vip_data:
@@ -53,7 +57,11 @@ def vip_page():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    vip_file = profile["vip_file"]
     vip_data = load_vip_file(vip_file)
 
     # ---------- SAVE MEMBER ----------
@@ -108,8 +116,8 @@ def vip_page():
         user=user,
         members=sorted_members,
         query=query,
-        current_mode=mode,          # ← ДОБАВИТЬ ЭТО
-        profile_key=profile_key  
+        current_mode=mode,
+        profile_key=profile_key
     )
 
 
@@ -122,7 +130,11 @@ def vip_data():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    vip_file = CONFIG["profiles"][profile_key]["vip_file"]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return {"members": {}}
+
+    vip_file = profile["vip_file"]
     vip_data = load_vip_file(vip_file)
 
     return {"members": vip_data}

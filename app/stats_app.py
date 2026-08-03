@@ -3,8 +3,9 @@ from functools import wraps
 import json
 import os
 from datetime import datetime
-from config import CONFIG
+
 from services.stats_service import load_stats, calculate_stats
+from services.database import get_profile_by_key
 
 stats_bp = Blueprint("stats", __name__)
 
@@ -20,7 +21,6 @@ def login_required(f):
     return wrapper
 
 
-
 # -------------------- СТРАНИЦА СТАТИСТИКИ --------------------
 
 @stats_bp.route("/stats")
@@ -30,20 +30,13 @@ def stats_page():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    profile_cfg = CONFIG["profiles"].get(profile_key)
-    if not profile_cfg:
+    profile = get_profile_by_key(profile_key)
+    if not profile:
         return f"Профиль {profile_key} не найден", 500
 
-    stats_file = profile_cfg["stats_file"]
+    stats_file = profile["stats_file"]
     stats_data = load_stats(stats_file)
 
-    # calculate_stats теперь считает:
-    # - vibrations
-    # - actions
-    # - other
-    # - total
-    # - archi_fee (Irina)
-    # - net_income
     results, summary = calculate_stats(stats_data, user=user)
 
     return render_template(
@@ -97,11 +90,11 @@ def close_period():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    profile_cfg = CONFIG["profiles"].get(profile_key)
-    if not profile_cfg:
+    profile = get_profile_by_key(profile_key)
+    if not profile:
         return f"Профиль {profile_key} не найден", 500
 
-    stats_file = profile_cfg["stats_file"]
+    stats_file = profile["stats_file"]
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
     # Загружаем текущую статистику
@@ -136,12 +129,11 @@ def close_period():
         total = float(data.get("total", vibr + act + other))
 
         # ARCHI (только Irina)
-        if user == "Irina":
+        if user.lower() == "irina":
             archi_fee = vibr * 0.7 * 0.1
         else:
             archi_fee = 0.0
 
-        # NET INCOME
         net_income = total * 0.7 - archi_fee
 
         total_vibr += vibr

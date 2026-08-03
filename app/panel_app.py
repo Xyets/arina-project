@@ -1,12 +1,11 @@
-from services.database import get_model_by_username, get_connection
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from functools import wraps
 
-from config import CONFIG
+from services.database import get_model_by_username, get_connection
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
 from services.audit import audit_event
-from services.redis_client import redis_client   # ← правильный импорт
+from services.redis_client import redis_client
 
 panel_bp = Blueprint("panel", __name__)
 
@@ -21,6 +20,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+
 def get_profile_from_db(username, mode):
     conn = get_connection()
     cur = conn.cursor()
@@ -29,6 +29,7 @@ def get_profile_from_db(username, mode):
     row = cur.fetchone()
     conn.close()
     return row
+
 
 @panel_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -41,10 +42,10 @@ def login():
         if not model:
             return render_template("login.html", error="Неверный логин или пароль")
 
+        # если пароль хранится как текст
         if model["password_hash"] != pwd:
             return render_template("login.html", error="Неверный логин или пароль")
 
-        # Авторизация успешна
         session["user_id"] = model["id"]
         session["username"] = model["username"]
         session["mode"] = "private"
@@ -61,7 +62,7 @@ def logout():
 
     if username:
         profile_key = f"{username}_{mode}"
-        audit_event(profile_key, mode, {"type": "logout"})
+        audit_event(profile_key, {"type": "logout"})
 
     session.clear()
     return redirect(url_for("panel.login"))
@@ -105,7 +106,7 @@ def set_mode():
 
     if mode not in ("public", "private"):
         return {"status": "error", "message": "Неверный режим"}
-    
+
     session["mode"] = mode
 
     redis_client.hset("user_modes", session["username"], mode)
@@ -118,20 +119,26 @@ def set_mode():
 @panel_bp.route("/logs_data")
 @login_required
 def logs_data():
-    user = session["username"]
+    username = session["username"]
     mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
 
-    logs = load_logs_from_file(profile_key)
+    profile = get_profile_from_db(username, mode)
+    if not profile:
+        return jsonify({"logs": []})
+
+    logs = load_logs_from_file(profile["profile_key"])
     return jsonify({"logs": logs})
 
 
 @panel_bp.route("/clear_logs", methods=["POST"])
 @login_required
 def clear_logs():
-    user = session["username"]
+    username = session["username"]
     mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
 
-    clear_logs_file(profile_key)
+    profile = get_profile_from_db(username, mode)
+    if not profile:
+        return {"status": "error"}
+
+    clear_logs_file(profile["profile_key"])
     return {"status": "ok"}

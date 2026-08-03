@@ -9,11 +9,10 @@ import asyncio
 import json
 import websockets
 import aiohttp
-from config import CONFIG
 from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.lovense_service import send_vibration_cloud_async
-
+from services.database import get_profile_by_key
 from services.vibration_manager import vibration_queues, stop_events
 from services.redis_client import redis_client
 from services.vibration_manager import init_vibration_queues
@@ -88,6 +87,9 @@ async def vibration_worker(profile_key):
 
     from services.vibration_manager import vibration_queues, stop_events
     from services.lovense_service import start_vibration_cloud_async, stop_vibration_cloud_async
+    if not get_profile_by_key(profile_key):
+        print(f"❌ Worker: profile {profile_key} no longer exists")
+        return
 
     q = vibration_queues[profile_key]
 
@@ -184,8 +186,10 @@ async def redis_listener():
                 # ---------- VIBRATIONS ----------
                 if "strength" in data and "duration" in data and "profile_key" in data:
                     pk = data["profile_key"]
-                    if pk not in vibration_queues:
-                        print(f"⚠ Redis: unknown profile_key {pk}, skipping vibration")
+                    if not get_profile_by_key(pk):
+                        print(f"⚠ Redis: vibration for unknown profile {pk}")
+                        continue
+
                     else:
                         safe_enqueue_vibration(pk, data["strength"], data["duration"])
                         print(f"🔥 Redis vibration queued for {pk}: {data['strength']} / {data['duration']}")
@@ -208,7 +212,11 @@ async def redis_listener():
                     }, role="obs", profile_key=data["profile"])
                     continue
                 # ---------- OTHER OBS REACTIONS ----------
-                ws_send(data, role="obs", profile_key=profile_key)
+                if get_profile_by_key(profile_key):
+                    ws_send(data, role="obs", profile_key=profile_key)
+                else:
+                    print(f"⚠ Redis: reaction for unknown profile {profile_key}")
+
 
             except Exception as e:
                 print("❌ Redis parse error:", e)
@@ -227,6 +235,9 @@ async def handle_hello(websocket, data):
     if role == "panel":
         CLIENT_TYPES[websocket] = "panel"
         CLIENT_PROFILES[websocket] = profile_key
+        if not get_profile_by_key(profile_key):
+            await websocket.send(json.dumps({"error": "profile_not_found"}))
+            return
 
         try:
             user, mode = profile_key.split("_")
@@ -246,6 +257,10 @@ async def handle_hello(websocket, data):
     if role == "obs":
         CLIENT_TYPES[websocket] = "obs"
         CLIENT_PROFILES[websocket] = profile_key
+        if not get_profile_by_key(profile_key):
+            await websocket.send(json.dumps({"error": "profile_not_found"}))
+            return
+
         await websocket.send(json.dumps({"status": "hello_ok", "role": "obs"}))
         return
 
@@ -265,6 +280,11 @@ async def handle_viewer_event(websocket, data):
         mode = "private"
 
     profile_key = f"{user}_{mode}"
+
+    # проверяем профиль ТОЛЬКО после создания profile_key
+    if not get_profile_by_key(profile_key):
+        print(f"❌ viewer_event: unknown profile_key {profile_key}")
+        return
 
     profile = update_vip(profile_key, viewer_id, name=viewer_name, event=event)
 
@@ -326,7 +346,9 @@ async def handle_donation_event(websocket, data):
         mode = "private"
 
     profile_key = f"{user}_{mode}"
-
+    if not get_profile_by_key(profile_key):
+        await websocket.send(json.dumps({"error": "profile_not_found"}))
+        return
     if not user_id or amount <= 0:
         await websocket.send(json.dumps({"error": "invalid_donation"}))
         return
@@ -339,7 +361,9 @@ async def handle_donation_event(websocket, data):
 
 async def handle_stop(websocket, data):
     profile_key = data.get("profile_key")
-
+    if not get_profile_by_key(profile_key):
+        print(f"❌ stop: unknown profile_key {profile_key}")
+        return
     if profile_key not in stop_events:
         stop_events[profile_key] = asyncio.Event()
 
@@ -352,6 +376,9 @@ async def handle_stop(websocket, data):
 
 async def handle_vibration(websocket, data):
     profile_key = data.get("profile_key")
+    if not get_profile_by_key(profile_key):
+        print(f"❌ vibration: unknown profile_key {profile_key}")
+        return
     strength = data.get("strength")
     duration = data.get("duration")
 
@@ -383,7 +410,9 @@ async def handle_vibration(websocket, data):
 
 async def handle_clear_queue(websocket, data):
     profile_key = data.get("profile_key")
-
+    if not get_profile_by_key(profile_key):
+        print(f"❌ clear_queue: unknown profile_key {profile_key}")
+        return
     if profile_key in vibration_queues:
         q = vibration_queues[profile_key]
         while not q.empty():
@@ -400,7 +429,9 @@ async def handle_clear_queue(websocket, data):
 
 async def handle_get_queue(websocket, data):
     profile_key = data.get("profile_key")
-
+    if not get_profile_by_key(profile_key):
+        print(f"❌ get_queue: unknown profile_key {profile_key}")
+        return
     if profile_key in vibration_queues:
         q = list(vibration_queues[profile_key]._queue)
     else:
@@ -415,12 +446,15 @@ async def handle_wheel_result(websocket, data):
     profile_key = data.get("profile")
     winner_index = data.get("winner_index")
 
-    if profile_key not in CONFIG["profiles"]:
+
+
+    profile = get_profile_by_key(profile_key)
+    if not profile:
         print("❌ wheel_result: unknown profile_key")
         return
 
-    # Загружаем правила
-    rules_file = CONFIG["profiles"][profile_key]["rules_file"]
+    rules_file = profile["rules_file"]
+
     from services.rules_service import load_rules
     rules = load_rules(rules_file).get("rules", [])
 

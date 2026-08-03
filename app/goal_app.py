@@ -4,6 +4,7 @@ from functools import wraps
 from config import CONFIG
 from services.goal_service import load_goal, save_goal
 from app.ws_app import ws_send
+from services.database import get_profile_by_key
 
 goal_bp = Blueprint("goal", __name__)
 
@@ -31,7 +32,9 @@ def goal_data():
         return {"title": "", "target": 0, "current": 0}
 
     profile_key = f"{user}_{mode}"
-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    profile = get_profile_by_key(profile_key)
+    goal_file = profile["goal_file"]
+
 
     return load_goal(goal_file)
 
@@ -48,7 +51,9 @@ def goal_new():
         return {"status": "error", "message": "В приватном режиме цели нет"}
 
     profile_key = f"{user}_{mode}"
-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    profile = get_profile_by_key(profile_key)
+    goal_file = profile["goal_file"]
+
 
     title = request.form.get("title", "")
     target = int(request.form.get("target", 0))
@@ -75,8 +80,10 @@ def goal_new():
 # -------------------- AUTO UPDATE GOAL (DONATION) --------------------
 
 def goal_add_points(user: str, amount: float):
-    profile_key = f"{user}_public"
-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    mode = "public"
+    profile_key = f"{user}_{mode}"
+    profile = get_profile_by_key(profile_key)
+    goal_file = profile["goal_file"]
 
     goal = load_goal(goal_file)
 
@@ -93,7 +100,7 @@ def goal_add_points(user: str, amount: float):
     ws_send(
         {"goal_update": True, "goal": goal},
         role="panel",
-        profile_key=f"{user}_public"
+        profile_key=profile_key
     )
 
 
@@ -110,7 +117,9 @@ def goal_reset():
         return {"status": "error", "message": "В приватном режиме цели нет"}
 
     profile_key = f"{user}_{mode}"
-    goal_file = CONFIG["profiles"][profile_key]["goal_file"]
+    profile = get_profile_by_key(profile_key)
+    goal_file = profile["goal_file"]
+
 
     goal = load_goal(goal_file)
     goal["current"] = 0

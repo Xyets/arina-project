@@ -3,8 +3,12 @@ from functools import wraps
 import json
 import requests
 
-from config import CONFIG
-from services.redis_client import redis_client   # ← ЕДИНСТВЕННЫЙ ПРАВИЛЬНЫЙ ИМПОРТ
+from services.database import (
+    get_profile_by_key,
+    get_model_by_id,
+    get_model_by_uid,
+)
+from services.redis_client import redis_client
 
 lovense_bp = Blueprint("lovense", __name__)
 
@@ -18,7 +22,6 @@ def login_required(f):
             return redirect(url_for("panel.login"))
         return f(*args, **kwargs)
     return wrapper
-
 
 
 # -------------------- QR-КОД (АВТОМАТИЧЕСКИЙ) --------------------
@@ -42,27 +45,38 @@ def qrcode_default():
 @lovense_bp.route("/qrcode/<profile_key>")
 @login_required
 def qrcode_page(profile_key):
-    profile = CONFIG["profiles"].get(profile_key)
+    profile = get_profile_by_key(profile_key)
     if not profile:
         return "Профиль не найден", 404
+
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        return "Модель не найдена", 404
 
     qr_url = get_qr_code(profile_key)
     if not qr_url:
         return "❌ Не удалось получить QR‑код", 500
 
-    return render_template("qrcode.html", user=profile["uname"], qr_url=qr_url)
+    return render_template("qrcode.html", user=model["display_name"], qr_url=qr_url)
 
 
 # -------------------- ФУНКЦИЯ ПОЛУЧЕНИЯ QR-КОДА --------------------
 
 def get_qr_code(profile_key):
-    profile = CONFIG["profiles"][profile_key]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return None
+
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        return None
+
     url = "https://api.lovense.com/api/lan/getQrCode"
 
     payload = {
-        "token": profile["DEVELOPER_TOKEN"],
-        "uid": profile["uid"],
-        "uname": profile["uname"],
+        "token": model["lovense_token"],
+        "uid": model["uid"],
+        "uname": model["display_name"],
         "utoken": "",
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback",
         "v": 2,
@@ -97,6 +111,13 @@ def lovense_callback():
     if not uid:
         return "❌ Нет uid", 400
 
+    model = get_model_by_uid(uid)
+    if not model:
+        return "❌ Модель не найдена", 404
+
+    # всегда считаем, что игрушка привязана к public‑профилю модели
+    profile_key = f"{model['username']}_public"
+
     payload = {
         "utoken": data.get("utoken"),
         "toys": data.get("toys", {}),
@@ -104,9 +125,9 @@ def lovense_callback():
 
     redis_client.hset(
         "connected_users",
-        uid,
+        profile_key,
         json.dumps(payload, ensure_ascii=False)
     )
 
-    print("🔐 CONNECTED_USERS обновлён:", uid)
+    print("🔐 CONNECTED_USERS обновлён:", profile_key)
     return "✅ Callback принят", 200

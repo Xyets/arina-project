@@ -7,7 +7,8 @@ from werkzeug.utils import secure_filename
 
 from config import CONFIG
 from services.reactions_service import load_reaction_rules, save_reaction_rules
-from services.redis_client import redis_client   # ← ЕДИНЫЙ redis_client
+from services.redis_client import redis_client
+from services.database import get_profile_by_key
 
 reactions_bp = Blueprint("reactions", __name__)
 
@@ -31,11 +32,14 @@ def login_required(f):
 @login_required
 def reactions_page():
     user = session["username"]
-
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
-    reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    reactions_file = profile["reactions_file"]
     rules = load_reaction_rules(reactions_file)
 
     rules["rules"].sort(key=lambda r: r.get("min_points", 0))
@@ -104,7 +108,7 @@ def reactions_page():
         "reactions.html",
         reactions=rules,
         profile_key=profile_key,
-        profile=CONFIG["profiles"][profile_key],
+        profile=profile,
         user=user,
         mode=mode,
     )
@@ -122,7 +126,11 @@ def test_reaction():
     if not rule_id or not profile_key:
         return jsonify({"status": "error", "message": "missing params"}), 400
 
-    reactions_file = CONFIG["profiles"][profile_key]["reactions_file"]
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return jsonify({"status": "error", "message": "profile not found"}), 404
+
+    reactions_file = profile["reactions_file"]
     rules = load_reaction_rules(reactions_file)["rules"]
 
     rule = next((r for r in rules if r["id"] == rule_id), None)
