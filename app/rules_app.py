@@ -111,6 +111,10 @@ def rules_page():
     user = session["username"]
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
+
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
     # ================= DEBUG LOGS =================
     print("========== RULES DEBUG ==========")
     print(f"[RULES DEBUG] profile_key={profile_key}")
@@ -126,10 +130,6 @@ def rules_page():
 
     print("=================================")
     # ==============================================
-
-    profile = get_profile_by_key(profile_key)
-    if not profile:
-        return "Профиль не найден", 404
 
     # Читаем путь к файлу правил из БД
     rules_file = profile["rules_file"]
