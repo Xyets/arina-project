@@ -247,7 +247,6 @@
   <!-- Toast уведомление -->
   <div id="toast" class="toast"></div>
 
-
   <script>
       // --- Проверка вибрации ---
       document.addEventListener("DOMContentLoaded", () => {
@@ -267,21 +266,24 @@
           const toast = document.getElementById("toast");
           toast.textContent = message;
           toast.classList.add("show");
-
-          setTimeout(() => {
-              toast.classList.remove("show");
-          }, 3000);
+          setTimeout(() => toast.classList.remove("show"), 3000);
       }
   </script>
 
-  <!-- Кнопка назад (перенесена ВНЕ списка правил) -->
+  <!-- Кнопка назад -->
   <div class="center">
       <a href="/" class="btn-back">⬅ Назад</a>
   </div>
 
   <!-- Список правил -->
   {% for rule in rules %}
-  <div class="rule-card">
+  <div class="rule-card" data-rule-id="{{ rule.id }}"
+      data-min="{{ rule.min }}"
+      data-max="{{ rule.max }}"
+      data-strength="{{ rule.strength }}"
+      data-duration="{{ rule.duration }}"
+      data-type="{{ rule.type }}"
+      data-action="{{ rule.action }}">
 
       <div class="rule-header">
           <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
@@ -309,7 +311,7 @@
               {% if rule.type == "wheel" %}
                   <button type="button"
                           class="btn-main"
-                          onclick="toggleWheel('{{ rule.id }}')">
+                          onclick="document.getElementById('wheel-{{ rule.id }}').classList.toggle('hidden')">
                       📂
                   </button>
 
@@ -343,62 +345,62 @@
           {% endif %}
       </p>
 
+      {% if rule.type == "wheel" %}
+      <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
+
+          <h4>🎡 Сегменты колеса</h4>
+
+          {% if rule.segments %}
+              {% for seg in rule.segments %}
+              <div class="segment-card">
+
+                  <div class="segment-title">🎯 {{ seg.name }}</div>
+
+                  {% if seg.type == "vibration" %}
+                      <div class="segment-action">
+                          <strong>Вибрация:</strong>
+                          сила {{ seg.strength }}, время {{ seg.duration }}s
+                      </div>
+                  {% elif seg.type == "action" %}
+                      <div class="segment-action">
+                          <strong>Действие:</strong> {{ seg.action }}
+                      </div>
+                  {% elif seg.type == "retry" %}
+                      <div class="segment-action">
+                          🔁 Повтор колеса
+                      </div>
+                  {% endif %}
+
+                  <div class="segment-chance-bar">
+                      <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
+                  </div>
+
+                  <small class="segment-chance-text">Шанс: {{ seg.chance }}%</small>
+
+                  <form method="POST" class="inline">
+                      <input type="hidden" name="delete_segment" value="{{ rule.id }}">
+                      <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
+                      <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
+                  </form>
+
+              </div>
+              {% endfor %}
+          {% else %}
+              <p class="no-segments">Сегментов пока нет</p>
+          {% endif %}
+
+          <button type="button"
+                  class="btn-main"
+                  onclick="openSegmentModal('{{ rule.id }}')">
+              ➕ Добавить сегмент
+          </button>
+
+      </div>
+      {% endif %}
+
   </div>
   {% endfor %}
 
-
-  {% if rule.type == "wheel" %}
-  <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
-
-      <h4>🎡 Сегменты колеса</h4>
-
-      {% if rule.segments %}
-          {% for seg in rule.segments %}
-          <div class="segment-card">
-
-              <div class="segment-title">🎯 {{ seg.name }}</div>
-
-              {% if seg.type == "vibration" %}
-                  <div class="segment-action">
-                      <strong>Вибрация:</strong>
-                      сила {{ seg.strength }}, время {{ seg.duration }}s
-                  </div>
-              {% elif seg.type == "action" %}
-                  <div class="segment-action">
-                      <strong>Действие:</strong> {{ seg.action }}
-                  </div>
-              {% elif seg.type == "retry" %}
-                  <div class="segment-action">
-                      🔁 Повтор колеса
-                  </div>
-              {% endif %}
-
-              <div class="segment-chance-bar">
-                  <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
-              </div>
-
-              <small class="segment-chance-text">Шанс: {{ seg.chance }}%</small>
-
-              <form method="POST" class="inline">
-                  <input type="hidden" name="delete_segment" value="{{ rule.id }}">
-                  <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
-                  <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
-              </form>
-
-          </div>
-          {% endfor %}
-      {% else %}
-          <p class="no-segments">Сегментов пока нет</p>
-      {% endif %}
-
-      <button type="button"
-              class="btn-main"
-              onclick="openSegmentModal('{{ rule.id }}')">
-          ➕ Добавить сегмент
-      </button>
-
-  </div>
-  {% endif %}
 
 
   <!-- Универсальная модалка редактирования правила -->
