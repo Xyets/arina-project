@@ -85,7 +85,7 @@
 <!-- ========================= -->
 <!-- ОСНОВНОЕ КОЛЕСО -->
 <!-- ========================= -->
-<svg id="wheelSvg" viewBox="0 0 400 400" style="display:none">
+<svg id="wheelSvg" viewBox="0 0 305.58 373.8" style="display:none">
 
     <!-- ========================= -->
     <!-- ТЕНЬ ПОД ВНЕШНИМ КРУГОМ (СТАТИЧНАЯ) — НОВАЯ ВЕРСИЯ -->
@@ -521,7 +521,7 @@ function spinWheel(segments, winnerIndex) {
         if (speed < minSpeed) {
             stopped = true;
 
-            wheelInner.setAttribute("transform", `rotate(${rotation} 200 200)`);
+            wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.7)`);
 
             sendResult(winnerIndex);
 
@@ -532,7 +532,7 @@ function spinWheel(segments, winnerIndex) {
             return;
         }
 
-        wheelInner.setAttribute("transform", `rotate(${rotation} 200 200)`);
+        wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.7)`);
 
         requestAnimationFrame(animate);
     }
