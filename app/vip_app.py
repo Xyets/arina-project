@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session, redirect, url_for, rende
 from functools import wraps
 from datetime import datetime
 
-from services.vip_service import load_vip_file, save_vip_file
+from services.vip_service import load_vip, save_vip, update_vip
 from services.database import get_profile_by_key
 
 vip_bp = Blueprint("vip", __name__)
@@ -32,17 +32,15 @@ def remove_member():
     if not profile:
         return {"status": "error", "message": "Профиль не найден"}, 404
 
-    vip_file = profile["vip_file"]
-
     user_id = request.form.get("user_id")
     if not user_id:
         return {"status": "error", "message": "Нет user_id"}, 400
 
-    vip_data = load_vip_file(vip_file)
+    vip_data = load_vip(profile_key)
 
     if user_id in vip_data:
         del vip_data[user_id]
-        save_vip_file(vip_file, vip_data)
+        save_vip(profile_key, vip_data)
         return {"status": "ok", "message": "Мембер удалён"}
 
     return {"status": "error", "message": "Мембер не найден"}, 404
@@ -61,8 +59,7 @@ def vip_page():
     if not profile:
         return "Профиль не найден", 404
 
-    vip_file = profile["vip_file"]
-    vip_data = load_vip_file(vip_file)
+    vip_data = load_vip(profile_key)
 
     # ---------- SAVE MEMBER ----------
     if request.method == "POST" and "user_id" in request.form:
@@ -71,7 +68,7 @@ def vip_page():
         if user_id in vip_data:
             vip_data[user_id]["name"] = request.form.get("name", "").strip()
             vip_data[user_id]["notes"] = request.form.get("notes", "").strip()
-            save_vip_file(vip_file, vip_data)
+            save_vip(profile_key, vip_data)
 
         sort_by = request.form.get("sort", "total")
         query = request.form.get("q", "")
@@ -134,7 +131,6 @@ def vip_data():
     if not profile:
         return {"members": {}}
 
-    vip_file = profile["vip_file"]
-    vip_data = load_vip_file(vip_file)
+    vip_data = load_vip(profile_key)
 
     return {"members": vip_data}
