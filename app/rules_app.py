@@ -4,7 +4,6 @@ import uuid
 import json
 import asyncio
 import websockets
-import os
 
 from services.rules_service import load_rules, save_rules
 from services.database import get_profile_by_key
@@ -71,9 +70,8 @@ def test_rule(index):
     if not profile:
         return {"status": "error", "message": "Профиль не найден"}
 
-    # Автоматический выбор файла правил
-    rules_file = f"data/rules/rules_{profile_key}.json"
-
+    # Читаем путь к файлу правил из БД
+    rules_file = profile["rules_file"]
     rules = load_rules(rules_file).get("rules", [])
 
     if index < 0 or index >= len(rules):
@@ -96,13 +94,12 @@ def test_rule(index):
 
     # VIBRATION
     if rule.get("type") == "vibration":
-        strength = rule.get("strength", 1)
-        duration = rule.get("duration", 5)
+        strength = int(rule.get("strength", 1))
+        duration = int(rule.get("duration", 5))
 
         asyncio.run(send_ws_vibration(profile_key, strength, duration))
         return {"status": "ok", "message": "Вибрация отправлена"}
 
-    # Если тип неизвестен
     return {"status": "error", "message": "Неизвестный тип правила"}
 
 
@@ -119,14 +116,8 @@ def rules_page():
     if not profile:
         return "Профиль не найден", 404
 
-    # Автоматический выбор файла правил
-    rules_file = f"data/rules/rules_{profile_key}.json"
-
-    # Если файла нет — создаём пустой
-    if not os.path.exists(rules_file):
-        with open(rules_file, "w", encoding="utf-8") as f:
-            json.dump({"rules": [], "default": [1, 5]}, f, ensure_ascii=False)
-
+    # Читаем путь к файлу правил из БД
+    rules_file = profile["rules_file"]
     rules = load_rules(rules_file)
 
     # ADD RULE
@@ -150,7 +141,6 @@ def rules_page():
             new_rule["action"] = request.form["action"].strip() or None
 
         elif action_type == "wheel":
-            new_rule["type"] = "wheel"
             new_rule["action"] = "wheel"
             new_rule["segments"] = []
 
@@ -186,7 +176,7 @@ def rules_page():
                     r["action"] = request.form["action"].strip() or None
 
                 elif action_type == "wheel":
-                    r["type"] = "wheel"
+                    r["action"] = "wheel"
                     if "segments" not in r:
                         r["segments"] = []
 
