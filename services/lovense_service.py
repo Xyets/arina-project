@@ -8,11 +8,18 @@ from services.database import get_profile_by_key, get_model_by_id
 
 # ---------------- UTOKEN ----------------
 
-def _get_utoken(profile_key: str) -> Optional[str]:
-    """
-    Получает utoken из Redis по profile_key.
-    """
-    raw = redis_client.hget("connected_users", profile_key)
+def _get_utoken(profile_key: str):
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return None
+
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        return None
+
+    uid = model["uid"]
+
+    raw = redis_client.hget("connected_users", uid)
     if not raw:
         return None
 
@@ -21,6 +28,7 @@ def _get_utoken(profile_key: str) -> Optional[str]:
         return data.get("utoken")
     except Exception:
         return None
+
 
 
 # ---------------- CLOUD API ----------------
