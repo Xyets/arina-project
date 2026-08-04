@@ -355,7 +355,7 @@
     <div class="mode-toggle">
       <span>🌐 Публичный</span>
       <label class="switch">
-        <input type="checkbox" id="modeSwitch" {% if current_mode == "private" %}checked{% endif %}>
+        <input type="checkbox" id="modeSwitch" {% if session["mode"] == "private" %}checked{% endif %}>
         <span class="slider"></span>
       </label>
       <span>🔒 Частный</span>
@@ -389,7 +389,7 @@
 
     </div>
 
-    {% if current_mode == "public" %}
+    {% if session["mode"] == "public" %}
     <div class="goal-card">
       <h3>🎯 {{ goal.title or "Цель не установлена" }}</h3>
 
