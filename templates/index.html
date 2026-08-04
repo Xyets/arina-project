@@ -569,7 +569,6 @@
 
               // ---------- MODE UPDATE ----------
               if (data.mode_update && data.user === CURRENT_USER) {
-                  location.reload();
                   return;
               }
           };
@@ -613,17 +612,15 @@
           .then(data => {
               if (data.status === "ok") {
                   showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
-                  // 🌟 ЗАГРУЖАЕМ ЦЕЛЬ ДЛЯ НОВОГО РЕЖИМА 
-                  fetch("/goal_data") 
-                    .then(r => r.json()) 
-                    .then(g => { 
-                      goal = g; // обновляем глобальную цель 
-                      updateGoalUI();
-                    });
+
+                  // 🔥 reload ТОЛЬКО ЗДЕСЬ — после обновления session["mode"]
+                  location.reload();
+                  return;
               } else {
                   showToast("❌ Ошибка переключения режима");
               }
           })
+
           .catch(() => showToast("❌ Ошибка соединения с сервером"));
       });
 
@@ -912,7 +909,7 @@
       updateGoalUI();
 
     };
-    
+
     window.addEventListener("load", () => {
         fetch("/goal_data")
             .then(r => r.json())
