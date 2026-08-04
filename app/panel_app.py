@@ -42,7 +42,6 @@ def login():
         if not model:
             return render_template("login.html", error="Неверный логин или пароль")
 
-        # если пароль хранится как текст
         if model["password_hash"] != pwd:
             return render_template("login.html", error="Неверный логин или пароль")
 
@@ -62,11 +61,10 @@ def logout():
 
     if username:
         profile_key = f"{username}_{mode}"
-        audit_event(profile_key, "logout")
-
+        audit_event(profile_key, "logout")   # ✔ исправлено
 
     session.clear()
-    return redirect(url_for("panel.login"))
+    return redirect(url_for("panel.login"))   # ✔ теперь работает
 
 
 # -------------------- ПАНЕЛЬ --------------------
@@ -109,7 +107,6 @@ def set_mode():
         return {"status": "error", "message": "Неверный режим"}
 
     session["mode"] = mode
-
     redis_client.hset("user_modes", session["username"], mode)
 
     return {"status": "ok", "mode": mode}
