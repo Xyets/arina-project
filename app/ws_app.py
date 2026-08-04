@@ -539,6 +539,27 @@ async def ws_handler(websocket):
             # Определяем тип сообщения
             msg_type = data.get("type")
 
+            if msg_type == "set_mode":
+                user = data.get("user")
+                mode = data.get("mode")
+
+                # сохраняем режим в Redis
+                redis_client.hset("user_modes", user, mode)
+
+                # отправляем обновление панели
+                ws_send(
+                    {
+                        "mode_update": True,
+                        "user": user,
+                        "mode": mode
+                    },
+                    role="panel",
+                    profile_key=f"{user}_{mode}"
+                )
+
+                continue
+
+
             # Донаты приходят без type
             if msg_type is None and "amount" in data:
                 msg_type = "donation"
