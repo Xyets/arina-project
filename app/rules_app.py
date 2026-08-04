@@ -71,8 +71,8 @@ def test_rule(index):
         return {"status": "error", "message": "Профиль не найден"}
 
     # Читаем путь к файлу правил из БД
-    rules_file = profile["rules_file"]
-    rules = load_rules(rules_file).get("rules", [])
+    rules = load_rules(profile_key).get("rules", [])
+
 
     if index < 0 or index >= len(rules):
         return {"status": "error", "message": "Правило не найдено"}
@@ -117,8 +117,8 @@ def rules_page():
         return "Профиль не найден", 404
 
     # Читаем путь к файлу правил из БД
-    rules_file = profile["rules_file"]
-    rules = load_rules(rules_file)
+    rules = load_rules(profile_key)
+
 
 
 
