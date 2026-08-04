@@ -910,7 +910,17 @@
       goal.title = title;
       goal.target = Number(target);
       updateGoalUI();
+
     };
+    
+    window.addEventListener("load", () => {
+        fetch("/goal_data")
+            .then(r => r.json())
+            .then(g => {
+                goal = g;
+                updateGoalUI();
+            });
+    });
 
     </script>
   </body>
