@@ -61,10 +61,10 @@ def logout():
 
     if username:
         profile_key = f"{username}_{mode}"
-        audit_event(profile_key, "logout")   # ✔ исправлено
+        audit_event(profile_key, "system", {"type": "logout"})
 
     session.clear()
-    return redirect(url_for("panel.login"))   # ✔ теперь работает
+    return redirect(url_for("panel.login"))
 
 
 # -------------------- ПАНЕЛЬ --------------------
