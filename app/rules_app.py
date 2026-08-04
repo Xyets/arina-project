@@ -4,7 +4,6 @@ import uuid
 import json
 import asyncio
 import websockets
-import os
 from services.rules_service import load_rules, save_rules
 from services.database import get_profile_by_key
 
@@ -53,7 +52,6 @@ def test_vibration():
     profile_key = f"{user}_{mode}"
 
     asyncio.run(send_ws_vibration(profile_key, 1, 5))
-
     return {"status": "ok", "message": "Вибрация отправлена ✅"}
 
 
@@ -70,9 +68,7 @@ def test_rule(index):
     if not profile:
         return {"status": "error", "message": "Профиль не найден"}
 
-    # Читаем путь к файлу правил из БД
     rules = load_rules(profile_key).get("rules", [])
-
 
     if index < 0 or index >= len(rules):
         return {"status": "error", "message": "Правило не найдено"}
@@ -88,7 +84,6 @@ def test_rule(index):
         segments = rule.get("segments", [])
         if not segments:
             return {"status": "error", "message": "Нет сегментов"}
-
         asyncio.run(send_ws_wheel_spin(profile_key, segments))
         return {"status": "ok", "message": "Колесо запущено!"}
 
@@ -96,7 +91,6 @@ def test_rule(index):
     if rule.get("type") == "vibration":
         strength = int(rule.get("strength", 1))
         duration = int(rule.get("duration", 5))
-
         asyncio.run(send_ws_vibration(profile_key, strength, duration))
         return {"status": "ok", "message": "Вибрация отправлена"}
 
@@ -116,13 +110,10 @@ def rules_page():
     if not profile:
         return "Профиль не найден", 404
 
-    # Читаем путь к файлу правил из БД
+    rules_file = profile["rules_file"]
     rules = load_rules(profile_key)
 
-
-
-
-    # ADD RULE
+    # -------------------- ADD RULE --------------------
     if request.method == "POST" and "add_rule" in request.form:
         action_type = request.form.get("action_type")
 
@@ -136,10 +127,7 @@ def rules_page():
             "action": None
         }
 
-        if action_type == "vibration":
-            new_rule["action"] = None
-
-        elif action_type == "custom":
+        if action_type == "custom":
             new_rule["action"] = request.form["action"].strip() or None
 
         elif action_type == "wheel":
@@ -150,14 +138,14 @@ def rules_page():
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # DELETE RULE
+    # -------------------- DELETE RULE --------------------
     if request.method == "POST" and "delete_rule" in request.form:
         rule_id = request.form["delete_rule"]
         rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # EDIT RULE
+    # -------------------- EDIT RULE --------------------
     if request.method == "POST" and "edit_rule" in request.form:
         rule_id = request.form["edit_rule"]
 
@@ -171,28 +159,26 @@ def rules_page():
                 action_type = request.form.get("action_type")
                 r["type"] = action_type
 
-                if action_type == "vibration":
-                    r["action"] = None
-
-                elif action_type == "custom":
+                if action_type == "custom":
                     r["action"] = request.form["action"].strip() or None
 
                 elif action_type == "wheel":
                     r["action"] = "wheel"
-                    if "segments" not in r:
-                        r["segments"] = []
+                    r.setdefault("segments", [])
+
+                elif action_type == "vibration":
+                    r["action"] = None
 
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # ADD SEGMENT
+    # -------------------- ADD SEGMENT --------------------
     if request.method == "POST" and "add_segment" in request.form:
         rule_id = request.form["add_segment"]
 
         for r in rules["rules"]:
             if r["id"] == rule_id:
-                if "segments" not in r:
-                    r["segments"] = []
+                r.setdefault("segments", [])
 
                 seg_type = request.form["seg_type"]
 
@@ -217,7 +203,7 @@ def rules_page():
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
-    # DELETE SEGMENT
+    # -------------------- DELETE SEGMENT --------------------
     if request.method == "POST" and "delete_segment" in request.form:
         rule_id = request.form["delete_segment"]
         seg_index = int(request.form["seg_index"])
