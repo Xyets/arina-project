@@ -894,17 +894,24 @@
       e.preventDefault();
       const formData = new FormData(e.target);
 
+      const title = formData.get("title").trim();
+      const target = formData.get("target").trim();
+
+      if (!target || isNaN(target) || Number(target) <= 0) {
+          showToast("Введите корректное число для цели");
+          return;
+      }
+
       await fetch("/goal_new", { method:"POST", body:formData });
 
-      // Закрываем модалку
       document.getElementById("goalModal").style.display = "none";
 
-      // Локально обновляем UI, чтобы не ждать WebSocket
       goal.current = 0;
-      goal.title = formData.get("title");
-      goal.target = Number(formData.get("target"));
+      goal.title = title;
+      goal.target = Number(target);
       updateGoalUI();
     };
+
     </script>
   </body>
 </html>

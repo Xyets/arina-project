@@ -57,8 +57,15 @@ def goal_new():
     if not profile:
         return {"status": "error", "message": "Профиль не найден"}
 
-    title = request.form.get("title", "")
-    target = int(request.form.get("target", 0))
+    title = request.form.get("title", "").strip()
+    raw_target = request.form.get("target", "").strip()
+
+    # 🔒 Защита от пустого или некорректного значения
+    if not raw_target.isdigit():
+        return {"status": "error", "message": "Введите корректное число для цели"}
+
+    target = int(raw_target)
+
 
     goal = {
         "title": title,
