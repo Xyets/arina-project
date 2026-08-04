@@ -34,8 +34,7 @@ def stats_page():
     if not profile:
         return f"Профиль {profile_key} не найден", 500
 
-    stats_file = profile["stats_file"]
-    stats_data = load_stats(stats_file)
+    stats_data = load_stats(profile_key)
 
     results, summary = calculate_stats(stats_data, user=user)
 
@@ -98,7 +97,7 @@ def close_period():
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
 
     # Загружаем текущую статистику
-    stats = load_stats(stats_file)
+    stats = load_stats(profile_key)
     if not stats:
         return redirect(url_for("stats.stats_history"))
 
