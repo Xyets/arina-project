@@ -118,7 +118,8 @@ def rules_page():
 
     # Читаем путь к файлу правил из БД
     rules_file = profile["rules_file"]
-    rules = load_rules(profile_key)
+    rules = load_rules(rules_file)
+
 
 
     # ADD RULE
