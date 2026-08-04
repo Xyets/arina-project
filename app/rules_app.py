@@ -110,8 +110,9 @@ def rules_page():
     if not profile:
         return "Профиль не найден", 404
 
-    rules_file = profile["rules_file"]
+    rules_file = profile_key   # путь определяется по ключу профиля
     rules = load_rules(profile_key)
+
 
     # -------------------- ADD RULE --------------------
     if request.method == "POST" and "add_rule" in request.form:
