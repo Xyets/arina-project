@@ -86,9 +86,8 @@ async def vibration_worker(profile_key):
     print(f"🔥 WORKER STARTED for {profile_key}")
 
     from services.vibration_manager import vibration_queues, stop_events
-    from services.lovense_service import start_vibration_cloud_async
+    from services.lovense_service import start_vibration_cloud_async, stop_vibration_cloud_async
 
-    # если профиль удалён — не запускаем воркер
     if not get_profile_by_key(profile_key):
         print(f"❌ Worker: profile {profile_key} no longer exists")
         return
@@ -97,32 +96,38 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
-            print(f"⏳ [{profile_key}] WAITING FOR NEXT VIBRATION…")
             strength, duration = await q.get()
             print(f"🚀 [{profile_key}] START NEW VIBRATION: strength={strength}, duration={duration}")
 
-            # обновляем очередь в панели
             ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
-            # сбрасываем стоп
             stop_events[profile_key].clear()
 
-            # запускаем вибрацию (fire-and-forget)
-            print(f"📤 [{profile_key}] SENDING START COMMAND TO LOVENSE…")
+            # запускаем вибрацию
             asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
-            print(f"📥 [{profile_key}] START COMMAND SENT")
 
-            # уведомления
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="panel", profile_key=profile_key)
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="obs", profile_key=profile_key)
 
-            # ждём duration секунд — НО НЕ ОТПРАВЛЯЕМ STOP
-            print(f"⏳ [{profile_key}] WAITING {duration}s…")
-            await asyncio.sleep(duration)
+            # ждём duration ИЛИ STOP
+            print(f"⏳ [{profile_key}] WAITING {duration}s OR STOP…")
 
-            # сразу переходим к следующей вибрации
+            elapsed = 0
+            step = 0.1
+
+            while elapsed < duration:
+                await asyncio.sleep(step)
+                elapsed += step
+
+                # если нажали STOP — немедленно прерываем
+                if stop_events[profile_key].is_set():
+                    print(f"🛑 [{profile_key}] STOP RECEIVED — INTERRUPTING")
+                    await stop_vibration_cloud_async(profile_key)
+                    break
+
+            # если стопа не было — НЕ отправляем STOP (вариант 3)
             print(f"✨ [{profile_key}] NEXT VIBRATION STARTS IMMEDIATELY")
 
         except Exception as e:
