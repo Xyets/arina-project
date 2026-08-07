@@ -81,7 +81,6 @@ def ws_send(data, role=None, profile_key=None):
 
 
 # ---------------- ВИБРАЦИИ ----------------
-
 async def vibration_worker(profile_key):
     print(f"🔥 WORKER STARTED for {profile_key}")
 
