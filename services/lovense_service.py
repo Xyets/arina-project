@@ -3,12 +3,17 @@ import aiohttp
 from services.redis_client import redis_client
 from services.database import get_profile_by_key, get_model_by_id
 
+# ---------------- ГЛОБАЛЬНАЯ СЕССИЯ ----------------
+
 session: aiohttp.ClientSession = None
 
 async def init_lovense_session():
     global session
     if session is None:
         session = aiohttp.ClientSession()
+
+
+# ---------------- UTOKEN ----------------
 
 def _get_utoken(profile_key: str):
     profile = get_profile_by_key(profile_key)
@@ -31,7 +36,13 @@ def _get_utoken(profile_key: str):
         return None
 
 
+# ---------------- CLOUD API ----------------
+
 async def start_vibration_cloud_async(profile_key: str, strength: int):
+    """
+    LAN API НЕ УМЕЕТ duration → timeSec всегда 0.
+    Worker сам управляет временем вибрации.
+    """
     await init_lovense_session()
 
     profile = get_profile_by_key(profile_key)
@@ -58,7 +69,7 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": 0,   # LAN API НЕ УМЕЕТ duration
+        "timeSec": 0,   # LAN API игнорирует duration
     }
 
     try:
@@ -68,6 +79,9 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
 
 
 async def stop_vibration_cloud_async(profile_key: str):
+    """
+    STOP — единственный способ остановить вибрацию в LAN API.
+    """
     await init_lovense_session()
 
     profile = get_profile_by_key(profile_key)
@@ -104,6 +118,12 @@ async def stop_vibration_cloud_async(profile_key: str):
 
 
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
+    """
+    Совместимость с ws_app:
+    - strength > 0 → старт вибрации
+    - strength == 0 → стоп вибрации
+    duration игнорируется — worker сам управляет временем.
+    """
     if strength > 0:
         await start_vibration_cloud_async(profile_key, strength)
     else:
