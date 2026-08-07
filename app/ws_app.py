@@ -104,8 +104,8 @@ async def vibration_worker(profile_key):
             stop_events[profile_key].clear()
             print(f"🔄 [{profile_key}] stop_event CLEARED")
 
-            # 🔥 запускаем вибрацию с duration — Lovense сам остановит
-            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
+            # 🔥 LAN API — duration НЕ работает → вызываем только strength
+            await start_vibration_cloud_async(profile_key, strength)
 
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="panel", profile_key=profile_key)
@@ -130,8 +130,8 @@ async def vibration_worker(profile_key):
                     break
 
             if not stopped:
-                # ❗ НИКАКОГО stop_vibration_cloud_async здесь
-                print(f"⏳ [{profile_key}] NATURAL END (Lovense stopped by duration)")
+                print(f"⏳ [{profile_key}] NATURAL END — SENDING STOP")
+                await stop_vibration_cloud_async(profile_key)
 
             if not q.empty():
                 print(f"✨ [{profile_key}] NEXT VIBRATION FOUND — STARTING IMMEDIATELY")
@@ -143,7 +143,7 @@ async def vibration_worker(profile_key):
 
         finally:
             q.task_done()
-            
+  
 # ---------------- REDIS LISTENER ----------------
 
 async def redis_listener():
