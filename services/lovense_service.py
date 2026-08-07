@@ -1,11 +1,7 @@
 import json
 import aiohttp
-from typing import Optional, Dict, Any
-
 from services.redis_client import redis_client
 from services.database import get_profile_by_key, get_model_by_id
-
-# ---------------- ГЛОБАЛЬНАЯ СЕССИЯ ----------------
 
 session: aiohttp.ClientSession = None
 
@@ -13,9 +9,6 @@ async def init_lovense_session():
     global session
     if session is None:
         session = aiohttp.ClientSession()
-
-
-# ---------------- UTOKEN ----------------
 
 def _get_utoken(profile_key: str):
     profile = get_profile_by_key(profile_key)
@@ -33,21 +26,12 @@ def _get_utoken(profile_key: str):
         return None
 
     try:
-        data = json.loads(raw)
-        return data.get("utoken")
-    except Exception:
+        return json.loads(raw).get("utoken")
+    except:
         return None
 
 
-# ---------------- CLOUD API ----------------
-
-async def start_vibration_cloud_async(profile_key: str, strength: int, duration: int):
-    """
-    🔥 ВАЖНО:
-    - duration снова отправляется в Lovense
-    - игрушка сама остановится ровно через duration секунд
-    - worker НЕ должен отправлять STOP при NATURAL END
-    """
+async def start_vibration_cloud_async(profile_key: str, strength: int):
     await init_lovense_session()
 
     profile = get_profile_by_key(profile_key)
@@ -59,22 +43,22 @@ async def start_vibration_cloud_async(profile_key: str, strength: int, duration:
         return
 
     uid = model["uid"]
-    developer_token = model["lovense_token"]
+    token = model["lovense_token"]
     utoken = _get_utoken(profile_key)
 
     if not utoken:
-        print(f"❌ [{profile_key}] utoken отсутствует — игрушка не подключена")
+        print(f"❌ [{profile_key}] utoken отсутствует")
         return
 
     url = "https://api.lovense.com/api/lan/v2/command"
 
     payload = {
-        "token": developer_token,
+        "token": token,
         "uid": uid,
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": duration,   # 🔥 duration снова используется
+        "timeSec": 0,   # LAN API НЕ УМЕЕТ duration
     }
 
     try:
@@ -84,10 +68,6 @@ async def start_vibration_cloud_async(profile_key: str, strength: int, duration:
 
 
 async def stop_vibration_cloud_async(profile_key: str):
-    """
-    🔥 STOP — мгновенный, ручной.
-    Используется только при нажатии кнопки STOP или прерывании вибрации worker'ом.
-    """
     await init_lovense_session()
 
     profile = get_profile_by_key(profile_key)
@@ -99,17 +79,17 @@ async def stop_vibration_cloud_async(profile_key: str):
         return
 
     uid = model["uid"]
-    developer_token = model["lovense_token"]
+    token = model["lovense_token"]
     utoken = _get_utoken(profile_key)
 
     if not utoken:
-        print(f"❌ [{profile_key}] utoken отсутствует — игрушка не подключена")
+        print(f"❌ [{profile_key}] utoken отсутствует")
         return
 
     url = "https://api.lovense.com/api/lan/v2/command"
 
     payload = {
-        "token": developer_token,
+        "token": token,
         "uid": uid,
         "utoken": utoken,
         "command": "Function",
@@ -124,12 +104,7 @@ async def stop_vibration_cloud_async(profile_key: str):
 
 
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
-    """
-    🔥 Совместимость с ws_app:
-    - strength > 0 → старт вибрации с duration
-    - strength == 0 → стоп вибрации
-    """
     if strength > 0:
-        await start_vibration_cloud_async(profile_key, strength, duration)
+        await start_vibration_cloud_async(profile_key, strength)
     else:
         await stop_vibration_cloud_async(profile_key)
