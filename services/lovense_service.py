@@ -42,6 +42,12 @@ def _get_utoken(profile_key: str):
 # ---------------- CLOUD API ----------------
 
 async def start_vibration_cloud_async(profile_key: str, strength: int, duration: int):
+    """
+    🔥 ВАЖНО:
+    - duration снова отправляется в Lovense
+    - игрушка сама остановится ровно через duration секунд
+    - worker НЕ должен отправлять STOP при NATURAL END
+    """
     await init_lovense_session()
 
     profile = get_profile_by_key(profile_key)
@@ -68,7 +74,7 @@ async def start_vibration_cloud_async(profile_key: str, strength: int, duration:
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": 0,  # duration игнорируем
+        "timeSec": duration,   # 🔥 duration снова используется
     }
 
     try:
@@ -78,6 +84,10 @@ async def start_vibration_cloud_async(profile_key: str, strength: int, duration:
 
 
 async def stop_vibration_cloud_async(profile_key: str):
+    """
+    🔥 STOP — мгновенный, ручной.
+    Используется только при нажатии кнопки STOP или прерывании вибрации worker'ом.
+    """
     await init_lovense_session()
 
     profile = get_profile_by_key(profile_key)
@@ -114,6 +124,11 @@ async def stop_vibration_cloud_async(profile_key: str):
 
 
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
+    """
+    🔥 Совместимость с ws_app:
+    - strength > 0 → старт вибрации с duration
+    - strength == 0 → стоп вибрации
+    """
     if strength > 0:
         await start_vibration_cloud_async(profile_key, strength, duration)
     else:

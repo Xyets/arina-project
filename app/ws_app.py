@@ -95,15 +95,17 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
+            print(f"⏳ [{profile_key}] WAITING FOR NEXT VIBRATION…")
             strength, duration = await q.get()
             print(f"🚀 [{profile_key}] START NEW VIBRATION: strength={strength}, duration={duration}")
 
             ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
             stop_events[profile_key].clear()
+            print(f"🔄 [{profile_key}] stop_event CLEARED")
 
-            # запускаем вибрацию БЕЗ duration
-            await start_vibration_cloud_async(profile_key, strength, 0)
+            # 🔥 запускаем вибрацию с duration — Lovense сам остановит
+            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
 
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="panel", profile_key=profile_key)
@@ -111,27 +113,26 @@ async def vibration_worker(profile_key):
                     role="obs", profile_key=profile_key)
 
             print(f"⏳ [{profile_key}] WAITING {duration}s OR STOP…")
-
-            elapsed = 0
-            step = 0.1
             stopped = False
 
-            while elapsed < duration:
-                await asyncio.sleep(step)
-                elapsed += step
+            for i in range(duration * 10):
+                await asyncio.sleep(0.1)
 
                 if stop_events[profile_key].is_set():
-                    print(f"🛑 [{profile_key}] STOP RECEIVED — INTERRUPTING")
+                    print(f"🛑 [{profile_key}] STOP RECEIVED DURING WAIT at {i*0.1:.1f}s")
+
                     await stop_vibration_cloud_async(profile_key)
+
+                    ws_send({"stop": True, "target": profile_key}, role="panel", profile_key=profile_key)
+                    ws_send({"stop": True, "target": profile_key}, role="obs", profile_key=profile_key)
+
                     stopped = True
                     break
 
-            # если стопа не было — останавливаем естественно
             if not stopped:
-                print(f"⏳ [{profile_key}] NATURAL END — SENDING STOP")
-                await stop_vibration_cloud_async(profile_key)
+                # ❗ НИКАКОГО stop_vibration_cloud_async здесь
+                print(f"⏳ [{profile_key}] NATURAL END (Lovense stopped by duration)")
 
-            # сразу следующая вибрация
             if not q.empty():
                 print(f"✨ [{profile_key}] NEXT VIBRATION FOUND — STARTING IMMEDIATELY")
             else:
@@ -142,7 +143,7 @@ async def vibration_worker(profile_key):
 
         finally:
             q.task_done()
-
+            
 # ---------------- REDIS LISTENER ----------------
 
 async def redis_listener():
