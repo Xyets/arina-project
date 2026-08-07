@@ -105,8 +105,8 @@ async def vibration_worker(profile_key):
             # сбрасываем STOP
             stop_events[profile_key].clear()
 
-            # запускаем вибрацию
-            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, duration))
+            # запускаем вибрацию БЕЗ duration (сервер сам управляет временем)
+            asyncio.create_task(start_vibration_cloud_async(profile_key, strength, 0))
 
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="panel", profile_key=profile_key)
@@ -135,7 +135,7 @@ async def vibration_worker(profile_key):
                 print(f"⏳ [{profile_key}] NATURAL END — SENDING STOP")
                 await stop_vibration_cloud_async(profile_key)
 
-            # 🔥 ВАЖНО: проверяем очередь ПОСЛЕ остановки
+            # 🔥 КЛЮЧЕВОЕ МЕСТО
             if not q.empty():
                 print(f"✨ [{profile_key}] NEXT VIBRATION FOUND — STARTING IMMEDIATELY")
             else:
