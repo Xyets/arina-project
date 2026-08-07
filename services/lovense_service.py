@@ -5,6 +5,15 @@ from typing import Optional, Dict, Any
 from services.redis_client import redis_client
 from services.database import get_profile_by_key, get_model_by_id
 
+# ---------------- ГЛОБАЛЬНАЯ СЕССИЯ ----------------
+
+session: aiohttp.ClientSession = None
+
+async def init_lovense_session():
+    global session
+    if session is None:
+        session = aiohttp.ClientSession()
+
 
 # ---------------- UTOKEN ----------------
 
@@ -30,21 +39,17 @@ def _get_utoken(profile_key: str):
         return None
 
 
-
 # ---------------- CLOUD API ----------------
 
 async def start_vibration_cloud_async(profile_key: str, strength: int, duration: int):
-    """
-    Запускает вибрацию через Lovense Cloud API.
-    """
+    await init_lovense_session()
+
     profile = get_profile_by_key(profile_key)
     if not profile:
-        print(f"❌ Профиль {profile_key} не найден")
         return
 
     model = get_model_by_id(profile["model_id"])
     if not model:
-        print(f"❌ Модель для профиля {profile_key} не найдена")
         return
 
     uid = model["uid"]
@@ -63,28 +68,24 @@ async def start_vibration_cloud_async(profile_key: str, strength: int, duration:
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": duration,
+        "timeSec": 0,  # duration игнорируем
     }
 
     try:
-        async with aiohttp.ClientSession() as session:
-            await session.post(url, json=payload, timeout=2)
+        await session.post(url, json=payload, timeout=1)
     except Exception as e:
         print("Ошибка Cloud API:", e)
 
 
 async def stop_vibration_cloud_async(profile_key: str):
-    """
-    Останавливает вибрацию мгновенно.
-    """
+    await init_lovense_session()
+
     profile = get_profile_by_key(profile_key)
     if not profile:
-        print(f"❌ Профиль {profile_key} не найден")
         return
 
     model = get_model_by_id(profile["model_id"])
     if not model:
-        print(f"❌ Модель для профиля {profile_key} не найдена")
         return
 
     uid = model["uid"]
@@ -107,21 +108,12 @@ async def stop_vibration_cloud_async(profile_key: str):
     }
 
     try:
-        async with aiohttp.ClientSession() as session:
-            await session.post(url, json=payload, timeout=2)
+        await session.post(url, json=payload, timeout=1)
     except Exception as e:
         print("Ошибка Cloud API:", e)
 
 
-# ---------------- СОВМЕСТИМОСТЬ С WS_APP ----------------
-
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
-    """
-    Совместимость с ws_app:
-    - если strength > 0 → старт вибрации
-    - если strength == 0 → стоп вибрации
-    duration игнорируется — worker сам управляет временем.
-    """
     if strength > 0:
         await start_vibration_cloud_async(profile_key, strength, duration)
     else:
