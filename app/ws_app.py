@@ -96,11 +96,13 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
+            # ждём следующую вибрацию
             strength, duration = await q.get()
             print(f"🚀 [{profile_key}] START NEW VIBRATION: strength={strength}, duration={duration}")
 
             ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
+            # сбрасываем STOP
             stop_events[profile_key].clear()
 
             # запускаем вибрацию
@@ -111,24 +113,33 @@ async def vibration_worker(profile_key):
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="obs", profile_key=profile_key)
 
-            # ждём duration ИЛИ STOP
             print(f"⏳ [{profile_key}] WAITING {duration}s OR STOP…")
 
             elapsed = 0
             step = 0.1
+            stopped = False
 
+            # ждём duration секунд, но STOP прерывает
             while elapsed < duration:
                 await asyncio.sleep(step)
                 elapsed += step
 
-                # если нажали STOP — немедленно прерываем
                 if stop_events[profile_key].is_set():
                     print(f"🛑 [{profile_key}] STOP RECEIVED — INTERRUPTING")
                     await stop_vibration_cloud_async(profile_key)
+                    stopped = True
                     break
 
-            # если стопа не было — НЕ отправляем STOP (вариант 3)
-            print(f"✨ [{profile_key}] NEXT VIBRATION STARTS IMMEDIATELY")
+            # если стопа не было — останавливаем естественно
+            if not stopped:
+                print(f"⏳ [{profile_key}] NATURAL END — SENDING STOP")
+                await stop_vibration_cloud_async(profile_key)
+
+            # 🔥 ВАЖНО: проверяем очередь ПОСЛЕ остановки
+            if not q.empty():
+                print(f"✨ [{profile_key}] NEXT VIBRATION FOUND — STARTING IMMEDIATELY")
+            else:
+                print(f"🛑 [{profile_key}] QUEUE EMPTY — NO NEXT VIBRATION")
 
         except Exception as e:
             print(f"❌ [{profile_key}] ERROR IN WORKER:", e)
