@@ -82,7 +82,9 @@ def ws_send(data, role=None, profile_key=None):
 
 # ---------------- ВИБРАЦИИ ----------------
 async def vibration_worker(profile_key):
-    print(f"🔥 WORKER STARTED for {profile_key}")
+    import time
+    worker_id = f"{profile_key}-{int(time.time()*1000)}"
+    print(f"🔥 WORKER STARTED id={worker_id} for {profile_key}")
 
     from services.vibration_manager import vibration_queues, stop_events
     from services.lovense_service import start_vibration_cloud_async, stop_vibration_cloud_async
@@ -95,14 +97,14 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
-            print(f"⏳ [{profile_key}] WAITING FOR NEXT VIBRATION…")
+            print(f"⏳ [{profile_key}] [{worker_id}] WAITING FOR NEXT VIBRATION…")
             strength, duration = await q.get()
-            print(f"🚀 [{profile_key}] START NEW VIBRATION: strength={strength}, duration={duration}")
+            print(f"🚀 [{profile_key}] [{worker_id}] START NEW VIBRATION: strength={strength}, duration={duration}")
 
             ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
             stop_events[profile_key].clear()
-            print(f"🔄 [{profile_key}] stop_event CLEARED")
+            print(f"🔄 [{profile_key}] [{worker_id}] stop_event CLEARED")
 
             # 🔥 LAN API — duration НЕ работает → вызываем только strength
             await start_vibration_cloud_async(profile_key, strength)
@@ -112,14 +114,25 @@ async def vibration_worker(profile_key):
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
                     role="obs", profile_key=profile_key)
 
-            print(f"⏳ [{profile_key}] WAITING {duration}s OR STOP…")
+            print(f"⏳ [{profile_key}] [{worker_id}] WAITING {duration}s OR STOP…")
+
+            # -----------------------------
+            # 🔥 ТОЧНЫЙ ТАЙМЕР С МЕТКАМИ
+            # -----------------------------
+            start_time = time.time()
             stopped = False
 
-            for i in range(duration * 10):
+            while True:
                 await asyncio.sleep(0.1)
+                elapsed = time.time() - start_time
 
+                # Лог каждые 5 секунд
+                if int(elapsed) % 5 == 0 and int(elapsed) != 0:
+                    print(f"⏱ [{profile_key}] [{worker_id}] elapsed={elapsed:.1f}s (duration={duration})")
+
+                # STOP от панели
                 if stop_events[profile_key].is_set():
-                    print(f"🛑 [{profile_key}] STOP RECEIVED DURING WAIT at {i*0.1:.1f}s")
+                    print(f"🛑 [{profile_key}] [{worker_id}] STOP RECEIVED at {elapsed:.1f}s")
 
                     await stop_vibration_cloud_async(profile_key)
 
@@ -129,17 +142,22 @@ async def vibration_worker(profile_key):
                     stopped = True
                     break
 
-            if not stopped:
-                print(f"⏳ [{profile_key}] NATURAL END — SENDING STOP")
-                await stop_vibration_cloud_async(profile_key)
+                # NATURAL END по duration
+                if elapsed >= duration:
+                    print(f"⏳ [{profile_key}] [{worker_id}] NATURAL END at {elapsed:.1f}s — sending STOP")
+                    await stop_vibration_cloud_async(profile_key)
+                    break
 
+            # -----------------------------
+            # 🔥 ПОСЛЕ ОСТАНОВКИ
+            # -----------------------------
             if not q.empty():
-                print(f"✨ [{profile_key}] NEXT VIBRATION FOUND — STARTING IMMEDIATELY")
+                print(f"✨ [{profile_key}] [{worker_id}] NEXT VIBRATION FOUND — STARTING IMMEDIATELY")
             else:
-                print(f"🛑 [{profile_key}] QUEUE EMPTY — NO NEXT VIBRATION")
+                print(f"🛑 [{profile_key}] [{worker_id}] QUEUE EMPTY — NO NEXT VIBRATION")
 
         except Exception as e:
-            print(f"❌ [{profile_key}] ERROR IN WORKER:", e)
+            print(f"❌ [{profile_key}] [{worker_id}] ERROR IN WORKER:", e)
 
         finally:
             q.task_done()
