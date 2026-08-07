@@ -96,16 +96,14 @@ async def vibration_worker(profile_key):
 
     while True:
         try:
-            # ждём следующую вибрацию
             strength, duration = await q.get()
             print(f"🚀 [{profile_key}] START NEW VIBRATION: strength={strength}, duration={duration}")
 
             ws_send({"queue_update": True, "queue": list(q._queue)}, role="panel", profile_key=profile_key)
 
-            # сбрасываем STOP
             stop_events[profile_key].clear()
 
-            # запускаем вибрацию БЕЗ duration (сервер сам управляет временем)
+            # 🔥 ВАЖНО: duration = 0 → сервер сам управляет временем
             asyncio.create_task(start_vibration_cloud_async(profile_key, strength, 0))
 
             ws_send({"vibration": {"strength": strength, "duration": duration, "target": profile_key}},
@@ -119,7 +117,6 @@ async def vibration_worker(profile_key):
             step = 0.1
             stopped = False
 
-            # ждём duration секунд, но STOP прерывает
             while elapsed < duration:
                 await asyncio.sleep(step)
                 elapsed += step
