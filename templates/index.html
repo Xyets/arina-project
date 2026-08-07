@@ -674,6 +674,12 @@
 
       // ⏱ Таймер вибрации
       function startVibrationTimer(duration, strength = "—") {
+          if (vibrationTimerRunning) {
+              console.log("⏳ Таймер уже идёт — новый не запускаем");
+              return;
+          }
+          vibrationTimerRunning = true;
+
           const container = document.getElementById("vibrationTimersContainer");
           const box = document.createElement("div");
           box.className = "vibration-timer";
@@ -700,7 +706,8 @@
               if (remaining <= 0) { 
                 clearInterval(interval); 
                 box.remove(); 
-                
+                vibrationTimerRunning = false;
+
 
               } else {
                   timeSpan.textContent = Math.ceil(remaining);
@@ -713,6 +720,7 @@
               sendStop();
               clearInterval(interval);
               box.remove();
+              vibrationTimerRunning = false;
               if (typeof showToast === "function") showToast("Вибрация остановлена");
           });
       }
@@ -768,6 +776,7 @@
 
       // 🔁 Локальная очередь вибраций
       let vibrationQueue = [];
+      let vibrationTimerRunning = false;
 
       // 🧹 Очистка очереди
       document.getElementById("clearQueueBtn").addEventListener("click", () => {
