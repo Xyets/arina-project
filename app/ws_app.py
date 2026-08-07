@@ -143,7 +143,7 @@ async def vibration_worker(profile_key):
 
         finally:
             q.task_done()
-  
+
 # ---------------- REDIS LISTENER ----------------
 
 async def redis_listener():
