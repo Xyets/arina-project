@@ -446,6 +446,8 @@ function sendResult(winnerIndex) {
 }
 
 
+let currentRotation = 0; // ⭐ угол последней остановки
+
 function spinWheel(segments, winnerIndex) {
     drawWheel(segments);
 
@@ -457,9 +459,10 @@ function spinWheel(segments, winnerIndex) {
     const count = segments.length;
     const angle = 360 / count;
 
-    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2 + 90;
+    // ⭐ финальный угол с учётом текущего положения
+    const finalAngle = currentRotation + (360 * 8) - (winnerIndex * angle) - angle / 2 + 90;
 
-    let rotation = 0;
+    let rotation = currentRotation; // ⭐ начинаем с последнего положения
     let speed = 5;
     let maxSpeed = 25;
     let minSpeed = 0.2;
@@ -470,7 +473,7 @@ function spinWheel(segments, winnerIndex) {
     function animate() {
         if (stopped) return;
 
-        if (speed < maxSpeed && rotation < 360) {
+        if (speed < maxSpeed && rotation < currentRotation + 360) {
             speed += 0.3;
         }
 
@@ -485,11 +488,9 @@ function spinWheel(segments, winnerIndex) {
 
             wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
 
-            sendResult(winnerIndex);
+            currentRotation = rotation; // ⭐ сохраняем положение
 
-            setTimeout(() => {
-                svg.style.display = "none";
-            }, 3000);
+            sendResult(winnerIndex);
 
             return;
         }
