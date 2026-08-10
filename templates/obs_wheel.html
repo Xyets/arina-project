@@ -420,18 +420,22 @@ function drawWheel(segments) {
         `;
 
         if (label.trim() !== "") {
-            html += `
-                <text x="${tx}" y="${ty}"
-                      font-size="15"
-                      font-family="Noto Sans JP"
-                      fill="#333"
-                      text-anchor="middle"
-                      dominant-baseline="middle"
-                      transform="rotate(${textAngle} ${tx} ${ty})">
-                    ${label}
-                </text>
-            `;
-        }
+        html += `
+            <text x="${tx}" y="${ty}"
+                font-size="14"
+                font-family="Noto Sans JP"
+                fill="#333"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                writing-mode="vertical-rl"
+                glyph-orientation-vertical="0"
+                lengthAdjust="spacing"
+                textLength="60"
+                transform="rotate(${textAngle} ${tx} ${ty})">
+                ${label}
+            </text>
+        `;
+    }
 
         g.innerHTML += html;
     }
