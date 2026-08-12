@@ -236,3 +236,10 @@ function updateGoalUI(newGoal = null) {
     cur.textContent = goal.current;
     tgt.textContent = goal.target;
 }
+function openGoalModal() {
+    document.getElementById("goalModal").classList.add("show");
+}
+
+function closeGoalModal() {
+    document.getElementById("goalModal").classList.remove("show");
+}
