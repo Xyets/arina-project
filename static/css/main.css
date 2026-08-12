@@ -39,60 +39,67 @@ body {
 /* ============================================================
    📌 Боковое меню
 ============================================================ */
+/* Боковое меню */
 .sidebar {
     width: 240px;
-    background: var(--card-bg);
+    background: #ffffff;
     border-right: 1px solid #e5e5e5;
-    padding: 25px 20px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-card);
+    gap: 25px;
 }
-
+/* Логотип */
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-weight: 600;
+    gap: 10px;
+    font-weight: 700;
     font-size: 18px;
-    margin-bottom: 30px;
 }
 
 .sidebar-logo img {
-    height: 40px;
+    width: 32px;
+    height: 32px;
 }
 
+/* Пункты меню */
 .sidebar-menu {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
-.sidebar-menu a {
-    padding: 12px 15px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: var(--text-secondary);
-    font-size: 15px;
+.sidebar-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    transition: 0.2s;
-}
-
-.sidebar-menu a:hover {
-    background: var(--accent-light);
-    color: var(--accent);
-}
-
-.sidebar-footer {
-    margin-top: auto;
-}
-
-.sidebar-footer a {
-    color: #d33;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #333;
     text-decoration: none;
-    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-item:hover {
+    background: #f3f0ff;
+    color: #6a4dfd;
+}
+
+/* Иконки */
+.sidebar-item .icon {
+    font-size: 18px;
+}
+
+/* Кнопка выхода */
+.sidebar-footer .logout {
+    color: #d9534f;
+}
+
+.sidebar-footer .logout:hover {
+    background: #ffe5e5;
+    color: #c9302c;
 }
 
 /* ============================================================
