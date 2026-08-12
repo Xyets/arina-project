@@ -94,6 +94,27 @@ def index():
         current_profile=profile_key
     )
 
+@panel_bp.route("/beta")
+@login_required
+def beta_page():
+    username = session["username"]
+    mode = session.get("mode", "private")
+
+    profile = get_profile_from_db(username, mode)
+    if not profile:
+        return "Профиль не найден", 404
+
+    profile_key = profile["profile_key"]
+    goal = load_goal(profile_key)
+
+    return render_template(
+        "index_beta.html",
+        user=username,
+        current_mode=mode,
+        current_profile=profile_key,
+        goal=goal
+    )
+
 
 # -------------------- AJAX: смена режима --------------------
 

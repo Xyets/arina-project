@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Контейнер для передачи данных в JS -->
+<div id="app"
+     data-user="{{ user }}"
+     data-mode="{{ session['mode'] }}"
+     data-profile="{{ current_profile }}">
+</div>
+
+<!-- Верхний блок: приветствие + переключатель режима -->
+<div class="top-header">
+    <h1 class="hello">Привет, {{ user }} 👋</h1>
+
+    <div class="mode-switch">
+        <span class="mode-label">🌐 Публичный</span>
+
+        <label class="switch">
+            <input type="checkbox" id="modeSwitch"
+                   {% if session["mode"] == "private" %}checked{% endif %}>
+            <span class="slider"></span>
+        </label>
+
+        <span class="mode-label">🔒 Частный</span>
+    </div>
+</div>
+
+<!-- Статус подключения -->
+<div class="status-card">
+    <span>🔌 Подключение:</span>
+    <strong id="wsStatus">Подключена</strong>
+</div>
+
+<!-- Основная сетка как в референсе -->
+<div class="grid">
+
+    <!-- Лента событий -->
+    <section class="events">
+        <h2>Лента событий</h2>
+        <div id="logbox" class="event-list"></div>
+    </section>
+
+    <!-- Очередь вибраций -->
+    <section class="vibrations">
+        <h2>Очередь вибраций</h2>
+        <div id="queuebox" class="queue-list"></div>
+    </section>
+
+    <!-- QR-код -->
+    <section class="qr">
+        <h2>QR‑код для Lovense</h2>
+        <img src="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}"
+             class="qr-img">
+    </section>
+
+</div>
+
+<!-- Popup -->
+<div id="entryPopup" class="popup"></div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Контейнер таймеров вибрации -->
+<div id="vibrationTimersContainer"></div>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Контейнер для передачи данных в JS -->
+<div id="app"
+     data-user="{{ user }}"
+     data-mode="{{ session['mode'] }}"
+     data-profile="{{ current_profile }}">
+</div>
+
+<!-- Верхний блок: приветствие + переключатель режима -->
+<div class="top-header">
+    <h1 class="hello">Привет, {{ user }} 👋</h1>
+
+    <div class="mode-switch">
+        <span class="mode-label">🌐 Публичный</span>
+
+        <label class="switch">
+            <input type="checkbox" id="modeSwitch"
+                   {% if session["mode"] == "private" %}checked{% endif %}>
+            <span class="slider"></span>
+        </label>
+
+        <span class="mode-label">🔒 Частный</span>
+    </div>
+</div>
+
+<!-- Статус подключения -->
+<div class="status-card">
+    <span>🔌 Подключение:</span>
+    <strong id="wsStatus">Подключена</strong>
+</div>
+
+<!-- Основная сетка -->
+<div class="grid">
+
+    <!-- Лента событий -->
+    <section class="events">
+        <h2>Лента событий</h2>
+        <div id="logbox" class="event-list"></div>
+    </section>
+
+    <!-- Очередь вибраций -->
+    <section class="vibrations">
+        <h2>Очередь вибраций</h2>
+        <div id="queuebox" class="queue-list"></div>
+    </section>
+
+    <!-- QR-код -->
+    <section class="qr">
+        <h2>QR‑код для Lovense</h2>
+        <img src="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}" class="qr-img">
+    </section>
+
+</div>
+
+<!-- Вертикальная цель справа (только в публичном режиме) -->
+{% if session["mode"] == "public" %}
+<div class="goal-panel" id="goalPanel">
+    <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
+
+    <div class="goal-bar-vertical">
+        <div id="goalFillVertical"></div>
+    </div>
+
+    <div class="goal-values">
+        <span id="goalCurrent">{{ goal.current }}</span> /
+        <span id="goalTarget">{{ goal.target }}</span>
+    </div>
+
+    <button class="goal-new-btn" onclick="openGoalModal()">Новая цель</button>
+</div>
+{% endif %}
+
+<!-- Popup -->
+<div id="entryPopup" class="popup"></div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Контейнер таймеров вибраций -->
+<div id="vibrationTimersContainer"></div>
+
+<!-- Модалка цели -->
+<div id="goalModal" class="modal">
+    <div class="modal-content">
+        <h3>Новая цель</h3>
+        <form id="goalForm">
+            <input name="title" placeholder="Название цели">
+            <input name="target" placeholder="Сколько нужно" type="number">
+            <button type="submit">Сохранить</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

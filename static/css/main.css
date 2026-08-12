@@ -1,0 +1,429 @@
+/* ============================================================
+   🌈 Общий стиль страницы
+============================================================ */
+body {
+    margin: 0;
+    padding: 0;
+    background: #f7f7fb;
+    font-family: 'Poppins', sans-serif;
+    color: #333;
+}
+
+/* ============================================================
+   📐 Основной layout
+============================================================ */
+.layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ============================================================
+   📌 Боковое меню
+============================================================ */
+.sidebar {
+    width: 240px;
+    background: #ffffff;
+    border-right: 1px solid #e5e5e5;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.03);
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.sidebar-logo img {
+    height: 40px;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sidebar-menu a {
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #444;
+    font-size: 16px;
+    transition: 0.2s;
+}
+
+.sidebar-menu a:hover {
+    background: #ececff;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+}
+
+.sidebar-footer a {
+    color: #d33;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* ============================================================
+   📄 Контент справа
+============================================================ */
+.content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* ============================================================
+   👋 Верхний блок: приветствие + переключатель режима
+============================================================ */
+.top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+}
+
+.hello {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+}
+
+.mode-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mode-label {
+    font-size: 15px;
+    color: #555;
+}
+
+/* Переключатель */
+.switch {
+    position: relative;
+    width: 60px;
+    height: 30px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0;
+    right: 0; bottom: 0;
+    background-color: #a3d8f4;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 24px; width: 24px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #f7a8b8;
+}
+
+input:checked + .slider:before {
+    transform: translateX(30px);
+}
+
+/* ============================================================
+   🔌 Статус подключения
+============================================================ */
+.status-card {
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 25px;
+    font-size: 16px;
+    color: #444;
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* ============================================================
+   🧩 Основная сетка
+============================================================ */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+/* ============================================================
+   📦 Карточки (события, вибрации, QR)
+============================================================ */
+.events, .vibrations, .qr {
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    animation: fadeIn 0.3s ease;
+}
+
+.events h2, .vibrations h2, .qr h2 {
+    margin-top: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #444;
+}
+
+/* ============================================================
+   📜 Лента событий
+============================================================ */
+.event-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.event-item {
+    background: #f9f9ff;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    animation: fadeIn 0.2s ease;
+}
+
+/* ============================================================
+   🔁 Очередь вибраций
+============================================================ */
+.queue-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.empty {
+    text-align: center;
+    color: #aaa;
+    padding: 15px;
+    font-size: 14px;
+}
+
+/* ============================================================
+   📱 QR-код
+============================================================ */
+.qr-img {
+    width: 180px;
+    margin-top: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ============================================================
+   ⏱ Таймеры вибраций
+============================================================ */
+#vibrationTimersContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.vibration-timer {
+    background: #ffe6f0;
+    border-radius: 20px;
+    padding: 15px 20px;
+    margin-top: 10px;
+    font-size: 16px;
+    color: #444;
+    box-shadow: 0 0 15px rgba(255, 182, 193, 0.6);
+    animation: pop 0.3s ease;
+    width: 240px;
+}
+
+.progress {
+    width: 100%;
+    height: 10px;
+    background: #fdd;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff99cc, #ff66aa);
+    transition: width 0.1s linear;
+}
+
+.stop-btn {
+    margin-top: 8px;
+    background: #ff4d4d;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* ============================================================
+   🔔 Popup
+============================================================ */
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    z-index: 9999;
+    text-align: center;
+    font-size: 18px;
+    color: #333;
+    max-width: 400px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: none;
+}
+
+.popup.show {
+    display: block;
+    opacity: 1;
+}
+
+.popup button {
+    margin-top: 20px;
+    background: #a3d8f4;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* ============================================================
+   🔔 Toast
+============================================================ */
+.toast {
+    visibility: hidden;
+    min-width: 220px;
+    background-color: #74c0e3;
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    padding: 12px;
+    position: fixed;
+    z-index: 2000;
+    left: 50%;
+    bottom: 30px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.5s, bottom 0.5s;
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+    bottom: 50px;
+}
+
+/* ============================================================
+   ✨ Анимации
+============================================================ */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+/* Вертикальная цель справа */
+.goal-panel {
+    position: fixed;
+    right: 20px;
+    top: 120px;
+    width: 180px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    z-index: 900;
+    animation: fadeIn 0.3s ease;
+}
+
+.goal-title {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #444;
+    text-align: center;
+}
+
+.goal-bar-vertical {
+    width: 30px;
+    height: 200px;
+    background: #eee;
+    border-radius: 20px;
+    margin: 0 auto;
+    overflow: hidden;
+    position: relative;
+}
+
+#goalFillVertical {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(180deg, #74c0e3, #a3d8f4);
+    transition: height 0.4s ease;
+}
+
+.goal-values {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 16px;
+    color: #444;
+}
+
+.goal-new-btn {
+    margin-top: 12px;
+    width: 100%;
+    background: #a3d8f4;
+    border: none;
+    padding: 10px;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.goal-new-btn:hover {
+    background: #74c0e3;
+}
