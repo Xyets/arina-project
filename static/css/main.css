@@ -1,12 +1,30 @@
 /* ============================================================
+   🌈 Тема
+============================================================ */
+:root {
+    --bg: #f5f4fb;
+    --card-bg: #ffffff;
+    --accent: #a78bfa;
+    --accent-light: #ede9fe;
+    --accent-blue: #a3d8f4;
+    --accent-pink: #f7a8b8;
+
+    --text-main: #333;
+    --text-secondary: #666;
+
+    --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
+    --shadow-card: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+/* ============================================================
    🌈 Общий стиль страницы
 ============================================================ */
 body {
     margin: 0;
     padding: 0;
-    background: #f7f7fb;
-    font-family: 'Poppins', sans-serif;
-    color: #333;
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-main);
 }
 
 /* ============================================================
@@ -23,18 +41,18 @@ body {
 ============================================================ */
 .sidebar {
     width: 240px;
-    background: #ffffff;
+    background: var(--card-bg);
     border-right: 1px solid #e5e5e5;
-    padding: 20px;
+    padding: 25px 20px;
     display: flex;
     flex-direction: column;
-    box-shadow: 4px 0 12px rgba(0,0,0,0.03);
+    box-shadow: var(--shadow-card);
 }
 
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-weight: 600;
     font-size: 18px;
     margin-bottom: 30px;
@@ -47,20 +65,24 @@ body {
 .sidebar-menu {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .sidebar-menu a {
-    padding: 10px 15px;
-    border-radius: 8px;
+    padding: 12px 15px;
+    border-radius: 10px;
     text-decoration: none;
-    color: #444;
-    font-size: 16px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     transition: 0.2s;
 }
 
 .sidebar-menu a:hover {
-    background: #ececff;
+    background: var(--accent-light);
+    color: var(--accent);
 }
 
 .sidebar-footer {
@@ -83,7 +105,7 @@ body {
 }
 
 /* ============================================================
-   👋 Верхний блок: приветствие + переключатель режима
+   👋 Верхний блок
 ============================================================ */
 .top-header {
     display: flex;
@@ -95,7 +117,7 @@ body {
 .hello {
     font-size: 28px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-main);
 }
 
 .mode-switch {
@@ -106,7 +128,7 @@ body {
 
 .mode-label {
     font-size: 15px;
-    color: #555;
+    color: var(--text-secondary);
 }
 
 /* Переключатель */
@@ -127,7 +149,7 @@ body {
     cursor: pointer;
     top: 0; left: 0;
     right: 0; bottom: 0;
-    background-color: #a3d8f4;
+    background-color: var(--accent-blue);
     transition: .4s;
     border-radius: 34px;
 }
@@ -143,7 +165,7 @@ body {
 }
 
 input:checked + .slider {
-    background-color: #f7a8b8;
+    background-color: var(--accent-pink);
 }
 
 input:checked + .slider:before {
@@ -154,13 +176,13 @@ input:checked + .slider:before {
    🔌 Статус подключения
 ============================================================ */
 .status-card {
-    background: #fff;
+    background: var(--card-bg);
     padding: 15px 20px;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-soft);
     margin-bottom: 25px;
     font-size: 16px;
-    color: #444;
+    color: var(--text-main);
     display: inline-flex;
     gap: 10px;
     align-items: center;
@@ -176,21 +198,21 @@ input:checked + .slider:before {
 }
 
 /* ============================================================
-   📦 Карточки (события, вибрации, QR)
+   📦 Карточки
 ============================================================ */
 .events, .vibrations, .qr {
-    background: #fff;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-card);
     animation: fadeIn 0.3s ease;
 }
 
 .events h2, .vibrations h2, .qr h2 {
     margin-top: 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
-    color: #444;
+    color: var(--text-main);
 }
 
 /* ============================================================
@@ -203,13 +225,13 @@ input:checked + .slider:before {
 }
 
 .event-item {
-    background: #f9f9ff;
-    padding: 10px 12px;
-    border-radius: 10px;
-    margin-bottom: 8px;
+    background: var(--accent-light);
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
     font-size: 14px;
-    color: #333;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    color: var(--text-main);
+    box-shadow: var(--shadow-soft);
     animation: fadeIn 0.2s ease;
 }
 
@@ -222,21 +244,24 @@ input:checked + .slider:before {
     margin-top: 15px;
 }
 
-.empty {
-    text-align: center;
-    color: #aaa;
-    padding: 15px;
+.queue-list div {
+    background: var(--accent-light);
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
     font-size: 14px;
+    color: var(--text-main);
+    box-shadow: var(--shadow-soft);
 }
 
 /* ============================================================
    📱 QR-код
 ============================================================ */
 .qr-img {
-    width: 180px;
+    width: 160px;
     margin-top: 15px;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-soft);
 }
 
 /* ============================================================
@@ -255,7 +280,7 @@ input:checked + .slider:before {
     padding: 15px 20px;
     margin-top: 10px;
     font-size: 16px;
-    color: #444;
+    color: var(--text-main);
     box-shadow: 0 0 15px rgba(255, 182, 193, 0.6);
     animation: pop 0.3s ease;
     width: 240px;
@@ -295,14 +320,14 @@ input:checked + .slider:before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: white;
+    background: var(--card-bg);
     padding: 30px;
     border-radius: 20px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-card);
     z-index: 9999;
     text-align: center;
     font-size: 18px;
-    color: #333;
+    color: var(--text-main);
     max-width: 400px;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -316,7 +341,7 @@ input:checked + .slider:before {
 
 .popup button {
     margin-top: 20px;
-    background: #a3d8f4;
+    background: var(--accent-blue);
     border: none;
     padding: 10px 20px;
     border-radius: 20px;
@@ -331,7 +356,7 @@ input:checked + .slider:before {
 .toast {
     visibility: hidden;
     min-width: 220px;
-    background-color: #74c0e3;
+    background-color: var(--accent-blue);
     color: white;
     text-align: center;
     border-radius: 8px;
@@ -352,27 +377,17 @@ input:checked + .slider:before {
 }
 
 /* ============================================================
-   ✨ Анимации
+   🎯 Вертикальная цель
 ============================================================ */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pop {
-    from { transform: scale(0.8); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
-}
-/* Вертикальная цель справа */
 .goal-panel {
     position: fixed;
     right: 20px;
     top: 120px;
     width: 180px;
-    background: #fff;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-card);
     z-index: 900;
     animation: fadeIn 0.3s ease;
 }
@@ -381,7 +396,7 @@ input:checked + .slider:before {
     margin: 0 0 10px 0;
     font-size: 18px;
     font-weight: 600;
-    color: #444;
+    color: var(--text-main);
     text-align: center;
 }
 
@@ -400,7 +415,7 @@ input:checked + .slider:before {
     bottom: 0;
     width: 100%;
     height: 0%;
-    background: linear-gradient(180deg, #74c0e3, #a3d8f4);
+    background: linear-gradient(180deg, var(--accent-blue), var(--accent));
     transition: height 0.4s ease;
 }
 
@@ -408,13 +423,13 @@ input:checked + .slider:before {
     text-align: center;
     margin-top: 10px;
     font-size: 16px;
-    color: #444;
+    color: var(--text-main);
 }
 
 .goal-new-btn {
     margin-top: 12px;
     width: 100%;
-    background: #a3d8f4;
+    background: var(--accent-blue);
     border: none;
     padding: 10px;
     border-radius: 12px;
@@ -425,8 +440,12 @@ input:checked + .slider:before {
 }
 
 .goal-new-btn:hover {
-    background: #74c0e3;
+    background: var(--accent);
 }
+
+/* ============================================================
+   🪟 Модалка цели
+============================================================ */
 .modal {
     display: none;
     position: fixed;
@@ -443,9 +462,9 @@ input:checked + .slider:before {
 }
 
 .modal-content {
-    background: #fff;
+    background: var(--card-bg);
     padding: 25px;
     border-radius: 16px;
     width: 300px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-card);
 }
