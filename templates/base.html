@@ -1,67 +1,48 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title or "Панель управления" }}</title>
 
-<!-- Контейнер для передачи данных в JS -->
-<div id="app"
-     data-user="{{ user }}"
-     data-mode="{{ session['mode'] }}"
-     data-profile="{{ current_profile }}">
-</div>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
 
-<!-- Верхний блок: приветствие + переключатель режима -->
-<div class="top-header">
-    <h1 class="hello">Привет, {{ user }} 👋</h1>
+<body>
 
-    <div class="mode-switch">
-        <span class="mode-label">🌐 Публичный</span>
+<div class="layout">
 
-        <label class="switch">
-            <input type="checkbox" id="modeSwitch"
-                   {% if session["mode"] == "private" %}checked{% endif %}>
-            <span class="slider"></span>
-        </label>
+    <!-- Боковое меню -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
+            <span>Arina Panel</span>
+        </div>
 
-        <span class="mode-label">🔒 Частный</span>
-    </div>
-</div>
+        <nav class="sidebar-menu">
+            <a href="{{ url_for('panel.index') }}">🏠 Главная</a>
+            <a href="{{ url_for('panel.beta_page') }}">🧪 Новая панель</a>
+            <a href="{{ url_for('rules.rules_page') }}">⚙️ Правила</a>
+            <a href="{{ url_for('vip.vip_page') }}">👑 Мемберы</a>
+            <a href="{{ url_for('reactions.reactions_page') }}">🎭 Реакции</a>
+            <a href="{{ url_for('stats.stats_page') }}">📊 Статистика</a>
+        </nav>
 
-<!-- Статус подключения -->
-<div class="status-card">
-    <span>🔌 Подключение:</span>
-    <strong id="wsStatus">Подключена</strong>
-</div>
+        <div class="sidebar-footer">
+            <a href="{{ url_for('panel.logout') }}">🚪 Выйти</a>
+        </div>
+    </aside>
 
-<!-- Основная сетка как в референсе -->
-<div class="grid">
-
-    <!-- Лента событий -->
-    <section class="events">
-        <h2>Лента событий</h2>
-        <div id="logbox" class="event-list"></div>
-    </section>
-
-    <!-- Очередь вибраций -->
-    <section class="vibrations">
-        <h2>Очередь вибраций</h2>
-        <div id="queuebox" class="queue-list"></div>
-    </section>
-
-    <!-- QR-код -->
-    <section class="qr">
-        <h2>QR‑код для Lovense</h2>
-        <img src="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}"
-             class="qr-img">
-    </section>
+    <!-- Основной контент -->
+    <main class="content">
+        {% block content %}
+        {% endblock %}
+    </main>
 
 </div>
 
-<!-- Popup -->
-<div id="entryPopup" class="popup"></div>
+<!-- JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-<!-- Toast -->
-<div id="toast" class="toast"></div>
-
-<!-- Контейнер таймеров вибрации -->
-<div id="vibrationTimersContainer"></div>
-
-{% endblock %}
+</body>
+</html>
