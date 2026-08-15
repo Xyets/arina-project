@@ -32,27 +32,25 @@
 </div>
 
 <!-- Основная сетка -->
-<div class="grid">
-
-    <!-- Лента событий -->
+<div class="row row-events">
     <section class="events">
         <h2>Лента событий</h2>
         <div id="logbox" class="event-list"></div>
     </section>
+</div>
 
-    <!-- Очередь вибраций -->
-    <section class="vibrations">
-        <h2>Очередь вибраций</h2>
-        <div id="queuebox" class="queue-list"></div>
-    </section>
-
-    <!-- QR-код -->
+<div class="row row-bottom">
     <section class="qr">
         <h2>QR‑код для Lovense</h2>
         <img src="{{ url_for('lovense.qrcode_page', profile_key=current_profile) }}" class="qr-img">
     </section>
 
+    <section class="vibrations">
+        <h2>Очередь вибраций</h2>
+        <div id="queuebox" class="queue-list"></div>
+    </section>
 </div>
+
 
 <!-- Вертикальная цель справа (только в публичном режиме) -->
 {% if session["mode"] == "public" %}
