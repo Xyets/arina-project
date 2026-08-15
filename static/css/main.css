@@ -195,41 +195,56 @@ input:checked + .slider:before {
     align-items: center;
 }
 
+/* ============================================================
+   📐 Двухстрочная сетка
+============================================================ */
+
+/* Общий стиль строки */
 .row {
     display: flex;
     gap: 20px;
     margin-bottom: 20px;
 }
 
-/* Строка 1 — только лента событий */
+/* Строка 1 — Лента событий на всю ширину */
 .row-events .events {
     flex: 1;
 }
 
 /* Строка 2 — QR-код + очередь вибраций */
+.row-bottom {
+    display: flex;        /* важно! */
+    gap: 20px;
+    align-items: flex-start;
+}
+
+/* QR-код слева */
 .row-bottom .qr {
     width: 260px;
+    flex-shrink: 0;       /* не даём сжиматься */
     background: var(--card-bg);
     padding: 20px;
     border-radius: 16px;
     box-shadow: var(--shadow-card);
-    flex-shrink: 0;
 }
 
+/* Квадратный QR */
 .qr-img {
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: contain;
 }
 
+/* Очередь вибраций справа */
 .row-bottom .vibrations {
-    flex: 1;
-    min-width: 0; /* важно! */
+    flex: 1;              /* занимает всё оставшееся */
+    min-width: 0;         /* разрешаем сжиматься — критично */
     background: var(--card-bg);
     padding: 20px;
     border-radius: 16px;
     box-shadow: var(--shadow-card);
 }
+
 
 
 /* ============================================================
