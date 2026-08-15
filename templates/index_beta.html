@@ -8,7 +8,7 @@
      data-profile="{{ current_profile }}">
 </div>
 
-<!-- Верхний блок: приветствие + переключатель режима -->
+<!-- Верхний блок -->
 <div class="top-header">
     <h1 class="hello">Привет, {{ user }} 👋</h1>
 
@@ -39,6 +39,7 @@
     </div>
 </div>
 
+<!-- QR + вибрации -->
 <div class="row row-bottom">
     <div class="qr-card">
         <h2>QR‑код для Lovense</h2>
@@ -51,8 +52,7 @@
     </div>
 </div>
 
-
-<!-- Вертикальная цель справа -->
+<!-- Вертикальная цель -->
 {% if session["mode"] == "public" %}
 <div class="goal-panel" id="goalPanel">
     <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
