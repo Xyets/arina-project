@@ -2,6 +2,9 @@ from flask import Blueprint, request, render_template, session, redirect, url_fo
 from functools import wraps
 import json
 import requests
+from flask import send_file
+import requests
+from io import BytesIO
 
 from services.database import (
     get_profile_by_key,
@@ -131,3 +134,20 @@ def lovense_callback():
 
     print("🔐 CONNECTED_USERS обновлён:", profile_key)
     return "✅ Callback принят", 200
+
+
+@lovense_bp.route("/qrcode_image/<profile_key>")
+@login_required
+def qrcode_image(profile_key):
+    qr_url = get_qr_code(profile_key)
+    if not qr_url:
+        return "QR not found", 404
+
+    # скачиваем изображение QR-кода
+    try:
+        r = requests.get(qr_url, timeout=10)
+        img_bytes = BytesIO(r.content)
+        return send_file(img_bytes, mimetype="image/png")
+    except Exception as e:
+        print("Ошибка загрузки QR:", e)
+        return "QR load error", 500
