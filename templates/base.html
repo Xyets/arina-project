@@ -1,47 +1,75 @@
-<aside class="sidebar">
-    <div class="sidebar-logo">
-        <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
-        <span class="sidebar-title">CyberSync Live</span>
-    </div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title or "CyberSync Live" }}</title>
 
-    <nav class="sidebar-menu">
+    <!-- Основной CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=2">
 
-        <a class="sidebar-item" href="{{ url_for('panel.index') }}">
-            <span class="icon">🏠</span>
-            <span class="label">Главная</span>
-        </a>
+    <!-- Шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-        <a class="sidebar-item" href="{{ url_for('panel.beta_page') }}">
-            <span class="icon">🧪</span>
-            <span class="label">Новая панель</span>
-        </a>
+    <!-- Основной JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=2" defer></script>
+</head>
 
-        <a class="sidebar-item" href="{{ url_for('rules.rules_page') }}">
-            <span class="icon">⚙️</span>
-            <span class="label">Правила</span>
-        </a>
+<body>
 
-        <a class="sidebar-item" href="{{ url_for('vip.vip_page') }}">
-            <span class="icon">👑</span>
-            <span class="label">Мемберы</span>
-        </a>
+    <!-- Боковое меню -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo">
+            <span class="sidebar-title">CyberSync Live</span>
+        </div>
 
-        <a class="sidebar-item" href="{{ url_for('reactions.reactions_page') }}">
-            <span class="icon">🎭</span>
-            <span class="label">Реакции</span>
-        </a>
+        <nav class="sidebar-menu">
 
-        <a class="sidebar-item" href="{{ url_for('stats.stats_page') }}">
-            <span class="icon">📊</span>
-            <span class="label">Статистика</span>
-        </a>
+            <a class="sidebar-item" href="{{ url_for('panel.index') }}">
+                <span class="icon">🏠</span>
+                <span class="label">Главная</span>
+            </a>
 
-    </nav>
+            <a class="sidebar-item" href="{{ url_for('panel.beta_page') }}">
+                <span class="icon">🧪</span>
+                <span class="label">Новая панель</span>
+            </a>
 
-    <div class="sidebar-footer">
-        <a class="sidebar-item logout" href="{{ url_for('panel.logout') }}">
-            <span class="icon">🚪</span>
-            <span class="label">Выйти</span>
-        </a>
-    </div>
-</aside>
+            <a class="sidebar-item" href="{{ url_for('rules.rules_page') }}">
+                <span class="icon">⚙️</span>
+                <span class="label">Правила</span>
+            </a>
+
+            <a class="sidebar-item" href="{{ url_for('vip.vip_page') }}">
+                <span class="icon">👑</span>
+                <span class="label">Мемберы</span>
+            </a>
+
+            <a class="sidebar-item" href="{{ url_for('reactions.reactions_page') }}">
+                <span class="icon">🎭</span>
+                <span class="label">Реакции</span>
+            </a>
+
+            <a class="sidebar-item" href="{{ url_for('stats.stats_page') }}">
+                <span class="icon">📊</span>
+                <span class="label">Статистика</span>
+            </a>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <a class="sidebar-item logout" href="{{ url_for('panel.logout') }}">
+                <span class="icon">🚪</span>
+                <span class="label">Выйти</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>
