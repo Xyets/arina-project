@@ -146,9 +146,10 @@ body {
 }
 
 /* Лента событий */
-.row-events .events {
+.row-events .events-card {
     flex: 1;
 }
+
 
 /* QR + вибрации */
 .row-bottom {
@@ -157,20 +158,6 @@ body {
     align-items: flex-start;
 }
 
-/* ============================================================
-   📦 Карточки
-============================================================ */
-.events,
-.vibrations,
-.qr {
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: var(--shadow-card);
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-}
 
 /* ============================================================
    🧩 QR-код
