@@ -175,6 +175,7 @@ body {
     padding: 20px;
     border-radius: 16px;
     box-shadow: var(--shadow-card);
+    margin-right: 20px;
 }
 
 /* Квадратный QR */
@@ -208,6 +209,8 @@ body {
     display: block;
     width: auto;
     box-sizing: border-box;
+
+    margin-bottom: 20px;
 }
 
 /* ============================================================
