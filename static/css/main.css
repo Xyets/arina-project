@@ -39,7 +39,6 @@ body {
 /* ============================================================
    📌 Боковое меню
 ============================================================ */
-/* Боковое меню */
 .sidebar {
     width: 240px;
     background: #ffffff;
@@ -49,7 +48,7 @@ body {
     flex-direction: column;
     gap: 25px;
 }
-/* Логотип */
+
 .sidebar-logo {
     display: flex;
     align-items: center;
@@ -63,7 +62,6 @@ body {
     height: 32px;
 }
 
-/* Пункты меню */
 .sidebar-menu {
     display: flex;
     flex-direction: column;
@@ -87,12 +85,10 @@ body {
     color: #6a4dfd;
 }
 
-/* Иконки */
 .sidebar-item .icon {
     font-size: 18px;
 }
 
-/* Кнопка выхода */
 .sidebar-footer .logout {
     color: #d9534f;
 }
