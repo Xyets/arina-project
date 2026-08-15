@@ -108,8 +108,13 @@ body {
 .content {
     flex: 1;
     padding: 30px;
+
+    display: flex;          /* критично */
+    flex-direction: column; /* критично */
+    min-width: 0;           /* критично */
     overflow-y: auto;
 }
+
 
 /* ============================================================
    👋 Верхний блок
