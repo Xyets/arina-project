@@ -257,9 +257,6 @@ input:checked + .slider:before {
     box-shadow: var(--shadow-card);
     animation: fadeIn 0.3s ease;
 
-    width: auto;        /* критично */
-    flex: none;         /* критично */
-    box-sizing: border-box;
 }
 
 
