@@ -175,10 +175,17 @@ body {
 /* ============================================================
    🧩 QR-код
 ============================================================ */
-.qr {
+.qr-card {
     width: 280px;
     flex-shrink: 0;
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
 }
+
 
 .qr-img {
     width: 100%;
@@ -189,10 +196,17 @@ body {
 /* ============================================================
    🔁 Очередь вибраций
 ============================================================ */
-.vibrations {
+.vibrations-card {
     flex: 1;
     min-width: 0;
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
 }
+
 
 /* ============================================================
    📜 Лента событий

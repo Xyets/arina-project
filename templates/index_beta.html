@@ -33,24 +33,24 @@
 
 <!-- Лента событий -->
 <div class="row row-events">
-    <div class="events">
+    <div class="events-card">
         <h2>Лента событий</h2>
         <div id="logbox" class="event-list"></div>
     </div>
 </div>
 
-<!-- QR-код + Очередь вибраций -->
 <div class="row row-bottom">
-    <div class="qr">
+    <div class="qr-card">
         <h2>QR‑код для Lovense</h2>
         <img src="{{ url_for('lovense.qrcode_image', profile_key=current_profile) }}" class="qr-img">
     </div>
 
-    <div class="vibrations">
+    <div class="vibrations-card">
         <h2>Очередь вибраций</h2>
         <div id="queuebox" class="queue-list"></div>
     </div>
 </div>
+
 
 <!-- Вертикальная цель справа -->
 {% if session["mode"] == "public" %}
