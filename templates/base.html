@@ -4,17 +4,15 @@
     <meta charset="UTF-8">
     <title>{{ title or "CyberSync Live" }}</title>
 
-    <!-- Основной CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=2">
-
-    <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <!-- Основной JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}?v=2" defer></script>
 </head>
 
 <body>
+
+<div class="layout">
 
     <!-- Боковое меню -->
     <aside class="sidebar">
@@ -70,6 +68,8 @@
         {% block content %}
         {% endblock %}
     </main>
+
+</div>
 
 </body>
 </html>
