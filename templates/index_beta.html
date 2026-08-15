@@ -18,7 +18,7 @@
         <label class="switch">
             <input type="checkbox" id="modeSwitch"
                    {% if session["mode"] == "private" %}checked{% endif %}>
-            <span class="slider"></span> 
+            <span class="slider"></span>
         </label>
 
         <span class="mode-label">🔒 Частный</span>
@@ -31,28 +31,28 @@
     <strong id="wsStatus">Подключена</strong>
 </div>
 
-<!-- Основная сетка -->
+<!-- Лента событий -->
 <div class="row row-events">
-    <section class="events">
+    <div class="events">
         <h2>Лента событий</h2>
         <div id="logbox" class="event-list"></div>
-    </section>
+    </div>
 </div>
 
+<!-- QR-код + Очередь вибраций -->
 <div class="row row-bottom">
-    <section class="qr">
+    <div class="qr">
         <h2>QR‑код для Lovense</h2>
         <img src="{{ url_for('lovense.qrcode_image', profile_key=current_profile) }}" class="qr-img">
-    </section>
+    </div>
 
-    <section class="vibrations">
+    <div class="vibrations">
         <h2>Очередь вибраций</h2>
         <div id="queuebox" class="queue-list"></div>
-    </section>
+    </div>
 </div>
 
-
-<!-- Вертикальная цель справа (только в публичном режиме) -->
+<!-- Вертикальная цель справа -->
 {% if session["mode"] == "public" %}
 <div class="goal-panel" id="goalPanel">
     <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
@@ -76,9 +76,8 @@
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<!-- Контейнер таймеров вибраций -->
+<!-- Таймеры вибраций -->
 <div id="vibrationTimersContainer"></div>
-
 
 <!-- Модалка цели -->
 <div id="goalModal" class="modal">
