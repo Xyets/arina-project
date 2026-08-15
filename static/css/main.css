@@ -368,3 +368,35 @@ body {
     width: 300px;
     box-shadow: var(--shadow-card);
 }
+/* ============================================================
+   🔧 FIX: правильная раскладка как в референсе
+============================================================ */
+
+/* Строка 2 — QR + вибрации */
+.row-bottom {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+/* Левая карточка — QR */
+.row-bottom .qr {
+    width: 280px;          /* фиксируем ширину карточки */
+    flex-shrink: 0;        /* запрещаем сжиматься */
+    margin-bottom: 0;      /* убираем лишний отступ */
+}
+
+/* Правая карточка — очередь вибраций */
+.row-bottom .vibrations {
+    flex: 1;               /* занимает всё оставшееся */
+    min-width: 0;          /* важно для корректного flex */
+    margin-bottom: 0;
+}
+
+/* Убираем глобальное ломающее правило */
+.events, .vibrations, .qr {
+    width: auto !important;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
