@@ -13,7 +13,7 @@
     --text-secondary: #666;
 
     --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-    --shadow-card: 0 6px 18px rgba(0,0,0,0.06);
+    --shadow-card: 0 8px 22px rgba(0,0,0,0.06);
 }
 
 /* ============================================================
@@ -32,7 +32,7 @@ body {
 ============================================================ */
 .layout {
     display: flex;
-    height: 100vh;
+    min-height: 100vh; /* ← критично */
 }
 
 /* ============================================================
@@ -50,8 +50,8 @@ body {
     top: 0;
     bottom: 0;
     left: 0;
+    z-index: 1000; /* ← чтобы меню не перекрывало контент */
 }
-
 
 .sidebar-logo {
     display: flex;
@@ -106,15 +106,14 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    margin-left: 240px; /* ← добавлено */
+    margin-left: 240px; /* ← критично */
     flex: 1;
     padding: 30px;
     min-width: 0;
     overflow-y: auto;
     background: var(--bg);
+    position: relative; /* ← важно */
 }
-
-
 
 /* ============================================================
    👋 Верхний блок
@@ -143,27 +142,37 @@ body {
 }
 
 /* ============================================================
-   📐 Двухстрочная сетка
+   📐 Сетки
 ============================================================ */
 .row {
     display: flex;
     gap: 20px;
     margin-bottom: 20px;
+    width: 100%; /* ← важно */
 }
 
-/* Лента событий */
-
-.row-events .events-card {
-    flex: 1;
+.row-events {
+    width: 100%;
 }
 
+.row-bottom {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%; /* ← важно */
+}
+
+/* ============================================================
+   📜 Лента событий — карточка
+============================================================ */
 .events-card {
     background: var(--card-bg);
     padding: 20px;
     border-radius: 20px;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-card);
     display: flex;
     flex-direction: column;
+    flex: 1;
 }
 
 .events-card h2 {
@@ -172,64 +181,6 @@ body {
     font-weight: 600;
 }
 
-
-
-/* QR + вибрации */
-.row-bottom {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-}
-
-.events-card {
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 20px; /* ← мило */
-    box-shadow: 0 8px 22px rgba(0,0,0,0.06); /* ← мягкая тень */
-    display: flex;
-    flex-direction: column;
-}
-
-
-/* ============================================================
-   🧩 QR-код
-============================================================ */
-.qr-card {
-    width: 280px;
-    flex-shrink: 0;
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 20px; /* ← более мило */
-    box-shadow: 0 8px 22px rgba(0,0,0,0.06); /* ← мягкая тень как в референсе */
-    display: flex;
-    flex-direction: column;
-}
-
-
-.qr-img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: contain;
-}
-
-/* ============================================================
-   🔁 Очередь вибраций
-============================================================ */
-.vibrations-card {
-    flex: 1;
-    min-width: 0;
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 20px; /* ← более мило */
-    box-shadow: 0 8px 22px rgba(0,0,0,0.06); 
-    display: flex;
-    flex-direction: column;
-}
-
-
-/* ============================================================
-   📜 Лента событий
-============================================================ */
 .event-list {
     height: 300px;
     overflow-y: auto;
@@ -247,8 +198,39 @@ body {
 }
 
 /* ============================================================
-   🔁 Очередь вибраций — элементы
+   🧩 QR-код
 ============================================================ */
+.qr-card {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+}
+
+.qr-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+}
+
+/* ============================================================
+   🔁 Очередь вибраций
+============================================================ */
+.vibrations-card {
+    flex: 1;
+    min-width: 0;
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+}
+
 .queue-list {
     height: 300px;
     overflow-y: auto;
@@ -349,8 +331,8 @@ body {
     width: 180px;
     background: var(--card-bg);
     padding: 20px;
-    border-radius: 20px; /* ← более мило */
-    box-shadow: 0 8px 22px rgba(0,0,0,0.06); 
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
     z-index: 900;
 }
 
