@@ -213,6 +213,7 @@ input:checked + .slider:before {
     padding: 20px;
     border-radius: 16px;
     box-shadow: var(--shadow-card);
+    flex-shrink: 0;
 }
 
 .qr-img {
@@ -223,6 +224,7 @@ input:checked + .slider:before {
 
 .row-bottom .vibrations {
     flex: 1;
+    min-width: 0; /* важно! */
     background: var(--card-bg);
     padding: 20px;
     border-radius: 16px;
