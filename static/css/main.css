@@ -113,6 +113,11 @@ body {
     background: var(--bg);
 }
 
+.content-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
 
 /* Новый контейнер */
 .content-inner {
