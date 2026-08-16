@@ -33,7 +33,6 @@ body {
 .layout {
     display: flex;
     min-height: 100vh; /* ← критично */
-    padding-left: 240px;
 }
 
 /* ============================================================
@@ -107,7 +106,7 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    flex: 1;
+    margin-left: 280px;
     padding: 30px;
     min-width: 0;
     overflow-y: auto;
