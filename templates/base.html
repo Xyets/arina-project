@@ -25,7 +25,7 @@
 
             <a class="sidebar-item" href="{{ url_for('panel.index') }}">
                 <span class="icon">🏠</span>
-                <span class="label">Главная 222</span>
+                <span class="label">Главная</span>
             </a>
 
             <a class="sidebar-item" href="{{ url_for('panel.beta_page') }}">
@@ -65,9 +65,11 @@
 
     <!-- Основной контент -->
     <main class="content">
-        <div class="content-inner">
-            {% block content %}
-            {% endblock %}
+        <div class="content-wrapper">
+            <div class="content-inner">
+                {% block content %}
+                {% endblock %}
+            </div>
         </div>
     </main>
 
