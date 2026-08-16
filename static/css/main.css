@@ -106,17 +106,19 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    margin-left: 280px;      /* место под sidebar */
+    margin-left: 280px;
     padding: 30px;
     min-width: 0;
     overflow-y: auto;
     background: var(--bg);
     position: relative;
-
-    max-width: 1100px;       /* ширина рабочей области */
-    margin-right: auto;      /* центрирование */
 }
 
+/* Новый контейнер */
+.content-inner {
+    max-width: 1100px;
+    margin: 0 auto; /* ← центрирование */
+}
 
 /* ============================================================
    👋 Верхний блок
