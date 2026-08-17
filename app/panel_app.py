@@ -161,3 +161,29 @@ def clear_logs():
 
     clear_logs_file(profile["profile_key"])
     return {"status": "ok"}
+
+@panel_bp.route("/fc2_view")
+@login_required
+def fc2_view_page():
+    return render_template("fc2_view.html")
+
+@panel_bp.route("/run_fc2_fetch")
+@login_required
+def run_fc2_fetch():
+    import requests
+    import json
+
+    API_URL = "https://live.fc2.com/api/getChannelComment.php"
+    CHANNEL_ID = "58702021"
+    TOKEN = "ca09371d2972f3c0"
+
+    params = {
+        "channel_id": CHANNEL_ID,
+        "token": TOKEN,
+        "last_comment_index": -1
+    }
+
+    response = requests.get(API_URL, params=params)
+    data = response.json()
+
+    return data

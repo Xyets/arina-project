@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FC2 コメントAPI Viewer</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #fafafa;
+        }
+        #json {
+            white-space: pre-wrap;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>FC2 コメントAPI — данные</h2>
+<p>Страница автоматически загружает данные при открытии.</p>
+
+<div id="json">Загрузка...</div>
+
+<script>
+async function loadFC2() {
+    try {
+        const response = await fetch("/run_fc2_fetch");
+        const data = await response.json();
+
+        document.getElementById("json").textContent =
+            JSON.stringify(data, null, 2);
+    } catch (err) {
+        document.getElementById("json").textContent =
+            "Ошибка загрузки: " + err;
+    }
+}
+
+loadFC2();
+</script>
+
+</body>
+</html>
