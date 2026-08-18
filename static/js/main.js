@@ -111,16 +111,20 @@ function handleWSMessage(data) {
 --------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
 
+    const modeSwitch = document.getElementById("modeSwitch");
+    if (!modeSwitch) return;
+
     modeSwitch.addEventListener("change", () => {
         const newMode = modeSwitch.checked ? "private" : "public";
-        CURRENT_MODE = newMode; // 🔥 обновляем локальную переменную
 
+        // 1. WebSocket
         socket.send(JSON.stringify({
             type: "set_mode",
             user: CURRENT_USER,
             mode: newMode
         }));
 
+        // 2. Flask
         fetch("/set_mode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -129,13 +133,37 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(r => r.json())
         .then(data => {
             if (data.status === "ok") {
-                showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
-                location.reload();
+
+                // 3. Обновляем локальную переменную
+                CURRENT_MODE = newMode;
+
+                // 4. Обновляем только внутренний контент
+                loadInnerContent();
+
+                showToast(`Режим переключен: ${newMode}`);
             }
         });
     });
 
 });
+
+function loadInnerContent() {
+    fetch(window.location.pathname)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+
+            document.querySelector(".content-inner").innerHTML = newContent;
+
+            // после обновления — перезапускаем логику
+            connectWS();
+            loadLogs();
+            updateQueueUI();
+        });
+}
 
 
 /* ============================================================
