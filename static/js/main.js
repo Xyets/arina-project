@@ -106,13 +106,17 @@ function handleWSMessage(data) {
         return;
     }
 }
-
-/* ============================================================
+/* ---------------------------------------------------------
    🔄 Переключение режима — как в старой версии
-============================================================ */
-const modeSwitch = document.getElementById("modeSwitch");
+--------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
 
-if (modeSwitch) {
+    const modeSwitch = document.getElementById("modeSwitch");
+    if (!modeSwitch) {
+        console.log("⚠️ modeSwitch не найден в DOM");
+        return;
+    }
+
     modeSwitch.addEventListener("change", () => {
         const newMode = modeSwitch.checked ? "private" : "public";
 
@@ -142,7 +146,8 @@ if (modeSwitch) {
         })
         .catch(() => showToast("❌ Ошибка соединения с сервером"));
     });
-}
+
+});
 
 
 /* ============================================================
