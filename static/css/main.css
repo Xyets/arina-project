@@ -38,76 +38,91 @@ body {
 /* ============================================================
    📌 Боковое меню
 ============================================================ */
+/* Плавающий sidebar‑окно */
 .sidebar {
     width: 360px;
-
-    /* превращаем в карточку */
     background: var(--card-bg);
-    border-radius: 20px;
+    border-radius: 24px;
     box-shadow: var(--shadow-card);
 
-    /* отлип от края */
     margin-left: 20px;
     margin-top: 20px;
     margin-bottom: 20px;
 
-    /* внутренности */
-    padding: 25px;
+    padding: 30px 25px;
+
     display: flex;
     flex-direction: column;
-    gap: 25px;
-
-    /* sidebar больше НЕ фиксированный */
-    position: relative;
+    align-items: center; /* ← центрируем всё */
+    gap: 30px;
 }
 
+/* Логотип */
 .sidebar-logo {
     display: flex;
+    flex-direction: column; /* ← логотип + текст по центру */
     align-items: center;
     gap: 10px;
     font-weight: 700;
-    font-size: 18px;
+    font-size: 22px; /* ← крупнее */
+    color: var(--text-main);
 }
 
 .sidebar-logo img {
-    width: 32px;
-    height: 32px;
+    width: 48px; /* ← крупнее */
+    height: 48px;
 }
 
+/* Меню */
 .sidebar-menu {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: center; /* ← центрируем пункты */
+    gap: 18px; /* ← больше воздуха */
+    width: 100%;
 }
 
+/* Пункты меню */
 .sidebar-item {
     display: flex;
+    flex-direction: column; /* ← иконка над текстом */
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 15px;
-    color: #333;
-    text-decoration: none;
-    transition: background 0.2s, color 0.2s;
-}
+    justify-content: center;
 
-.sidebar-item:hover {
-    background: #f3f0ff;
-    color: #6a4dfd;
+    gap: 6px;
+
+    padding: 14px 10px;
+    width: 100%;
+
+    border-radius: 16px; /* ← более мягкие скругления */
+    font-size: 17px; /* ← крупнее */
+    font-weight: 600; /* ← жирнее */
+
+    color: var(--text-main);
+    text-decoration: none;
+
+    transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
 .sidebar-item .icon {
-    font-size: 18px;
+    font-size: 22px; /* ← крупнее иконки */
 }
 
+/* Hover */
+.sidebar-item:hover {
+    background: var(--hover-bg);
+    color: var(--hover-text);
+    transform: translateY(-2px); /* ← лёгкая анимация */
+}
+
+/* Logout */
 .sidebar-footer .logout {
-    color: #d9534f;
+    color: var(--accent-pink);
 }
 
 .sidebar-footer .logout:hover {
-    background: #ffe5e5;
-    color: #c9302c;
+    background: var(--accent-warm);
+    color: var(--text-main);
 }
 
 /* ============================================================
