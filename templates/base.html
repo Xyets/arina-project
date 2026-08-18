@@ -21,6 +21,23 @@
             <span class="sidebar-title">FlowTip Live</span>
         </div>
 
+        <div class="sidebar-mode">
+            <span class="mode-label">
+                {% if session["mode"] == "public" %}
+                    🌐 Публичный режим
+                {% else %}
+                    🔒 Частный режим
+                {% endif %}
+            </span>
+
+            <label class="switch">
+                <input type="checkbox" id="modeSwitch"
+                    {% if session["mode"] == "private" %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+
         <nav class="sidebar-menu">
 
             <a class="sidebar-item" href="{{ url_for('panel.index') }}">

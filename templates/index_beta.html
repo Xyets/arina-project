@@ -7,22 +7,6 @@
      data-profile="{{ current_profile }}">
 </div>
 
-<div class="top-header">
-    <h1 class="hello">Привет, {{ user }} 👋 111</h1>
-
-    <div class="mode-switch">
-        <span class="mode-label">🌐 Публичный</span>
-
-        <label class="switch">
-            <input type="checkbox" id="modeSwitch"
-                   {% if session["mode"] == "private" %}checked{% endif %}>
-            <span class="slider"></span>
-        </label>
-
-        <span class="mode-label">🔒 Частный</span>
-    </div>
-</div>
-
 <div class="status-card">
     <span>🔌 Подключение:</span>
     <strong id="wsStatus">Подключена</strong>
