@@ -112,22 +112,27 @@ function handleWSMessage(data) {
 /* ---------------------------------------------------------
    🔄 Переключение режима — мгновенное обновление контента
 --------------------------------------------------------- */
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", () => {
 
     const modeSwitch = document.getElementById("modeSwitch");
-    if (!modeSwitch) return;
+    if (!modeSwitch) {
+        console.log("⚠️ modeSwitch не найден");
+        return;
+    }
+
+    console.log("🔧 modeSwitch найден, назначаю обработчик");
 
     modeSwitch.addEventListener("change", () => {
         const newMode = modeSwitch.checked ? "private" : "public";
 
-        // 1. WebSocket
+        console.log("🔄 Переключение режима:", newMode);
+
         socket.send(JSON.stringify({
             type: "set_mode",
             user: CURRENT_USER,
             mode: newMode
         }));
 
-        // 2. Flask
         fetch("/set_mode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -135,19 +140,18 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(r => r.json())
         .then(data => {
+            console.log("📩 Ответ от /set_mode:", data);
+
             if (data.status === "ok") {
-
                 CURRENT_MODE = newMode;
-
-                // 🔥 Мгновенное обновление внутреннего контента
                 reloadInnerContent();
-
                 showToast(`Режим переключен: ${newMode}`);
             }
         });
     });
 
 });
+
 
 
 function loadInnerContent() {
