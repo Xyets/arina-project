@@ -39,13 +39,11 @@ body {
    📌 Боковое меню
 ============================================================ */
 .sidebar {
-    width: 360px;
+    width: 300px; /* было 360px */
 
-    /* стеклянный эффект */
     background: rgba(255, 255, 255, 0.65);
     backdrop-filter: blur(18px);
 
-    /* пастельный градиент */
     background: linear-gradient(
         145deg,
         rgba(255, 255, 255, 0.75),
@@ -54,7 +52,6 @@ body {
 
     border-radius: 28px;
 
-    /* мягкая внутренняя подсветка */
     box-shadow:
         0 8px 22px rgba(0,0,0,0.06),
         inset 0 0 12px rgba(255,255,255,0.4);
@@ -72,6 +69,7 @@ body {
 
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 
 /* лёгкое парение при наведении */
 .sidebar:hover {
@@ -203,8 +201,8 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    margin-left: 420px;
-    width: calc(100% - 420px);
+    margin-left: 340px;
+    width: calc(100% - 340px);
     padding: 40px 0;
 
     display: flex;
