@@ -109,6 +109,9 @@ function handleWSMessage(data) {
 /* ---------------------------------------------------------
    🔄 Переключение режима — как в старой версии
 --------------------------------------------------------- */
+/* ---------------------------------------------------------
+   🔄 Переключение режима — мгновенное обновление контента
+--------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
 
     const modeSwitch = document.getElementById("modeSwitch");
@@ -134,11 +137,10 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(data => {
             if (data.status === "ok") {
 
-                // 3. Обновляем локальную переменную
                 CURRENT_MODE = newMode;
 
-                // 4. Обновляем только внутренний контент
-                loadInnerContent();
+                // 🔥 Мгновенное обновление внутреннего контента
+                reloadInnerContent();
 
                 showToast(`Режим переключен: ${newMode}`);
             }
@@ -146,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 });
+
 
 function loadInnerContent() {
     fetch(window.location.pathname)
@@ -159,6 +162,38 @@ function loadInnerContent() {
             document.querySelector(".content-inner").innerHTML = newContent;
 
             // после обновления — перезапускаем логику
+            connectWS();
+            loadLogs();
+            updateQueueUI();
+        });
+}
+/* ============================================================
+   🔄 Мгновенное обновление внутреннего контента без мигания
+============================================================ */
+function reloadInnerContent() {
+    const container = document.querySelector(".content-inner");
+    if (!container) return;
+
+    // плавное исчезновение
+    container.style.opacity = "0";
+
+    fetch(window.location.pathname)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+
+            // заменяем контент
+            container.innerHTML = newContent;
+
+            // плавное появление
+            setTimeout(() => {
+                container.style.opacity = "1";
+            }, 50);
+
+            // перезапуск логики
             connectWS();
             loadLogs();
             updateQueueUI();
