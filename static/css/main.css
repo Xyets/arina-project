@@ -96,6 +96,95 @@ body {
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
 }
 
+/* ============================================================
+   🔄 Переключатель режима в sidebar — как на скрине
+============================================================ */
+.sidebar-mode {
+    width: 100%;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 18px 12px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+}
+
+.sidebar-mode .mode-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.mode-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mode-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.mode-label.left {
+    margin-right: 6px;
+}
+
+.mode-label.right {
+    margin-left: 6px;
+}
+
+/* сам переключатель — как на твоём примере */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 32px;
+}
+
+.switch input {
+    display: none;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0;
+    right: 0; bottom: 0;
+
+    background: #ffd6e6; /* нежно-розовый фон */
+    border-radius: 34px;
+    transition: 0.3s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 3px;
+    bottom: 3px;
+
+    background: #faa3cd; /* ярко-розовый кружок */
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+input:checked + .slider {
+    background: #fadae7; /* чуть темнее */
+}
+
+input:checked + .slider:before {
+    transform: translateX(28px);
+}
+
+
 /* Меню */
 .sidebar-menu {
     display: flex;

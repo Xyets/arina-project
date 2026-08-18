@@ -22,19 +22,19 @@
         </div>
 
         <div class="sidebar-mode">
-            <span class="mode-label">
-                {% if session["mode"] == "public" %}
-                    🌐 Публичный режим
-                {% else %}
-                    🔒 Частный режим
-                {% endif %}
-            </span>
+            <span class="mode-title">Привет, {{ user }}</span>
 
-            <label class="switch">
-                <input type="checkbox" id="modeSwitch"
-                    {% if session["mode"] == "private" %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
+            <div class="mode-switch">
+                <span class="mode-label left">🌐 Публичный</span>
+
+                <label class="switch">
+                    <input type="checkbox" id="modeSwitch"
+                        {% if session["mode"] == "private" %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+
+                <span class="mode-label right">🔒 Частный</span>
+            </div>
         </div>
 
 
