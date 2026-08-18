@@ -111,23 +111,16 @@ function handleWSMessage(data) {
 --------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
 
-    const modeSwitch = document.getElementById("modeSwitch");
-    if (!modeSwitch) {
-        console.log("⚠️ modeSwitch не найден в DOM");
-        return;
-    }
-
     modeSwitch.addEventListener("change", () => {
         const newMode = modeSwitch.checked ? "private" : "public";
+        CURRENT_MODE = newMode; // 🔥 обновляем локальную переменную
 
-        // 🔥 Отправляем команду WebSocket-серверу
         socket.send(JSON.stringify({
             type: "set_mode",
             user: CURRENT_USER,
             mode: newMode
         }));
 
-        // 🔥 Сообщаем Flask (для сохранения в сессии)
         fetch("/set_mode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -137,14 +130,9 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(data => {
             if (data.status === "ok") {
                 showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
-
-                // 🔥 reload ТОЛЬКО ЗДЕСЬ — после обновления session["mode"]
                 location.reload();
-            } else {
-                showToast("❌ Ошибка переключения режима");
             }
-        })
-        .catch(() => showToast("❌ Ошибка соединения с сервером"));
+        });
     });
 
 });
