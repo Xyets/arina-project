@@ -229,15 +229,20 @@ body {
 ============================================================ */
 .top-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column; /* ← теперь вертикально */
+    align-items: center;     /* ← центрируем */
+    justify-content: center;
+    gap: 10px;
     margin-bottom: 25px;
+    text-align: center;
 }
 
 /* ============================================================
    🔌 Статус подключения
 ============================================================ */
 .status-card {
+    margin-left: auto;
+    margin-right: auto;
     background: var(--card-bg);
     padding: 15px 20px;
     border-radius: 12px;
@@ -273,24 +278,26 @@ body {
     width: 100%;
     max-width: 1000px;
 }
-
 /* ============================================================
    📜 Лента событий — карточка
 ============================================================ */
 .events-card {
     background: var(--card-bg);
-    padding: 20px;
-    border-radius: 20px;
+    padding: 25px;
+    border-radius: 24px;
     box-shadow: var(--shadow-card);
     display: flex;
     flex-direction: column;
-    flex: 1;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto; /* центрирование */
 }
 
 .events-card h2 {
     margin: 0 0 15px 0;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
 }
 
 .event-list {
@@ -301,10 +308,10 @@ body {
 
 .event-item {
     background: var(--accent-light);
-    padding: 12px 14px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    font-size: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    font-size: 15px;
     color: var(--text-main);
     box-shadow: var(--shadow-soft);
 }
@@ -313,16 +320,21 @@ body {
    🧩 QR-код
 ============================================================ */
 .qr-card {
-    width: 280px;
-    flex-shrink: 0;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto; /* центрирование */
     background: var(--card-bg);
-    padding: 20px;
-    border-radius: 20px;
+    padding: 25px;
+    border-radius: 24px;
     box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .qr-img {
     width: 100%;
+    max-width: 260px;
     aspect-ratio: 1 / 1;
     object-fit: contain;
 }
@@ -331,13 +343,15 @@ body {
    🔁 Очередь вибраций
 ============================================================ */
 .vibrations-card {
-    flex: 1;
-    max-width: 700px;
-    min-width: 0;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto; /* центрирование */
     background: var(--card-bg);
-    padding: 20px;
-    border-radius: 20px;
+    padding: 25px;
+    border-radius: 24px;
     box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
 }
 
 .queue-list {
@@ -348,10 +362,10 @@ body {
 
 .queue-list div {
     background: var(--accent-light);
-    padding: 12px 14px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    font-size: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    font-size: 15px;
     color: var(--text-main);
     box-shadow: var(--shadow-soft);
 }
@@ -367,13 +381,13 @@ body {
 }
 
 .vibration-timer {
-    background: #ffe6f0;
+    background: var(--accent-pink);
     border-radius: 20px;
     padding: 15px 20px;
     margin-top: 10px;
     font-size: 16px;
     color: var(--text-main);
-    box-shadow: 0 0 15px rgba(255, 182, 193, 0.6);
+    box-shadow: 0 0 15px rgba(243, 195, 178, 0.6);
     width: 240px;
 }
 
@@ -387,7 +401,7 @@ body {
     transform: translate(-50%, -50%);
     background: var(--card-bg);
     padding: 30px;
-    border-radius: 20px;
+    border-radius: 24px;
     box-shadow: var(--shadow-card);
     z-index: 9999;
     text-align: center;
@@ -413,13 +427,13 @@ body {
     background-color: var(--accent-blue);
     color: white;
     text-align: center;
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 12px;
+    padding: 14px;
     position: fixed;
     z-index: 2000;
     left: 50%;
     bottom: 30px;
-    font-size: 14px;
+    font-size: 15px;
     opacity: 0;
     transition: opacity 0.5s, bottom 0.5s;
 }
@@ -437,10 +451,10 @@ body {
     position: fixed;
     right: 20px;
     top: 120px;
-    width: 180px;
+    width: 200px;
     background: var(--card-bg);
     padding: 20px;
-    border-radius: 20px;
+    border-radius: 24px;
     box-shadow: var(--shadow-card);
     z-index: 900;
 }
@@ -465,8 +479,8 @@ body {
 
 .modal-content {
     background: var(--card-bg);
-    padding: 25px;
-    border-radius: 16px;
-    width: 300px;
+    padding: 30px;
+    border-radius: 24px;
+    width: 320px;
     box-shadow: var(--shadow-card);
 }
