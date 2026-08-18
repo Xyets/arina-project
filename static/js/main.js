@@ -166,38 +166,47 @@ function startVibrationTimer(duration, strength) {
     box.className = "vibration-timer";
 
     box.innerHTML = `
-        <div>💖 Вибрация!</div>
-        <div>Сила: ${strength}</div>
-        <div>⏳ Осталось: <span class="time">${Math.ceil(duration)}</span> сек</div>
-        <div class="progress"><div class="progress-bar"></div></div>
-        <button class="stop-btn">⛔ Остановить</button>
+        <div class="vibration-title">💖 Вибрация • Сила ${strength}</div>
+
+        <div class="vibration-time">
+            Осталось: <span class="time">${Math.ceil(duration)}</span> сек
+        </div>
+
+        <div class="vibration-progress">
+            <div class="vibration-progress-fill"></div>
+        </div>
+
+        <button class="vibration-stop-btn">Остановить</button>
     `;
 
     container.appendChild(box);
 
     let remaining = duration;
     const timeSpan = box.querySelector(".time");
-    const progressBar = box.querySelector(".progress-bar");
+    const progressFill = box.querySelector(".vibration-progress-fill");
 
     const interval = setInterval(() => {
         remaining -= 1;
+
         if (remaining <= 0) {
             clearInterval(interval);
             box.remove();
             vibrationTimerRunning = false;
         } else {
             timeSpan.textContent = Math.ceil(remaining);
-            progressBar.style.width = `${(remaining / duration) * 100}%`;
+            progressFill.style.width = `${(remaining / duration) * 100}%`;
         }
     }, 1000);
 
-    box.querySelector(".stop-btn").onclick = () => {
+    box.querySelector(".vibration-stop-btn").onclick = () => {
         sendStop();
         clearInterval(interval);
         box.remove();
         vibrationTimerRunning = false;
     };
 }
+
+
 
 /* ============================================================
    🔔 6. Popup
