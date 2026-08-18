@@ -441,6 +441,12 @@ input:checked + .slider:before {
     flex-direction: column;
 }
 
+.vibrations-card h2 {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
 .queue-list {
     height: 300px;
     overflow-y: auto;
