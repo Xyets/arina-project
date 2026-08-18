@@ -108,17 +108,22 @@ function handleWSMessage(data) {
 }
 
 /* ============================================================
-   🔄 Переключение режима (public/private)
+   🔄 Переключение режима — как в старой версии
 ============================================================ */
-document.addEventListener("DOMContentLoaded", () => {
+const modeSwitch = document.getElementById("modeSwitch");
 
-    const modeSwitch = document.getElementById("modeSwitch");
-    if (!modeSwitch) return;
-
+if (modeSwitch) {
     modeSwitch.addEventListener("change", () => {
         const newMode = modeSwitch.checked ? "private" : "public";
 
-        // 🔥 Сообщаем Flask (сохранение в session["mode"])
+        // 🔥 Отправляем команду WebSocket-серверу
+        socket.send(JSON.stringify({
+            type: "set_mode",
+            user: CURRENT_USER,
+            mode: newMode
+        }));
+
+        // 🔥 Сообщаем Flask (для сохранения в сессии)
         fetch("/set_mode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -127,14 +132,18 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(r => r.json())
         .then(data => {
             if (data.status === "ok") {
-                // 🔥 Перезагрузка страницы, как в старой версии
+                showToast(`Режим переключен на: ${data.mode === "private" ? "🔒 Частный" : "🌐 Публичный"}`);
+
+                // 🔥 reload ТОЛЬКО ЗДЕСЬ — после обновления session["mode"]
                 location.reload();
+            } else {
+                showToast("❌ Ошибка переключения режима");
             }
         })
-        .catch(() => console.log("Ошибка переключения режима"));
+        .catch(() => showToast("❌ Ошибка соединения с сервером"));
     });
+}
 
-});
 
 /* ============================================================
    📜 3. Логи
