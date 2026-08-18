@@ -154,6 +154,18 @@ function updateQueueUI() {
         .join("");
 }
 
+function sendStop() {
+    const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+
+    socket.send(JSON.stringify({
+        type: "stop",
+        user: CURRENT_USER,
+        profile_key
+    }));
+
+    console.log("⛔ STOP SENT:", profile_key);
+}
+
 /* ============================================================
    ⏱ 5. Таймер вибрации — новый красивый стиль
 ============================================================ */
