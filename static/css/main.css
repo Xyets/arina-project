@@ -201,7 +201,7 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    margin-left: 340px;
+    margin-left: 100px;
     width: calc(100% - 340px);
     padding: 40px 0;
 
