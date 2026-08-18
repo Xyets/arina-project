@@ -39,18 +39,26 @@ body {
    📌 Боковое меню
 ============================================================ */
 .sidebar {
-    width: 360px; /* ← ВАЖНО */
-    background: #ffffff;
-    border-right: 1px solid #e5e5e5;
+    width: 360px;
+
+    /* превращаем в карточку */
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+
+    /* отлип от края */
+    margin-left: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+
+    /* внутренности */
     padding: 25px;
     display: flex;
     flex-direction: column;
     gap: 25px;
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
+
+    /* sidebar больше НЕ фиксированный */
+    position: relative;
 }
 
 .sidebar-logo {
@@ -106,8 +114,8 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    margin-left: 360px; /* ← совпадает с sidebar */
-    width: calc(100% - 360px); /* ← критично */
+    margin-left: 400px; /* sidebar + отступ */
+    width: calc(100% - 400px);
     padding: 40px 0;
 
     display: flex;
