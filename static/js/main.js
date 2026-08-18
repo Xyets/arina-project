@@ -108,6 +108,35 @@ function handleWSMessage(data) {
 }
 
 /* ============================================================
+   🔄 Переключение режима (public/private)
+============================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+
+    const modeSwitch = document.getElementById("modeSwitch");
+    if (!modeSwitch) return;
+
+    modeSwitch.addEventListener("change", () => {
+        const newMode = modeSwitch.checked ? "private" : "public";
+
+        // 🔥 Сообщаем Flask (сохранение в session["mode"])
+        fetch("/set_mode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: newMode })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === "ok") {
+                // 🔥 Перезагрузка страницы, как в старой версии
+                location.reload();
+            }
+        })
+        .catch(() => console.log("Ошибка переключения режима"));
+    });
+
+});
+
+/* ============================================================
    📜 3. Логи
 ============================================================ */
 let lastLogCount = 0;
