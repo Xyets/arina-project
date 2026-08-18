@@ -203,8 +203,8 @@ body {
    📄 Контент справа
 ============================================================ */
 .content {
-    margin-left: 360px; /* ровно ширина sidebar */
-    width: calc(100% - 360px);
+    margin-left: 420px;
+    width: calc(100% - 420px);
     padding: 40px 0;
 
     display: flex;
