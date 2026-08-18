@@ -464,38 +464,44 @@ input:checked + .slider:before {
 }
 
 /* ============================================================
-   ⏱ Таймеры вибраций
+   ⏱ Таймеры вибраций — стеклянный стиль
 ============================================================ */
 #vibrationTimersContainer {
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .vibration-timer {
-    background: var(--accent-pink);
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(12px);
     border-radius: 20px;
     padding: 15px 20px;
-    margin-top: 10px;
     font-size: 16px;
     color: var(--text-main);
-    box-shadow: 0 0 15px rgba(243, 195, 178, 0.6);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    border: 1px solid rgba(255,255,255,0.4);
     width: 240px;
 }
 
+
 /* ============================================================
-   🔔 Popup
+   🔔 Popup — стеклянный стиль
 ============================================================ */
 .popup {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--card-bg);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(18px);
     padding: 30px;
     border-radius: 24px;
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
     z-index: 9999;
     text-align: center;
     font-size: 18px;
@@ -504,6 +510,7 @@ input:checked + .slider:before {
     opacity: 0;
     transition: opacity 0.3s ease;
     display: none;
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 .popup.show {
@@ -512,16 +519,17 @@ input:checked + .slider:before {
 }
 
 /* ============================================================
-   🔔 Toast
+   🔔 Toast — стеклянный стиль
 ============================================================ */
 .toast {
     visibility: hidden;
-    min-width: 220px;
-    background-color: var(--accent-blue);
+    min-width: 240px;
+    background: rgba(153,205,216,0.85); /* пастельный голубой */
+    backdrop-filter: blur(12px);
     color: white;
     text-align: center;
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: 14px;
+    padding: 14px 18px;
     position: fixed;
     z-index: 2000;
     left: 50%;
@@ -529,6 +537,7 @@ input:checked + .slider:before {
     font-size: 15px;
     opacity: 0;
     transition: opacity 0.5s, bottom 0.5s;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
 }
 
 .toast.show {
@@ -538,22 +547,24 @@ input:checked + .slider:before {
 }
 
 /* ============================================================
-   🎯 Вертикальная цель
+   🎯 Вертикальная цель — стеклянный стиль
 ============================================================ */
 .goal-panel {
     position: fixed;
     right: 20px;
     top: 120px;
-    width: 200px;
-    background: var(--card-bg);
+    width: 220px;
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(18px);
     padding: 20px;
     border-radius: 24px;
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
     z-index: 900;
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 /* ============================================================
-   🪟 Модалка цели
+   🪟 Модалка цели — стеклянный стиль
 ============================================================ */
 .modal {
     display: none;
@@ -571,9 +582,12 @@ input:checked + .slider:before {
 }
 
 .modal-content {
-    background: var(--card-bg);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(18px);
     padding: 30px;
     border-radius: 24px;
     width: 320px;
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    border: 1px solid rgba(255,255,255,0.5);
 }
+
