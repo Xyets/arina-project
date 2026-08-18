@@ -7,34 +7,50 @@
      data-profile="{{ current_profile }}">
 </div>
 
+<!-- Приветствие -->
 <div class="top-header">
     <h1 class="hello">Привет, {{ user }} 👋</h1>
 </div>
 
+<!-- Статус подключения -->
 <div class="status-card">
     <span>🔌 Подключение:</span>
     <strong id="wsStatus">Подключена</strong>
 </div>
 
+<!-- Лента событий -->
 <div class="row row-events">
     <div class="events-card">
         <h2>Лента событий</h2>
+
+        <!-- маленькая кнопка очистки -->
+        <button id="clearLogsBtn" class="flow-btn-small">🧹</button>
+
         <div id="logbox" class="event-list"></div>
     </div>
 </div>
 
+<!-- QR + Очередь -->
 <div class="row row-bottom">
+
+    <!-- QR -->
     <div class="qr-card">
         <h2>QR‑код для Lovense</h2>
         <img src="{{ url_for('lovense.qrcode_image', profile_key=current_profile) }}" class="qr-img">
     </div>
 
+    <!-- Очередь вибраций -->
     <div class="vibrations-card">
         <h2>Очередь вибраций</h2>
+
+        <!-- маленькая кнопка очистки -->
+        <button id="clearQueueBtn" class="flow-btn-small">🧹</button>
+
         <div id="queuebox" class="queue-list"></div>
     </div>
 </div>
 
+<!-- Цель -->
 {% if session["mode"] == "public" %}
 <div class="goal-panel" id="goalPanel">
     <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
@@ -52,10 +68,16 @@
 </div>
 {% endif %}
 
+<!-- Popup -->
 <div id="entryPopup" class="popup"></div>
+
+<!-- Toast -->
 <div id="toast" class="toast"></div>
+
+<!-- Таймеры вибраций -->
 <div id="vibrationTimersContainer"></div>
 
+<!-- Модалка цели -->
 <div id="goalModal" class="modal">
     <div class="modal-content">
         <h3>Новая цель</h3>
@@ -64,6 +86,9 @@
             <input name="target" placeholder="Сколько нужно" type="number">
             <button type="submit">Сохранить</button>
         </form>
+
+        <!-- кнопка закрытия модалки -->
+        <button class="modal-close-btn" onclick="closeGoalModal()">Закрыть</button>
     </div>
 </div>
 

@@ -155,7 +155,7 @@ function updateQueueUI() {
 }
 
 /* ============================================================
-   ⏱ 5. Таймер вибрации
+   ⏱ 5. Таймер вибрации — новый красивый стиль
 ============================================================ */
 function startVibrationTimer(duration, strength) {
     if (vibrationTimerRunning) return;
@@ -206,19 +206,23 @@ function startVibrationTimer(duration, strength) {
     };
 }
 
-
-
 /* ============================================================
-   🔔 6. Popup
+   🔔 6. Popup — улучшенный, как в старой версии
 ============================================================ */
 function showEntryPopup(message) {
     const popup = document.getElementById("entryPopup");
     popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
     popup.classList.add("show");
+
+    let hideTimer = setTimeout(hideEntryPopup, 8000);
+
+    popup.onmouseenter = () => clearTimeout(hideTimer);
+    popup.onmouseleave = () => hideTimer = setTimeout(hideEntryPopup, 8000);
 }
 
 function hideEntryPopup() {
-    document.getElementById("entryPopup").classList.remove("show");
+    const popup = document.getElementById("entryPopup");
+    popup.classList.remove("show");
 }
 
 /* ============================================================
@@ -230,6 +234,10 @@ function showToast(msg) {
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 3000);
 }
+
+/* ============================================================
+   🎯 8. Цель
+============================================================ */
 function updateGoalUI(newGoal = null) {
     if (newGoal) goal = newGoal;
 
@@ -245,10 +253,45 @@ function updateGoalUI(newGoal = null) {
     cur.textContent = goal.current;
     tgt.textContent = goal.target;
 }
+
 function openGoalModal() {
     document.getElementById("goalModal").classList.add("show");
 }
 
 function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
+}
+
+/* ============================================================
+   🧹 9. Очистка логов — новая маленькая кнопка
+============================================================ */
+const clearLogsBtn = document.getElementById("clearLogsBtn");
+if (clearLogsBtn) {
+    clearLogsBtn.addEventListener("click", () => {
+        lastLogCount = 0;
+        document.getElementById("logbox").innerHTML = "";
+
+        fetch("/clear_logs", { method: "POST" })
+            .then(() => showToast("Логи очищены ✅"))
+            .catch(() => showToast("❌ Ошибка при очистке логов"));
+    });
+}
+
+/* ============================================================
+   🧹 10. Очистка очереди вибраций — новая маленькая кнопка
+============================================================ */
+const clearQueueBtn = document.getElementById("clearQueueBtn");
+if (clearQueueBtn) {
+    clearQueueBtn.addEventListener("click", () => {
+        const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+
+        socket.send(JSON.stringify({
+            type: "clear_queue",
+            profile_key
+        }));
+
+        vibrationQueue = [];
+        updateQueueUI();
+        showToast("Очередь очищена ✅");
+    });
 }
