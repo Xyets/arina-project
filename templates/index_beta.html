@@ -21,10 +21,11 @@
 <!-- Лента событий -->
 <div class="row row-events">
     <div class="events-card">
-        <h2>Лента событий</h2>
 
-        <!-- маленькая кнопка очистки -->
-        <button id="clearLogsBtn" class="flow-btn-small">🧹</button>
+        <div class="card-header">
+            <h2>Лента событий</h2>
+            <button id="clearLogsBtn" class="flow-btn-small">🧹</button>
+        </div>
 
         <div id="logbox" class="event-list"></div>
     </div>
@@ -36,14 +37,16 @@
     <!-- QR -->
     <div class="qr-card">
         <h2>QR‑код для Lovense</h2>
+        <!-- если нужно — сюда можно добавить QR -->
     </div>
 
     <!-- Очередь вибраций -->
     <div class="vibrations-card">
-        <h2>Очередь вибраций</h2>
 
-        <!-- маленькая кнопка очистки -->
-        <button id="clearQueueBtn" class="flow-btn-small">🧹</button>
+        <div class="card-header">
+            <h2>Очередь вибраций</h2>
+            <button id="clearQueueBtn" class="flow-btn-small">🧹</button>
+        </div>
 
         <div id="queuebox" class="queue-list"></div>
     </div>
@@ -52,6 +55,7 @@
 <!-- Цель -->
 {% if session["mode"] == "public" %}
 <div class="goal-panel" id="goalPanel">
+
     <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
 
     <div class="goal-bar-vertical">
@@ -80,13 +84,13 @@
 <div id="goalModal" class="modal">
     <div class="modal-content">
         <h3>Новая цель</h3>
+
         <form id="goalForm">
             <input name="title" placeholder="Название цели">
             <input name="target" placeholder="Сколько нужно" type="number">
             <button type="submit">Сохранить</button>
         </form>
 
-        <!-- кнопка закрытия модалки -->
         <button class="modal-close-btn" onclick="closeGoalModal()">Закрыть</button>
     </div>
 </div>

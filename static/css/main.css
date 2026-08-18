@@ -707,3 +707,24 @@ input:checked + .slider:before {
     background: rgba(255,255,255,0.75);
 }
 
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.flow-btn-small {
+    background: rgba(255,255,255,0.3);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.flow-btn-small:hover {
+    background: rgba(255,255,255,0.5);
+}
+
