@@ -106,12 +106,7 @@ function handleWSMessage(data) {
         return;
     }
 }
-/* ---------------------------------------------------------
-   🔄 Переключение режима — как в старой версии
---------------------------------------------------------- */
-/* ---------------------------------------------------------
-   🔄 Переключение режима — мгновенное обновление контента
---------------------------------------------------------- */
+
 window.addEventListener("load", () => {
 
     const modeSwitch = document.getElementById("modeSwitch");
@@ -153,24 +148,6 @@ window.addEventListener("load", () => {
 });
 
 
-
-function loadInnerContent() {
-    fetch(window.location.pathname)
-        .then(r => r.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-
-            const newContent = doc.querySelector(".content-inner").innerHTML;
-
-            document.querySelector(".content-inner").innerHTML = newContent;
-
-            // после обновления — перезапускаем логику
-            connectWS();
-            loadLogs();
-            updateQueueUI();
-        });
-}
 /* ============================================================
    🔄 Мгновенное обновление внутреннего контента без мигания
 ============================================================ */
