@@ -144,7 +144,18 @@ window.addEventListener("load", () => {
             }
         });
     });
+    /* ============================================================
+       📦 Sidebar collapse — ВСТАВИТЬ СЮДА
+    ============================================================ */
 
+    const sidebar = document.getElementById("sidebar");
+    const sidebarLogo = document.getElementById("sidebarLogo");
+
+    if (sidebar && sidebarLogo) {
+        sidebarLogo.addEventListener("click", () => {
+            sidebar.classList.toggle("collapsed");
+        });
+    }
 });
 
 

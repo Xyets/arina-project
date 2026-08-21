@@ -97,6 +97,49 @@ body {
 }
 
 /* ============================================================
+   📦 Sidebar collapse — сворачивание по клику на логотип
+============================================================ */
+
+.sidebar {
+    transition: width 0.25s ease;
+    overflow: hidden;
+}
+
+.sidebar.collapsed {
+    width: 90px; /* аккуратная компактная ширина */
+}
+
+/* скрываем текст */
+.sidebar.collapsed .label,
+.sidebar.collapsed .sidebar-title,
+.sidebar.collapsed .mode-title,
+.sidebar.collapsed .mode-label {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+/* центрируем логотип */
+.sidebar.collapsed .sidebar-logo {
+    justify-content: center;
+}
+
+/* уменьшаем отступы */
+.sidebar.collapsed {
+    padding: 25px 15px;
+}
+
+/* уменьшаем расстояние между элементами */
+.sidebar.collapsed {
+    gap: 20px;
+}
+
+/* иконки остаются */
+.sidebar .icon {
+    font-size: 26px;
+}
+
+/* ============================================================
    🔄 Переключатель режима в sidebar — как на скрине
 ============================================================ */
 .sidebar-mode {
@@ -701,7 +744,4 @@ input:checked + .slider:before {
     transition: 0.2s;
 }
 
-.flow-btn-small:hover {
-    background: rgba(255,255,255,0.5);
-}
 
