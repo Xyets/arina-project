@@ -411,3 +411,50 @@ function initLogButtons() {
             .catch(() => showToast("❌ Ошибка при очистке логов"));
     };
 }
+/* ============================================================
+   📜 RULES — SPA через WebSocket
+============================================================ */
+
+function sendRuleCommand(payload) {
+    socket.send(JSON.stringify(payload));
+}
+
+/* Удаление правила */
+function deleteRule(id) {
+    sendRuleCommand({
+        type: "delete_rule",
+        user: CURRENT_USER,
+        id
+    });
+
+    showToast("Правило удалено");
+    reloadInnerContent();
+}
+
+/* Удаление сегмента */
+function deleteSegment(ruleId, segIndex) {
+    sendRuleCommand({
+        type: "delete_segment",
+        user: CURRENT_USER,
+        rule_id: ruleId,
+        seg_index: segIndex
+    });
+
+    showToast("Сегмент удалён");
+    reloadInnerContent();
+}
+
+/* Открытие/закрытие модалок — глобально */
+function openRuleModal() {
+    document.getElementById("ruleModal").classList.add("show");
+}
+function closeRuleModal() {
+    document.getElementById("ruleModal").classList.remove("show");
+}
+
+function openSegmentModal() {
+    document.getElementById("segmentModal").classList.add("show");
+}
+function closeSegmentModal() {
+    document.getElementById("segmentModal").classList.remove("show");
+}

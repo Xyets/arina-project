@@ -1,756 +1,516 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Правила</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-      body {
-        font-family: 'Poppins', sans-serif;
-        background: linear-gradient(135deg, #fdfbfb, #ebedee);
-        color: #333;
-        margin: 0;
-        padding: 40px;
-      }
+{% extends "base.html" %}
+{% block content %}
 
-      h2 {
-        text-align: center;
-        margin-bottom: 30px;
-        color: #444;
-      }
+<div class="top-header">
+    <h1 class="hello">📜 Правила для {{ session["user"] }}</h1>
+</div>
 
-      /* --- Карточка правила --- */
-      .rule-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-
-      .rule-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-      }
-
-      .rule-header strong {
-        font-size: 16px;
-        color: #444;
-      }
-
-      /* --- Кнопки правил (милый старый стиль) --- */
-      .rule-actions button {
-        background: #a3d8f4;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 8px;
-        margin-left: 5px;
-        cursor: pointer;
-        color: white;
-        font-size: 14px;
-        transition: 0.3s;
-      }
-
-      .rule-actions button:hover {
-        background: #74c0e3;
-      }
-
-      .rule-actions .delete {
-        background: #f7a8b8;
-      }
-
-      .rule-actions .delete:hover {
-        background: #f28497;
-      }
-
-      /* --- Добавление правила --- */
-      .add-rule {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        padding: 20px;
-        margin-top: 30px;
-      }
-
-      input, select {
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        margin: 5px;
-      }
-
-      .add-rule button {
-        background: #a3d8f4;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 20px;
-        color: white;
-        cursor: pointer;
-        transition: 0.3s;
-      }
-
-      .add-rule button:hover {
-        background: #74c0e3;
-      }
-
-      a {
-        display: inline-block;
-        margin-top: 20px;
-        text-decoration: none;
-        color: #74c0e3;
-      }
-
-      /* --- Модальное окно (исправлено!) --- */
-      .modal {
-        position: fixed;
-        z-index: 1000;
-        left: 0; top: 0;
-        width: 100%; height: 100%;
-        background: rgba(0,0,0,0.4);
-        animation: fadeIn 0.3s;
-      }
-
-      .modal-content {
-        background: #fff;
-        margin: 10% auto;
-        padding: 20px;
-        border-radius: 12px;
-        width: 320px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-        animation: slideDown 0.4s;
-      }
-
-      .modal-content h3 {
-        margin-top: 0;
-      }
-
-      .close {
-        float: right;
-        font-size: 20px;
-        cursor: pointer;
-      }
-
-      /* --- Toast --- */
-      .toast {
-        visibility: hidden;
-        min-width: 220px;
-        margin-left: -110px;
-        background-color: #74c0e3;
-        color: white;
-        text-align: center;
-        border-radius: 8px;
-        padding: 12px;
-        position: fixed;
-        z-index: 2000;
-        left: 50%;
-        bottom: 30px;
-        font-size: 14px;
-        opacity: 0;
-        transition: opacity 0.5s, bottom 0.5s;
-      }
-
-      .toast.show {
-        visibility: visible;
-        opacity: 1;
-        bottom: 50px;
-      }
-
-      /* --- Сегменты колеса --- */
-      .segment-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 14px;
-        margin-bottom: 12px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-        border-left: 6px solid #74c0e3;
-        animation: fadeSegment 0.3s ease;
-      }
-
-      .segment-title {
-        font-size: 15px;
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 6px;
-      }
-
-      .segment-action {
-        font-size: 14px;
-        color: #666;
-        margin-bottom: 10px;
-      }
-
-      .segment-chance-bar {
-        height: 8px;
-        background: #e6e6e6;
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 10px;
-      }
-
-      .segment-chance-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #74c0e3, #a3d8f4);
-        width: 0%;
-        transition: width 0.4s ease;
-      }
-
-      .segment-delete-btn {
-        background: #f7a8b8;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        color: white;
-        font-size: 13px;
-      }
-
-      .segment-delete-btn:hover {
-        background: #f28497;
-      }
-
-      /* --- Анимации --- */
-      @keyframes fadeIn {
-        from {opacity: 0;}
-        to {opacity: 1;}
-      }
-
-      @keyframes slideDown {
-        from {transform: translateY(-50px); opacity: 0;}
-        to {transform: translateY(0); opacity: 1;}
-      }
-
-      @keyframes fadeSegment {
-        from {opacity: 0; transform: translateY(5px);}
-        to {opacity: 1; transform: translateY(0);}
-      }
-
-      /* --- Скрытие элементов --- */
-      .hidden {
-        display: none !important;
-      }
-      .rule-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-      }
-
-      .btn-icon {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-
-          background: #a3d8f4;
-          border: none;
-          padding: 6px 12px;
-          border-radius: 8px;
-          cursor: pointer;
-          color: white;
-          font-size: 18px;
-          transition: 0.3s;
-      }
-
-      .btn-icon:hover {
-          background: #74c0e3;
-      }
-
-      .btn-delete {
-          background: #f7a8b8;
-      }
-
-      .btn-delete:hover {
-          background: #f28497;
-      }
-      .add-segment-btn {
-          background: #a3d8f4;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 20px;
-          color: white;
-          cursor: pointer;
-          font-size: 14px;
-          transition: 0.3s;
-          margin-top: 10px;
-      }
-
-      .add-segment-btn:hover {
-          background: #74c0e3;
-      }
-      .btn-back {
-          background: #a3d8f4;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 20px;
-          color: white;
-          cursor: pointer;
-          font-size: 14px;
-          transition: 0.3s;
-          text-decoration: none;
-          display: inline-block;
-      }
-
-      .btn-back:hover {
-          background: #74c0e3;
-      }
-
-  </style>
-
-</head>
-<body>
-
-  <h2>📜 Правила для {{ session["user"] }}</h2>
-
-  <!-- Кнопка проверки вибрации -->
-  <div style="text-align:center; margin-bottom:20px;">
-    <button type="button" id="testVibrationBtn"
-      style="background:#a3d8f4; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer;">
-      🔊 Проверить вибрацию (default)
+<!-- Кнопка проверки вибрации (default) -->
+<div style="text-align:center; margin-bottom:20px;">
+    <button type="button" id="testVibrationBtn" class="flow-btn-small">
+        🔊 Проверить вибрацию (default)
     </button>
-  </div>
-
-  <!-- Toast уведомление -->
-  <div id="toast" class="toast"></div>
-
-  <script>
-      // --- Проверка вибрации ---
-      document.addEventListener("DOMContentLoaded", () => {
-          const btn = document.getElementById("testVibrationBtn");
-          if (!btn) return;
-
-          btn.addEventListener("click", () => {
-              fetch("/test_vibration", { method: "POST" })
-                  .then(r => r.json())
-                  .then(data => showToast(data.message || "Вибрация отправлена ✅"))
-                  .catch(() => showToast("Ошибка при отправке ❌"));
-          });
-      });
-
-      // --- Toast ---
-      function showToast(message) {
-          const toast = document.getElementById("toast");
-          toast.textContent = message;
-          toast.classList.add("show");
-          setTimeout(() => toast.classList.remove("show"), 3000);
-      }
-  </script>
-
-  <!-- Кнопка назад -->
-  <div class="center">
-      <a href="/" class="btn-back">⬅ Назад</a>
-  </div>
-
-
-  <!-- Список правил -->
-  {% for rule in rules %}
-  <div class="rule-card"
-      data-rule-id="{{ rule.id }}"
-      data-min="{{ rule.min }}"
-      data-max="{{ rule.max }}"
-      data-strength="{{ rule.strength }}"
-      data-duration="{{ rule.duration }}"
-      data-type="{{ rule.type }}"
-      data-action="{{ rule.action }}">
-
-      <div class="rule-header">
-          <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
-
-          <div class="rule-actions">
-
-              <button type="button"
-                      class="btn-icon testRuleBtn"
-                      data-index="{{ loop.index0 }}">
-                  🔊
-              </button>
-
-              <form method="POST" class="inline">
-                  <button type="submit"
-                          name="delete_rule"
-                          value="{{ rule.id }}"
-                          class="btn-icon btn-delete">
-                      ❌
-                  </button>
-              </form>
-
-              {% if rule.type == "wheel" %}
-                  <button type="button"
-                          class="btn-icon btn-folder"
-                          onclick="document.getElementById('wheel-{{ rule.id }}').classList.toggle('hidden')">
-                      📂
-                  </button>
-
-                  <button type="button"
-                          class="btn-icon btn-add"
-                          onclick="openSegmentModal('{{ rule.id }}')">
-                      ➕
-                  </button>
-
-              {% else %}
-                  <button type="button"
-                          class="btn-icon btn-edit"
-                          onclick="openRuleModal('{{ rule.id }}')">
-                      ✏️
-                  </button>
-              {% endif %}
-          </div>
-
-
-
-      </div>
-
-      {% if rule.type != "wheel" %}
-          <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
-      {% endif %}
-
-      <p>
-          Действие:
-          {% if rule.type == "wheel" %}
-              🎡 Колесо фортуны
-          {% elif rule.action %}
-              🎬 {{ rule.action }}
-          {% else %}
-              🔊 Вибрация
-          {% endif %}
-      </p>
-
-      {% if rule.type == "wheel" %}
-      <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
-
-          <h4>🎡 Сегменты колеса</h4>
-
-          {% if rule.segments %}
-              {% for seg in rule.segments %}
-              <div class="segment-card">
-
-                  <div class="segment-title">🎯 {{ seg.name }}</div>
-
-                  {% if seg.type == "vibration" %}
-                      <div class="segment-action">
-                          <strong>Вибрация:</strong>
-                          сила {{ seg.strength }}, время {{ seg.duration }}s
-                      </div>
-                  {% elif seg.type == "action" %}
-                      <div class="segment-action">
-                          <strong>Действие:</strong> {{ seg.action }}
-                      </div>
-                  {% elif seg.type == "retry" %}
-                      <div class="segment-action">
-                          🔁 Повтор колеса
-                      </div>
-                  {% endif %}
-
-                  <div class="segment-chance-bar">
-                      <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
-                  </div>
-
-                  <small class="segment-chance-text">Шанс: {{ seg.chance }}%</small>
-
-                  <form method="POST" class="inline">
-                      <input type="hidden" name="delete_segment" value="{{ rule.id }}">
-                      <input type="hidden" name="seg_index" value="{{ loop.index0 }}">
-                      <button type="submit" class="segment-delete-btn">Удалить сегмент</button>
-                  </form>
-
-              </div>
-              {% endfor %}
-          {% else %}
-              <p class="no-segments">Сегментов пока нет</p>
-          {% endif %}
-
-          <button type="button"
-                  onclick="openSegmentModal('{{ rule.id }}')"
-                  class="add-segment-btn">
-              ➕ Добавить сегмент
-          </button>
-
-
-
-      </div>
-      {% endif %}
-
-  </div>
-  {% endfor %}
-
-
-
-
-  <!-- Универсальная модалка редактирования правила -->
-  <div id="ruleModal" class="modal hidden">
-      <div class="modal-content">
-          <span class="close" onclick="closeRuleModal()">&times;</span>
-          <h3>✏️ Редактировать правило</h3>
-
-          <form method="POST" id="ruleEditForm">
-              <input type="hidden" name="edit_rule" id="edit_rule_id">
-
-              <label>Мин:</label>
-              <input type="number" name="min" id="edit_min" required>
-
-              <label>Макс:</label>
-              <input type="number" name="max" id="edit_max" required>
-
-              <div id="edit_strength_block">
-                  <label>Сила:</label>
-                  <input type="number" name="strength" id="edit_strength">
-              </div>
-
-              <div id="edit_duration_block">
-                  <label>Время (сек):</label>
-                  <input type="number" name="duration" id="edit_duration">
-              </div>
-
-              <label>Тип:</label>
-              <select name="action_type" id="edit_type" onchange="updateRuleEditFields()">
-                  <option value="vibration">Вибрация</option>
-                  <option value="custom">Действие</option>
-                  <option value="wheel">Колесо фортуны</option>
-              </select>
-
-              <div id="edit_action_block">
-                  <label>Действие:</label>
-                  <input type="text" name="action" id="edit_action">
-              </div>
-
-              <button type="submit" class="btn-main btn-large">💾 Сохранить</button>
-          </form>
-      </div>
-  </div>
-
-
-  <!-- Универсальная модалка добавления сегмента -->
-  <div id="segmentModal" class="modal hidden">
-      <div class="modal-content">
-          <span class="close" onclick="closeSegmentModal()">&times;</span>
-          <h3>➕ Новый сегмент</h3>
-
-          <form method="POST" id="segmentAddForm">
-              <input type="hidden" name="add_segment" id="segment_rule_id">
-
-              <label>Название:</label>
-              <input type="text" name="seg_name" required>
-
-              <label>Шанс (%):</label>
-              <input type="number" name="seg_chance" required>
-
-              <label>Тип:</label>
-              <select name="seg_type" id="seg_type" onchange="updateSegmentFields(this)">
-                  <option value="vibration">Вибрация</option>
-                  <option value="action">Действие</option>
-                  <option value="retry">Повтор</option>
-              </select>
-
-              <div class="seg-vibration-fields">
-                  <label>Сила:</label>
-                  <input type="number" name="seg_strength">
-
-                  <label>Время (сек):</label>
-                  <input type="number" name="seg_duration">
-              </div>
-
-              <div class="seg-action-fields hidden">
-                  <label>Действие:</label>
-                  <input type="text" name="seg_action">
-              </div>
-
-              <div class="seg-retry-fields hidden">
-                  <p style="color:#777;">Этот сегмент повторяет колесо.</p>
-              </div>
-
-              <button type="submit" class="btn-main btn-large">💾 Добавить</button>
-          </form>
-      </div>
-  </div>
-
-  <!-- Добавить новое правило -->
-  <div class="add-rule">
-      <h3>➕ Добавить новое правило</h3>
-
-      <form method="POST" id="addRuleForm">
-          <label>Мин:</label>
-          <input type="number" name="min" required>
-
-          <label>Макс:</label>
-          <input type="number" name="max" required>
-
-          <div id="new_strength_block">
-              <label>Сила:</label>
-              <input type="number" name="strength">
-          </div>
-
-          <div id="new_duration_block">
-              <label>Время (сек):</label>
-              <input type="number" name="duration">
-          </div>
-
-          <label>Тип:</label>
-          <select name="action_type" id="new_action_type" onchange="updateNewRuleFields()">
-              <option value="vibration">Вибрация</option>
-              <option value="custom">Действие</option>
-              <option value="wheel">Колесо фортуны</option>
-          </select>
-
-          <div id="new_action_block">
-              <label>Действие:</label>
-              <input type="text" name="action">
-          </div>
-
-          <button type="submit" name="add_rule" class="btn-main btn-large">Добавить</button>
-      </form>
-  </div>
+</div>
+
+<!-- Кнопка назад на главную -->
+<div style="text-align:center; margin-bottom:20px;">
+    <a href="{{ url_for('panel.beta_page') }}" class="flow-btn-small">
+        ⬅ Назад
+    </a>
+</div>
+
+<!-- Список правил -->
+<div class="events-card">
+    <div class="card-header">
+        <h2>Правила</h2>
+    </div>
+
+    {% for rule in rules %}
+    <div class="rule-card"
+         data-rule-id="{{ rule.id }}"
+         data-min="{{ rule.min }}"
+         data-max="{{ rule.max }}"
+         data-strength="{{ rule.strength }}"
+         data-duration="{{ rule.duration }}"
+         data-type="{{ rule.type }}"
+         data-action="{{ rule.action }}">
+
+        <div class="rule-header">
+            <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
+
+            <div class="rule-actions">
+                <!-- Тест правила -->
+                <button type="button"
+                        class="flow-btn-small testRuleBtn"
+                        data-index="{{ loop.index0 }}">
+                    🔊
+                </button>
+
+                <!-- Удалить правило (WebSocket) -->
+                <button type="button"
+                        class="flow-btn-small btn-delete"
+                        onclick="deleteRule('{{ rule.id }}')">
+                    ❌
+                </button>
+
+                {% if rule.type == "wheel" %}
+                    <!-- Показать/скрыть сегменты -->
+                    <button type="button"
+                            class="flow-btn-small"
+                            onclick="toggleWheel('{{ rule.id }}')">
+                        📂
+                    </button>
+
+                    <!-- Добавить сегмент -->
+                    <button type="button"
+                            class="flow-btn-small"
+                            onclick="openSegmentModal('{{ rule.id }}')">
+                        ➕
+                    </button>
+                {% else %}
+                    <!-- Редактировать правило -->
+                    <button type="button"
+                            class="flow-btn-small"
+                            onclick="openRuleModal('{{ rule.id }}')">
+                        ✏️
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if rule.type != "wheel" %}
+            <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
+        {% endif %}
+
+        <p>
+            Действие:
+            {% if rule.type == "wheel" %}
+                🎡 Колесо фортуны
+            {% elif rule.action %}
+                🎬 {{ rule.action }}
+            {% else %}
+                🔊 Вибрация
+            {% endif %}
+        </p>
+
+        {% if rule.type == "wheel" %}
+        <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
+
+            <h4>🎡 Сегменты колеса</h4>
+
+            {% if rule.segments %}
+                {% for seg in rule.segments %}
+                <div class="segment-card">
+                    <div class="segment-title">🎯 {{ seg.name }}</div>
+
+                    {% if seg.type == "vibration" %}
+                        <div class="segment-action">
+                            <strong>Вибрация:</strong>
+                            сила {{ seg.strength }}, время {{ seg.duration }}s
+                        </div>
+                    {% elif seg.type == "action" %}
+                        <div class="segment-action">
+                            <strong>Действие:</strong> {{ seg.action }}
+                        </div>
+                    {% elif seg.type == "retry" %}
+                        <div class="segment-action">
+                            🔁 Повтор колеса
+                        </div>
+                    {% endif %}
+
+                    <div class="segment-chance-bar">
+                        <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
+                    </div>
+
+                    <small class="segment-chance-text">Шанс: {{ seg.chance }}%</small>
+
+                    <!-- Удалить сегмент (WebSocket) -->
+                    <button type="button"
+                            class="flow-btn-small btn-delete"
+                            onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})">
+                        Удалить сегмент
+                    </button>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-segments">Сегментов пока нет</p>
+            {% endif %}
+
+            <button type="button"
+                    onclick="openSegmentModal('{{ rule.id }}')"
+                    class="flow-btn-small">
+                ➕ Добавить сегмент
+            </button>
+
+        </div>
+        {% endif %}
+
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Модалка редактирования правила -->
+<div id="ruleModal" class="modal">
+    <div class="modal-content">
+        <h3>✏️ Редактировать правило</h3>
+
+        <form id="ruleEditForm">
+            <input type="hidden" id="edit_rule_id">
+
+            <label>Мин:</label>
+            <input type="number" id="edit_min" required>
+
+            <label>Макс:</label>
+            <input type="number" id="edit_max" required>
+
+            <div id="edit_strength_block">
+                <label>Сила:</label>
+                <input type="number" id="edit_strength">
+            </div>
+
+            <div id="edit_duration_block">
+                <label>Время (сек):</label>
+                <input type="number" id="edit_duration">
+            </div>
+
+            <label>Тип:</label>
+            <select id="edit_type" onchange="updateRuleEditFields()">
+                <option value="vibration">Вибрация</option>
+                <option value="custom">Действие</option>
+                <option value="wheel">Колесо фортуны</option>
+            </select>
+
+            <div id="edit_action_block">
+                <label>Действие:</label>
+                <input type="text" id="edit_action">
+            </div>
+
+            <button type="submit" class="flow-btn-small">💾 Сохранить</button>
+            <button type="button" class="flow-btn-small" onclick="closeRuleModal()">Закрыть</button>
+        </form>
+    </div>
+</div>
+
+<!-- Модалка добавления сегмента -->
+<div id="segmentModal" class="modal">
+    <div class="modal-content">
+        <h3>➕ Новый сегмент</h3>
+
+        <form id="segmentAddForm">
+            <input type="hidden" id="segment_rule_id">
+
+            <label>Название:</label>
+            <input type="text" id="seg_name" required>
+
+            <label>Шанс (%):</label>
+            <input type="number" id="seg_chance" required>
+
+            <label>Тип:</label>
+            <select id="seg_type" onchange="updateSegmentFields(this)">
+                <option value="vibration">Вибрация</option>
+                <option value="action">Действие</option>
+                <option value="retry">Повтор</option>
+            </select>
+
+            <div class="seg-vibration-fields">
+                <label>Сила:</label>
+                <input type="number" id="seg_strength">
+
+                <label>Время (сек):</label>
+                <input type="number" id="seg_duration">
+            </div>
+
+            <div class="seg-action-fields hidden">
+                <label>Действие:</label>
+                <input type="text" id="seg_action">
+            </div>
+
+            <div class="seg-retry-fields hidden">
+                <p style="color:#777;">Этот сегмент повторяет колесо.</p>
+            </div>
+
+            <button type="submit" class="flow-btn-small">💾 Добавить</button>
+            <button type="button" class="flow-btn-small" onclick="closeSegmentModal()">Закрыть</button>
+        </form>
+    </div>
+</div>
+
+<!-- Блок добавления нового правила -->
+<div class="events-card" style="margin-top:20px;">
+    <h3>➕ Добавить новое правило</h3>
+
+    <form id="addRuleForm">
+        <label>Мин:</label>
+        <input type="number" id="new_min" required>
+
+        <label>Макс:</label>
+        <input type="number" id="new_max" required>
+
+        <div id="new_strength_block">
+            <label>Сила:</label>
+            <input type="number" id="new_strength">
+        </div>
+
+        <div id="new_duration_block">
+            <label>Время (сек):</label>
+            <input type="number" id="new_duration">
+        </div>
+
+        <label>Тип:</label>
+        <select id="new_action_type" onchange="updateNewRuleFields()">
+            <option value="vibration">Вибрация</option>
+            <option value="custom">Действие</option>
+            <option value="wheel">Колесо фортуны</option>
+        </select>
+
+        <div id="new_action_block">
+            <label>Действие:</label>
+            <input type="text" id="new_action">
+        </div>
+
+        <button type="submit" class="flow-btn-small">Добавить</button>
+    </form>
+</div>
 
 <script>
-document.querySelectorAll('.segment-chance-fill').forEach(el => {
-    el.style.width = el.dataset.chance + '%';
+/* ---------------------- TEST VIBRATION ---------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("testVibrationBtn");
+    if (btn) {
+        btn.addEventListener("click", () => {
+            fetch("/test_vibration", { method: "POST" })
+                .then(r => r.json())
+                .then(data => showToast(data.message || "Вибрация отправлена ✅"))
+                .catch(() => showToast("Ошибка при проверке ❌"));
+        });
+    }
+
+    // тест правила (осталось через fetch, без перезагрузки)
+    document.querySelectorAll(".testRuleBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const index = btn.dataset.index;
+
+            fetch(`/test_rule/${index}`, { method: "POST" })
+                .then(r => r.json())
+                .then(data => {
+                    showToast(data.message || `Правило ${index} проверено`);
+                })
+                .catch(() => showToast("Ошибка при проверке ❌"));
+        });
+    });
+
+    // прогресс шансов сегментов
+    document.querySelectorAll('.segment-chance-fill').forEach(el => {
+        el.style.width = el.dataset.chance + '%';
+    });
+
+    // обработчики форм
+    initRuleForms();
+});
+
+/* ---------------------- TOGGLE WHEEL ---------------------- */
+function toggleWheel(ruleId) {
+    const block = document.getElementById(`wheel-${ruleId}`);
+    if (block) block.classList.toggle("hidden");
+}
+
+/* ---------------------- RULE MODAL ---------------------- */
+function openRuleModal(id) {
+    const modal = document.getElementById("ruleModal");
+    modal.classList.add("show");
+
+    document.getElementById("edit_rule_id").value = id;
+
+    const card = document.querySelector(`[data-rule-id="${id}"]`);
+    document.getElementById("edit_min").value = card.dataset.min;
+    document.getElementById("edit_max").value = card.dataset.max;
+    document.getElementById("edit_strength").value = card.dataset.strength;
+    document.getElementById("edit_duration").value = card.dataset.duration;
+    document.getElementById("edit_type").value = card.dataset.type;
+    document.getElementById("edit_action").value = card.dataset.action || "";
+
+    updateRuleEditFields();
+}
+
+function closeRuleModal() {
+    document.getElementById("ruleModal").classList.remove("show");
+}
+
+/* ---------------------- SEGMENT MODAL ---------------------- */
+function openSegmentModal(ruleId) {
+    const modal = document.getElementById("segmentModal");
+    modal.classList.add("show");
+    document.getElementById("segment_rule_id").value = ruleId;
+}
+
+function closeSegmentModal() {
+    document.getElementById("segmentModal").classList.remove("show");
+}
+
+/* ---------------------- UPDATE FIELDS (EDIT RULE) ---------------------- */
+function updateRuleEditFields() {
+    const type = document.getElementById("edit_type").value;
+
+    const strength = document.getElementById("edit_strength_block");
+    const duration = document.getElementById("edit_duration_block");
+    const action = document.getElementById("edit_action_block");
+
+    strength.classList.add("hidden");
+    duration.classList.add("hidden");
+    action.classList.add("hidden");
+
+    if (type === "vibration") {
+        strength.classList.remove("hidden");
+        duration.classList.remove("hidden");
+    }
+
+    if (type === "custom") {
+        action.classList.remove("hidden");
+    }
+}
+
+/* ---------------------- UPDATE FIELDS (NEW RULE) ---------------------- */
+function updateNewRuleFields() {
+    const type = document.getElementById("new_action_type").value;
+
+    const strength = document.getElementById("new_strength_block");
+    const duration = document.getElementById("new_duration_block");
+    const action = document.getElementById("new_action_block");
+
+    strength.classList.add("hidden");
+    duration.classList.add("hidden");
+    action.classList.add("hidden");
+
+    if (type === "vibration") {
+        strength.classList.remove("hidden");
+        duration.classList.remove("hidden");
+    }
+
+    if (type === "custom") {
+        action.classList.remove("hidden");
+    }
+}
+
+/* ---------------------- SEGMENT FIELDS ---------------------- */
+function updateSegmentFields(selectEl) {
+    const modal = selectEl.closest(".modal-content");
+
+    modal.querySelector(".seg-vibration-fields").classList.add("hidden");
+    modal.querySelector(".seg-action-fields").classList.add("hidden");
+    modal.querySelector(".seg-retry-fields").classList.add("hidden");
+
+    if (selectEl.value === "vibration")
+        modal.querySelector(".seg-vibration-fields").classList.remove("hidden");
+
+    if (selectEl.value === "action")
+        modal.querySelector(".seg-action-fields").classList.remove("hidden");
+
+    if (selectEl.value === "retry")
+        modal.querySelector(".seg-retry-fields").classList.remove("hidden");
+}
+
+/* ---------------------- RULES VIA WEBSOCKET (SPA) ---------------------- */
+function initRuleForms() {
+    const addForm = document.getElementById("addRuleForm");
+    if (addForm) {
+        addForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "add_rule",
+                user: CURRENT_USER,
+                min: Number(document.getElementById("new_min").value),
+                max: Number(document.getElementById("new_max").value),
+                strength: Number(document.getElementById("new_strength").value || 0),
+                duration: Number(document.getElementById("new_duration").value || 0),
+                action_type: document.getElementById("new_action_type").value,
+                action: document.getElementById("new_action").value || ""
+            };
+
+            socket.send(JSON.stringify(payload));
+            showToast("Правило добавлено ✅");
+            reloadInnerContent();
+        });
+    }
+
+    const editForm = document.getElementById("ruleEditForm");
+    if (editForm) {
+        editForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "edit_rule",
+                user: CURRENT_USER,
+                id: document.getElementById("edit_rule_id").value,
+                min: Number(document.getElementById("edit_min").value),
+                max: Number(document.getElementById("edit_max").value),
+                strength: Number(document.getElementById("edit_strength").value || 0),
+                duration: Number(document.getElementById("edit_duration").value || 0),
+                action_type: document.getElementById("edit_type").value,
+                action: document.getElementById("edit_action").value || ""
+            };
+
+            socket.send(JSON.stringify(payload));
+            showToast("Правило обновлено ✅");
+            closeRuleModal();
+            reloadInnerContent();
+        });
+    }
+
+    const segForm = document.getElementById("segmentAddForm");
+    if (segForm) {
+        segForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "add_segment",
+                user: CURRENT_USER,
+                rule_id: document.getElementById("segment_rule_id").value,
+                name: document.getElementById("seg_name").value,
+                chance: Number(document.getElementById("seg_chance").value),
+                seg_type: document.getElementById("seg_type").value,
+                strength: Number(document.getElementById("seg_strength").value || 0),
+                duration: Number(document.getElementById("seg_duration").value || 0),
+                action: document.getElementById("seg_action").value || ""
+            };
+
+            socket.send(JSON.stringify(payload));
+            showToast("Сегмент добавлен ✅");
+            closeSegmentModal();
+            reloadInnerContent();
+        });
+    }
+}
+
+function deleteRule(id) {
+    const payload = {
+        type: "delete_rule",
+        user: CURRENT_USER,
+        id
+    };
+    socket.send(JSON.stringify(payload));
+    showToast("Правило удалено ✅");
+    reloadInnerContent();
+}
+
+function deleteSegment(ruleId, segIndex) {
+    const payload = {
+        type: "delete_segment",
+        user: CURRENT_USER,
+        rule_id: ruleId,
+        seg_index: segIndex
+    };
+    socket.send(JSON.stringify(payload));
+    showToast("Сегмент удалён ✅");
+    reloadInnerContent();
+}
+
+/* ---------------------- CLOSE MODAL ON CLICK OUTSIDE ---------------------- */
+window.addEventListener("click", event => {
+    document.querySelectorAll(".modal").forEach(m => {
+        if (event.target === m) m.classList.remove("show");
+    });
 });
 </script>
 
-
-<script>
-  /* ---------------------- TEST VIBRATION ---------------------- */
-  document.addEventListener("DOMContentLoaded", () => {
-      const btn = document.getElementById("testVibrationBtn");
-      if (btn) {
-          btn.addEventListener("click", () => {
-              fetch("/test_vibration", { method: "POST" })
-                  .then(r => r.json())
-                  .then(data => showToast(data.message || "Вибрация отправлена ✅"))
-                  .catch(() => showToast("Ошибка при проверке ❌"));
-          });
-      }
-  });
-
-  /* ---------------------- TEST RULE ---------------------- */
-  document.querySelectorAll(".testRuleBtn").forEach(btn => {
-      btn.addEventListener("click", () => {
-          const index = btn.dataset.index;
-
-          fetch(`/test_rule/${index}`, { method: "POST" })
-              .then(r => r.json())
-              .then(data => {
-                  showToast(data.message || `Правило ${index} проверено`);
-
-                  if (data.wheel_result && window.ws) {
-                      ws.send(JSON.stringify({
-                          type: "wheel_result",
-                          profile: data.wheel_result.profile,
-                          segment: data.wheel_result.segment
-                      }));
-                  }
-              })
-              .catch(() => showToast("Ошибка при проверке ❌"));
-      });
-  });
-
-  /* ---------------------- TOAST ---------------------- */
-  function showToast(message) {
-      const toast = document.getElementById("toast");
-      toast.textContent = message;
-      toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 3000);
-  }
-
-  /* ---------------------- RULE MODAL ---------------------- */
-  function openRuleModal(id) {
-      const modal = document.getElementById("ruleModal");
-      modal.classList.remove("hidden");
-
-      document.getElementById("edit_rule_id").value = id;
-
-      const card = document.querySelector(`[data-rule-id="${id}"]`);
-      document.getElementById("edit_min").value = card.dataset.min;
-      document.getElementById("edit_max").value = card.dataset.max;
-      document.getElementById("edit_strength").value = card.dataset.strength;
-      document.getElementById("edit_duration").value = card.dataset.duration;
-      document.getElementById("edit_type").value = card.dataset.type;
-      document.getElementById("edit_action").value = card.dataset.action || "";
-
-      updateRuleEditFields();
-  }
-
-  function closeRuleModal() {
-      document.getElementById("ruleModal").classList.add("hidden");
-  }
-
-  /* ---------------------- SEGMENT MODAL ---------------------- */
-  function openSegmentModal(ruleId) {
-      const modal = document.getElementById("segmentModal");
-      modal.classList.remove("hidden");
-      document.getElementById("segment_rule_id").value = ruleId;
-  }
-
-  function closeSegmentModal() {
-      document.getElementById("segmentModal").classList.add("hidden");
-  }
-
-  /* ---------------------- UPDATE FIELDS (EDIT RULE) ---------------------- */
-  function updateRuleEditFields() {
-      const type = document.getElementById("edit_type").value;
-
-      const strength = document.getElementById("edit_strength_block");
-      const duration = document.getElementById("edit_duration_block");
-      const action = document.getElementById("edit_action_block");
-
-      strength.classList.add("hidden");
-      duration.classList.add("hidden");
-      action.classList.add("hidden");
-
-      if (type === "vibration") {
-          strength.classList.remove("hidden");
-          duration.classList.remove("hidden");
-      }
-
-      if (type === "custom") {
-          action.classList.remove("hidden");
-      }
-  }
-
-  /* ---------------------- UPDATE FIELDS (NEW RULE) ---------------------- */
-  function updateNewRuleFields() {
-      const type = document.getElementById("new_action_type").value;
-
-      const strength = document.getElementById("new_strength_block");
-      const duration = document.getElementById("new_duration_block");
-      const action = document.getElementById("new_action_block");
-
-      strength.classList.add("hidden");
-      duration.classList.add("hidden");
-      action.classList.add("hidden");
-
-      if (type === "vibration") {
-          strength.classList.remove("hidden");
-          duration.classList.remove("hidden");
-      }
-
-      if (type === "custom") {
-          action.classList.remove("hidden");
-      }
-  }
-
-  /* ---------------------- SEGMENT FIELDS ---------------------- */
-  function updateSegmentFields(selectEl) {
-      const modal = selectEl.closest(".modal-content");
-
-      modal.querySelector(".seg-vibration-fields").classList.add("hidden");
-      modal.querySelector(".seg-action-fields").classList.add("hidden");
-      modal.querySelector(".seg-retry-fields").classList.add("hidden");
-
-      if (selectEl.value === "vibration")
-          modal.querySelector(".seg-vibration-fields").classList.remove("hidden");
-
-      if (selectEl.value === "action")
-          modal.querySelector(".seg-action-fields").classList.remove("hidden");
-
-      if (selectEl.value === "retry")
-          modal.querySelector(".seg-retry-fields").classList.remove("hidden");
-  }
-
-  /* ---------------------- CLOSE MODAL ON CLICK OUTSIDE ---------------------- */
-  window.addEventListener("click", event => {
-      document.querySelectorAll(".modal").forEach(m => {
-          if (event.target === m) m.classList.add("hidden");
-      });
-  });
-</script>
-
-</body>
-</html>
+{% endblock %}
