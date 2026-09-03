@@ -8,42 +8,47 @@
 
         <form id="addRuleForm" class="add-rule-form">
 
-            <div class="form-row">
-                <label>Мин:</label>
-                <input type="number" id="new_min" required>
-            </div>
+            <div class="form-grid">
 
-            <div class="form-row">
-                <label>Макс:</label>
-                <input type="number" id="new_max" required>
-            </div>
+                <div class="form-cell">
+                    <label>Мин:</label>
+                    <input type="number" id="new_min" required>
+                </div>
 
-            <div class="form-row" id="new_strength_block">
-                <label>Сила:</label>
-                <input type="number" id="new_strength">
-            </div>
+                <div class="form-cell">
+                    <label>Макс:</label>
+                    <input type="number" id="new_max" required>
+                </div>
 
-            <div class="form-row" id="new_duration_block">
-                <label>Время:</label>
-                <input type="number" id="new_duration">
-            </div>
+                <div class="form-cell" id="new_strength_block">
+                    <label>Сила:</label>
+                    <input type="number" id="new_strength">
+                </div>
 
-            <div class="form-row">
-                <label>Тип:</label>
-                <select id="new_action_type" onchange="updateNewRuleFields()">
-                    <option value="vibration">Вибрация</option>
-                    <option value="custom">Действие</option>
-                    <option value="wheel">Колесо фортуны</option>
-                </select>
-            </div>
+                <div class="form-cell" id="new_duration_block">
+                    <label>Время:</label>
+                    <input type="number" id="new_duration">
+                </div>
 
-            <div class="form-row" id="new_action_block">
-                <label>Действие:</label>
-                <input type="text" id="new_action">
+                <div class="form-cell">
+                    <label>Тип:</label>
+                    <select id="new_action_type" onchange="updateNewRuleFields()">
+                        <option value="vibration">Вибрация</option>
+                        <option value="custom">Действие</option>
+                        <option value="wheel">Колесо фортуны</option>
+                    </select>
+                </div>
+
+                <div class="form-cell" id="new_action_block">
+                    <label>Действие:</label>
+                    <input type="text" id="new_action">
+                </div>
+
             </div>
 
             <button type="submit" class="btn-primary">Добавить</button>
         </form>
+
     </div>
 
 
