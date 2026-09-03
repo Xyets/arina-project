@@ -5,21 +5,18 @@
     <h1 class="hello">📜 Правила для {{ session["user"] }}</h1>
 </div>
 
-<!-- Кнопка проверки вибрации (default) -->
 <div style="text-align:center; margin-bottom:20px;">
     <button type="button" id="testVibrationBtn" class="flow-btn-small">
         🔊 Проверить вибрацию (default)
     </button>
 </div>
 
-<!-- Кнопка назад на главную -->
 <div style="text-align:center; margin-bottom:20px;">
     <a href="{{ url_for('panel.beta_page') }}" class="flow-btn-small">
         ⬅ Назад
     </a>
 </div>
 
-<!-- Список правил -->
 <div class="events-card">
     <div class="card-header">
         <h2>Правила</h2>
@@ -39,14 +36,12 @@
             <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
 
             <div class="rule-actions">
-                <!-- Тест правила -->
                 <button type="button"
                         class="flow-btn-small testRuleBtn"
                         data-index="{{ loop.index0 }}">
                     🔊
                 </button>
 
-                <!-- Удалить правило (WebSocket) -->
                 <button type="button"
                         class="flow-btn-small btn-delete"
                         onclick="deleteRule('{{ rule.id }}')">
@@ -54,21 +49,18 @@
                 </button>
 
                 {% if rule.type == "wheel" %}
-                    <!-- Показать/скрыть сегменты -->
                     <button type="button"
                             class="flow-btn-small"
                             onclick="toggleWheel('{{ rule.id }}')">
                         📂
                     </button>
 
-                    <!-- Добавить сегмент -->
                     <button type="button"
                             class="flow-btn-small"
                             onclick="openSegmentModal('{{ rule.id }}')">
                         ➕
                     </button>
                 {% else %}
-                    <!-- Редактировать правило -->
                     <button type="button"
                             class="flow-btn-small"
                             onclick="openRuleModal('{{ rule.id }}')">
@@ -124,7 +116,6 @@
 
                     <small class="segment-chance-text">Шанс: {{ seg.chance }}%</small>
 
-                    <!-- Удалить сегмент (WebSocket) -->
                     <button type="button"
                             class="flow-btn-small btn-delete"
                             onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})">
@@ -149,7 +140,6 @@
     {% endfor %}
 </div>
 
-<!-- Модалка редактирования правила -->
 <div id="ruleModal" class="modal">
     <div class="modal-content">
         <h3>✏️ Редактировать правило</h3>
@@ -191,7 +181,6 @@
     </div>
 </div>
 
-<!-- Модалка добавления сегмента -->
 <div id="segmentModal" class="modal">
     <div class="modal-content">
         <h3>➕ Новый сегмент</h3>
@@ -235,7 +224,6 @@
     </div>
 </div>
 
-<!-- Блок добавления нового правила -->
 <div class="events-card" style="margin-top:20px;">
     <h3>➕ Добавить новое правило</h3>
 
@@ -271,3 +259,5 @@
         <button type="submit" class="flow-btn-small">Добавить</button>
     </form>
 </div>
+
+{% endblock %}
