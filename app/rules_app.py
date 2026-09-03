@@ -220,6 +220,8 @@ def rules_page():
     return render_template(
         "rules_beta.html",
         rules=rules["rules"],
-        profile_key=profile_key
+        profile_key=profile_key,
+        goal=profile.get("goal", {"title": "", "current": 0, "target": 0})
     )
+
 
