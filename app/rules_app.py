@@ -110,9 +110,8 @@ def rules_page():
     if not profile:
         return "Профиль не найден", 404
 
-    rules_file = profile_key   # путь определяется по ключу профиля
+    rules_file = profile_key
     rules = load_rules(profile_key)
-
 
     # -------------------- ADD RULE --------------------
     if request.method == "POST" and "add_rule" in request.form:
@@ -217,12 +216,17 @@ def rules_page():
         save_rules(rules_file, rules)
         return redirect(url_for("rules.rules_page"))
 
+    # -------------------- RENDER PAGE --------------------
+
+    # goal stored inside sqlite3.Row → must access via key
+    goal = profile["goal"] if "goal" in profile.keys() else {"title": "", "current": 0, "target": 0}
+
     return render_template(
         "rules_beta.html",
         rules=rules["rules"],
+        user=user,
+        mode=mode,
+        current_profile=profile_key,
         profile_key=profile_key,
-        goal=profile["goal"] if "goal" in profile.keys() else {"title": "", "current": 0, "target": 0}
+        goal=goal
     )
-
-
-
