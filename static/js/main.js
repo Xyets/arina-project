@@ -615,21 +615,29 @@ function initRulesPage() {
         const strength = document.getElementById("edit_strength_block");
         const duration = document.getElementById("edit_duration_block");
         const action = document.getElementById("edit_action_block");
+        const typeBlock = document.getElementById("edit_type_display").parentElement;
 
+        // Скрываем всё
         strength.classList.add("hidden");
         duration.classList.add("hidden");
         action.classList.add("hidden");
+        typeBlock.classList.add("hidden");
 
+        // ВИБРАЦИЯ → только сила + время
         if (type === "vibration") {
             strength.classList.remove("hidden");
             duration.classList.remove("hidden");
         }
 
-        if (type !== "custom") {
-            action.classList.add("hidden");
+        // ДЕЙСТВИЕ → только действие
+        if (type === "custom") {
+            action.classList.remove("hidden");
         }
 
+        // КОЛЕСО → ничего кроме мин/макс
+        // (мин/макс всегда видны, они не скрываются)
     };
+
 
 
     window.updateNewRuleFields = () => {
