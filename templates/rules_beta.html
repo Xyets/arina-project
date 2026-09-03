@@ -177,13 +177,12 @@
 
             <div class="modal-grid">
 
-                <!-- Тип (только отображение) -->
-                <div class="modal-cell">
+                <!-- Тип (скрыт по умолчанию) -->
+                <div class="modal-cell hidden">
                     <label>Тип:</label>
                     <div class="readonly-type" id="edit_type_display"></div>
                     <input type="hidden" id="edit_type">
                 </div>
-
 
                 <div class="modal-cell">
                     <label>Мин:</label>
@@ -195,22 +194,26 @@
                     <input type="number" id="edit_max">
                 </div>
 
-                <div class="modal-cell" id="edit_strength_block">
+                <!-- Сила (скрыта по умолчанию) -->
+                <div class="modal-cell hidden" id="edit_strength_block">
                     <label>Сила:</label>
                     <input type="number" id="edit_strength">
                 </div>
 
-                <div class="modal-cell" id="edit_duration_block">
+                <!-- Время (скрыто по умолчанию) -->
+                <div class="modal-cell hidden" id="edit_duration_block">
                     <label>Время:</label>
                     <input type="number" id="edit_duration">
                 </div>
 
-                <div class="modal-cell" id="edit_action_block">
+                <!-- Действие (скрыто по умолчанию) -->
+                <div class="modal-cell hidden" id="edit_action_block">
                     <label>Действие:</label>
                     <input type="text" id="edit_action">
                 </div>
 
             </div>
+
 
             <button class="btn-primary modal-save-btn" type="submit">
                 💾 Сохранить
