@@ -126,9 +126,23 @@ function initHandlers() {
     initLogButtons();
     initQueueButtons();
     initGoalModal();
+    initSidebarNavigation();   // ← ДОБАВИТЬ ЭТО
 }
 
 window.addEventListener("load", initHandlers);
+
+
+function initSidebarNavigation() {
+    const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
+
+    links.forEach(link => {
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const url = link.getAttribute("href");
+            navigateSPA(url);
+        });
+    });
+}
 
 /* ============================================================
    📦 Sidebar collapse
@@ -167,9 +181,19 @@ function initModeSwitch() {
         .then(data => {
             if (data.status === "ok") {
                 CURRENT_MODE = newMode;
+                CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
+
+                // 🔥 ВСТАВИТЬ СЮДА — ПЕРЕКЛЮЧАЕМ WS НА НОВЫЙ ПРОФИЛЬ
+                socket.send(JSON.stringify({
+                    type: "hello",
+                    role: "panel",
+                    profile_key: CURRENT_PROFILE
+                }));
+
                 reloadInnerContent();
                 showToast(`Режим переключен: ${newMode}`);
             }
+
         });
     };
 }
@@ -183,7 +207,7 @@ function reloadInnerContent() {
 
     container.style.opacity = "0";
 
-    fetch(window.location.pathname)
+    fetch(window.location.pathname + "?mode=" + CURRENT_MODE)
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -200,6 +224,9 @@ function reloadInnerContent() {
             initHandlers();
             loadLogs();
             updateQueueUI();
+
+            // 🔥 Сохраняем таймеры вибрации при SPA-переходах
+            const timers = document.querySelectorAll(".vibration-timer");
         });
 }
 
@@ -271,6 +298,10 @@ function initQueueButtons() {
 ============================================================ */
 function startVibrationTimer(duration, strength) {
     const container = document.getElementById("vibrationTimersContainer");
+    if (!container) {
+        console.warn("Нет контейнера для таймера вибрации");
+        return;
+    }
     const box = document.createElement("div");
     box.className = "vibration-timer";
 
@@ -457,4 +488,31 @@ function openSegmentModal() {
 }
 function closeSegmentModal() {
     document.getElementById("segmentModal").classList.remove("show");
+}
+function navigateSPA(url) {
+    const container = document.querySelector(".content-inner");
+    if (!container) {
+        window.location.href = url; // fallback
+        return;
+    }
+
+    container.style.opacity = "0";
+
+    fetch(url)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+
+            container.innerHTML = newContent;
+
+            setTimeout(() => {
+                container.style.opacity = "1";
+            }, 50);
+
+            initHandlers();
+            loadLogs();
+            updateQueueUI();
+        });
 }
