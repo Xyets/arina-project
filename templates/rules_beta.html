@@ -3,60 +3,59 @@
 
 <div class="rules-page">
 
-    <!-- Список правил + форма -->
+    <div class="add-rule-card">
+        <h3>➕ Добавить новое правило</h3>
+
+        <form id="addRuleForm" class="add-rule-form">
+
+            <div class="form-row">
+                <label>Мин:</label>
+                <input type="number" id="new_min" required>
+            </div>
+
+            <div class="form-row">
+                <label>Макс:</label>
+                <input type="number" id="new_max" required>
+            </div>
+
+            <div class="form-row" id="new_strength_block">
+                <label>Сила:</label>
+                <input type="number" id="new_strength">
+            </div>
+
+            <div class="form-row" id="new_duration_block">
+                <label>Время:</label>
+                <input type="number" id="new_duration">
+            </div>
+
+            <div class="form-row">
+                <label>Тип:</label>
+                <select id="new_action_type" onchange="updateNewRuleFields()">
+                    <option value="vibration">Вибрация</option>
+                    <option value="custom">Действие</option>
+                    <option value="wheel">Колесо фортуны</option>
+                </select>
+            </div>
+
+            <div class="form-row" id="new_action_block">
+                <label>Действие:</label>
+                <input type="text" id="new_action">
+            </div>
+
+            <button type="submit" class="btn-primary">Добавить</button>
+        </form>
+    </div>
+
+
+    <!-- Список правил -->
     <div class="rules-list-card">
         <div class="rules-list-header">
             <h2>Правила</h2>
         </div>
 
-        <!-- ЕДИНАЯ СЕТКА: форма + правила -->
+        <!-- КОМПАКТНАЯ СЕТКА -->
         <div class="rules-grid">
 
-            <!-- Форма как карточка -->
-            <div class="rule-card add-rule-card">
-                <h3>➕ Добавить правило</h3>
-
-                <form id="addRuleForm" class="add-rule-form">
-
-                    <div class="form-row">
-                        <label>Мин:</label>
-                        <input type="number" id="new_min" required>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Макс:</label>
-                        <input type="number" id="new_max" required>
-                    </div>
-
-                    <div class="form-row" id="new_strength_block">
-                        <label>Сила:</label>
-                        <input type="number" id="new_strength">
-                    </div>
-
-                    <div class="form-row" id="new_duration_block">
-                        <label>Время:</label>
-                        <input type="number" id="new_duration">
-                    </div>
-
-                    <div class="form-row">
-                        <label>Тип:</label>
-                        <select id="new_action_type" onchange="updateNewRuleFields()">
-                            <option value="vibration">Вибрация</option>
-                            <option value="custom">Действие</option>
-                            <option value="wheel">Колесо фортуны</option>
-                        </select>
-                    </div>
-
-                    <div class="form-row" id="new_action_block">
-                        <label>Действие:</label>
-                        <input type="text" id="new_action">
-                    </div>
-
-                    <button type="submit" class="btn-primary">Добавить</button>
-                </form>
-            </div>
-
-            <!-- Правила -->
             {% for rule in rules %}
             <div class="rule-card"
                 data-rule-id="{{ rule.id }}"
@@ -67,6 +66,7 @@
                 data-type="{{ rule.type }}"
                 data-action="{{ rule.action }}">
 
+                <!-- Верхняя часть карточки -->
                 <div class="rule-range">
                     Диапазон: {{ rule.min }} – {{ rule.max }}
                 </div>
@@ -87,6 +87,7 @@
                     {% endif %}
                 </div>
 
+                <!-- Сегменты колеса -->
                 {% if rule.type == "wheel" %}
                 <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
                     <h4>🎡 Сегменты колеса</h4>
@@ -126,6 +127,7 @@
                 </div>
                 {% endif %}
 
+                <!-- Кнопки действий — теперь ВНИЗУ -->
                 <div class="rule-actions-bottom">
                     <button class="btn-icon testRuleBtn" data-index="{{ loop.index0 }}">🔊</button>
                     <button class="btn-icon" onclick="openRuleModal('{{ rule.id }}')">✏️</button>
@@ -138,10 +140,12 @@
                 </div>
 
             </div>
+
             {% endfor %}
 
         </div> <!-- /rules-grid -->
     </div> <!-- /rules-list-card -->
+
 
 </div>
 
