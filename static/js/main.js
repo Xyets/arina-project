@@ -653,8 +653,9 @@ function initRulesPage() {
         }
     };
 
-    // Запуск при загрузке страницы
+    // Запуск при загрузке
     document.addEventListener("DOMContentLoaded", updateNewRuleFields);
+
 
 
     window.updateSegmentFields = (selectEl) => {

@@ -8,21 +8,18 @@
 
         <form id="addRuleForm" class="add-rule-form">
 
+            <!-- Тип по центру -->
+            <div class="form-type">
+                <label>Тип:</label>
+                <select id="new_action_type" onchange="updateNewRuleFields()">
+                    <option value="vibration">Вибрация</option>
+                    <option value="custom">Действие</option>
+                    <option value="wheel">Колесо фортуны</option>
+                </select>
+            </div>
+
+            <!-- Две колонки -->
             <div class="form-grid">
-
-                <div class="form-cell">
-                    <label>Тип:</label>
-                    <select id="new_action_type" onchange="updateNewRuleFields()">
-                        <option value="vibration">Вибрация</option>
-                        <option value="custom">Действие</option>
-                        <option value="wheel">Колесо фортуны</option>
-                    </select>
-                </div>
-
-                <div class="form-cell" id="cell_action">
-                    <label>Действие:</label>
-                    <input type="text" id="new_action">
-                </div>
 
                 <div class="form-cell" id="cell_min">
                     <label>Мин:</label>
@@ -44,11 +41,15 @@
                     <input type="number" id="new_duration">
                 </div>
 
+                <div class="form-cell" id="cell_action">
+                    <label>Действие:</label>
+                    <input type="text" id="new_action">
+                </div>
+
             </div>
 
             <button type="submit" class="btn-primary">Добавить</button>
         </form>
-
 
     </div>
 
