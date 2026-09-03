@@ -210,7 +210,7 @@
 }
 
 /* ============================================================
-   ➕ Добавить новое правило — VIP‑стиль
+   ➕ Добавить новое правило — компактная VIP‑карточка
 ============================================================ */
 .add-rule-card {
     background: linear-gradient(
@@ -218,42 +218,55 @@
         rgba(255,255,255,0.75),
         rgba(240,240,255,0.55)
     );
-    backdrop-filter: blur(22px);
+    backdrop-filter: blur(18px);
 
-    padding: 30px;
-    border-radius: 26px;
-    width: 420px;
+    padding: 22px;
+    border-radius: 22px;
 
-    margin: 0 auto; /* ← центрируем */
+    width: 100%;
+    max-width: 360px; /* ← как карточка правила */
+    margin: 0 auto;   /* ← центрируем */
+
     box-shadow:
-        0 12px 28px rgba(0,0,0,0.12),
-        inset 0 0 22px rgba(255,255,255,0.45);
+        0 10px 26px rgba(0,0,0,0.12),
+        inset 0 0 18px rgba(255,255,255,0.45);
 
     border: 1px solid rgba(255,255,255,0.55);
 
-    text-align: center; /* ← заголовок по центру */
+    text-align: center; /* ← всё по центру */
 }
 
+/* Заголовок */
 .add-rule-card h3 {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
-/* Форма внутри */
+/* Форма */
 .add-rule-form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
-/* Поля */
+/* Лейблы по центру */
+.add-rule-form label {
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Поля — короткие */
 .add-rule-form input,
 .add-rule-form select {
+    width: 140px; /* ← короткие поля */
+    margin: 0 auto; /* ← центрируем */
+
     background: rgba(255,255,255,0.55);
     border: 1px solid rgba(255,255,255,0.65);
-    border-radius: 14px;
-    padding: 12px;
+    border-radius: 12px;
+    padding: 10px;
     font-size: 15px;
     transition: 0.25s ease;
 }
@@ -270,10 +283,10 @@
     width: 100%;
     background: linear-gradient(135deg, #8ec5fc, #e0c3fc);
     border: none;
-    padding: 14px;
-    border-radius: 16px;
+    padding: 12px;
+    border-radius: 14px;
     color: white;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: 0.25s ease;
@@ -283,3 +296,4 @@
     opacity: 0.85;
     transform: translateY(-3px);
 }
+
