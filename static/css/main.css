@@ -499,19 +499,22 @@ input:checked + .slider:before {
 /* ============================================================
    ⏱ Таймеры вибраций — стеклянный стиль
 ============================================================ */
-#vibrationTimersContainer {
+#vibrationOverlay {
     position: fixed;
-    top: 20px;
+    bottom: 20px;   /* можно top:20px если хочешь сверху */
     right: 20px;
-    z-index: 9999;
+    z-index: 99999; /* выше всех элементов */
     display: flex;
     flex-direction: column;
     gap: 12px;
+    pointer-events: none; /* чтобы не блокировал клики по странице */
 }
 /* ============================================================
    🌸 Премиальное окно вибрации — FlowTip Deluxe
 ============================================================ */
 .vibration-timer {
+    pointer-events: auto; /* кнопка работает */
+
     background: rgba(255,255,255,0.60);
     backdrop-filter: blur(18px);
     border-radius: 26px;
@@ -531,6 +534,7 @@ input:checked + .slider:before {
 
     animation: vibAppear 0.35s ease-out;
 }
+
 
 /* Анимация появления */
 @keyframes vibAppear {

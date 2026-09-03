@@ -66,8 +66,6 @@ function connectWS() {
     };
 }
 
-connectWS();
-
 /* ============================================================
    📡 2. Обработка входящих WS сообщений
 ============================================================ */
@@ -126,12 +124,12 @@ function initHandlers() {
     initLogButtons();
     initQueueButtons();
     initGoalModal();
-    initSidebarNavigation();   // ← ДОБАВИТЬ ЭТО
 }
 
 window.addEventListener("load", () => {
+    if (!socket) connectWS();   // ← создаём WebSocket только один раз
     initHandlers();
-    initSidebarNavigation();   // ← ДОБАВИТЬ СЮДА
+    initSidebarNavigation();   
 });
 
 
@@ -228,9 +226,6 @@ function reloadInnerContent() {
             initHandlers();
             loadLogs();
             updateQueueUI();
-
-            // 🔥 Сохраняем таймеры вибрации при SPA-переходах
-            const timers = document.querySelectorAll(".vibration-timer");
         });
 }
 
@@ -301,7 +296,7 @@ function initQueueButtons() {
    ⏱ 6. Таймер вибрации
 ============================================================ */
 function startVibrationTimer(duration, strength) {
-    const container = document.getElementById("vibrationTimersContainer");
+    const container = document.getElementById("vibrationOverlay");
     if (!container) {
         console.warn("Нет контейнера для таймера вибрации");
         return;
