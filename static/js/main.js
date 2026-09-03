@@ -570,6 +570,15 @@ function initRulesPage() {
 
         const card = document.querySelector(`[data-rule-id="${id}"]`);
 
+        // сохраняем оригинальные данные
+        window._originalRuleData = {
+            min: card.dataset.min,
+            max: card.dataset.max,
+            strength: card.dataset.strength,
+            duration: card.dataset.duration,
+            action: card.dataset.action || "",
+            type: card.dataset.type
+        };
         document.getElementById("edit_rule_id").value = id;
         document.getElementById("edit_min").value = card.dataset.min;
         document.getElementById("edit_max").value = card.dataset.max;
@@ -595,8 +604,22 @@ function initRulesPage() {
 
 
     window.closeRuleModal = () => {
-        document.getElementById("ruleModal").classList.remove("show");
+        const modal = document.getElementById("ruleModal");
+        modal.classList.remove("show");
+
+        if (window._originalRuleData) {
+            document.getElementById("edit_min").value = window._originalRuleData.min;
+            document.getElementById("edit_max").value = window._originalRuleData.max;
+            document.getElementById("edit_strength").value = window._originalRuleData.strength;
+            document.getElementById("edit_duration").value = window._originalRuleData.duration;
+            document.getElementById("edit_action").value = window._originalRuleData.action;
+            document.getElementById("edit_type").value = window._originalRuleData.type;
+
+            updateRuleEditFields();
+        }
     };
+
+
 
     window.openSegmentModal = (ruleId) => {
         const modal = document.getElementById("segmentModal");
