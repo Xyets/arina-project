@@ -516,14 +516,14 @@ function deleteSegment(ruleId, segIndex) {
 ============================================================ */
 function initRulesPage() {
 
-    /* --- Анимация шансов сегментов --- */
+    // Анимация шансов сегментов
     document.querySelectorAll(".segment-chance-fill").forEach(el => {
         if (el.dataset.chance) {
             el.style.width = el.dataset.chance + "%";
         }
     });
 
-    /* --- Проверка вибрации --- */
+    // Тест вибрации — БЕЗ таймера!
     const testVibrationBtn = document.getElementById("testVibrationBtn");
     if (testVibrationBtn) {
         testVibrationBtn.onclick = () => {
@@ -534,7 +534,7 @@ function initRulesPage() {
         };
     }
 
-    /* --- Проверка правила --- */
+    // Тест правила — тоже БЕЗ таймера!
     document.querySelectorAll(".testRuleBtn").forEach(btn => {
         btn.onclick = () => {
             const index = btn.dataset.index;
@@ -556,7 +556,7 @@ function initRulesPage() {
         };
     });
 
-    /* --- Модалка редактирования правила --- */
+    // Модалки — только назначение функций, без повторных обработчиков
     window.openRuleModal = (id) => {
         const modal = document.getElementById("ruleModal");
         modal.classList.add("show");
@@ -578,7 +578,6 @@ function initRulesPage() {
         document.getElementById("ruleModal").classList.remove("show");
     };
 
-    /* --- Модалка сегмента --- */
     window.openSegmentModal = (ruleId) => {
         const modal = document.getElementById("segmentModal");
         modal.classList.add("show");
@@ -589,7 +588,7 @@ function initRulesPage() {
         document.getElementById("segmentModal").classList.remove("show");
     };
 
-    /* --- Обновление полей при редактировании правила --- */
+    // Обновление полей
     window.updateRuleEditFields = () => {
         const type = document.getElementById("edit_type").value;
 
@@ -611,7 +610,6 @@ function initRulesPage() {
         }
     };
 
-    /* --- Обновление полей при создании нового правила --- */
     window.updateNewRuleFields = () => {
         const type = document.getElementById("new_action_type").value;
 
@@ -633,7 +631,6 @@ function initRulesPage() {
         }
     };
 
-    /* --- Обновление полей сегмента --- */
     window.updateSegmentFields = (selectEl) => {
         const modal = selectEl.closest(".modal-content");
 
@@ -651,14 +648,14 @@ function initRulesPage() {
             modal.querySelector(".seg-retry-fields").classList.remove("hidden");
     };
 
-    /* --- Закрытие модалки по клику вне --- */
-    window.addEventListener("click", event => {
+    // Закрытие модалки — только один обработчик
+    window.onclick = (event) => {
         document.querySelectorAll(".modal").forEach(m => {
             if (event.target === m) m.classList.remove("show");
         });
-    });
+    };
 
-    /* --- Инициализация форм правил --- */
+    // Инициализация форм — безопасная
     initRuleForms();
 }
 
@@ -667,10 +664,23 @@ function initRulesPage() {
 ============================================================ */
 function initRuleForms() {
 
-    /* Добавление правила */
+    // Удаляем старые обработчики
     const addForm = document.getElementById("addRuleForm");
-    if (addForm) {
-        addForm.addEventListener("submit", (e) => {
+    const editForm = document.getElementById("ruleEditForm");
+    const segForm = document.getElementById("segmentAddForm");
+
+    if (addForm) addForm.replaceWith(addForm.cloneNode(true));
+    if (editForm) editForm.replaceWith(editForm.cloneNode(true));
+    if (segForm) segForm.replaceWith(segForm.cloneNode(true));
+
+    // Ищем формы снова
+    const addFormNew = document.getElementById("addRuleForm");
+    const editFormNew = document.getElementById("ruleEditForm");
+    const segFormNew = document.getElementById("segmentAddForm");
+
+    /* Добавление правила */
+    if (addFormNew) {
+        addFormNew.addEventListener("submit", (e) => {
             e.preventDefault();
 
             const payload = {
@@ -684,16 +694,15 @@ function initRuleForms() {
                 action: document.getElementById("new_action").value || ""
             };
 
-            socket.send(JSON.stringify(payload));
+            sendRuleCommand(payload);
             showToast("Правило добавлено");
             reloadInnerContent();
         });
     }
 
     /* Редактирование правила */
-    const editForm = document.getElementById("ruleEditForm");
-    if (editForm) {
-        editForm.addEventListener("submit", (e) => {
+    if (editFormNew) {
+        editFormNew.addEventListener("submit", (e) => {
             e.preventDefault();
 
             const payload = {
@@ -708,17 +717,15 @@ function initRuleForms() {
                 action: document.getElementById("edit_action").value || ""
             };
 
-            socket.send(JSON.stringify(payload));
+            sendRuleCommand(payload);
             showToast("Правило обновлено");
-            closeRuleModal();
             reloadInnerContent();
         });
     }
 
     /* Добавление сегмента */
-    const segForm = document.getElementById("segmentAddForm");
-    if (segForm) {
-        segForm.addEventListener("submit", (e) => {
+    if (segFormNew) {
+        segFormNew.addEventListener("submit", (e) => {
             e.preventDefault();
 
             const payload = {
@@ -733,9 +740,8 @@ function initRuleForms() {
                 action: document.getElementById("seg_action").value || ""
             };
 
-            socket.send(JSON.stringify(payload));
+            sendRuleCommand(payload);
             showToast("Сегмент добавлен");
-            closeSegmentModal();
             reloadInnerContent();
         });
     }
