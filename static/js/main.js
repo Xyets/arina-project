@@ -1,3 +1,4 @@
+let CURRENT_PAGE_URL = "/beta";
 /* ============================================================
    📌 0. Инициализация данных из HTML
 ============================================================ */
@@ -150,6 +151,8 @@ function initSidebarNavigation() {
 }
 
 function navigateSPA(url) {
+    CURRENT_PAGE_URL = url;   // ← ЗАПОМИНАЕМ ТЕКУЩУЮ СТРАНИЦУ
+
     const container = document.querySelector(".content-inner");
     if (!container) {
         window.location.href = url;
@@ -172,14 +175,14 @@ function navigateSPA(url) {
 
                 initRulesPage();
                 initRuleForms();
-                initRuleModals();   // ← ОБЯЗАТЕЛЬНО
+                initRuleModals();
 
                 loadLogs();
                 updateQueueUI();
             }, 50);
-
         });
 }
+
 
 
 /* ============================================================
@@ -248,7 +251,7 @@ function reloadInnerContent(callback) {
 
     container.style.opacity = "0";
 
-    fetch(window.location.pathname + "?mode=" + CURRENT_MODE)
+    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)   // ← ВАЖНО
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -275,6 +278,7 @@ function reloadInnerContent(callback) {
             }, 50);
         });
 }
+
 
 
 
