@@ -11,12 +11,16 @@
             <!-- Тип по центру -->
             <div class="form-type">
                 <label>Тип:</label>
-                <select id="new_action_type" onchange="updateNewRuleFields()">
-                    <option value="">Выберите тип</option>
-                    <option value="vibration">Вибрация</option>
-                    <option value="custom">Действие</option>
-                    <option value="wheel">Колесо фортуны</option>
-                </select>
+                <div class="custom-select" id="typeSelect">
+                    <div class="select-display" id="typeDisplay">Выберите тип</div>
+
+                    <div class="select-options" id="typeOptions">
+                        <div class="option" data-value="vibration">💗 Вибрация</div>
+                        <div class="option" data-value="custom">🎬 Действие</div>
+                        <div class="option" data-value="wheel">🎡 Колесо фортуны</div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Две колонки -->
