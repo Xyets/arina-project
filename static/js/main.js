@@ -129,7 +129,11 @@ function initHandlers() {
     initSidebarNavigation();   // ← ДОБАВИТЬ ЭТО
 }
 
-window.addEventListener("load", initHandlers);
+window.addEventListener("load", () => {
+    initHandlers();
+    initSidebarNavigation();   // ← ДОБАВИТЬ СЮДА
+});
+
 
 
 function initSidebarNavigation() {
