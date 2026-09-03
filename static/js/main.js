@@ -970,4 +970,24 @@ function initRuleModals() {
         block.classList.toggle("hidden");
     };
 }
+/* ============================================================
+   🎡 Переключение полей сегмента
+============================================================ */
+function updateSegmentFields(selectEl) {
+    const modal = selectEl.closest(".modal-content");
+
+    const vib = modal.querySelector(".seg-vibration-fields");
+    const act = modal.querySelector(".seg-action-fields");
+    const retry = modal.querySelector(".seg-retry-fields");
+
+    // Скрываем всё
+    vib.classList.add("hidden");
+    act.classList.add("hidden");
+    retry.classList.add("hidden");
+
+    // Показываем нужное
+    if (selectEl.value === "vibration") vib.classList.remove("hidden");
+    if (selectEl.value === "action") act.classList.remove("hidden");
+    if (selectEl.value === "retry") retry.classList.remove("hidden");
+}
 
