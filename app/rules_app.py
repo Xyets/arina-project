@@ -221,7 +221,8 @@ def rules_page():
         "rules_beta.html",
         rules=rules["rules"],
         profile_key=profile_key,
-        goal=profile.get("goal", {"title": "", "current": 0, "target": 0})
+        goal=profile["goal"] if "goal" in profile.keys() else {"title": "", "current": 0, "target": 0}
     )
+
 
 
