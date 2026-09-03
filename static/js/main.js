@@ -114,6 +114,18 @@ function handleWSMessage(data) {
         updateGoalUI(data.goal);
         return;
     }
+    
+    if (data.rules_update) {
+        reloadInnerContent(() => {
+            if (document.querySelector(".rules-page")) {
+                initRulesPage();
+                initRuleForms();
+                initRuleModals();
+            }
+        });
+        return;
+    }
+
 }
 
 /* ============================================================
