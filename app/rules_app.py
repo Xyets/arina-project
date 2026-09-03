@@ -222,7 +222,33 @@ def rules_page():
     goal = profile["goal"] if "goal" in profile.keys() else {"title": "", "current": 0, "target": 0}
 
     return render_template(
-        "rules_beta.html",
+        "rules.html",   # ← СТАРАЯ СТРАНИЦА
+        rules=rules["rules"],
+        user=user,
+        mode=mode,
+        current_profile=profile_key,
+        profile_key=profile_key,
+        goal=goal
+    )
+
+# -------------------- RULES PAGE (BETA) --------------------
+
+@rules_bp.route("/rules_beta", methods=["GET"])
+@login_required
+def rules_beta_page():
+    user = session["username"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    rules = load_rules(profile_key)
+    goal = profile["goal"] if "goal" in profile.keys() else {"title": "", "current": 0, "target": 0}
+
+    return render_template(
+        "rules_beta.html",   # ← НОВАЯ СТРАНИЦА
         rules=rules["rules"],
         user=user,
         mode=mode,
