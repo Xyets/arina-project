@@ -30,7 +30,7 @@ function connectWS() {
         console.log("WS connected");
         wsReconnectAttempts = 0;
 
-        const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+        const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
         socket.send(JSON.stringify({
             type: "hello",
@@ -124,7 +124,6 @@ function initHandlers() {
     initLogButtons();
     initQueueButtons();
     initGoalModal();
-    initRulesPage();
 }
 
 window.addEventListener("load", () => {
@@ -168,11 +167,12 @@ function navigateSPA(url) {
 
             setTimeout(() => {
                 container.style.opacity = "1";
+
+                initHandlers();      // теперь правильно
+                loadLogs();
+                updateQueueUI();
             }, 50);
 
-            initHandlers();
-            loadLogs();
-            updateQueueUI();
         });
 }
 
@@ -245,17 +245,18 @@ function reloadInnerContent() {
 
             const newContent = doc.querySelector(".content-inner").innerHTML;
 
-            container.innerHTML = newContent;
+            container.innerHTML = newContent;   // ← ЭТО ОБЯЗАТЕЛЬНО
 
             setTimeout(() => {
                 container.style.opacity = "1";
-            }, 50);
 
-            initHandlers();
-            loadLogs();
-            updateQueueUI();
+                initHandlers();
+                loadLogs();
+                updateQueueUI();
+            }, 50);
         });
 }
+
 
 /* ============================================================
    📜 4. Логи
@@ -307,7 +308,7 @@ function initQueueButtons() {
     if (!clearQueueBtn) return;
 
     clearQueueBtn.onclick = () => {
-        const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+        const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
         socket.send(JSON.stringify({
             type: "clear_queue",
@@ -366,7 +367,7 @@ function startVibrationTimer(duration, strength) {
 }
 
 function sendStop() {
-    const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+    const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
     socket.send(JSON.stringify({
         type: "stop",
@@ -453,7 +454,6 @@ function openGoalModal() {
 function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
 }
-
 /* ============================================================
    🧹 10. Очистка логов
 ============================================================ */
@@ -470,7 +470,8 @@ function initLogButtons() {
             .catch(() => showToast("❌ Ошибка при очистке логов"));
     };
 }
-/*============================================================
+
+/* ============================================================
    📜 RULES — SPA через WebSocket
 ============================================================ */
 
@@ -482,7 +483,7 @@ function sendRuleCommand(payload) {
 function deleteRule(id) {
     sendRuleCommand({
         type: "delete_rule",
-        user: CURRENT_USER,
+        profile_key: CURRENT_PROFILE,
         id
     });
 
@@ -494,7 +495,7 @@ function deleteRule(id) {
 function deleteSegment(ruleId, segIndex) {
     sendRuleCommand({
         type: "delete_segment",
-        user: CURRENT_USER,
+        profile_key: CURRENT_PROFILE,
         rule_id: ruleId,
         seg_index: segIndex
     });
@@ -503,51 +504,6 @@ function deleteSegment(ruleId, segIndex) {
     reloadInnerContent();
 }
 
-/* Открытие/закрытие модалок — глобально */
-function openRuleModal() {
-    document.getElementById("ruleModal").classList.add("show");
-}
-function closeRuleModal() {
-    document.getElementById("ruleModal").classList.remove("show");
-}
-
-function openSegmentModal() {
-    document.getElementById("segmentModal").classList.add("show");
-}
-function closeSegmentModal() {
-    document.getElementById("segmentModal").classList.remove("show");
-}
-function navigateSPA(url) {
-    const container = document.querySelector(".content-inner");
-    if (!container) {
-        window.location.href = url; // fallback
-        return;
-    }
-
-    container.style.opacity = "0";
-
-    fetch(url + "?mode=" + CURRENT_MODE)
-
-        .then(r => r.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-            const newContent = doc.querySelector(".content-inner").innerHTML;
-
-            container.innerHTML = newContent;
-
-            setTimeout(() => {
-                container.style.opacity = "1";
-
-                // ВАЖНО: вызываем initHandlers ПОСЛЕ вставки HTML
-                initHandlers();
-                loadLogs();
-                updateQueueUI();
-
-            }, 50);
-
-        });
-}
 /* ============================================================
    🎛 11. Логика страницы правил (SPA)
 ============================================================ */
@@ -596,7 +552,7 @@ function initRulesPage() {
     /* --- Модалка редактирования правила --- */
     window.openRuleModal = (id) => {
         const modal = document.getElementById("ruleModal");
-        modal.classList.remove("hidden");
+        modal.classList.add("show");
 
         const card = document.querySelector(`[data-rule-id="${id}"]`);
 
@@ -612,18 +568,18 @@ function initRulesPage() {
     };
 
     window.closeRuleModal = () => {
-        document.getElementById("ruleModal").classList.add("hidden");
+        document.getElementById("ruleModal").classList.remove("show");
     };
 
     /* --- Модалка сегмента --- */
     window.openSegmentModal = (ruleId) => {
         const modal = document.getElementById("segmentModal");
-        modal.classList.remove("hidden");
+        modal.classList.add("show");
         document.getElementById("segment_rule_id").value = ruleId;
     };
 
     window.closeSegmentModal = () => {
-        document.getElementById("segmentModal").classList.add("hidden");
+        document.getElementById("segmentModal").classList.remove("show");
     };
 
     /* --- Обновление полей при редактировании правила --- */
@@ -691,7 +647,89 @@ function initRulesPage() {
     /* --- Закрытие модалки по клику вне --- */
     window.addEventListener("click", event => {
         document.querySelectorAll(".modal").forEach(m => {
-            if (event.target === m) m.classList.add("hidden");
+            if (event.target === m) m.classList.remove("show");
         });
     });
+
+    /* --- Инициализация форм правил --- */
+    initRuleForms();
+}
+
+/* ============================================================
+   🎛 12. Формы правил (WebSocket)
+============================================================ */
+function initRuleForms() {
+
+    /* Добавление правила */
+    const addForm = document.getElementById("addRuleForm");
+    if (addForm) {
+        addForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "add_rule",
+                profile_key: CURRENT_PROFILE,
+                min: Number(document.getElementById("new_min").value),
+                max: Number(document.getElementById("new_max").value),
+                strength: Number(document.getElementById("new_strength").value || 0),
+                duration: Number(document.getElementById("new_duration").value || 0),
+                action_type: document.getElementById("new_action_type").value,
+                action: document.getElementById("new_action").value || ""
+            };
+
+            socket.send(JSON.stringify(payload));
+            showToast("Правило добавлено");
+            reloadInnerContent();
+        });
+    }
+
+    /* Редактирование правила */
+    const editForm = document.getElementById("ruleEditForm");
+    if (editForm) {
+        editForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "edit_rule",
+                profile_key: CURRENT_PROFILE,
+                id: document.getElementById("edit_rule_id").value,
+                min: Number(document.getElementById("edit_min").value),
+                max: Number(document.getElementById("edit_max").value),
+                strength: Number(document.getElementById("edit_strength").value || 0),
+                duration: Number(document.getElementById("edit_duration").value || 0),
+                action_type: document.getElementById("edit_type").value,
+                action: document.getElementById("edit_action").value || ""
+            };
+
+            socket.send(JSON.stringify(payload));
+            showToast("Правило обновлено");
+            closeRuleModal();
+            reloadInnerContent();
+        });
+    }
+
+    /* Добавление сегмента */
+    const segForm = document.getElementById("segmentAddForm");
+    if (segForm) {
+        segForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "add_segment",
+                profile_key: CURRENT_PROFILE,
+                rule_id: document.getElementById("segment_rule_id").value,
+                name: document.getElementById("seg_name").value,
+                chance: Number(document.getElementById("seg_chance").value),
+                seg_type: document.getElementById("seg_type").value,
+                strength: Number(document.getElementById("seg_strength").value || 0),
+                duration: Number(document.getElementById("seg_duration").value || 0),
+                action: document.getElementById("seg_action").value || ""
+            };
+
+            socket.send(JSON.stringify(payload));
+            showToast("Сегмент добавлен");
+            closeSegmentModal();
+            reloadInnerContent();
+        });
+    }
 }
