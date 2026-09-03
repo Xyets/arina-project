@@ -273,7 +273,6 @@
 </div>
 
 <script>
-/* ---------------------- TEST VIBRATION ---------------------- */
 document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("testVibrationBtn");
     if (btn) {
@@ -285,7 +284,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // тест правила (осталось через fetch, без перезагрузки)
     document.querySelectorAll(".testRuleBtn").forEach(btn => {
         btn.addEventListener("click", () => {
             const index = btn.dataset.index;
@@ -294,27 +292,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(r => r.json())
                 .then(data => {
                     showToast(data.message || `Правило ${index} проверено`);
+
+                    if (data.wheel_result && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: "wheel_result",
+                            profile: data.wheel_result.profile,
+                            segment: data.wheel_result.segment
+                        }));
+                    }
                 })
                 .catch(() => showToast("Ошибка при проверке ❌"));
         });
     });
 
-    // прогресс шансов сегментов
-    document.querySelectorAll('.segment-chance-fill').forEach(el => {
-        el.style.width = el.dataset.chance + '%';
+    document.querySelectorAll(".segment-chance-fill").forEach(el => {
+        el.style.width = el.dataset.chance + "%";
     });
 
-    // обработчики форм
     initRuleForms();
 });
 
-/* ---------------------- TOGGLE WHEEL ---------------------- */
 function toggleWheel(ruleId) {
     const block = document.getElementById(`wheel-${ruleId}`);
     if (block) block.classList.toggle("hidden");
 }
 
-/* ---------------------- RULE MODAL ---------------------- */
 function openRuleModal(id) {
     const modal = document.getElementById("ruleModal");
     modal.classList.add("show");
@@ -336,7 +338,6 @@ function closeRuleModal() {
     document.getElementById("ruleModal").classList.remove("show");
 }
 
-/* ---------------------- SEGMENT MODAL ---------------------- */
 function openSegmentModal(ruleId) {
     const modal = document.getElementById("segmentModal");
     modal.classList.add("show");
@@ -347,7 +348,6 @@ function closeSegmentModal() {
     document.getElementById("segmentModal").classList.remove("show");
 }
 
-/* ---------------------- UPDATE FIELDS (EDIT RULE) ---------------------- */
 function updateRuleEditFields() {
     const type = document.getElementById("edit_type").value;
 
@@ -369,7 +369,6 @@ function updateRuleEditFields() {
     }
 }
 
-/* ---------------------- UPDATE FIELDS (NEW RULE) ---------------------- */
 function updateNewRuleFields() {
     const type = document.getElementById("new_action_type").value;
 
@@ -391,7 +390,6 @@ function updateNewRuleFields() {
     }
 }
 
-/* ---------------------- SEGMENT FIELDS ---------------------- */
 function updateSegmentFields(selectEl) {
     const modal = selectEl.closest(".modal-content");
 
@@ -409,7 +407,6 @@ function updateSegmentFields(selectEl) {
         modal.querySelector(".seg-retry-fields").classList.remove("hidden");
 }
 
-/* ---------------------- RULES VIA WEBSOCKET (SPA) ---------------------- */
 function initRuleForms() {
     const addForm = document.getElementById("addRuleForm");
     if (addForm) {
@@ -418,7 +415,7 @@ function initRuleForms() {
 
             const payload = {
                 type: "add_rule",
-                user: CURRENT_USER,
+                profile_key: CURRENT_PROFILE,
                 min: Number(document.getElementById("new_min").value),
                 max: Number(document.getElementById("new_max").value),
                 strength: Number(document.getElementById("new_strength").value || 0),
@@ -440,7 +437,7 @@ function initRuleForms() {
 
             const payload = {
                 type: "edit_rule",
-                user: CURRENT_USER,
+                profile_key: CURRENT_PROFILE,
                 id: document.getElementById("edit_rule_id").value,
                 min: Number(document.getElementById("edit_min").value),
                 max: Number(document.getElementById("edit_max").value),
@@ -464,7 +461,7 @@ function initRuleForms() {
 
             const payload = {
                 type: "add_segment",
-                user: CURRENT_USER,
+                profile_key: CURRENT_PROFILE,
                 rule_id: document.getElementById("segment_rule_id").value,
                 name: document.getElementById("seg_name").value,
                 chance: Number(document.getElementById("seg_chance").value),
@@ -485,7 +482,7 @@ function initRuleForms() {
 function deleteRule(id) {
     const payload = {
         type: "delete_rule",
-        user: CURRENT_USER,
+        profile_key: CURRENT_PROFILE,
         id
     };
     socket.send(JSON.stringify(payload));
@@ -496,7 +493,7 @@ function deleteRule(id) {
 function deleteSegment(ruleId, segIndex) {
     const payload = {
         type: "delete_segment",
-        user: CURRENT_USER,
+        profile_key: CURRENT_PROFILE,
         rule_id: ruleId,
         seg_index: segIndex
     };
@@ -505,7 +502,6 @@ function deleteSegment(ruleId, segIndex) {
     reloadInnerContent();
 }
 
-/* ---------------------- CLOSE MODAL ON CLICK OUTSIDE ---------------------- */
 window.addEventListener("click", event => {
     document.querySelectorAll(".modal").forEach(m => {
         if (event.target === m) m.classList.remove("show");
