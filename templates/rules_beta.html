@@ -144,13 +144,15 @@
                 <div class="rule-actions-bottom">
                     <button class="btn-icon testRuleBtn" data-index="{{ loop.index0 }}">🔊</button>
                     <button class="btn-icon" onclick="openRuleModal('{{ rule.id }}')">✏️</button>
-                    <button class="btn-icon btn-delete" onclick="deleteRule('{{ rule.id }}')">❌</button>
 
                     {% if rule.type == "wheel" %}
-                        <button class="btn-icon" onclick="toggleWheel('{{ rule.id }}')">📂</button>
                         <button class="btn-icon" onclick="openSegmentModal('{{ rule.id }}')">➕</button>
+                        <button class="btn-icon" onclick="toggleWheel('{{ rule.id }}')">📂</button>
                     {% endif %}
+
+                    <button class="btn-icon btn-delete" onclick="deleteRule('{{ rule.id }}')">❌</button>
                 </div>
+
 
             </div>
 

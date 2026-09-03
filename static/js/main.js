@@ -833,8 +833,8 @@ function initRuleForms() {
    🎡 Toggle wheel segments (глобальная функция)
 ============================================================ */
 window.toggleWheel = (ruleId) => {
-    const box = document.getElementById(`wheel-${ruleId}`);
-    if (!box) return;
+    const block = document.getElementById(`wheel-${ruleId}`);
+    if (!block) return;
 
-    box.classList.toggle("show");
+    block.classList.toggle("hidden");
 };
