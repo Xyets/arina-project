@@ -124,6 +124,7 @@ function initHandlers() {
     initLogButtons();
     initQueueButtons();
     initGoalModal();
+    initRulesPage();
 }
 
 window.addEventListener("load", () => {
@@ -543,4 +544,151 @@ function navigateSPA(url) {
             loadLogs();
             updateQueueUI();
         });
+}
+/* ============================================================
+   🎛 11. Логика страницы правил (SPA)
+============================================================ */
+function initRulesPage() {
+
+    /* --- Анимация шансов сегментов --- */
+    document.querySelectorAll(".segment-chance-fill").forEach(el => {
+        if (el.dataset.chance) {
+            el.style.width = el.dataset.chance + "%";
+        }
+    });
+
+    /* --- Проверка вибрации --- */
+    const testVibrationBtn = document.getElementById("testVibrationBtn");
+    if (testVibrationBtn) {
+        testVibrationBtn.onclick = () => {
+            fetch("/test_vibration", { method: "POST" })
+                .then(r => r.json())
+                .then(data => showToast(data.message || "Вибрация отправлена"))
+                .catch(() => showToast("Ошибка при проверке"));
+        };
+    }
+
+    /* --- Проверка правила --- */
+    document.querySelectorAll(".testRuleBtn").forEach(btn => {
+        btn.onclick = () => {
+            const index = btn.dataset.index;
+
+            fetch(`/test_rule/${index}`, { method: "POST" })
+                .then(r => r.json())
+                .then(data => {
+                    showToast(data.message || `Правило ${index} проверено`);
+
+                    if (data.wheel_result && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: "wheel_result",
+                            profile: data.wheel_result.profile,
+                            segment: data.wheel_result.segment
+                        }));
+                    }
+                })
+                .catch(() => showToast("Ошибка при проверке"));
+        };
+    });
+
+    /* --- Модалка редактирования правила --- */
+    window.openRuleModal = (id) => {
+        const modal = document.getElementById("ruleModal");
+        modal.classList.remove("hidden");
+
+        const card = document.querySelector(`[data-rule-id="${id}"]`);
+
+        document.getElementById("edit_rule_id").value = id;
+        document.getElementById("edit_min").value = card.dataset.min;
+        document.getElementById("edit_max").value = card.dataset.max;
+        document.getElementById("edit_strength").value = card.dataset.strength;
+        document.getElementById("edit_duration").value = card.dataset.duration;
+        document.getElementById("edit_type").value = card.dataset.type;
+        document.getElementById("edit_action").value = card.dataset.action || "";
+
+        updateRuleEditFields();
+    };
+
+    window.closeRuleModal = () => {
+        document.getElementById("ruleModal").classList.add("hidden");
+    };
+
+    /* --- Модалка сегмента --- */
+    window.openSegmentModal = (ruleId) => {
+        const modal = document.getElementById("segmentModal");
+        modal.classList.remove("hidden");
+        document.getElementById("segment_rule_id").value = ruleId;
+    };
+
+    window.closeSegmentModal = () => {
+        document.getElementById("segmentModal").classList.add("hidden");
+    };
+
+    /* --- Обновление полей при редактировании правила --- */
+    window.updateRuleEditFields = () => {
+        const type = document.getElementById("edit_type").value;
+
+        const strength = document.getElementById("edit_strength_block");
+        const duration = document.getElementById("edit_duration_block");
+        const action = document.getElementById("edit_action_block");
+
+        strength.classList.add("hidden");
+        duration.classList.add("hidden");
+        action.classList.add("hidden");
+
+        if (type === "vibration") {
+            strength.classList.remove("hidden");
+            duration.classList.remove("hidden");
+        }
+
+        if (type === "custom") {
+            action.classList.remove("hidden");
+        }
+    };
+
+    /* --- Обновление полей при создании нового правила --- */
+    window.updateNewRuleFields = () => {
+        const type = document.getElementById("new_action_type").value;
+
+        const strength = document.getElementById("new_strength_block");
+        const duration = document.getElementById("new_duration_block");
+        const action = document.getElementById("new_action_block");
+
+        strength.classList.add("hidden");
+        duration.classList.add("hidden");
+        action.classList.add("hidden");
+
+        if (type === "vibration") {
+            strength.classList.remove("hidden");
+            duration.classList.remove("hidden");
+        }
+
+        if (type === "custom") {
+            action.classList.remove("hidden");
+        }
+    };
+
+    /* --- Обновление полей сегмента --- */
+    window.updateSegmentFields = (selectEl) => {
+        const modal = selectEl.closest(".modal-content");
+
+        modal.querySelector(".seg-vibration-fields").classList.add("hidden");
+        modal.querySelector(".seg-action-fields").classList.add("hidden");
+        modal.querySelector(".seg-retry-fields").classList.add("hidden");
+
+        if (selectEl.value === "vibration")
+            modal.querySelector(".seg-vibration-fields").classList.remove("hidden");
+
+        if (selectEl.value === "action")
+            modal.querySelector(".seg-action-fields").classList.remove("hidden");
+
+        if (selectEl.value === "retry")
+            modal.querySelector(".seg-retry-fields").classList.remove("hidden");
+    };
+
+    /* --- Закрытие модалки по клику вне --- */
+    window.addEventListener("click", event => {
+        document.querySelectorAll(".modal").forEach(m => {
+            if (event.target === m) m.classList.add("hidden");
+        });
+    });
 }
