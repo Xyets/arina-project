@@ -173,13 +173,17 @@ function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                initRulesPage();
-                initRuleForms();
-                initRuleModals();
+                // ИНИЦИАЛИЗАЦИЯ ТОЛЬКО ЕСЛИ ЭТО СТРАНИЦА ПРАВИЛ
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage();
+                    initRuleForms();
+                    initRuleModals();
+                }
 
                 loadLogs();
                 updateQueueUI();
             }, 50);
+
         });
 }
 
@@ -231,10 +235,13 @@ function initModeSwitch() {
                 }));
 
                 reloadInnerContent(() => {
-                    initRulesPage();
-                    initRuleForms();
-                    initRuleModals();
+                    if (document.querySelector(".rules-page")) {
+                        initRulesPage();
+                        initRuleForms();
+                        initRuleModals();
+                    }
                 });
+
 
                 showToast(`Режим переключен: ${newMode}`);
             }
@@ -268,10 +275,14 @@ function reloadInnerContent(callback) {
                     callback();
                 } else {
                     initHandlers();
-                    initRulesPage();
-                    initRuleForms();
-                    initRuleModals();
+
+                    if (document.querySelector(".rules-page")) {
+                        initRulesPage();
+                        initRuleForms();
+                        initRuleModals();
+                    }
                 }
+
 
                 loadLogs();
                 updateQueueUI();
@@ -518,11 +529,15 @@ function deleteRule(id) {
     });
 
     showToast("Правило удалено");
+
     reloadInnerContent(() => {
-        initRulesPage();
-        initRuleForms();
-        initRuleModals();
+        if (document.querySelector(".rules-page")) {
+            initRulesPage();
+            initRuleForms();
+            initRuleModals();
+        }
     });
+
 
 }
 
@@ -536,11 +551,15 @@ function deleteSegment(ruleId, segIndex) {
     });
 
     showToast("Сегмент удалён");
+
     reloadInnerContent(() => {
-        initRulesPage();
-        initRuleForms();
-        initRuleModals();
+        if (document.querySelector(".rules-page")) {
+            initRulesPage();
+            initRuleForms();
+            initRuleModals();
+        }
     });
+
 
 }
 
@@ -548,6 +567,11 @@ function deleteSegment(ruleId, segIndex) {
    🎛 11. Логика страницы правил (SPA)
 ============================================================ */
 function initRulesPage() {
+
+    // Если на странице нет блока правил — выходим
+    if (!document.querySelector(".rules-page")) {
+        return;
+    }
 
     // Анимация шансов сегментов
     document.querySelectorAll(".segment-chance-fill").forEach(el => {
@@ -729,39 +753,36 @@ function initRulesPage() {
         }
     };
 
-    // Гарантированно запускаем после полной загрузки DOM
-    document.addEventListener("DOMContentLoaded", () => {
-        setTimeout(updateNewRuleFields, 0);
-    });
+    setTimeout(updateNewRuleFields, 0);
 
-    // Кастомный стеклянный селект "Тип"
     const typeSelect = document.getElementById("typeSelect");
     const typeDisplay = document.getElementById("typeDisplay");
     const typeOptions = document.getElementById("typeOptions");
 
-    typeDisplay.addEventListener("click", () => {
-        typeOptions.style.display =
-            typeOptions.style.display === "flex" ? "none" : "flex";
-    });
+    if (typeSelect && typeDisplay && typeOptions) {
 
-    document.querySelectorAll(".option").forEach(opt => {
-        opt.addEventListener("click", () => {
-            const value = opt.getAttribute("data-value");
-            typeDisplay.textContent = opt.textContent;
-            typeOptions.style.display = "none";
-
-            // передаём значение в твой обработчик
-            document.getElementById("new_action_type").value = value;
-            updateNewRuleFields();
+        typeDisplay.addEventListener("click", () => {
+            typeOptions.style.display =
+                typeOptions.style.display === "flex" ? "none" : "flex";
         });
-    });
 
-    // закрытие при клике вне меню
-    document.addEventListener("click", (e) => {
-        if (!typeSelect.contains(e.target)) {
-            typeOptions.style.display = "none";
-        }
-    });
+        document.querySelectorAll(".option").forEach(opt => {
+            opt.addEventListener("click", () => {
+                const value = opt.getAttribute("data-value");
+                typeDisplay.textContent = opt.textContent;
+                typeOptions.style.display = "none";
+
+                document.getElementById("new_action_type").value = value;
+                updateNewRuleFields();
+            });
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!typeSelect.contains(e.target)) {
+                typeOptions.style.display = "none";
+            }
+        });
+    }
 
     // Инициализация форм — безопасная
     initRuleForms();
@@ -771,6 +792,10 @@ function initRulesPage() {
    🎛 12. Формы правил (WebSocket)
 ============================================================ */
 function initRuleForms() {
+    // Если мы не на странице правил — выходим
+    if (!document.querySelector(".rules-page")) {
+        return;
+    }
 
     // Удаляем старые обработчики
     const addForm = document.getElementById("addRuleForm");
@@ -786,7 +811,9 @@ function initRuleForms() {
     const editFormNew = document.getElementById("ruleEditForm");
     const segFormNew = document.getElementById("segmentAddForm");
 
-    /* Добавление правила */
+    /* ============================================================
+       ➕ Добавление правила
+    ============================================================ */
     if (addFormNew) {
         addFormNew.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -804,16 +831,20 @@ function initRuleForms() {
 
             sendRuleCommand(payload);
             showToast("Правило добавлено");
-            reloadInnerContent(() => {
-                initRulesPage();
-                initRuleForms();
-                initRuleModals();
-            });
 
+            reloadInnerContent(() => {
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage();
+                    initRuleForms();
+                    initRuleModals();
+                }
+            });
         });
     }
 
-    /* Редактирование правила */
+    /* ============================================================
+       ✏️ Редактирование правила
+    ============================================================ */
     if (editFormNew) {
         editFormNew.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -832,16 +863,20 @@ function initRuleForms() {
 
             sendRuleCommand(payload);
             showToast("Правило обновлено");
-            reloadInnerContent(() => {
-                initRulesPage();
-                initRuleForms();
-                initRuleModals();
-            });
 
+            reloadInnerContent(() => {
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage();
+                    initRuleForms();
+                    initRuleModals();
+                }
+            });
         });
     }
 
-    /* Добавление сегмента */
+    /* ============================================================
+       🎡 Добавление сегмента
+    ============================================================ */
     if (segFormNew) {
         segFormNew.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -860,18 +895,22 @@ function initRuleForms() {
 
             sendRuleCommand(payload);
             showToast("Сегмент добавлен");
-            reloadInnerContent(() => {
-                initRulesPage();
-                initRuleForms();
-                initRuleModals();
-            });
 
+            reloadInnerContent(() => {
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage();
+                    initRuleForms();
+                    initRuleModals();
+                }
+            });
         });
     }
 }
 
 function initRuleModals() {
-
+    if (!document.querySelector(".rules-page")) {
+        return;
+    }
     window.openRuleModal = (id) => {
         const modal = document.getElementById("ruleModal");
         modal.classList.add("show");
