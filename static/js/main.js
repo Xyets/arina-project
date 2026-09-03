@@ -656,8 +656,10 @@ function initRulesPage() {
         }
     };
 
-    // При загрузке страницы — скрываем всё
-    document.addEventListener("DOMContentLoaded", updateNewRuleFields);
+    // Гарантированно запускаем после полной загрузки DOM
+    document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(updateNewRuleFields, 0);
+    });
 
 
 

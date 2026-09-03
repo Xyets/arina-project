@@ -329,3 +329,11 @@
     opacity: 0.85;
     transform: translateY(-3px);
 }
+/* Все поля скрыты по умолчанию */
+#cell_min,
+#cell_max,
+#cell_strength,
+#cell_duration,
+#cell_action {
+    display: none;
+}
