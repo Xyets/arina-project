@@ -16,10 +16,6 @@ def _get_rules_path(profile_key: str) -> Path:
 # ---------------- LOAD ----------------
 
 def load_rules(profile_key: str) -> Dict[str, Any]:
-    """
-    Загружает правила вибраций/действий по profile_key.
-    Если файла нет или он повреждён — возвращает пустую структуру.
-    """
     path = _get_rules_path(profile_key)
 
     if not path.exists():
@@ -27,7 +23,16 @@ def load_rules(profile_key: str) -> Dict[str, Any]:
 
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+
+            # 🔥 СОРТИРОВКА ПРАВИЛ ПО MIN
+            data["rules"] = sorted(
+                data.get("rules", []),
+                key=lambda r: r.get("min", 0)
+            )
+
+            return data
+
     except (json.JSONDecodeError, OSError):
         return {"rules": []}
 
