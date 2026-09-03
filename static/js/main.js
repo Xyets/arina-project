@@ -114,7 +114,7 @@ function handleWSMessage(data) {
         updateGoalUI(data.goal);
         return;
     }
-    
+
     if (data.rules_update) {
         reloadInnerContent(() => {
             if (document.querySelector(".rules-page")) {
@@ -185,16 +185,21 @@ function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                // ИНИЦИАЛИЗАЦИЯ ТОЛЬКО ЕСЛИ ЭТО СТРАНИЦА ПРАВИЛ
                 if (document.querySelector(".rules-page")) {
                     initRulesPage();
                     initRuleForms();
                     initRuleModals();
+
+                    // повторная инициализация через микротаск
+                    setTimeout(() => {
+                        initRulesPage();
+                    }, 0);
                 }
 
                 loadLogs();
                 updateQueueUI();
             }, 50);
+
 
         });
 }
