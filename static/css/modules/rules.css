@@ -1,5 +1,5 @@
 /* ============================================================
-   📜 Страница правил — общий контейнер
+   📜 Страница правил — компактная сетка
 ============================================================ */
 .rules-page {
     display: flex;
@@ -11,7 +11,7 @@
 }
 
 /* ============================================================
-   📦 Карточка списка правил
+   📦 Сетка карточек правил
 ============================================================ */
 .rules-list-card {
     background: rgba(255,255,255,0.65);
@@ -28,18 +28,30 @@
     font-weight: 700;
 }
 
+/* Сетка 2 колонки */
+.rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
 /* ============================================================
-   🎴 Плитка одного правила
+   🎴 Компактная плитка правила
 ============================================================ */
 .rule-card {
     background: rgba(255,255,255,0.55);
     backdrop-filter: blur(14px);
     border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 18px;
+    padding: 18px;
 
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    min-height: 160px; /* компактная высота */
 }
 
 .rule-card:hover {
@@ -54,30 +66,29 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
 }
 
 .rule-range {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--text-main);
 }
 
 /* ============================================================
-   🎛 Кнопки действий правила
+   🎛 Кнопки действий
 ============================================================ */
 .rule-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .btn-icon {
     background: rgba(255,255,255,0.35);
     border: none;
-    padding: 8px 12px;
-    border-radius: 12px;
+    padding: 6px 10px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     transition: 0.25s ease;
 }
 
@@ -91,84 +102,56 @@
     color: white;
 }
 
-.btn-delete:hover {
-    opacity: 0.85;
-}
-
 /* ============================================================
    🔊 Информация о вибрации
 ============================================================ */
 .rule-info {
-    font-size: 16px;
-    margin-bottom: 8px;
+    font-size: 15px;
     color: var(--text-secondary);
 }
 
 .rule-action {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    margin-bottom: 10px;
 }
 
 /* ============================================================
-   🎡 Сегменты колеса
+   🎡 Сегменты колеса — компактный вид
 ============================================================ */
 .wheel-segments {
-    margin-top: 15px;
-    padding: 15px;
-    border-radius: 18px;
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 16px;
     background: rgba(255,255,255,0.45);
     backdrop-filter: blur(12px);
     box-shadow: var(--shadow-soft);
 }
 
-.wheel-segments.hidden {
-    display: none;
-}
-
 .segment-card {
     background: rgba(255,255,255,0.55);
     backdrop-filter: blur(10px);
-    padding: 14px;
+    padding: 12px;
     border-radius: 14px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 10px;
 }
 
 .segment-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    margin-bottom: 6px;
 }
 
 .segment-action {
-    font-size: 15px;
-    margin-bottom: 8px;
-}
-
-.segment-chance-bar {
-    background: #eee;
-    height: 8px;
-    border-radius: 6px;
-    overflow: hidden;
+    font-size: 14px;
     margin-bottom: 6px;
 }
 
-.segment-chance-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #74c0e3, #5aa9c8);
-    width: 0%;
-    transition: width 0.4s ease;
-}
-
 .segment-chance-text {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-secondary);
-    margin-bottom: 8px;
 }
 
 /* ============================================================
-   ➕ Добавление нового правила
+   ➕ Добавить правило
 ============================================================ */
 .add-rule-card {
     background: rgba(255,255,255,0.65);
@@ -178,34 +161,6 @@
     box-shadow: var(--shadow-card);
 }
 
-.add-rule-card h3 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.add-rule-card label {
-    font-size: 15px;
-    font-weight: 600;
-    margin-top: 10px;
-    display: block;
-}
-
-.add-rule-card input,
-.add-rule-card select {
-    width: 100%;
-    padding: 10px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    margin-top: 5px;
-    margin-bottom: 12px;
-    font-size: 15px;
-}
-
-/* ============================================================
-   🎨 Основная кнопка
-============================================================ */
 .btn-primary {
     width: 100%;
     background: linear-gradient(135deg, #8ec5fc, #e0c3fc);
