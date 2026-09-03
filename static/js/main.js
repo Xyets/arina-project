@@ -690,32 +690,6 @@ function initRulesPage() {
         }
     });
 
-
-
-    window.updateSegmentFields = (selectEl) => {
-        const modal = selectEl.closest(".modal-content");
-
-        modal.querySelector(".seg-vibration-fields").classList.add("hidden");
-        modal.querySelector(".seg-action-fields").classList.add("hidden");
-        modal.querySelector(".seg-retry-fields").classList.add("hidden");
-
-        if (selectEl.value === "vibration")
-            modal.querySelector(".seg-vibration-fields").classList.remove("hidden");
-
-        if (selectEl.value === "action")
-            modal.querySelector(".seg-action-fields").classList.remove("hidden");
-
-        if (selectEl.value === "retry")
-            modal.querySelector(".seg-retry-fields").classList.remove("hidden");
-    };
-
-    // Закрытие модалки — только один обработчик
-    window.onclick = (event) => {
-        document.querySelectorAll(".modal").forEach(m => {
-            if (event.target === m) m.classList.remove("show");
-        });
-    };
-
     // Инициализация форм — безопасная
     initRuleForms();
 }
