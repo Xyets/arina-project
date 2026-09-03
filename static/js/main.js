@@ -838,3 +838,4 @@ window.toggleWheel = (ruleId) => {
 
     block.classList.toggle("hidden");
 };
+
