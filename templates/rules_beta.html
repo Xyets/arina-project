@@ -238,43 +238,56 @@
                 <button class="close-btn" onclick="closeSegmentModal()">✖</button>
             </div>
 
-            <input type="hidden" id="segment_rule_id">
+            <input type="hidden" id="segment_rule_id" name="rule_id">
 
             <div class="modal-grid">
 
+                <!-- Название -->
                 <div class="modal-cell">
                     <label>Название:</label>
                     <input type="text" id="seg_name" name="seg_name" required>
-
                 </div>
 
+                <!-- Шанс -->
                 <div class="modal-cell">
                     <label>Шанс (%):</label>
-                    <input type="number" id="seg_chance" required>
+                    <input type="number" id="seg_chance" name="seg_chance" required>
                 </div>
 
+                <!-- Тип -->
                 <div class="modal-cell">
                     <label>Тип сегмента:</label>
-                    <select id="seg_type">
+                    <select id="seg_type" name="seg_type" onchange="updateSegmentFields(this)">
                         <option value="vibration">💗 Вибрация</option>
                         <option value="action">🎬 Действие</option>
                         <option value="retry">🔁 Повтор</option>
                     </select>
                 </div>
 
-                <div class="modal-cell" id="seg_strength_block">
-                    <label>Сила:</label>
-                    <input type="number" id="seg_strength">
+                <!-- ВИБРАЦИЯ -->
+                <div class="seg-vibration-fields">
+                    <div class="modal-cell">
+                        <label>Сила:</label>
+                        <input type="number" id="seg_strength" name="seg_strength">
+                    </div>
+
+                    <div class="modal-cell">
+                        <label>Время (сек):</label>
+                        <input type="number" id="seg_duration" name="seg_duration">
+                    </div>
                 </div>
 
-                <div class="modal-cell" id="seg_duration_block">
-                    <label>Время:</label>
-                    <input type="number" id="seg_duration">
+                <!-- ДЕЙСТВИЕ -->
+                <div class="seg-action-fields hidden">
+                    <div class="modal-cell">
+                        <label>Действие:</label>
+                        <input type="text" id="seg_action" name="seg_action">
+                    </div>
                 </div>
 
-                <div class="modal-cell" id="seg_action_block">
-                    <label>Действие:</label>
-                    <input type="text" id="seg_action">
+                <!-- ПОВТОР -->
+                <div class="seg-retry-fields hidden">
+                    <p style="color:#777;">Этот сегмент просто повторяет колесо.</p>
                 </div>
 
             </div>
@@ -287,6 +300,7 @@
 
     </div>
 </div>
+
 
 
 {% endblock %}
