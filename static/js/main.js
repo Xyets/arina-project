@@ -661,6 +661,35 @@ function initRulesPage() {
         setTimeout(updateNewRuleFields, 0);
     });
 
+    // Кастомный стеклянный селект "Тип"
+    const typeSelect = document.getElementById("typeSelect");
+    const typeDisplay = document.getElementById("typeDisplay");
+    const typeOptions = document.getElementById("typeOptions");
+
+    typeDisplay.addEventListener("click", () => {
+        typeOptions.style.display =
+            typeOptions.style.display === "flex" ? "none" : "flex";
+    });
+
+    document.querySelectorAll(".option").forEach(opt => {
+        opt.addEventListener("click", () => {
+            const value = opt.getAttribute("data-value");
+            typeDisplay.textContent = opt.textContent;
+            typeOptions.style.display = "none";
+
+            // передаём значение в твой обработчик
+            document.getElementById("new_action_type").value = value;
+            updateNewRuleFields();
+        });
+    });
+
+    // закрытие при клике вне меню
+    document.addEventListener("click", (e) => {
+        if (!typeSelect.contains(e.target)) {
+            typeOptions.style.display = "none";
+        }
+    });
+
 
 
     window.updateSegmentFields = (selectEl) => {
@@ -788,31 +817,3 @@ window.toggleWheel = (ruleId) => {
 
     box.classList.toggle("show");
 };
-
-const typeSelect = document.getElementById("typeSelect");
-const typeDisplay = document.getElementById("typeDisplay");
-const typeOptions = document.getElementById("typeOptions");
-
-typeDisplay.addEventListener("click", () => {
-    typeOptions.style.display =
-        typeOptions.style.display === "flex" ? "none" : "flex";
-});
-
-document.querySelectorAll(".option").forEach(opt => {
-    opt.addEventListener("click", () => {
-        const value = opt.getAttribute("data-value");
-        typeDisplay.textContent = opt.textContent;
-        typeOptions.style.display = "none";
-
-        // передаём значение в твой обработчик
-        document.getElementById("new_action_type").value = value;
-        updateNewRuleFields();
-    });
-});
-
-// закрытие при клике вне меню
-document.addEventListener("click", (e) => {
-    if (!typeSelect.contains(e.target)) {
-        typeOptions.style.display = "none";
-    }
-});
