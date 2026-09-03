@@ -226,6 +226,65 @@
 
     </div>
 </div>
+<!-- 🔥 Модальное окно добавления сегмента -->
+<div class="modal" id="segmentModal">
+    <div class="modal-content edit-modal">
+
+        <form id="segmentAddForm">
+
+            <div class="modal-header">
+                <h3>➕ Добавить сегмент</h3>
+                <button class="close-btn" onclick="closeSegmentModal()">✖</button>
+            </div>
+
+            <input type="hidden" id="segment_rule_id">
+
+            <div class="modal-grid">
+
+                <div class="modal-cell">
+                    <label>Название:</label>
+                    <input type="text" id="seg_name" required>
+                </div>
+
+                <div class="modal-cell">
+                    <label>Шанс (%):</label>
+                    <input type="number" id="seg_chance" required>
+                </div>
+
+                <div class="modal-cell">
+                    <label>Тип сегмента:</label>
+                    <select id="seg_type">
+                        <option value="vibration">💗 Вибрация</option>
+                        <option value="action">🎬 Действие</option>
+                        <option value="retry">🔁 Повтор</option>
+                    </select>
+                </div>
+
+                <div class="modal-cell" id="seg_strength_block">
+                    <label>Сила:</label>
+                    <input type="number" id="seg_strength">
+                </div>
+
+                <div class="modal-cell" id="seg_duration_block">
+                    <label>Время:</label>
+                    <input type="number" id="seg_duration">
+                </div>
+
+                <div class="modal-cell" id="seg_action_block">
+                    <label>Действие:</label>
+                    <input type="text" id="seg_action">
+                </div>
+
+            </div>
+
+            <button class="btn-primary modal-save-btn" type="submit">
+                💾 Добавить сегмент
+            </button>
+
+        </form>
+
+    </div>
+</div>
 
 
 {% endblock %}

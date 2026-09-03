@@ -1,0 +1,43 @@
+/* ============================
+   ✨ Анимации
+=============================== */
+
+/* Плавное появление */
+.fade-in {
+    animation: fadeIn 0.25s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Плавное раскрытие */
+.expand {
+    animation: expandAnim 0.25s ease forwards;
+}
+
+@keyframes expandAnim {
+    from { opacity: 0; max-height: 0; }
+    to { opacity: 1; max-height: 1000px; }
+}
+
+/* Плавное закрытие */
+.collapse {
+    animation: collapseAnim 0.25s ease forwards;
+}
+
+@keyframes collapseAnim {
+    from { opacity: 1; max-height: 1000px; }
+    to { opacity: 0; max-height: 0; }
+}
+
+/* Модалки */
+.modal {
+    animation: modalFade 0.25s ease forwards;
+}
+
+@keyframes modalFade {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}

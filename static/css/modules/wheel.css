@@ -1,0 +1,90 @@
+/* ============================
+   🎡 Колесо фортуны — сегменты
+=============================== */
+
+.wheel-segments {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.25s ease;
+}
+
+.wheel-segments.hidden {
+    display: none !important;
+}
+
+.wheel-segments h4 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Карточка сегмента */
+.segment-card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s ease;
+}
+
+.segment-card:hover {
+    transform: scale(1.02);
+}
+
+.segment-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* Шанс */
+.segment-chance-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.segment-chance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff7ac6, #ff4fa3);
+    width: 0%;
+    transition: width 0.4s ease;
+}
+
+.segment-chance-text {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* Кнопки */
+.btn-small {
+    margin-top: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-small:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.btn-delete {
+    background: rgba(255, 80, 80, 0.25);
+    border-color: rgba(255, 80, 80, 0.35);
+}
+
+.btn-delete:hover {
+    background: rgba(255, 80, 80, 0.35);
+}
