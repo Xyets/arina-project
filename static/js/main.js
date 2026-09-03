@@ -633,6 +633,9 @@ function initRulesPage() {
         cellDuration.style.display = "none";
         cellAction.style.display = "none";
 
+        // Если тип пустой — ничего не показываем
+        if (!type) return;
+
         // Показываем нужное
         if (type === "vibration") {
             cellMin.style.display = "flex";
@@ -653,7 +656,7 @@ function initRulesPage() {
         }
     };
 
-    // Запуск при загрузке
+    // При загрузке страницы — скрываем всё
     document.addEventListener("DOMContentLoaded", updateNewRuleFields);
 
 
