@@ -168,10 +168,15 @@ function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                initHandlers();      // теперь правильно
+                initHandlers();      // базовые кнопки
+                initRulesPage();     // правила
+                initRuleForms();     // формы правил
+
                 loadLogs();
                 updateQueueUI();
+
             }, 50);
+
 
         });
 }
@@ -245,12 +250,15 @@ function reloadInnerContent() {
 
             const newContent = doc.querySelector(".content-inner").innerHTML;
 
-            container.innerHTML = newContent;   // ← ЭТО ОБЯЗАТЕЛЬНО
+            container.innerHTML = newContent;
 
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                initHandlers();
+                initHandlers();      // базовые кнопки
+                initRulesPage();     // правила
+                initRuleForms();     // формы правил
+
                 loadLogs();
                 updateQueueUI();
             }, 50);
