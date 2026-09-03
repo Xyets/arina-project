@@ -609,6 +609,115 @@ async def ws_handler(websocket):
                 ws_send(data, role="obs", profile_key=profile_key)
                 continue
 
+            # ---------- RULES: ADD RULE ----------
+            if msg_type == "add_rule":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rules = load_rules(profile_key)
+
+                new_rule = {
+                    "id": str(uuid.uuid4()),
+                    "min": int(data.get("min", 0)),
+                    "max": int(data.get("max", 0)),
+                    "strength": int(data.get("strength", 0)),
+                    "duration": int(data.get("duration", 0)),
+                    "type": data.get("action_type"),
+                    "action": data.get("action") or None,
+                    "segments": []
+                }
+
+                rules["rules"].append(new_rule)
+                save_rules(profile_key, rules)
+
+                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                continue
+
+
+            # ---------- RULES: EDIT RULE ----------
+            if msg_type == "edit_rule":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rule_id = data.get("id")
+
+                rules = load_rules(profile_key)
+
+                for r in rules["rules"]:
+                    if r["id"] == rule_id:
+                        r["min"] = int(data.get("min", 0))
+                        r["max"] = int(data.get("max", 0))
+                        r["strength"] = int(data.get("strength", 0))
+                        r["duration"] = int(data.get("duration", 0))
+                        r["type"] = data.get("action_type")
+                        r["action"] = data.get("action") or None
+
+                save_rules(profile_key, rules)
+                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                continue
+
+
+            # ---------- RULES: DELETE RULE ----------
+            if msg_type == "delete_rule":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rule_id = data.get("id")
+
+                rules = load_rules(profile_key)
+                rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
+                save_rules(profile_key, rules)
+
+                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                continue
+
+
+            # ---------- RULES: ADD SEGMENT ----------
+            if msg_type == "add_segment":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rule_id = data.get("rule_id")
+
+                rules = load_rules(profile_key)
+
+                for r in rules["rules"]:
+                    if r["id"] == rule_id:
+                        seg = {
+                            "name": data.get("name"),
+                            "chance": int(data.get("chance", 0)),
+                            "type": data.get("seg_type"),
+                            "strength": int(data.get("strength", 0)),
+                            "duration": int(data.get("duration", 0)),
+                            "action": data.get("action") or ""
+                        }
+                        r.setdefault("segments", []).append(seg)
+
+                save_rules(profile_key, rules)
+                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                continue
+
+
+            # ---------- RULES: DELETE SEGMENT ----------
+            if msg_type == "delete_segment":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rule_id = data.get("rule_id")
+                seg_index = int(data.get("seg_index", -1))
+
+                rules = load_rules(profile_key)
+
+                for r in rules["rules"]:
+                    if r["id"] == rule_id:
+                        if 0 <= seg_index < len(r.get("segments", [])):
+                            r["segments"].pop(seg_index)
+
+                save_rules(profile_key, rules)
+                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                continue
+
+
             # Если тип неизвестен
             print("⚠ Unknown WS message type:", msg_type)
 
