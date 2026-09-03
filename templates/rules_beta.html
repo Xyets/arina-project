@@ -6,26 +6,27 @@
     <div class="add-rule-card">
         <h3>➕ Добавить новое правило</h3>
 
-        <form id="addRuleForm" class="add-rule-form">
+        <!-- Тип по центру — ВНЕ формы -->
+        <div class="form-type">
+            <label>Тип:</label>
 
-            <!-- Тип по центру -->
-            <div class="form-type">
-                <label>Тип:</label>
-                <div class="custom-select" id="typeSelect">
-                    <div class="select-display" id="typeDisplay">Выберите тип</div>
+            <div class="custom-select" id="typeSelect">
+                <div class="select-display" id="typeDisplay">Выберите тип</div>
 
-                    <div class="select-options" id="typeOptions">
-                        <div class="option" data-value="vibration">💗 Вибрация</div>
-                        <div class="option" data-value="custom">🎬 Действие</div>
-                        <div class="option" data-value="wheel">🎡 Колесо фортуны</div>
-                    </div>
+                <div class="select-options" id="typeOptions">
+                    <div class="option" data-value="vibration">💗 Вибрация</div>
+                    <div class="option" data-value="custom">🎬 Действие</div>
+                    <div class="option" data-value="wheel">🎡 Колесо фортуны</div>
                 </div>
-                <input type="hidden" id="new_action_type">
             </div>
 
-            <!-- Две колонки -->
-            <div class="form-grid">
+            <input type="hidden" id="new_action_type">
+        </div>
 
+        <!-- Форма — отдельно -->
+        <form id="addRuleForm" class="add-rule-form">
+
+            <div class="form-grid">
                 <div class="form-cell" id="cell_min">
                     <label>Мин:</label>
                     <input type="number" id="new_min" required>
@@ -50,13 +51,12 @@
                     <label>Действие:</label>
                     <input type="text" id="new_action">
                 </div>
-
             </div>
 
             <button type="submit" class="btn-primary">Добавить</button>
         </form>
-
     </div>
+
 
 
     <!-- Список правил -->
