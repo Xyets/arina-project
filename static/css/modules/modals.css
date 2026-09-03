@@ -121,3 +121,83 @@
     opacity: 0.85;
     transform: translateY(-3px);
 }
+/* Стеклянная модалка */
+.edit-modal {
+    background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,240,255,0.55));
+    backdrop-filter: blur(22px);
+    border-radius: 26px;
+    padding: 30px;
+    width: 420px;
+
+    box-shadow:
+        0 12px 28px rgba(0,0,0,0.12),
+        inset 0 0 22px rgba(255,255,255,0.45);
+
+    border: 1px solid rgba(255,255,255,0.55);
+    animation: modalPop 0.35s ease;
+}
+
+/* Анимация появления */
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Заголовок */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.close-btn {
+    background: rgba(255,255,255,0.35);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.75);
+    transform: translateY(-3px);
+}
+
+/* Сетка */
+.modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 20px;
+}
+
+.modal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.modal-cell input,
+.modal-cell select {
+    width: 140px;
+    background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(255,255,255,0.65);
+    border-radius: 14px;
+    padding: 10px;
+    text-align: center;
+    transition: 0.25s ease;
+}
+
+.modal-cell input:focus,
+.modal-cell select:focus {
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* Кнопка */
+.modal-save-btn {
+    margin-top: 20px;
+    width: 100%;
+}
