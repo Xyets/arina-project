@@ -1,0 +1,202 @@
+/* ============================================================
+   📌 Боковое меню
+============================================================ */
+.sidebar {
+    width: 360px;
+    background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.75),
+        rgba(218, 235, 227, 0.55)
+    );
+    backdrop-filter: blur(18px);
+    border-radius: 28px;
+
+    margin: 20px 0 20px 20px;
+    padding: 35px 25px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 35px;
+
+    transition: width 0.25s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+/* Hover */
+.sidebar:hover {
+    box-shadow:
+        0 12px 28px rgba(0,0,0,0.08),
+        inset 0 0 14px rgba(255,255,255,0.5);
+}
+
+/* Логотип */
+.sidebar-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 24px;
+    color: var(--text-main);
+}
+
+.sidebar-logo img {
+    width: 56px;
+    height: 56px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+}
+
+/* ============================================================
+   📦 Sidebar collapse
+============================================================ */
+.sidebar.collapsed {
+    width: 90px;
+    padding: 25px 15px;
+    gap: 20px;
+}
+
+.sidebar.collapsed .label,
+.sidebar.collapsed .sidebar-title,
+.sidebar.collapsed .mode-title,
+.sidebar.collapsed .mode-label {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar.collapsed .sidebar-logo {
+    justify-content: center;
+}
+
+/* Иконки */
+.sidebar .icon {
+    font-size: 26px;
+}
+
+/* ============================================================
+   🔄 Переключатель режима
+============================================================ */
+.sidebar-mode {
+    width: 100%;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 18px 12px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+}
+
+.sidebar-mode .mode-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.mode-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mode-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.switch {
+    position: relative;
+    width: 60px;
+    height: 32px;
+}
+
+.switch input {
+    display: none;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #ffd6e6;
+    border-radius: 34px;
+    transition: 0.3s;
+}
+
+.slider:before {
+    content: "";
+    position: absolute;
+    height: 26px;
+    width: 26px;
+    left: 3px;
+    bottom: 3px;
+    background: #faa3cd;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+input:checked + .slider {
+    background: #fadae7;
+}
+
+input:checked + .slider:before {
+    transform: translateX(28px);
+}
+
+/* Меню */
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    width: 100%;
+}
+
+.sidebar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+    padding: 16px 10px;
+    width: 100%;
+
+    border-radius: 18px;
+    font-size: 18px;
+    font-weight: 700;
+
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+
+    color: var(--text-main);
+    text-decoration: none;
+
+    transition: background 0.25s, color 0.25s, transform 0.2s, box-shadow 0.25s;
+}
+
+.sidebar-item:hover {
+    background: var(--accent-light);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+}
+
+.sidebar-item.active {
+    background: var(--accent);
+    color: white;
+}
+
+/* Logout */
+.sidebar-item.logout {
+    color: var(--accent-pink);
+}
+
+.sidebar-item.logout:hover {
+    background: var(--accent-warm);
+    color: var(--text-main);
+}

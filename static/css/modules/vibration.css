@@ -1,0 +1,102 @@
+/* ============================================================
+   ⏱ Таймеры вибраций — стеклянный стиль
+============================================================ */
+#vibrationOverlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+/* ============================================================
+   🌸 Премиальное окно вибрации — FlowTip Deluxe
+============================================================ */
+.vibration-timer {
+    pointer-events: auto;
+
+    background: rgba(255,255,255,0.60);
+    backdrop-filter: blur(18px);
+    border-radius: 26px;
+    padding: 22px 24px;
+    width: 270px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+
+    box-shadow:
+        0 12px 28px rgba(0,0,0,0.10),
+        inset 0 0 18px rgba(255,255,255,0.45);
+
+    border: 1px solid rgba(255,255,255,0.55);
+
+    animation: vibAppear 0.35s ease-out;
+}
+
+@keyframes vibAppear {
+    from { opacity: 0; transform: translateY(12px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.vibration-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vibration-time {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--accent-pink);
+}
+
+.vibration-progress {
+    width: 100%;
+    height: 14px;
+    background: rgba(255, 182, 193, 0.35);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.vibration-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff99cc, #ff66aa, #ff99cc);
+    background-size: 200% 100%;
+    width: 100%;
+    transition: width 0.2s linear;
+    animation: vibGradient 2s infinite linear;
+}
+
+@keyframes vibGradient {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+.vibration-stop-btn {
+    margin-top: 6px;
+    background: var(--accent-pink);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 18px;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+
+    box-shadow: 0 6px 16px rgba(255, 105, 180, 0.35);
+    transition: 0.25s ease;
+}
+
+.vibration-stop-btn:hover {
+    background: #ff4fa3;
+    transform: translateY(-3px);
+}

@@ -1,0 +1,55 @@
+/* ============================================================
+   📐 Основной layout
+============================================================ */
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ============================================================
+   📄 Контент справа
+============================================================ */
+.content {
+    margin-left: 50px;
+    width: calc(100% - 50px);
+    padding: 40px 0;
+
+    display: flex;
+    justify-content: center;
+    background: var(--bg);
+}
+
+.content-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.content-inner {
+    width: 100%;
+    max-width: 1000px;
+    padding: 0 30px;
+}
+
+/* ============================================================
+   📐 Сетки
+============================================================ */
+.row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.row-events {
+    width: 100%;
+}
+
+.row-bottom {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 1000px;
+}

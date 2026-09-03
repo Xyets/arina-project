@@ -1,0 +1,27 @@
+/* ============================================================
+   🔔 Toast — стеклянный стиль
+============================================================ */
+.toast {
+    visibility: hidden;
+    min-width: 240px;
+    background: rgba(153,205,216,0.85);
+    backdrop-filter: blur(12px);
+    color: white;
+    text-align: center;
+    border-radius: 14px;
+    padding: 14px 18px;
+    position: fixed;
+    z-index: 2000;
+    left: 50%;
+    bottom: 30px;
+    font-size: 15px;
+    opacity: 0;
+    transition: opacity 0.5s, bottom 0.5s;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+    bottom: 50px;
+}

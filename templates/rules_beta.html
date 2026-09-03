@@ -1,263 +1,144 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="top-header">
-    <h1 class="hello">📜 Правила для {{ session["user"] }}</h1>
-</div>
+<div class="rules-page">
 
-<div style="text-align:center; margin-bottom:20px;">
-    <button type="button" id="testVibrationBtn" class="flow-btn-small">
-        🔊 Проверить вибрацию (default)
-    </button>
-</div>
-
-<div style="text-align:center; margin-bottom:20px;">
-    <a href="{{ url_for('panel.beta_page') }}" class="flow-btn-small">
-        ⬅ Назад
-    </a>
-</div>
-
-<div class="events-card">
-    <div class="card-header">
-        <h2>Правила</h2>
+    <div class="top-header">
+        <h1 class="hello">📜 Правила для {{ session["user"] }}</h1>
     </div>
 
-    {% for rule in rules %}
-    <div class="rule-card"
-         data-rule-id="{{ rule.id }}"
-         data-min="{{ rule.min }}"
-         data-max="{{ rule.max }}"
-         data-strength="{{ rule.strength }}"
-         data-duration="{{ rule.duration }}"
-         data-type="{{ rule.type }}"
-         data-action="{{ rule.action }}">
-
-        <div class="rule-header">
-            <strong>Диапазон: {{ rule.min }} – {{ rule.max }}</strong>
-
-            <div class="rule-actions">
-                <button type="button"
-                        class="flow-btn-small testRuleBtn"
-                        data-index="{{ loop.index0 }}">
-                    🔊
-                </button>
-
-                <button type="button"
-                        class="flow-btn-small btn-delete"
-                        onclick="deleteRule('{{ rule.id }}')">
-                    ❌
-                </button>
-
-                {% if rule.type == "wheel" %}
-                    <button type="button"
-                            class="flow-btn-small"
-                            onclick="toggleWheel('{{ rule.id }}')">
-                        📂
-                    </button>
-
-                    <button type="button"
-                            class="flow-btn-small"
-                            onclick="openSegmentModal('{{ rule.id }}')">
-                        ➕
-                    </button>
-                {% else %}
-                    <button type="button"
-                            class="flow-btn-small"
-                            onclick="openRuleModal('{{ rule.id }}')">
-                        ✏️
-                    </button>
-                {% endif %}
-            </div>
+    <div class="rules-list-card">
+        <div class="rules-list-header">
+            <h2>Правила</h2>
         </div>
 
-        {% if rule.type != "wheel" %}
-            <p>Сила: {{ rule.strength }} | Время: {{ rule.duration }}s</p>
-        {% endif %}
+        {% for rule in rules %}
+        <div class="rule-card"
+             data-rule-id="{{ rule.id }}"
+             data-min="{{ rule.min }}"
+             data-max="{{ rule.max }}"
+             data-strength="{{ rule.strength }}"
+             data-duration="{{ rule.duration }}"
+             data-type="{{ rule.type }}"
+             data-action="{{ rule.action }}">
 
-        <p>
-            Действие:
-            {% if rule.type == "wheel" %}
-                🎡 Колесо фортуны
-            {% elif rule.action %}
-                🎬 {{ rule.action }}
-            {% else %}
-                🔊 Вибрация
+            <div class="rule-card-header">
+                <div class="rule-range">
+                    Диапазон: {{ rule.min }} – {{ rule.max }}
+                </div>
+
+                <div class="rule-actions">
+                    <button class="btn-icon testRuleBtn" data-index="{{ loop.index0 }}">🔊</button>
+                    <button class="btn-icon btn-delete" onclick="deleteRule('{{ rule.id }}')">❌</button>
+
+                    {% if rule.type == "wheel" %}
+                        <button class="btn-icon" onclick="toggleWheel('{{ rule.id }}')">📂</button>
+                        <button class="btn-icon" onclick="openSegmentModal('{{ rule.id }}')">➕</button>
+                    {% else %}
+                        <button class="btn-icon" onclick="openRuleModal('{{ rule.id }}')">✏️</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if rule.type != "wheel" %}
+            <div class="rule-info">
+                Сила: {{ rule.strength }} | Время: {{ rule.duration }}s
+            </div>
             {% endif %}
-        </p>
 
-        {% if rule.type == "wheel" %}
-        <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
+            <div class="rule-action">
+                {% if rule.type == "wheel" %}
+                    🎡 Колесо фортуны
+                {% elif rule.action %}
+                    🎬 {{ rule.action }}
+                {% else %}
+                    🔊 Вибрация
+                {% endif %}
+            </div>
 
-            <h4>🎡 Сегменты колеса</h4>
+            {% if rule.type == "wheel" %}
+            <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
+                <h4>🎡 Сегменты колеса</h4>
 
-            {% if rule.segments %}
-                {% for seg in rule.segments %}
-                <div class="segment-card">
-                    <div class="segment-title">🎯 {{ seg.name }}</div>
+                {% if rule.segments %}
+                    {% for seg in rule.segments %}
+                    <div class="segment-card">
+                        <div class="segment-title">🎯 {{ seg.name }}</div>
 
-                    {% if seg.type == "vibration" %}
+                        {% if seg.type == "vibration" %}
                         <div class="segment-action">
-                            <strong>Вибрация:</strong>
-                            сила {{ seg.strength }}, время {{ seg.duration }}s
+                            <strong>Вибрация:</strong> сила {{ seg.strength }}, время {{ seg.duration }}s
                         </div>
-                    {% elif seg.type == "action" %}
+                        {% elif seg.type == "action" %}
                         <div class="segment-action">
                             <strong>Действие:</strong> {{ seg.action }}
                         </div>
-                    {% elif seg.type == "retry" %}
-                        <div class="segment-action">
-                            🔁 Повтор колеса
+                        {% elif seg.type == "retry" %}
+                        <div class="segment-action">🔁 Повтор колеса</div>
+                        {% endif %}
+
+                        <div class="segment-chance-bar">
+                            <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
                         </div>
-                    {% endif %}
 
-                    <div class="segment-chance-bar">
-                        <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
+                        <div class="segment-chance-text">Шанс: {{ seg.chance }}%</div>
+
+                        <button class="btn-small btn-delete"
+                                onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})">
+                            Удалить сегмент
+                        </button>
                     </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-segments">Сегментов пока нет</p>
+                {% endif %}
 
-                    <small class="segment-chance-text">Шанс: {{ seg.chance }}%</small>
-
-                    <button type="button"
-                            class="flow-btn-small btn-delete"
-                            onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})">
-                        Удалить сегмент
-                    </button>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p class="no-segments">Сегментов пока нет</p>
+                <button class="btn-small" onclick="openSegmentModal('{{ rule.id }}')">
+                    ➕ Добавить сегмент
+                </button>
+            </div>
             {% endif %}
 
-            <button type="button"
-                    onclick="openSegmentModal('{{ rule.id }}')"
-                    class="flow-btn-small">
-                ➕ Добавить сегмент
-            </button>
-
         </div>
-        {% endif %}
-
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
 
-<div id="ruleModal" class="modal">
-    <div class="modal-content">
-        <h3>✏️ Редактировать правило</h3>
+    <div class="add-rule-card">
+        <h3>➕ Добавить новое правило</h3>
 
-        <form id="ruleEditForm">
-            <input type="hidden" id="edit_rule_id">
-
+        <form id="addRuleForm">
             <label>Мин:</label>
-            <input type="number" id="edit_min" required>
+            <input type="number" id="new_min" required>
 
             <label>Макс:</label>
-            <input type="number" id="edit_max" required>
+            <input type="number" id="new_max" required>
 
-            <div id="edit_strength_block">
+            <div id="new_strength_block">
                 <label>Сила:</label>
-                <input type="number" id="edit_strength">
+                <input type="number" id="new_strength">
             </div>
 
-            <div id="edit_duration_block">
+            <div id="new_duration_block">
                 <label>Время (сек):</label>
-                <input type="number" id="edit_duration">
+                <input type="number" id="new_duration">
             </div>
 
             <label>Тип:</label>
-            <select id="edit_type" onchange="updateRuleEditFields()">
+            <select id="new_action_type" onchange="updateNewRuleFields()">
                 <option value="vibration">Вибрация</option>
                 <option value="custom">Действие</option>
                 <option value="wheel">Колесо фортуны</option>
             </select>
 
-            <div id="edit_action_block">
+            <div id="new_action_block">
                 <label>Действие:</label>
-                <input type="text" id="edit_action">
+                <input type="text" id="new_action">
             </div>
 
-            <button type="submit" class="flow-btn-small">💾 Сохранить</button>
-            <button type="button" class="flow-btn-small" onclick="closeRuleModal()">Закрыть</button>
+            <button type="submit" class="btn-primary">Добавить</button>
         </form>
     </div>
-</div>
 
-<div id="segmentModal" class="modal">
-    <div class="modal-content">
-        <h3>➕ Новый сегмент</h3>
-
-        <form id="segmentAddForm">
-            <input type="hidden" id="segment_rule_id">
-
-            <label>Название:</label>
-            <input type="text" id="seg_name" required>
-
-            <label>Шанс (%):</label>
-            <input type="number" id="seg_chance" required>
-
-            <label>Тип:</label>
-            <select id="seg_type" onchange="updateSegmentFields(this)">
-                <option value="vibration">Вибрация</option>
-                <option value="action">Действие</option>
-                <option value="retry">Повтор</option>
-            </select>
-
-            <div class="seg-vibration-fields">
-                <label>Сила:</label>
-                <input type="number" id="seg_strength">
-
-                <label>Время (сек):</label>
-                <input type="number" id="seg_duration">
-            </div>
-
-            <div class="seg-action-fields hidden">
-                <label>Действие:</label>
-                <input type="text" id="seg_action">
-            </div>
-
-            <div class="seg-retry-fields hidden">
-                <p style="color:#777;">Этот сегмент повторяет колесо.</p>
-            </div>
-
-            <button type="submit" class="flow-btn-small">💾 Добавить</button>
-            <button type="button" class="flow-btn-small" onclick="closeSegmentModal()">Закрыть</button>
-        </form>
-    </div>
-</div>
-
-<div class="events-card" style="margin-top:20px;">
-    <h3>➕ Добавить новое правило</h3>
-
-    <form id="addRuleForm">
-        <label>Мин:</label>
-        <input type="number" id="new_min" required>
-
-        <label>Макс:</label>
-        <input type="number" id="new_max" required>
-
-        <div id="new_strength_block">
-            <label>Сила:</label>
-            <input type="number" id="new_strength">
-        </div>
-
-        <div id="new_duration_block">
-            <label>Время (сек):</label>
-            <input type="number" id="new_duration">
-        </div>
-
-        <label>Тип:</label>
-        <select id="new_action_type" onchange="updateNewRuleFields()">
-            <option value="vibration">Вибрация</option>
-            <option value="custom">Действие</option>
-            <option value="wheel">Колесо фортуны</option>
-        </select>
-
-        <div id="new_action_block">
-            <label>Действие:</label>
-            <input type="text" id="new_action">
-        </div>
-
-        <button type="submit" class="flow-btn-small">Добавить</button>
-    </form>
 </div>
 
 {% endblock %}

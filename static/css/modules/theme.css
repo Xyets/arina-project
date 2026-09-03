@@ -1,0 +1,30 @@
+/* ============================================================
+   🌈 Тема — глобальные переменные
+============================================================ */
+:root {
+    --bg: #f5f4fb;
+    --card-bg: #ffffff;
+
+    --accent: #a78bfa;
+    --accent-light: #ede9fe;
+    --accent-blue: #a3d8f4;
+    --accent-pink: #f7a8b8;
+    --accent-warm: #ffe6e6;
+
+    --text-main: #333;
+    --text-secondary: #666;
+
+    --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
+    --shadow-card: 0 8px 22px rgba(0,0,0,0.06);
+}
+
+/* ============================================================
+   🌈 Общий стиль страницы
+============================================================ */
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-main);
+}
