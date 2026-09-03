@@ -218,7 +218,8 @@ def rules_page():
         return redirect(url_for("rules.rules_page"))
 
     return render_template(
-        "rules.html",
+        "rules_beta.html",
         rules=rules["rules"],
         profile_key=profile_key
     )
+
