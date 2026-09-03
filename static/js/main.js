@@ -127,7 +127,9 @@ function initHandlers() {
 }
 
 window.addEventListener("load", () => {
-    if (!socket) connectWS();   // создаём WebSocket только один раз
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        connectWS();
+    }
     initHandlers();
     initSidebarNavigation();
 });
@@ -168,18 +170,16 @@ function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                initHandlers();      // базовые кнопки
-                initRulesPage();     // правила
-                initRuleForms();     // формы правил
+                // ✔ оставить только эти
+                initRulesPage();
+                initRuleForms();
 
                 loadLogs();
                 updateQueueUI();
-
             }, 50);
-
-
         });
 }
+
 
 /* ============================================================
    📦 Sidebar collapse
@@ -333,11 +333,15 @@ function initQueueButtons() {
    ⏱ 6. Таймер вибрации
 ============================================================ */
 function startVibrationTimer(duration, strength) {
-    const container = document.getElementById("vibrationOverlay");
-    if (!container) {
-        console.warn("Нет контейнера для таймера вибрации");
+
+    if (window._vibrationTimerActive) {
+        console.warn("Таймер уже активен — второй не запускаем");
         return;
     }
+    window._vibrationTimerActive = true;
+
+    const container = document.getElementById("vibrationOverlay");
+    if (!container) return;
 
     const box = document.createElement("div");
     box.className = "vibration-timer";
@@ -361,6 +365,7 @@ function startVibrationTimer(duration, strength) {
         if (remaining <= 0) {
             clearInterval(interval);
             box.remove();
+            window._vibrationTimerActive = false;
         } else {
             timeSpan.textContent = Math.ceil(remaining);
             progressFill.style.width = `${(remaining / duration) * 100}%`;
@@ -371,8 +376,10 @@ function startVibrationTimer(duration, strength) {
         sendStop();
         clearInterval(interval);
         box.remove();
+        window._vibrationTimerActive = false;
     };
 }
+
 
 function sendStop() {
     const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
