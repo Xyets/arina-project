@@ -538,11 +538,14 @@ function navigateSPA(url) {
 
             setTimeout(() => {
                 container.style.opacity = "1";
+
+                // ВАЖНО: вызываем initHandlers ПОСЛЕ вставки HTML
+                initHandlers();
+                loadLogs();
+                updateQueueUI();
+
             }, 50);
 
-            initHandlers();
-            loadLogs();
-            updateQueueUI();
         });
 }
 /* ============================================================
