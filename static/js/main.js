@@ -575,11 +575,21 @@ function initRulesPage() {
         document.getElementById("edit_max").value = card.dataset.max;
         document.getElementById("edit_strength").value = card.dataset.strength;
         document.getElementById("edit_duration").value = card.dataset.duration;
-        document.getElementById("edit_type").value = card.dataset.type;
         document.getElementById("edit_action").value = card.dataset.action || "";
+
+        // тип — только отображение
+        const type = card.dataset.type;
+        document.getElementById("edit_type").value = type;
+
+        document.getElementById("edit_type_display").textContent =
+            type === "vibration" ? "Вибрация" :
+            type === "custom" ? "Действие" :
+            "Колесо фортуны";
 
         updateRuleEditFields();
     };
+
+
 
     window.closeRuleModal = () => {
         document.getElementById("ruleModal").classList.remove("show");
@@ -616,6 +626,7 @@ function initRulesPage() {
             action.classList.remove("hidden");
         }
     };
+
 
     window.updateNewRuleFields = () => {
         const type = document.getElementById("new_action_type").value;

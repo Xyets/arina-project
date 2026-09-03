@@ -161,7 +161,7 @@
 
 </div> <!-- конец rules-page -->
 
-<!-- 🔥 ВСТАВЛЯЕМ МОДАЛКУ СЮДА -->
+<!-- 🔥 Модальное окно редактирования правила -->
 <div class="modal" id="ruleModal">
     <div class="modal-content edit-modal">
 
@@ -176,13 +176,11 @@
 
             <div class="modal-grid">
 
+                <!-- Тип (только отображение) -->
                 <div class="modal-cell">
                     <label>Тип:</label>
-                    <select id="edit_type" onchange="updateRuleEditFields()">
-                        <option value="vibration">Вибрация</option>
-                        <option value="custom">Действие</option>
-                        <option value="wheel">Колесо фортуны</option>
-                    </select>
+                    <div class="readonly-type" id="edit_type_display"></div>
+                    <input type="hidden" id="edit_type">
                 </div>
 
                 <div class="modal-cell">
@@ -220,7 +218,6 @@
 
     </div>
 </div>
-
 
 
 {% endblock %}
