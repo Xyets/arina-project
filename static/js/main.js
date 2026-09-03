@@ -6,10 +6,19 @@ const CURRENT_USER = app?.dataset.user || "";
 let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
 
+// глобальная цель
+let goal = {
+    title: "",
+    current: 0,
+    target: 0
+};
+
 /* ============================================================
    📡 1. WebSocket подключение
 ============================================================ */
 let socket = null;
+let wsReconnectAttempts = 0;
+const WS_MAX_RECONNECT = 10;
 
 function connectWS() {
     if (socket && socket.readyState === WebSocket.OPEN) return;
@@ -19,6 +28,7 @@ function connectWS() {
 
     socket.onopen = () => {
         console.log("WS connected");
+        wsReconnectAttempts = 0;
 
         const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
 
@@ -38,13 +48,13 @@ function connectWS() {
 
     socket.onclose = () => {
         console.log("WS closed");
+
         if (socket._pingInterval) clearInterval(socket._pingInterval);
 
-        setTimeout(() => {
-            if (!socket || socket.readyState === WebSocket.CLOSED) {
-                connectWS();
-            }
-        }, 2000);
+        if (wsReconnectAttempts < WS_MAX_RECONNECT) {
+            wsReconnectAttempts++;
+            setTimeout(connectWS, 2000);
+        }
     };
 
     socket.onmessage = (event) => {
@@ -107,20 +117,40 @@ function handleWSMessage(data) {
     }
 }
 
-window.addEventListener("load", () => {
+/* ============================================================
+   📦 3. Инициализация обработчиков
+============================================================ */
+function initHandlers() {
+    initSidebarCollapse();
+    initModeSwitch();
+    initLogButtons();
+    initQueueButtons();
+    initGoalModal();
+}
 
-    const modeSwitch = document.getElementById("modeSwitch");
-    if (!modeSwitch) {
-        console.log("⚠️ modeSwitch не найден");
-        return;
+window.addEventListener("load", initHandlers);
+
+/* ============================================================
+   📦 Sidebar collapse
+============================================================ */
+function initSidebarCollapse() {
+    const sidebar = document.getElementById("sidebar");
+    const sidebarLogo = document.getElementById("sidebarLogo");
+
+    if (sidebar && sidebarLogo) {
+        sidebarLogo.onclick = () => sidebar.classList.toggle("collapsed");
     }
+}
 
-    console.log("🔧 modeSwitch найден, назначаю обработчик");
+/* ============================================================
+   🔄 Переключатель режима
+============================================================ */
+function initModeSwitch() {
+    const modeSwitch = document.getElementById("modeSwitch");
+    if (!modeSwitch) return;
 
-    modeSwitch.addEventListener("change", () => {
+    modeSwitch.onchange = () => {
         const newMode = modeSwitch.checked ? "private" : "public";
-
-        console.log("🔄 Переключение режима:", newMode);
 
         socket.send(JSON.stringify({
             type: "set_mode",
@@ -135,38 +165,22 @@ window.addEventListener("load", () => {
         })
         .then(r => r.json())
         .then(data => {
-            console.log("📩 Ответ от /set_mode:", data);
-
             if (data.status === "ok") {
                 CURRENT_MODE = newMode;
                 reloadInnerContent();
                 showToast(`Режим переключен: ${newMode}`);
             }
         });
-    });
-    /* ============================================================
-       📦 Sidebar collapse — ВСТАВИТЬ СЮДА
-    ============================================================ */
-
-    const sidebar = document.getElementById("sidebar");
-    const sidebarLogo = document.getElementById("sidebarLogo");
-
-    if (sidebar && sidebarLogo) {
-        sidebarLogo.addEventListener("click", () => {
-            sidebar.classList.toggle("collapsed");
-        });
-    }
-});
-
+    };
+}
 
 /* ============================================================
-   🔄 Мгновенное обновление внутреннего контента без мигания
+   🔄 Мгновенное обновление внутреннего контента
 ============================================================ */
 function reloadInnerContent() {
     const container = document.querySelector(".content-inner");
     if (!container) return;
 
-    // плавное исчезновение
     container.style.opacity = "0";
 
     fetch(window.location.pathname)
@@ -177,33 +191,30 @@ function reloadInnerContent() {
 
             const newContent = doc.querySelector(".content-inner").innerHTML;
 
-            // заменяем контент
             container.innerHTML = newContent;
 
-            // плавное появление
             setTimeout(() => {
                 container.style.opacity = "1";
             }, 50);
 
-            // перезапуск логики
-            connectWS();
+            initHandlers();
             loadLogs();
             updateQueueUI();
         });
 }
 
-
 /* ============================================================
-   📜 3. Логи
+   📜 4. Логи
 ============================================================ */
 let lastLogCount = 0;
+let logInterval = setInterval(loadLogs, 2000);
 
 async function loadLogs() {
+    const box = document.getElementById("logbox");
+    if (!box) return;
+
     const res = await fetch("/logs_data");
     const data = await res.json();
-    const box = document.getElementById("logbox");
-
-    if (!box) return;
 
     const logs = data.logs || [];
     const newLogs = logs.slice(lastLogCount);
@@ -218,13 +229,10 @@ async function loadLogs() {
     });
 }
 
-setInterval(loadLogs, 2000);
-
 /* ============================================================
-   🔁 4. Очередь вибраций
+   🔁 5. Очередь вибраций
 ============================================================ */
 let vibrationQueue = [];
-let vibrationTimerRunning = false;
 
 function updateQueueUI() {
     const box = document.getElementById("queuebox");
@@ -240,40 +248,36 @@ function updateQueueUI() {
         .join("");
 }
 
-function sendStop() {
-    const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+function initQueueButtons() {
+    const clearQueueBtn = document.getElementById("clearQueueBtn");
+    if (!clearQueueBtn) return;
 
-    socket.send(JSON.stringify({
-        type: "stop",
-        user: CURRENT_USER,
-        profile_key
-    }));
+    clearQueueBtn.onclick = () => {
+        const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
 
-    console.log("⛔ STOP SENT:", profile_key);
+        socket.send(JSON.stringify({
+            type: "clear_queue",
+            profile_key
+        }));
+
+        vibrationQueue = [];
+        updateQueueUI();
+        showToast("Очередь очищена ✅");
+    };
 }
 
 /* ============================================================
-   ⏱ 5. Таймер вибрации — новый красивый стиль
+   ⏱ 6. Таймер вибрации
 ============================================================ */
 function startVibrationTimer(duration, strength) {
-    if (vibrationTimerRunning) return;
-    vibrationTimerRunning = true;
-
     const container = document.getElementById("vibrationTimersContainer");
     const box = document.createElement("div");
     box.className = "vibration-timer";
 
     box.innerHTML = `
         <div class="vibration-title">💖 Вибрация • Сила ${strength}</div>
-
-        <div class="vibration-time">
-            Осталось: <span class="time">${Math.ceil(duration)}</span> сек
-        </div>
-
-        <div class="vibration-progress">
-            <div class="vibration-progress-fill"></div>
-        </div>
-
+        <div class="vibration-time">Осталось: <span class="time">${Math.ceil(duration)}</span> сек</div>
+        <div class="vibration-progress"><div class="vibration-progress-fill"></div></div>
         <button class="vibration-stop-btn">Остановить</button>
     `;
 
@@ -289,7 +293,6 @@ function startVibrationTimer(duration, strength) {
         if (remaining <= 0) {
             clearInterval(interval);
             box.remove();
-            vibrationTimerRunning = false;
         } else {
             timeSpan.textContent = Math.ceil(remaining);
             progressFill.style.width = `${(remaining / duration) * 100}%`;
@@ -300,12 +303,21 @@ function startVibrationTimer(duration, strength) {
         sendStop();
         clearInterval(interval);
         box.remove();
-        vibrationTimerRunning = false;
     };
 }
 
+function sendStop() {
+    const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
+
+    socket.send(JSON.stringify({
+        type: "stop",
+        user: CURRENT_USER,
+        profile_key
+    }));
+}
+
 /* ============================================================
-   🔔 6. Popup — улучшенный, как в старой версии
+   🔔 7. Popup
 ============================================================ */
 function showEntryPopup(message) {
     const popup = document.getElementById("entryPopup");
@@ -324,7 +336,7 @@ function hideEntryPopup() {
 }
 
 /* ============================================================
-   🔔 7. Toast
+   🔔 8. Toast
 ============================================================ */
 function showToast(msg) {
     const toast = document.getElementById("toast");
@@ -334,7 +346,7 @@ function showToast(msg) {
 }
 
 /* ============================================================
-   🎯 8. Цель
+   🎯 9. Цель
 ============================================================ */
 function updateGoalUI(newGoal = null) {
     if (newGoal) goal = newGoal;
@@ -352,6 +364,29 @@ function updateGoalUI(newGoal = null) {
     tgt.textContent = goal.target;
 }
 
+function initGoalModal() {
+    const modal = document.getElementById("goalModal");
+    if (!modal) return;
+
+    const form = document.getElementById("goalForm");
+    form.onsubmit = (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const title = formData.get("title");
+        const target = Number(formData.get("target"));
+
+        socket.send(JSON.stringify({
+            type: "set_goal",
+            user: CURRENT_USER,
+            title,
+            target
+        }));
+
+        closeGoalModal();
+    };
+}
+
 function openGoalModal() {
     document.getElementById("goalModal").classList.add("show");
 }
@@ -361,35 +396,18 @@ function closeGoalModal() {
 }
 
 /* ============================================================
-   🧹 9. Очистка логов — новая маленькая кнопка
+   🧹 10. Очистка логов
 ============================================================ */
-const clearLogsBtn = document.getElementById("clearLogsBtn");
-if (clearLogsBtn) {
-    clearLogsBtn.addEventListener("click", () => {
+function initLogButtons() {
+    const clearLogsBtn = document.getElementById("clearLogsBtn");
+    if (!clearLogsBtn) return;
+
+    clearLogsBtn.onclick = () => {
         lastLogCount = 0;
         document.getElementById("logbox").innerHTML = "";
 
         fetch("/clear_logs", { method: "POST" })
             .then(() => showToast("Логи очищены ✅"))
             .catch(() => showToast("❌ Ошибка при очистке логов"));
-    });
-}
-
-/* ============================================================
-   🧹 10. Очистка очереди вибраций — новая маленькая кнопка
-============================================================ */
-const clearQueueBtn = document.getElementById("clearQueueBtn");
-if (clearQueueBtn) {
-    clearQueueBtn.addEventListener("click", () => {
-        const profile_key = `${CURRENT_USER}_${CURRENT_MODE}`;
-
-        socket.send(JSON.stringify({
-            type: "clear_queue",
-            profile_key
-        }));
-
-        vibrationQueue = [];
-        updateQueueUI();
-        showToast("Очередь очищена ✅");
-    });
+    };
 }
