@@ -213,28 +213,21 @@
    ➕ Добавить новое правило — компактная VIP‑карточка
 ============================================================ */
 .add-rule-card {
-    background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.75),
-        rgba(240,240,255,0.55)
-    );
-    backdrop-filter: blur(18px);
+    /* наследует стиль rule-card */
+    background: inherit;
+    backdrop-filter: inherit;
+    border-radius: inherit;
+    box-shadow: inherit;
+    border: inherit;
+    padding: inherit;
 
-    padding: 22px;
-    border-radius: 22px;
-
-    width: 100%;
-    max-width: 360px; /* ← как карточка правила */
-    margin: 0 auto;   /* ← центрируем */
-
-    box-shadow:
-        0 10px 26px rgba(0,0,0,0.12),
-        inset 0 0 18px rgba(255,255,255,0.45);
-
-    border: 1px solid rgba(255,255,255,0.55);
-
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     text-align: center;
 }
+
+
 
 .add-rule-card h3 {
     font-size: 20px;
@@ -256,7 +249,7 @@
     align-items: center;
 
     width: 100%;
-    max-width: 260px;
+    max-width: 240px;
     margin: 0 auto;
 }
 
@@ -269,13 +262,9 @@
 /* Поля — короткие */
 .form-row input,
 .form-row select {
-    width: 120px; /* ← короткие поля */
-    background: rgba(255,255,255,0.55);
-    border: 1px solid rgba(255,255,255,0.65);
-    border-radius: 12px;
+    width: 110px;
     padding: 8px;
-    font-size: 15px;
-    transition: 0.25s ease;
+    border-radius: 10px;
 }
 
 .form-row input:focus,
