@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import logging
 logging.basicConfig(level=logging.INFO)
-
+import uuid
 import asyncio
 import json
 import websockets
