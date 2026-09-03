@@ -620,23 +620,42 @@ function initRulesPage() {
     window.updateNewRuleFields = () => {
         const type = document.getElementById("new_action_type").value;
 
-        const strength = document.getElementById("new_strength_block");
-        const duration = document.getElementById("new_duration_block");
-        const action = document.getElementById("new_action_block");
+        const cellMin = document.getElementById("cell_min");
+        const cellMax = document.getElementById("cell_max");
+        const cellStrength = document.getElementById("cell_strength");
+        const cellDuration = document.getElementById("cell_duration");
+        const cellAction = document.getElementById("cell_action");
 
-        strength.classList.add("hidden");
-        duration.classList.add("hidden");
-        action.classList.add("hidden");
+        // Скрываем всё
+        cellMin.style.display = "none";
+        cellMax.style.display = "none";
+        cellStrength.style.display = "none";
+        cellDuration.style.display = "none";
+        cellAction.style.display = "none";
 
+        // Показываем нужное
         if (type === "vibration") {
-            strength.classList.remove("hidden");
-            duration.classList.remove("hidden");
+            cellMin.style.display = "flex";
+            cellMax.style.display = "flex";
+            cellStrength.style.display = "flex";
+            cellDuration.style.display = "flex";
         }
 
         if (type === "custom") {
-            action.classList.remove("hidden");
+            cellMin.style.display = "flex";
+            cellMax.style.display = "flex";
+            cellAction.style.display = "flex";
+        }
+
+        if (type === "wheel") {
+            cellMin.style.display = "flex";
+            cellMax.style.display = "flex";
         }
     };
+
+    // Запуск при загрузке страницы
+    document.addEventListener("DOMContentLoaded", updateNewRuleFields);
+
 
     window.updateSegmentFields = (selectEl) => {
         const modal = selectEl.closest(".modal-content");

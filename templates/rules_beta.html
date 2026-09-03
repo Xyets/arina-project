@@ -11,26 +11,6 @@
             <div class="form-grid">
 
                 <div class="form-cell">
-                    <label>Мин:</label>
-                    <input type="number" id="new_min" required>
-                </div>
-
-                <div class="form-cell">
-                    <label>Макс:</label>
-                    <input type="number" id="new_max" required>
-                </div>
-
-                <div class="form-cell" id="new_strength_block">
-                    <label>Сила:</label>
-                    <input type="number" id="new_strength">
-                </div>
-
-                <div class="form-cell" id="new_duration_block">
-                    <label>Время:</label>
-                    <input type="number" id="new_duration">
-                </div>
-
-                <div class="form-cell">
                     <label>Тип:</label>
                     <select id="new_action_type" onchange="updateNewRuleFields()">
                         <option value="vibration">Вибрация</option>
@@ -39,15 +19,36 @@
                     </select>
                 </div>
 
-                <div class="form-cell" id="new_action_block">
+                <div class="form-cell" id="cell_action">
                     <label>Действие:</label>
                     <input type="text" id="new_action">
+                </div>
+
+                <div class="form-cell" id="cell_min">
+                    <label>Мин:</label>
+                    <input type="number" id="new_min" required>
+                </div>
+
+                <div class="form-cell" id="cell_max">
+                    <label>Макс:</label>
+                    <input type="number" id="new_max" required>
+                </div>
+
+                <div class="form-cell" id="cell_strength">
+                    <label>Сила:</label>
+                    <input type="number" id="new_strength">
+                </div>
+
+                <div class="form-cell" id="cell_duration">
+                    <label>Время:</label>
+                    <input type="number" id="new_duration">
                 </div>
 
             </div>
 
             <button type="submit" class="btn-primary">Добавить</button>
         </form>
+
 
     </div>
 
