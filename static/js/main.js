@@ -127,13 +127,14 @@ function initHandlers() {
 }
 
 window.addEventListener("load", () => {
-    if (!socket) connectWS();   // ← создаём WebSocket только один раз
+    if (!socket) connectWS();   // создаём WebSocket только один раз
     initHandlers();
-    initSidebarNavigation();   
+    initSidebarNavigation();
 });
 
-
-
+/* ============================================================
+   📦 SPA навигация
+============================================================ */
 function initSidebarNavigation() {
     const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
 
@@ -144,6 +145,34 @@ function initSidebarNavigation() {
             navigateSPA(url);
         });
     });
+}
+
+function navigateSPA(url) {
+    const container = document.querySelector(".content-inner");
+    if (!container) {
+        window.location.href = url;
+        return;
+    }
+
+    container.style.opacity = "0";
+
+    fetch(url + "?mode=" + CURRENT_MODE)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+
+            container.innerHTML = newContent;
+
+            setTimeout(() => {
+                container.style.opacity = "1";
+            }, 50);
+
+            initHandlers();
+            loadLogs();
+            updateQueueUI();
+        });
 }
 
 /* ============================================================
@@ -185,7 +214,6 @@ function initModeSwitch() {
                 CURRENT_MODE = newMode;
                 CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
 
-                // 🔥 ВСТАВИТЬ СЮДА — ПЕРЕКЛЮЧАЕМ WS НА НОВЫЙ ПРОФИЛЬ
                 socket.send(JSON.stringify({
                     type: "hello",
                     role: "panel",
@@ -195,7 +223,6 @@ function initModeSwitch() {
                 reloadInnerContent();
                 showToast(`Режим переключен: ${newMode}`);
             }
-
         });
     };
 }
@@ -301,6 +328,7 @@ function startVibrationTimer(duration, strength) {
         console.warn("Нет контейнера для таймера вибрации");
         return;
     }
+
     const box = document.createElement("div");
     box.className = "vibration-timer";
 
@@ -440,78 +468,4 @@ function initLogButtons() {
             .then(() => showToast("Логи очищены ✅"))
             .catch(() => showToast("❌ Ошибка при очистке логов"));
     };
-}
-/* ============================================================
-   📜 RULES — SPA через WebSocket
-============================================================ */
-
-function sendRuleCommand(payload) {
-    socket.send(JSON.stringify(payload));
-}
-
-/* Удаление правила */
-function deleteRule(id) {
-    sendRuleCommand({
-        type: "delete_rule",
-        user: CURRENT_USER,
-        id
-    });
-
-    showToast("Правило удалено");
-    reloadInnerContent();
-}
-
-/* Удаление сегмента */
-function deleteSegment(ruleId, segIndex) {
-    sendRuleCommand({
-        type: "delete_segment",
-        user: CURRENT_USER,
-        rule_id: ruleId,
-        seg_index: segIndex
-    });
-
-    showToast("Сегмент удалён");
-    reloadInnerContent();
-}
-
-/* Открытие/закрытие модалок — глобально */
-function openRuleModal() {
-    document.getElementById("ruleModal").classList.add("show");
-}
-function closeRuleModal() {
-    document.getElementById("ruleModal").classList.remove("show");
-}
-
-function openSegmentModal() {
-    document.getElementById("segmentModal").classList.add("show");
-}
-function closeSegmentModal() {
-    document.getElementById("segmentModal").classList.remove("show");
-}
-function navigateSPA(url) {
-    const container = document.querySelector(".content-inner");
-    if (!container) {
-        window.location.href = url; // fallback
-        return;
-    }
-
-    container.style.opacity = "0";
-
-    fetch(url)
-        .then(r => r.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-            const newContent = doc.querySelector(".content-inner").innerHTML;
-
-            container.innerHTML = newContent;
-
-            setTimeout(() => {
-                container.style.opacity = "1";
-            }, 50);
-
-            initHandlers();
-            loadLogs();
-            updateQueueUI();
-        });
 }
