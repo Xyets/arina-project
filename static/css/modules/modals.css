@@ -1,11 +1,12 @@
 /* ============================================================
-   🪟 Модалка цели — стеклянный стиль
+   🪟 Модалки — стеклянный VIP‑стиль
 ============================================================ */
 .modal {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
     z-index: 9999;
 }
 
@@ -15,34 +16,108 @@
     justify-content: center;
 }
 
+/* ============================================================
+   ✨ Стеклянное окно модалки
+============================================================ */
 .modal-content {
-    background: rgba(255,255,255,0.65);
-    backdrop-filter: blur(18px);
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.80),
+        rgba(240,240,255,0.55)
+    );
+    backdrop-filter: blur(22px);
+
     padding: 30px;
-    border-radius: 24px;
-    width: 320px;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 26px;
+    width: 380px;
+
+    box-shadow:
+        0 12px 28px rgba(0,0,0,0.12),
+        inset 0 0 22px rgba(255,255,255,0.45);
+
+    border: 1px solid rgba(255,255,255,0.55);
+
+    animation: modalPop 0.35s ease;
 }
 
-.flow-btn-small {
-    background: rgba(255,255,255,0.3);
-    border: none;
-    padding: 6px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: 0.2s;
+/* Анимация появления */
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-.flow-btn-small:hover {
-    transform: translateY(-3px);
-    background: rgba(255,255,255,0.75);
-}
-
+/* ============================================================
+   📝 Заголовок модалки
+============================================================ */
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+/* ============================================================
+   🔘 Кнопки внутри модалки
+============================================================ */
+.flow-btn-small {
+    background: rgba(255,255,255,0.35);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: 0.25s ease;
+}
+
+.flow-btn-small:hover {
+    background: rgba(255,255,255,0.75);
+    transform: translateY(-3px);
+}
+
+/* ============================================================
+   ✏️ Поля ввода
+============================================================ */
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(255,255,255,0.65);
+    border-radius: 14px;
+    padding: 12px;
+    font-size: 15px;
+    margin-bottom: 14px;
+    transition: 0.25s ease;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* ============================================================
+   💎 Основная кнопка в модалке
+============================================================ */
+.modal-content .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, #8ec5fc, #e0c3fc);
+    border: none;
+    padding: 12px;
+    border-radius: 14px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.modal-content .btn-primary:hover {
+    opacity: 0.85;
+    transform: translateY(-3px);
 }

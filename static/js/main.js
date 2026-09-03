@@ -753,3 +753,14 @@ function initRuleForms() {
         });
     }
 }
+
+/* ============================================================
+   🎡 Toggle wheel segments (глобальная функция)
+============================================================ */
+window.toggleWheel = (ruleId) => {
+    const box = document.getElementById(`wheel-${ruleId}`);
+    if (!box) return;
+
+    box.classList.toggle("show");
+};
+
