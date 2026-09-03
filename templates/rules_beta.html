@@ -165,56 +165,62 @@
 <div class="modal" id="ruleModal">
     <div class="modal-content edit-modal">
 
-        <div class="modal-header">
-            <h3>✏️ Редактировать правило</h3>
-            <button class="close-btn" onclick="closeRuleModal()">✖</button>
-        </div>
+        <form id="ruleEditForm">
 
-        <div class="modal-grid">
-
-            <div class="modal-cell">
-                <label>Тип:</label>
-                <select id="edit_type" onchange="updateRuleEditFields()">
-                    <option value="vibration">Вибрация</option>
-                    <option value="custom">Действие</option>
-                    <option value="wheel">Колесо фортуны</option>
-                </select>
+            <div class="modal-header">
+                <h3>✏️ Редактировать правило</h3>
+                <button class="close-btn" onclick="closeRuleModal()">✖</button>
             </div>
 
-            <div class="modal-cell">
-                <label>Мин:</label>
-                <input type="number" id="edit_min">
+            <input type="hidden" id="edit_rule_id">
+
+            <div class="modal-grid">
+
+                <div class="modal-cell">
+                    <label>Тип:</label>
+                    <select id="edit_type" onchange="updateRuleEditFields()">
+                        <option value="vibration">Вибрация</option>
+                        <option value="custom">Действие</option>
+                        <option value="wheel">Колесо фортуны</option>
+                    </select>
+                </div>
+
+                <div class="modal-cell">
+                    <label>Мин:</label>
+                    <input type="number" id="edit_min">
+                </div>
+
+                <div class="modal-cell">
+                    <label>Макс:</label>
+                    <input type="number" id="edit_max">
+                </div>
+
+                <div class="modal-cell" id="edit_strength_block">
+                    <label>Сила:</label>
+                    <input type="number" id="edit_strength">
+                </div>
+
+                <div class="modal-cell" id="edit_duration_block">
+                    <label>Время:</label>
+                    <input type="number" id="edit_duration">
+                </div>
+
+                <div class="modal-cell" id="edit_action_block">
+                    <label>Действие:</label>
+                    <input type="text" id="edit_action">
+                </div>
+
             </div>
 
-            <div class="modal-cell">
-                <label>Макс:</label>
-                <input type="number" id="edit_max">
-            </div>
+            <button class="btn-primary modal-save-btn" type="submit">
+                💾 Сохранить
+            </button>
 
-            <div class="modal-cell" id="edit_strength_block">
-                <label>Сила:</label>
-                <input type="number" id="edit_strength">
-            </div>
-
-            <div class="modal-cell" id="edit_duration_block">
-                <label>Время:</label>
-                <input type="number" id="edit_duration">
-            </div>
-
-            <div class="modal-cell" id="edit_action_block">
-                <label>Действие:</label>
-                <input type="text" id="edit_action">
-            </div>
-
-        </div>
-
-        <button class="btn-primary modal-save-btn"
-                onclick="document.getElementById('ruleEditForm').requestSubmit()">
-            💾 Сохранить
-        </button>
+        </form>
 
     </div>
 </div>
+
 
 
 {% endblock %}
