@@ -92,11 +92,12 @@
                 <div class="rule-action">
                     {% if rule.type == "wheel" %}
                         🎡 Колесо фортуны
-                    {% elif rule.action %}
+                    {% elif rule.type == "custom" %}
                         🎬 {{ rule.action }}
                     {% else %}
                         🔊 Вибрация
                     {% endif %}
+
                 </div>
 
                 <!-- Сегменты колеса -->

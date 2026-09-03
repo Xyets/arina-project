@@ -575,9 +575,7 @@ function initRulesPage() {
         document.getElementById("edit_max").value = card.dataset.max;
         document.getElementById("edit_strength").value = card.dataset.strength;
         document.getElementById("edit_duration").value = card.dataset.duration;
-        document.getElementById("edit_action").value = card.dataset.action || "";
 
-        // тип — только отображение
         const type = card.dataset.type;
         document.getElementById("edit_type").value = type;
 
@@ -586,8 +584,13 @@ function initRulesPage() {
             type === "custom" ? "Действие" :
             "Колесо фортуны";
 
+        // действие только для custom
+        document.getElementById("edit_action").value =
+            type === "custom" ? (card.dataset.action || "") : "";
+
         updateRuleEditFields();
     };
+
 
 
 
@@ -622,9 +625,10 @@ function initRulesPage() {
             duration.classList.remove("hidden");
         }
 
-        if (type === "custom") {
-            action.classList.remove("hidden");
+        if (type !== "custom") {
+            action.classList.add("hidden");
         }
+
     };
 
 
