@@ -117,10 +117,17 @@
 /* ============================================================
    🎛 Кнопки действий
 ============================================================ */
-.rule-actions {
+.rule-actions-bottom {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.35);
+
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
+
 
 .btn-icon {
     background: rgba(255,255,255,0.35);
