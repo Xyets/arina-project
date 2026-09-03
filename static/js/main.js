@@ -170,13 +170,14 @@ function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                // ✔ оставить только эти
                 initRulesPage();
                 initRuleForms();
+                initRuleModals();   // ← ОБЯЗАТЕЛЬНО
 
                 loadLogs();
                 updateQueueUI();
             }, 50);
+
         });
 }
 
@@ -226,7 +227,12 @@ function initModeSwitch() {
                     profile_key: CURRENT_PROFILE
                 }));
 
-                reloadInnerContent();
+                reloadInnerContent(() => {
+                    initRulesPage();
+                    initRuleForms();
+                    initRuleModals();
+                });
+
                 showToast(`Режим переключен: ${newMode}`);
             }
         });
@@ -236,7 +242,7 @@ function initModeSwitch() {
 /* ============================================================
    🔄 Мгновенное обновление внутреннего контента
 ============================================================ */
-function reloadInnerContent() {
+function reloadInnerContent(callback) {
     const container = document.querySelector(".content-inner");
     if (!container) return;
 
@@ -255,15 +261,21 @@ function reloadInnerContent() {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                initHandlers();      // базовые кнопки
-                initRulesPage();     // правила
-                initRuleForms();     // формы правил
+                if (callback) {
+                    callback();
+                } else {
+                    initHandlers();
+                    initRulesPage();
+                    initRuleForms();
+                    initRuleModals();
+                }
 
                 loadLogs();
                 updateQueueUI();
             }, 50);
         });
 }
+
 
 
 /* ============================================================
@@ -502,7 +514,12 @@ function deleteRule(id) {
     });
 
     showToast("Правило удалено");
-    reloadInnerContent();
+    reloadInnerContent(() => {
+        initRulesPage();
+        initRuleForms();
+        initRuleModals();
+    });
+
 }
 
 /* Удаление сегмента */
@@ -515,7 +532,12 @@ function deleteSegment(ruleId, segIndex) {
     });
 
     showToast("Сегмент удалён");
-    reloadInnerContent();
+    reloadInnerContent(() => {
+        initRulesPage();
+        initRuleForms();
+        initRuleModals();
+    });
+
 }
 
 /* ============================================================
@@ -778,7 +800,12 @@ function initRuleForms() {
 
             sendRuleCommand(payload);
             showToast("Правило добавлено");
-            reloadInnerContent();
+            reloadInnerContent(() => {
+                initRulesPage();
+                initRuleForms();
+                initRuleModals();
+            });
+
         });
     }
 
@@ -801,7 +828,12 @@ function initRuleForms() {
 
             sendRuleCommand(payload);
             showToast("Правило обновлено");
-            reloadInnerContent();
+            reloadInnerContent(() => {
+                initRulesPage();
+                initRuleForms();
+                initRuleModals();
+            });
+
         });
     }
 
@@ -824,18 +856,75 @@ function initRuleForms() {
 
             sendRuleCommand(payload);
             showToast("Сегмент добавлен");
-            reloadInnerContent();
+            reloadInnerContent(() => {
+                initRulesPage();
+                initRuleForms();
+                initRuleModals();
+            });
+
         });
     }
 }
 
-/* ============================================================
-   🎡 Toggle wheel segments (глобальная функция)
-============================================================ */
-window.toggleWheel = (ruleId) => {
-    const block = document.getElementById(`wheel-${ruleId}`);
-    if (!block) return;
+function initRuleModals() {
 
-    block.classList.toggle("hidden");
-};
+    window.openRuleModal = (id) => {
+        const modal = document.getElementById("ruleModal");
+        modal.classList.add("show");
+
+        const card = document.querySelector(`[data-rule-id="${id}"]`);
+
+        window._originalRuleData = {
+            min: card.dataset.min,
+            max: card.dataset.max,
+            strength: card.dataset.strength,
+            duration: card.dataset.duration,
+            action: card.dataset.action || "",
+            type: card.dataset.type
+        };
+
+        document.getElementById("edit_rule_id").value = id;
+        document.getElementById("edit_min").value = card.dataset.min;
+        document.getElementById("edit_max").value = card.dataset.max;
+        document.getElementById("edit_strength").value = card.dataset.strength;
+        document.getElementById("edit_duration").value = card.dataset.duration;
+        document.getElementById("edit_action").value =
+            card.dataset.type === "custom" ? (card.dataset.action || "") : "";
+        document.getElementById("edit_type").value = card.dataset.type;
+
+        updateRuleEditFields();
+    };
+
+    window.closeRuleModal = () => {
+        const modal = document.getElementById("ruleModal");
+        modal.classList.remove("show");
+
+        if (window._originalRuleData) {
+            document.getElementById("edit_min").value = window._originalRuleData.min;
+            document.getElementById("edit_max").value = window._originalRuleData.max;
+            document.getElementById("edit_strength").value = window._originalRuleData.strength;
+            document.getElementById("edit_duration").value = window._originalRuleData.duration;
+            document.getElementById("edit_action").value = window._originalRuleData.action;
+            document.getElementById("edit_type").value = window._originalRuleData.type;
+
+            updateRuleEditFields();
+        }
+    };
+
+    window.openSegmentModal = (ruleId) => {
+        const modal = document.getElementById("segmentModal");
+        modal.classList.add("show");
+        document.getElementById("segment_rule_id").value = ruleId;
+    };
+
+    window.closeSegmentModal = () => {
+        document.getElementById("segmentModal").classList.remove("show");
+    };
+
+    window.toggleWheel = (ruleId) => {
+        const block = document.getElementById(`wheel-${ruleId}`);
+        if (!block) return;
+        block.classList.toggle("hidden");
+    };
+}
 
