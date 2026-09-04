@@ -151,3 +151,21 @@ def qrcode_image(profile_key):
     except Exception as e:
         print("Ошибка загрузки QR:", e)
         return "QR load error", 500
+# -------------------- API для стабильного QR-кода --------------------
+
+@lovense_bp.route("/qr_generate")
+@login_required
+def qr_generate():
+    user = session["username"]
+    mode = session.get("mode", "public")
+    profile_key = f"{user}_{mode}"
+
+    # если запросили обновление — просто получаем новый QR
+    refresh = request.args.get("refresh")
+
+    # получаем QR-код
+    qr_url = get_qr_code(profile_key)
+    if not qr_url:
+        return {"status": "error", "qr": None}, 500
+
+    return {"status": "ok", "qr": qr_url}
