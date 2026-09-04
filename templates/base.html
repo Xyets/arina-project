@@ -90,23 +90,6 @@
                 {% block content %}
                 {% endblock %}
 
-                {% if session["mode"] == "public" %}
-                <div class="goal-panel" id="goalPanel">
-                    <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
-
-                    <div class="goal-bar-vertical">
-                        <div id="goalFillVertical"></div>
-                    </div>
-
-                    <div class="goal-values">
-                        <span id="goalCurrent">{{ goal.current }}</span> /
-                        <span id="goalTarget">{{ goal.target }}</span>
-                    </div>
-
-                    <button class="goal-new-btn" onclick="openGoalModal()">Новая цель</button>
-                </div>
-                {% endif %}
-
             </div> <!-- /content-inner -->
 
         </div> <!-- /content-wrapper -->
@@ -118,6 +101,23 @@
 <div id="entryPopup" class="popup"></div>
 <div id="toast" class="toast"></div>
 <div id="vibrationOverlay"></div>
+
+{% if session["mode"] == "public" %}
+<div class="goal-panel" id="goalPanel">
+    <h3 class="goal-title">🎯 {{ goal.title or "Цель не установлена" }}</h3>
+
+    <div class="goal-progress">
+        <div class="goal-fill"></div>
+    </div>
+
+    <div class="goal-values">
+        <span id="goalCurrent">{{ goal.current }}</span> /
+        <span id="goalTarget">{{ goal.target }}</span>
+    </div>
+
+    <button class="goal-new-btn" onclick="openGoalModal()">Новая цель</button>
+</div>
+{% endif %}
 
 <div id="goalModal" class="modal">
     <div class="modal-content">
