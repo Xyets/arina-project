@@ -984,8 +984,19 @@ function initRuleModals() {
     window.toggleWheel = (ruleId) => {
         const block = document.getElementById(`wheel-${ruleId}`);
         if (!block) return;
-        block.classList.toggle("show");
+
+        // если скрыто — раскрыть
+        if (block.classList.contains("hidden")) {
+            block.classList.remove("hidden");
+            block.classList.add("show");
+        }
+        // если раскрыто — скрыть
+        else {
+            block.classList.remove("show");
+            block.classList.add("hidden");
+        }
     };
+
 }
 /* ============================================================
    🎡 Переключение полей сегмента
