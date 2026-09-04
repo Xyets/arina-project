@@ -1,0 +1,183 @@
+/* ============================================================
+   🌈 FlowTip Deluxe — главная страница
+============================================================ */
+
+/* ============================================================
+   🎨 Цветные события
+============================================================ */
+
+.event-item {
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: var(--text-main);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.45);
+}
+
+/* Вибрация */
+.event-item.vibration {
+    background: rgba(247, 168, 184, 0.35);
+}
+
+/* Колесо фортуны */
+.event-item.wheel {
+    background: rgba(167, 139, 250, 0.35);
+}
+
+/* Действие */
+.event-item.action {
+    background: rgba(163, 216, 244, 0.35);
+}
+
+/* Вход */
+.event-item.entry {
+    background: rgba(180, 255, 180, 0.35);
+}
+
+/* Выход */
+.event-item.exit {
+    background: rgba(255, 120, 120, 0.35);
+}
+
+/* Системное */
+.event-item.system {
+    background: rgba(200, 200, 200, 0.35);
+}
+
+/* ============================================================
+   🧊 Стеклянные карточки главной страницы
+============================================================ */
+
+.events-card,
+.qr-card,
+.vibrations-card {
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(18px);
+    padding: 25px;
+    border-radius: 24px;
+    box-shadow:
+        0 10px 26px rgba(0,0,0,0.12),
+        inset 0 0 18px rgba(255,255,255,0.45);
+    border: 1px solid rgba(255,255,255,0.55);
+    animation: fadeCard 0.4s ease-out;
+}
+
+@keyframes fadeCard {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Заголовки */
+.events-card h2,
+.qr-card h2,
+.vibrations-card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* ============================================================
+   📱 QR-код
+============================================================ */
+
+.qr-img {
+    width: 100%;
+    max-width: 260px;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    box-shadow: var(--shadow-soft);
+    background: white;
+    padding: 10px;
+}
+
+/* Кнопка обновления QR */
+.qr-refresh-btn {
+    margin-top: 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: 0.25s ease;
+}
+
+.qr-refresh-btn:hover {
+    background: #8f6dfd;
+    transform: translateY(-3px);
+}
+
+/* ============================================================
+   🔁 Очередь вибраций
+============================================================ */
+
+.queue-list div {
+    background: rgba(247, 168, 184, 0.25);
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(12px);
+}
+
+/* ============================================================
+   🎯 Постоянная цель (как таймер вибрации)
+============================================================ */
+
+.goal-panel {
+    position: fixed;
+    right: 20px;
+    top: 120px;
+    width: 220px;
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(18px);
+    padding: 20px;
+    border-radius: 24px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    z-index: 900;
+    border: 1px solid rgba(255,255,255,0.5);
+    animation: fadeGoal 0.4s ease-out;
+}
+
+@keyframes fadeGoal {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.goal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.goal-progress {
+    height: 160px;
+    width: 40px;
+    background: rgba(255,255,255,0.45);
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 0 auto;
+    border: 1px solid rgba(255,255,255,0.55);
+}
+
+.goal-fill {
+    width: 100%;
+    background: linear-gradient(180deg, #a78bfa, #f7a8b8);
+    height: 0%;
+    transition: height 0.4s ease;
+}
+
+.goal-values {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+}

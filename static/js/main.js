@@ -1,4 +1,5 @@
 let CURRENT_PAGE_URL = "/beta";
+
 /* ============================================================
    📌 0. Инициализация данных из HTML
 ============================================================ */
@@ -125,7 +126,6 @@ function handleWSMessage(data) {
         });
         return;
     }
-
 }
 
 /* ============================================================
@@ -145,6 +145,8 @@ window.addEventListener("load", () => {
     }
     initHandlers();
     initSidebarNavigation();
+    loadQR();
+    updateGoalUI();
 });
 
 /* ============================================================
@@ -163,7 +165,7 @@ function initSidebarNavigation() {
 }
 
 function navigateSPA(url) {
-    CURRENT_PAGE_URL = url;   // ← ЗАПОМИНАЕМ ТЕКУЩУЮ СТРАНИЦУ
+    CURRENT_PAGE_URL = url;
 
     const container = document.querySelector(".content-inner");
     if (!container) {
@@ -190,7 +192,6 @@ function navigateSPA(url) {
                     initRuleForms();
                     initRuleModals();
 
-                    // повторная инициализация через микротаск
                     setTimeout(() => {
                         initRulesPage();
                     }, 0);
@@ -198,13 +199,11 @@ function navigateSPA(url) {
 
                 loadLogs();
                 updateQueueUI();
+                loadQR();
+                updateGoalUI();
             }, 50);
-
-
         });
 }
-
-
 
 /* ============================================================
    📦 Sidebar collapse
@@ -259,7 +258,6 @@ function initModeSwitch() {
                     }
                 });
 
-
                 showToast(`Режим переключен: ${newMode}`);
             }
         });
@@ -275,7 +273,7 @@ function reloadInnerContent(callback) {
 
     container.style.opacity = "0";
 
-    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)   // ← ВАЖНО
+    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -300,19 +298,72 @@ function reloadInnerContent(callback) {
                     }
                 }
 
-
                 loadLogs();
                 updateQueueUI();
+                loadQR();
+                updateGoalUI();
             }, 50);
         });
 }
 
 
+/* ============================================================
+   🔄 Мгновенное обновление внутреннего контента
+============================================================ */
+function reloadInnerContent(callback) {
+    const container = document.querySelector(".content-inner");
+    if (!container) return;
 
+    container.style.opacity = "0";
+
+    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+            container.innerHTML = newContent;
+
+            setTimeout(() => {
+                container.style.opacity = "1";
+
+                if (callback) {
+                    callback();
+                } else {
+                    initHandlers();
+
+                    if (document.querySelector(".rules-page")) {
+                        initRulesPage();
+                        initRuleForms();
+                        initRuleModals();
+                    }
+                }
+
+                loadLogs();
+                updateQueueUI();
+                loadQR();
+                updateGoalUI();
+
+            }, 50);
+        });
+}
 
 /* ============================================================
-   📜 4. Логи
+   📜 Цветные логи
 ============================================================ */
+
+function classifyLog(log) {
+    log = log.toLowerCase();
+
+    if (log.includes("вибрация")) return "vibration";
+    if (log.includes("колесо")) return "wheel";
+    if (log.includes("действие")) return "action";
+    if (log.includes("вошёл") || log.includes("вошел")) return "entry";
+    if (log.includes("вышел")) return "exit";
+    return "system";
+}
+
 let lastLogCount = 0;
 let logInterval = setInterval(loadLogs, 2000);
 
@@ -329,15 +380,17 @@ async function loadLogs() {
 
     newLogs.forEach(log => {
         const div = document.createElement("div");
-        div.className = "event-item";
+        const type = classifyLog(log);
+        div.className = `event-item ${type}`;
         div.textContent = log;
+
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
     });
 }
 
 /* ============================================================
-   🔁 5. Очередь вибраций
+   🔁 Очередь вибраций — стеклянный стиль
 ============================================================ */
 let vibrationQueue = [];
 
@@ -351,7 +404,11 @@ function updateQueueUI() {
     }
 
     box.innerHTML = vibrationQueue
-        .map((v, i) => `<div>#${i + 1} → сила: ${v.strength}, время: ${v.duration}s</div>`)
+        .map((v, i) => `
+            <div class="queue-item">
+                <strong>#${i + 1}</strong> • сила ${v.strength}, ${v.duration}s
+            </div>
+        `)
         .join("");
 }
 
@@ -374,7 +431,7 @@ function initQueueButtons() {
 }
 
 /* ============================================================
-   ⏱ 6. Таймер вибрации
+   ⏱ Таймер вибрации
 ============================================================ */
 function startVibrationTimer(duration, strength) {
 
@@ -424,7 +481,6 @@ function startVibrationTimer(duration, strength) {
     };
 }
 
-
 function sendStop() {
     const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
@@ -436,7 +492,7 @@ function sendStop() {
 }
 
 /* ============================================================
-   🔔 7. Popup
+   🔔 Popup
 ============================================================ */
 function showEntryPopup(message) {
     const popup = document.getElementById("entryPopup");
@@ -455,7 +511,7 @@ function hideEntryPopup() {
 }
 
 /* ============================================================
-   🔔 8. Toast
+   🔔 Toast
 ============================================================ */
 function showToast(msg) {
     const toast = document.getElementById("toast");
@@ -465,20 +521,20 @@ function showToast(msg) {
 }
 
 /* ============================================================
-   🎯 9. Цель
+   🎯 Постоянная цель
 ============================================================ */
 function updateGoalUI(newGoal = null) {
     if (newGoal) goal = newGoal;
 
-    const fillV = document.getElementById("goalFillVertical");
+    const fill = document.querySelector(".goal-fill");
     const cur = document.getElementById("goalCurrent");
     const tgt = document.getElementById("goalTarget");
 
-    if (!fillV || !cur || !tgt) return;
+    if (!fill || !cur || !tgt) return;
 
     const percent = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
 
-    fillV.style.height = Math.min(percent, 100) + "%";
+    fill.style.height = Math.min(percent, 100) + "%";
     cur.textContent = goal.current;
     tgt.textContent = goal.target;
 }
@@ -513,6 +569,45 @@ function openGoalModal() {
 function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
 }
+
+/* ============================================================
+   📱 QR-код — стабильный
+============================================================ */
+let savedQR = localStorage.getItem("qr_code");
+
+function loadQR() {
+    const img = document.getElementById("qrImage");
+    if (!img) return;
+
+    if (savedQR) {
+        img.src = savedQR;
+        return;
+    }
+
+    fetch("/qr_generate")
+        .then(r => r.json())
+        .then(data => {
+            savedQR = data.qr;
+            localStorage.setItem("qr_code", savedQR);
+            img.src = savedQR;
+        });
+}
+
+function refreshQR() {
+    const img = document.getElementById("qrImage");
+    if (!img) return;
+
+    fetch("/qr_generate?refresh=1")
+        .then(r => r.json())
+        .then(data => {
+            savedQR = data.qr;
+            localStorage.setItem("qr_code", savedQR);
+            img.src = savedQR;
+            showToast("QR‑код обновлён");
+        });
+}
+
+
 /* ============================================================
    🧹 10. Очистка логов
 ============================================================ */

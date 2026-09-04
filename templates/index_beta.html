@@ -1,15 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Приветствие -->
+<!-- Главный заголовок страницы -->
 <div class="top-header">
-    <h1 class="hello">Привет, {{ user }} 👋</h1>
-</div>
-
-<!-- Статус подключения -->
-<div class="status-card">
-    <span>🔌 Подключение:</span>
-    <strong id="wsStatus">Подключена</strong>
+    <h1 class="hello">FlowTip • Панель управления</h1>
 </div>
 
 <!-- Лента событий -->
@@ -25,13 +19,18 @@
     </div>
 </div>
 
-<!-- QR + Очередь -->
+<!-- QR + Очередь вибраций -->
 <div class="row row-bottom">
 
     <!-- QR -->
     <div class="qr-card">
         <h2>QR‑код для Lovense</h2>
-        <!-- если нужно — сюда можно добавить QR -->
+
+        <img id="qrImage" class="qr-img" src="" alt="QR код">
+
+        <button class="qr-refresh-btn" onclick="refreshQR()">
+            🔄 Обновить QR‑код
+        </button>
     </div>
 
     <!-- Очередь вибраций -->

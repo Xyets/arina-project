@@ -18,3 +18,4 @@
 @import url("modules/rules.css");      /* ← новый модуль для rules_beta.html */
 @import url("modules/wheel.css");      /* ← создадим позже, если нужно */
 @import url("modules/animations.css"); /* ← создадим позже, если нужно */
+@import url("modules/index.css");
