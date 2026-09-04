@@ -146,8 +146,9 @@ window.addEventListener("load", () => {
     initHandlers();
     initSidebarNavigation();
     loadQR();
-    updateGoalUI();
+    loadGoalFromServer();   // ← исправлено
 });
+
 
 /* ============================================================
    📦 SPA навигация
@@ -280,7 +281,6 @@ function reloadInnerContent(callback) {
             const doc = parser.parseFromString(html, "text/html");
 
             const newContent = doc.querySelector(".content-inner").innerHTML;
-
             container.innerHTML = newContent;
 
             setTimeout(() => {
@@ -301,49 +301,7 @@ function reloadInnerContent(callback) {
                 loadLogs();
                 updateQueueUI();
                 loadQR();
-                updateGoalUI();
-            }, 50);
-        });
-}
-
-
-/* ============================================================
-   🔄 Мгновенное обновление внутреннего контента
-============================================================ */
-function reloadInnerContent(callback) {
-    const container = document.querySelector(".content-inner");
-    if (!container) return;
-
-    container.style.opacity = "0";
-
-    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)
-        .then(r => r.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-
-            const newContent = doc.querySelector(".content-inner").innerHTML;
-            container.innerHTML = newContent;
-
-            setTimeout(() => {
-                container.style.opacity = "1";
-
-                if (callback) {
-                    callback();
-                } else {
-                    initHandlers();
-
-                    if (document.querySelector(".rules-page")) {
-                        initRulesPage();
-                        initRuleForms();
-                        initRuleModals();
-                    }
-                }
-
-                loadLogs();
-                updateQueueUI();
-                loadQR();
-                updateGoalUI();
+                loadGoalFromServer(); 
 
             }, 50);
         });
@@ -542,6 +500,7 @@ function updateGoalUI(newGoal = null) {
 }
 
 
+
 function initGoalModal() {
     const modal = document.getElementById("goalModal");
     if (!modal) return;
@@ -553,7 +512,6 @@ function initGoalModal() {
 
         const formData = new FormData(form);
 
-        // отправляем на сервер правильный маршрут
         const res = await fetch("/goal_new", {
             method: "POST",
             body: formData
@@ -564,11 +522,15 @@ function initGoalModal() {
         if (data.status === "ok") {
             closeGoalModal();
             showToast("Цель обновлена 🎯");
+
+            // 🔥 сразу подтягиваем актуальную цель с сервера
+            loadGoalFromServer();
         } else {
             showToast(data.message || "Ошибка сохранения цели");
         }
     };
 }
+
 
 
 function openGoalModal() {
@@ -578,6 +540,18 @@ function openGoalModal() {
 function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
 }
+async function loadGoalFromServer() {
+    try {
+        const res = await fetch("/goal_data");
+        const data = await res.json();
+
+        // data: { title, current, target }
+        updateGoalUI(data);
+    } catch (e) {
+        console.error("Ошибка загрузки цели:", e);
+    }
+}
+
 
 /* ============================================================
    📱 QR-код — стабильный
