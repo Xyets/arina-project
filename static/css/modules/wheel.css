@@ -12,10 +12,6 @@
     transition: all 0.25s ease;
 }
 
-.wheel-segments.hidden {
-    display: none !important;
-}
-
 .wheel-segments h4 {
     margin-bottom: 10px;
     font-size: 18px;

@@ -984,7 +984,7 @@ function initRuleModals() {
     window.toggleWheel = (ruleId) => {
         const block = document.getElementById(`wheel-${ruleId}`);
         if (!block) return;
-        block.classList.toggle("hidden");
+        block.classList.toggle("show");
     };
 }
 /* ============================================================
