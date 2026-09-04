@@ -107,31 +107,26 @@
 
                     {% for seg in rule.segments %}
                     <div class="segment-card">
-                        <div class="segment-title">🎯 {{ seg.name }}</div>
+                        <div>
+                            <div class="segment-title">🎯 {{ seg.name }}</div>
 
-                        {% if seg.type == "vibration" %}
-                            <div class="segment-action">
-                                <strong>Вибрация:</strong> сила {{ seg.strength }}, время {{ seg.duration }}s
-                            </div>
-                        {% elif seg.type == "action" %}
-                            <div class="segment-action">
-                                <strong>Действие:</strong> {{ seg.action }}
-                            </div>
-                        {% elif seg.type == "retry" %}
-                            <div class="segment-action">🔁 Повтор колеса</div>
-                        {% endif %}
+                            {% if seg.type == "vibration" %}
+                                <div class="segment-action">
+                                    💗 сила {{ seg.strength }}, {{ seg.duration }}s
+                                </div>
+                            {% elif seg.type == "action" %}
+                                <div class="segment-action">🎬 {{ seg.action }}</div>
+                            {% elif seg.type == "retry" %}
+                                <div class="segment-action">🔁 Повтор</div>
+                            {% endif %}
 
-                        <div class="segment-chance-bar">
-                            <div class="segment-chance-fill" data-chance="{{ seg.chance }}"></div>
+                            <div class="segment-chance-text">Шанс: {{ seg.chance }}%</div>
                         </div>
 
-                        <div class="segment-chance-text">Шанс: {{ seg.chance }}%</div>
-
-                        <button class="btn-small btn-delete"
-                                onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})">
-                            Удалить сегмент
-                        </button>
+                        <button class="segment-delete-btn"
+                                onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})">❌</button>
                     </div>
+
                     {% endfor %}
 
                     <button class="btn-small" onclick="openSegmentModal('{{ rule.id }}')">
