@@ -529,36 +529,41 @@ function updateGoalUI(newGoal = null) {
     const fill = document.querySelector(".goal-fill");
     const cur = document.getElementById("goalCurrent");
     const tgt = document.getElementById("goalTarget");
+    const title = document.getElementById("goalTitle");
 
-    if (!fill || !cur || !tgt) return;
+    if (!fill || !cur || !tgt || !title) return;
 
     const percent = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
 
-    fill.style.height = Math.min(percent, 100) + "%";
+    fill.style.width = Math.min(percent, 100) + "%";
     cur.textContent = goal.current;
     tgt.textContent = goal.target;
+    title.textContent = goal.title || "Цель не установлена";
 }
+
 
 function initGoalModal() {
     const modal = document.getElementById("goalModal");
     if (!modal) return;
 
     const form = document.getElementById("goalForm");
-    form.onsubmit = (e) => {
+    form.onsubmit = async (e) => {
         e.preventDefault();
 
         const formData = new FormData(form);
-        const title = formData.get("title");
-        const target = Number(formData.get("target"));
 
-        socket.send(JSON.stringify({
-            type: "set_goal",
-            user: CURRENT_USER,
-            title,
-            target
-        }));
+        const res = await fetch("/goal_new", {
+            method: "POST",
+            body: formData
+        });
 
-        closeGoalModal();
+        const data = await res.json();
+
+        if (data.status === "ok") {
+            closeGoalModal();
+        } else {
+            showToast(data.message || "Ошибка сохранения цели");
+        }
     };
 }
 
