@@ -9,16 +9,21 @@
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    transition: all 0.25s ease;
+
+    /* ВАЖНО: НЕ трогаем max-height, opacity, transform
+       — они управляются rules.css */
 }
 
+/* Заголовок */
 .wheel-segments h4 {
     margin-bottom: 10px;
     font-size: 18px;
     font-weight: 600;
 }
 
-/* Карточка сегмента */
+/* ============================
+   🎯 Карточка сегмента
+=============================== */
 .segment-card {
     padding: 12px;
     margin-bottom: 12px;
@@ -39,7 +44,9 @@
     margin-bottom: 6px;
 }
 
-/* Шанс */
+/* ============================
+   📊 Шанс
+=============================== */
 .segment-chance-bar {
     width: 100%;
     height: 6px;
@@ -61,7 +68,9 @@
     opacity: 0.8;
 }
 
-/* Кнопки */
+/* ============================
+   🔘 Кнопки
+=============================== */
 .btn-small {
     margin-top: 10px;
     padding: 6px 10px;
