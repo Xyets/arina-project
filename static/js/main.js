@@ -547,11 +547,13 @@ function initGoalModal() {
     if (!modal) return;
 
     const form = document.getElementById("goalForm");
+
     form.onsubmit = async (e) => {
         e.preventDefault();
 
         const formData = new FormData(form);
 
+        // отправляем на сервер правильный маршрут
         const res = await fetch("/goal_new", {
             method: "POST",
             body: formData
@@ -561,11 +563,13 @@ function initGoalModal() {
 
         if (data.status === "ok") {
             closeGoalModal();
+            showToast("Цель обновлена 🎯");
         } else {
             showToast(data.message || "Ошибка сохранения цели");
         }
     };
 }
+
 
 function openGoalModal() {
     document.getElementById("goalModal").classList.add("show");
