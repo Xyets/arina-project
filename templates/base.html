@@ -104,7 +104,16 @@
 
 {% if session["mode"] == "public" %}
 <div class="goal-circle" id="goalCircle">
+
     <svg viewBox="0 0 100 100">
+        <defs>
+            <linearGradient id="goalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="50%" stop-color="#f7a8b8"/>
+                <stop offset="100%" stop-color="#ffcf5f"/>
+            </linearGradient>
+        </defs>
+
         <circle class="goal-bg" cx="50" cy="50" r="45"></circle>
         <circle class="goal-progress-ring" cx="50" cy="50" r="45"></circle>
     </svg>

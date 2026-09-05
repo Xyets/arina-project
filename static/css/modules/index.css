@@ -128,7 +128,7 @@
 }
 
 /* ============================================================
-   🎯 Круглая цель — Apple Activity Ring Style
+   🎯 Круглая цель — Apple Activity Ring Style (видимая версия)
 ============================================================ */
 
 .goal-circle {
@@ -136,76 +136,56 @@
     top: 20px;
     right: 20px;
 
-    width: 120px;
-    height: 120px;
+    width: 130px;
+    height: 130px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
+    background: rgba(0,0,0,0.35); /* 🔥 тёмное стекло */
+    backdrop-filter: blur(14px);
+    border-radius: 20px;
+    padding: 10px;
+
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.25);
+
     z-index: 60;
 }
 
+/* SVG */
 .goal-circle svg {
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     transform: rotate(-90deg);
 }
 
+/* Фон кольца */
 .goal-bg {
     fill: none;
-    stroke: rgba(255,255,255,0.25);
+    stroke: rgba(255,255,255,0.15);
     stroke-width: 10;
 }
 
+/* Основное кольцо прогресса */
 .goal-progress-ring {
     fill: none;
-    stroke: url(#goalGradient);
     stroke-width: 10;
     stroke-linecap: round;
-    stroke-dasharray: 283; /* 2πr = 2 * 3.14 * 45 */
+    stroke-dasharray: 283;
     stroke-dashoffset: 283;
     transition: stroke-dashoffset 0.6s ease;
+
+    /* 🔥 Яркий градиент Apple */
+    stroke: url(#goalGradient);
 }
 
-/* Текст внутри круга */
-.goal-circle-text {
-    position: absolute;
-    text-align: center;
-    color: #fff;
-    font-weight: 600;
-    pointer-events: none;
+/* Градиент Apple Activity Ring */
+.goal-circle svg defs {
+    /* если вдруг не сработает — добавим вручную */
 }
 
-#goalCircleTitle {
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-#goalCircleValues {
-    font-size: 13px;
-}
-
-/* Кнопка редактирования */
-.goal-circle-btn {
-    position: absolute;
-    bottom: -6px;
-    right: -6px;
-
-    background: #a78bfa;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-
-    font-size: 14px;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    transition: 0.25s ease;
-}
-
-.goal-circle-btn:hover {
-    background: #8f6dfd;
-    transform: scale(1.1);
+.goal-circle svg {
+    /* добавляем градиент внутрь SVG */
 }
