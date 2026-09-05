@@ -86,22 +86,21 @@
 
             <!-- Весь SPA‑контент загружается сюда -->
             <div class="content-inner">
-
                 {% block content %}
                 {% endblock %}
+            </div>
 
-            </div> <!-- /content-inner -->
-
-        </div> <!-- /content-wrapper -->
+        </div>
     </main>
 
-</div> <!-- /layout -->
+</div>
 
 <!-- Постоянные элементы интерфейса -->
 <div id="entryPopup" class="popup"></div>
 <div id="toast" class="toast"></div>
 <div id="vibrationOverlay"></div>
 
+<!-- Круглая цель — ВСЕГДА в DOM -->
 <div class="goal-circle" id="goalCircle">
 
     <svg viewBox="0 0 100 100">
@@ -118,16 +117,17 @@
     </svg>
 
     <div class="goal-circle-text">
-        <div id="goalCircleTitle">{{ goal.title or "Цель" }}</div>
+        <div id="goalCircleTitle"></div>
         <div id="goalCircleValues">
-            <span id="goalCurrent">{{ goal.current }}</span> /
-            <span id="goalTarget">{{ goal.target }}</span>
+            <span id="goalCurrent"></span> /
+            <span id="goalTarget"></span>
         </div>
     </div>
 
     <button class="goal-circle-btn" onclick="openGoalModal()">✏️</button>
 </div>
 
+<!-- Модалка цели -->
 <div id="goalModal" class="modal">
     <div class="modal-content">
         <h3>Новая цель</h3>
