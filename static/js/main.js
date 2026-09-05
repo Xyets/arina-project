@@ -120,7 +120,6 @@ function handleWSMessage(data) {
     if (data.rules_update) {
         reloadInnerContent(() => {
             if (document.querySelector(".rules-page")) {
-                initRulesPage();
                 initRuleForms();
                 initRuleModals();
             }
@@ -196,9 +195,6 @@ function navigateSPA(url) {
                     initRuleForms();
                     initRuleModals();
 
-                    setTimeout(() => {
-                        initRulesPage();
-                    }, 0);
                 }
 
                 loadLogs();
@@ -206,7 +202,8 @@ function navigateSPA(url) {
                 loadQR();
                 loadGoalFromServer();
                 initTypeSelector();   // ← ДОБАВИТЬ
-;
+                updateGoalVisibility();
+
             }, 50);
         });
 }
@@ -261,12 +258,13 @@ function initModeSwitch() {
                 }));
 
                 reloadInnerContent(() => {
+                    updateGoalVisibility();
                     if (document.querySelector(".rules-page")) {
-                        initRulesPage();
                         initRuleForms();
                         initRuleModals();
                     }
                 });
+
 
                 showToast(`Режим переключен: ${newMode}`);
             }
@@ -299,10 +297,8 @@ function reloadInnerContent(callback) {
                 if (callback) {
                     callback();
                 } else {
-                    initHandlers();
 
                     if (document.querySelector(".rules-page")) {
-                        initRulesPage();
                         initRuleForms();
                         initRuleModals();
                     }
@@ -513,6 +509,8 @@ function updateGoalVisibility() {
 ============================================================ */
 function updateGoalCircle(newGoal = null) {
     if (newGoal) goal = newGoal;
+    if (CURRENT_MODE !== "public") return;
+
 
     const ring = document.querySelector(".goal-progress-ring");
     const cur = document.getElementById("goalCurrent");
@@ -576,6 +574,7 @@ function closeGoalModal() {
 }
 
 async function loadGoalFromServer() {
+    if (CURRENT_MODE !== "public") return;
     try {
         const res = await fetch("/goal_data");
         const data = await res.json();
@@ -662,8 +661,8 @@ function deleteRule(id) {
     showToast("Правило удалено");
 
     reloadInnerContent(() => {
+        updateGoalVisibility();
         if (document.querySelector(".rules-page")) {
-            initRulesPage();
             initRuleForms();
             initRuleModals();
         }
@@ -684,8 +683,8 @@ function deleteSegment(ruleId, segIndex) {
     showToast("Сегмент удалён");
 
     reloadInnerContent(() => {
+        updateGoalVisibility();
         if (document.querySelector(".rules-page")) {
-            initRulesPage();
             initRuleForms();
             initRuleModals();
         }
@@ -698,6 +697,8 @@ function deleteSegment(ruleId, segIndex) {
    🎛 11. Логика страницы правил (SPA)
 ============================================================ */
 function initRulesPage() {
+    if (CURRENT_MODE !== "public") return;
+
 
     // Если на странице нет блока правил — выходим
     if (!document.querySelector(".rules-page")) {
@@ -883,8 +884,6 @@ function initRulesPage() {
             cellMax.style.display = "flex";
         }
     };
-
-    setTimeout(updateNewRuleFields, 0);
 
 }
 
@@ -1107,11 +1106,15 @@ function initTypeSelector() {
         };
     });
 
-    document.addEventListener("click", (e) => {
+    function typeSelectorGlobalHandler(e) {
         if (!typeSelect.contains(e.target)) {
             typeOptions.style.display = "none";
         }
-    });
+    }
+
+    document.removeEventListener("click", typeSelectorGlobalHandler);
+    document.addEventListener("click", typeSelectorGlobalHandler);
+
 }
 /* ============================================================
    🎡 Переключение полей сегмента
