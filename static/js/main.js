@@ -148,6 +148,8 @@ window.addEventListener("load", () => {
     initSidebarNavigation();
     loadQR();
     loadGoalFromServer();   // ← исправлено
+
+    initTypeSelector();   // ← ДОБАВИТЬ
 });
 
 
@@ -203,6 +205,7 @@ function navigateSPA(url) {
                 updateQueueUI();
                 loadQR();
                 loadGoalFromServer();
+                initTypeSelector();   // ← ДОБАВИТЬ
 ;
             }, 50);
         });
@@ -304,6 +307,8 @@ function reloadInnerContent(callback) {
                 updateQueueUI();
                 loadQR();
                 loadGoalFromServer(); 
+
+                initTypeSelector();   // ← ДОБАВИТЬ
 
             }, 50);
         });
@@ -861,37 +866,6 @@ function initRulesPage() {
 
     setTimeout(updateNewRuleFields, 0);
 
-    const typeSelect = document.getElementById("typeSelect");
-    const typeDisplay = document.getElementById("typeDisplay");
-    const typeOptions = document.getElementById("typeOptions");
-
-    if (typeSelect && typeDisplay && typeOptions) {
-
-        typeDisplay.addEventListener("click", () => {
-            typeOptions.style.display =
-                typeOptions.style.display === "flex" ? "none" : "flex";
-        });
-
-        document.querySelectorAll(".option").forEach(opt => {
-            opt.addEventListener("click", () => {
-                const value = opt.getAttribute("data-value");
-                typeDisplay.textContent = opt.textContent;
-                typeOptions.style.display = "none";
-
-                document.getElementById("new_action_type").value = value;
-                updateNewRuleFields();
-            });
-        });
-
-        document.addEventListener("click", (e) => {
-            if (!typeSelect.contains(e.target)) {
-                typeOptions.style.display = "none";
-            }
-        });
-    }
-
-    // Инициализация форм — безопасная
-    initRuleForms();
 }
 
 /* ============================================================
@@ -1086,6 +1060,38 @@ function initRuleModals() {
         }
     };
 
+}
+/* ============================================================
+   🎛 Кастомный селект типа (всегда активный)
+============================================================ */
+function initTypeSelector() {
+    const typeSelect = document.getElementById("typeSelect");
+    const typeDisplay = document.getElementById("typeDisplay");
+    const typeOptions = document.getElementById("typeOptions");
+
+    if (!typeSelect || !typeDisplay || !typeOptions) return;
+
+    typeDisplay.onclick = () => {
+        typeOptions.style.display =
+            typeOptions.style.display === "flex" ? "none" : "flex";
+    };
+
+    typeOptions.querySelectorAll(".option").forEach(opt => {
+        opt.onclick = () => {
+            const value = opt.dataset.value;
+            typeDisplay.textContent = opt.textContent;
+            typeOptions.style.display = "none";
+
+            document.getElementById("new_action_type").value = value;
+            updateNewRuleFields();
+        };
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!typeSelect.contains(e.target)) {
+            typeOptions.style.display = "none";
+        }
+    });
 }
 /* ============================================================
    🎡 Переключение полей сегмента
