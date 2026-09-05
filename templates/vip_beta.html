@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="top-header">
+    <h1 class="hello">👑 VIP‑лист</h1>
+</div>
+
+<!-- Панель поиска + сортировки -->
+<div class="vip-top-bar">
+
+    <!-- Поиск -->
+    <div class="vip-search">
+        <input type="text" id="vipSearchInput" placeholder="🔍 Поиск..." class="vip-search-input">
+        <button class="vip-search-btn" id="vipSearchBtn">Найти</button>
+    </div>
+
+    <!-- Сортировка -->
+    <div class="vip-sort">
+        <button class="vip-sort-btn" data-sort="total">💗 По чаевым</button>
+        <button class="vip-sort-btn" data-sort="login_count">📅 По визитам</button>
+        <button class="vip-sort-btn" data-sort="last_login">🕒 По дате</button>
+    </div>
+
+</div>
+
+<!-- Сетка карточек -->
+<div class="vip-grid" id="vipGrid">
+    <!-- Карточки будут загружены через JS -->
+</div>
+
+<!-- Модалка удаления -->
+<div id="vipDeleteModal" class="modal">
+    <div class="goal-modal-content">
+
+        <button class="goal-close-btn" onclick="closeVipDeleteModal()">✕</button>
+
+        <h3 class="goal-modal-title">Удалить VIP?</h3>
+
+        <div class="vip-delete-actions">
+            <button id="vipDeleteYes" class="goal-save-btn">Удалить</button>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

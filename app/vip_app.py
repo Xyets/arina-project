@@ -134,3 +134,23 @@ def vip_data():
     vip_data = load_vip(profile_key)
 
     return {"members": vip_data}
+
+# -------------------- NEW VIP PAGE (beta) --------------------
+
+@vip_bp.route("/vip_beta")
+@login_required
+def vip_beta_page():
+    """
+    НОВАЯ стеклянная версия VIP‑страницы.
+    Работает через SPA, main.js и vip_beta.html.
+    """
+    user = session["username"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    return render_template(
+        "vip_beta.html",
+        user=user,
+        current_mode=mode,
+        profile_key=profile_key
+    )
