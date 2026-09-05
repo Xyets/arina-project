@@ -248,7 +248,11 @@ function initModeSwitch() {
         .then(data => {
             if (data.status === "ok") {
                 CURRENT_MODE = newMode;
+                updateGoalVisibility();
                 CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
+
+                // 🔥 сразу загружаем актуальную цель
+                loadGoalFromServer();
 
                 socket.send(JSON.stringify({
                     type: "hello",
@@ -266,6 +270,7 @@ function initModeSwitch() {
 
                 showToast(`Режим переключен: ${newMode}`);
             }
+
         });
     };
 }
@@ -309,6 +314,8 @@ function reloadInnerContent(callback) {
                 loadGoalFromServer(); 
 
                 initTypeSelector();   // ← ДОБАВИТЬ
+                updateGoalVisibility();
+
 
             }, 50);
         });
@@ -483,6 +490,19 @@ function showToast(msg) {
     toast.textContent = msg;
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+
+function updateGoalVisibility() {
+    const circle = document.getElementById("goalCircle");
+
+    if (!circle) return;
+
+    if (CURRENT_MODE === "public") {
+        circle.style.display = "flex";
+    } else {
+        circle.style.display = "none";
+    }
 }
 
 /* ============================================================
