@@ -202,7 +202,7 @@ function navigateSPA(url) {
                 loadLogs();
                 updateQueueUI();
                 loadQR();
-                updateGoalCircle()
+                loadGoalFromServer();
 ;
             }, 50);
         });
@@ -497,7 +497,9 @@ function updateGoalCircle(newGoal = null) {
     if (!ring || !cur || !tgt || !title) return;
 
     const percent = goal.target > 0 ? (goal.current / goal.target) : 0;
-    const offset = 283 - (283 * percent);
+    const circumference = 264; // r = 42
+    const offset = circumference - (circumference * percent);
+
 
     ring.style.strokeDashoffset = offset;
     cur.textContent = goal.current;
