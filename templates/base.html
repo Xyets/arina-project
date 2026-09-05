@@ -103,22 +103,24 @@
 <div id="vibrationOverlay"></div>
 
 {% if session["mode"] == "public" %}
-<div class="goal-panel" id="goalPanel">
-    <div class="goal-left">
-        <h3 class="goal-title">🎯 <span id="goalTitle">{{ goal.title or "Цель не установлена" }}</span></h3>
-        <div class="goal-values">
+<div class="goal-circle" id="goalCircle">
+    <svg viewBox="0 0 100 100">
+        <circle class="goal-bg" cx="50" cy="50" r="45"></circle>
+        <circle class="goal-progress-ring" cx="50" cy="50" r="45"></circle>
+    </svg>
+
+    <div class="goal-circle-text">
+        <div id="goalCircleTitle">{{ goal.title or "Цель" }}</div>
+        <div id="goalCircleValues">
             <span id="goalCurrent">{{ goal.current }}</span> /
             <span id="goalTarget">{{ goal.target }}</span>
         </div>
     </div>
 
-    <div class="goal-progress">
-        <div class="goal-fill"></div>
-    </div>
-
-    <button class="goal-new-btn" onclick="openGoalModal()">Изменить цель</button>
+    <button class="goal-circle-btn" onclick="openGoalModal()">✏️</button>
 </div>
 {% endif %}
+
 
 
 <div id="goalModal" class="modal">

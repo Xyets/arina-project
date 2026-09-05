@@ -201,7 +201,8 @@ function navigateSPA(url) {
                 loadLogs();
                 updateQueueUI();
                 loadQR();
-                updateGoalUI();
+                updateGoalCircle()
+;
             }, 50);
         });
 }
@@ -481,23 +482,28 @@ function showToast(msg) {
 /* ============================================================
    🎯 Постоянная цель
 ============================================================ */
-function updateGoalUI(newGoal = null) {
+/* ============================================================
+   🎯 Круглая цель — Apple Ring
+============================================================ */
+function updateGoalCircle(newGoal = null) {
     if (newGoal) goal = newGoal;
 
-    const fill = document.querySelector(".goal-fill");
+    const ring = document.querySelector(".goal-progress-ring");
     const cur = document.getElementById("goalCurrent");
     const tgt = document.getElementById("goalTarget");
-    const title = document.getElementById("goalTitle");
+    const title = document.getElementById("goalCircleTitle");
 
-    if (!fill || !cur || !tgt || !title) return;
+    if (!ring || !cur || !tgt || !title) return;
 
-    const percent = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
+    const percent = goal.target > 0 ? (goal.current / goal.target) : 0;
+    const offset = 283 - (283 * percent);
 
-    fill.style.width = Math.min(percent, 100) + "%";
+    ring.style.strokeDashoffset = offset;
     cur.textContent = goal.current;
     tgt.textContent = goal.target;
-    title.textContent = goal.title || "Цель не установлена";
+    title.textContent = goal.title || "Цель";
 }
+
 
 
 
