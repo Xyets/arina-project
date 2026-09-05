@@ -194,19 +194,20 @@ function navigateSPA(url) {
                     initRulesPage();
                     initRuleForms();
                     initRuleModals();
-
+                    updateNewRuleFields();   // ← ВАЖНО
                 }
 
                 loadLogs();
                 updateQueueUI();
                 loadQR();
                 loadGoalFromServer();
-                initTypeSelector();   // ← ДОБАВИТЬ
+                initTypeSelector();
                 updateGoalVisibility();
 
             }, 50);
         });
 }
+
 
 /* ============================================================
    📦 Sidebar collapse
@@ -297,25 +298,24 @@ function reloadInnerContent(callback) {
                 if (callback) {
                     callback();
                 } else {
-
                     if (document.querySelector(".rules-page")) {
                         initRuleForms();
                         initRuleModals();
+                        updateNewRuleFields();   // ← ВАЖНО
                     }
                 }
 
                 loadLogs();
                 updateQueueUI();
                 loadQR();
-                loadGoalFromServer(); 
-
-                initTypeSelector();   // ← ДОБАВИТЬ
+                loadGoalFromServer();
+                initTypeSelector();
                 updateGoalVisibility();
-
 
             }, 50);
         });
 }
+
 
 /* ============================================================
    📜 Цветные логи
@@ -697,8 +697,6 @@ function deleteSegment(ruleId, segIndex) {
    🎛 11. Логика страницы правил (SPA)
 ============================================================ */
 function initRulesPage() {
-    if (CURRENT_MODE !== "public") return;
-
 
     // Если на странице нет блока правил — выходим
     if (!document.querySelector(".rules-page")) {
@@ -745,14 +743,13 @@ function initRulesPage() {
         };
     });
 
-    // Модалки — только назначение функций, без повторных обработчиков
+    // Модалки — только назначение функций
     window.openRuleModal = (id) => {
         const modal = document.getElementById("ruleModal");
         modal.classList.add("show");
 
         const card = document.querySelector(`[data-rule-id="${id}"]`);
 
-        // сохраняем оригинальные данные
         window._originalRuleData = {
             min: card.dataset.min,
             max: card.dataset.max,
@@ -761,29 +758,18 @@ function initRulesPage() {
             action: card.dataset.action || "",
             type: card.dataset.type
         };
+
         document.getElementById("edit_rule_id").value = id;
         document.getElementById("edit_min").value = card.dataset.min;
         document.getElementById("edit_max").value = card.dataset.max;
         document.getElementById("edit_strength").value = card.dataset.strength;
         document.getElementById("edit_duration").value = card.dataset.duration;
-
-        const type = card.dataset.type;
-        document.getElementById("edit_type").value = type;
-
-        document.getElementById("edit_type_display").textContent =
-            type === "vibration" ? "Вибрация" :
-            type === "custom" ? "Действие" :
-            "Колесо фортуны";
-
-        // действие только для custom
         document.getElementById("edit_action").value =
-            type === "custom" ? (card.dataset.action || "") : "";
+            card.dataset.type === "custom" ? (card.dataset.action || "") : "";
+        document.getElementById("edit_type").value = card.dataset.type;
 
         updateRuleEditFields();
     };
-
-
-
 
     window.closeRuleModal = () => {
         const modal = document.getElementById("ruleModal");
@@ -801,8 +787,6 @@ function initRulesPage() {
         }
     };
 
-
-
     window.openSegmentModal = (ruleId) => {
         const modal = document.getElementById("segmentModal");
         modal.classList.add("show");
@@ -813,7 +797,7 @@ function initRulesPage() {
         document.getElementById("segmentModal").classList.remove("show");
     };
 
-    // Обновление полей
+    // Обновление полей редактирования
     window.updateRuleEditFields = () => {
         const type = document.getElementById("edit_type").value;
 
@@ -822,30 +806,22 @@ function initRulesPage() {
         const action = document.getElementById("edit_action_block");
         const typeBlock = document.getElementById("edit_type_display").parentElement;
 
-        // Скрываем всё
         strength.classList.add("hidden");
         duration.classList.add("hidden");
         action.classList.add("hidden");
         typeBlock.classList.add("hidden");
 
-        // ВИБРАЦИЯ → только сила + время
         if (type === "vibration") {
             strength.classList.remove("hidden");
             duration.classList.remove("hidden");
         }
 
-        // ДЕЙСТВИЕ → только действие
         if (type === "custom") {
             action.classList.remove("hidden");
         }
-
-        // КОЛЕСО → ничего кроме мин/макс
-        // (мин/макс всегда видны)
     };
 
-
-
-
+    // Обновление полей нового правила
     window.updateNewRuleFields = () => {
         const type = document.getElementById("new_action_type").value;
 
@@ -855,17 +831,14 @@ function initRulesPage() {
         const cellDuration = document.getElementById("cell_duration");
         const cellAction = document.getElementById("cell_action");
 
-        // Скрываем всё
         cellMin.style.display = "none";
         cellMax.style.display = "none";
         cellStrength.style.display = "none";
         cellDuration.style.display = "none";
         cellAction.style.display = "none";
 
-        // Если тип пустой — ничего не показываем
         if (!type) return;
 
-        // Показываем нужное
         if (type === "vibration") {
             cellMin.style.display = "flex";
             cellMax.style.display = "flex";
@@ -884,8 +857,8 @@ function initRulesPage() {
             cellMax.style.display = "flex";
         }
     };
-
 }
+
 
 /* ============================================================
    🎛 12. Формы правил (WebSocket)
