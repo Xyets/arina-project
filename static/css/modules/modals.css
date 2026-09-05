@@ -204,3 +204,117 @@
 .hidden {
     display: none !important;
 }
+/* ============================================================
+   🎯 Модалка цели — отдельный стиль
+============================================================ */
+
+#goalModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+#goalModal.show {
+    display: flex;
+}
+
+.goal-modal-content {
+    position: relative;
+    width: 340px;
+    padding: 28px;
+    border-radius: 22px;
+
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.85),
+        rgba(240,240,255,0.55)
+    );
+    backdrop-filter: blur(18px);
+
+    box-shadow:
+        0 12px 28px rgba(0,0,0,0.12),
+        inset 0 0 22px rgba(255,255,255,0.45);
+
+    border: 1px solid rgba(255,255,255,0.55);
+
+    animation: modalGoalPop 0.35s ease;
+}
+
+@keyframes modalGoalPop {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* Крестик */
+.goal-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255,255,255,0.35);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: 0.25s ease;
+}
+
+.goal-close-btn:hover {
+    background: rgba(255,255,255,0.75);
+    transform: scale(1.15);
+}
+
+/* Заголовок */
+.goal-modal-title {
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Поля */
+.goal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.goal-input {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.65);
+    background: rgba(255,255,255,0.55);
+    font-size: 15px;
+    transition: 0.25s ease;
+}
+
+.goal-input:focus {
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* Кнопка сохранить */
+.goal-save-btn {
+    margin-top: 10px;
+    padding: 12px;
+    border: none;
+    border-radius: 14px;
+
+    background: linear-gradient(135deg, #AEE6E6, #F7C8B8, #F9A8D4);
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.goal-save-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}

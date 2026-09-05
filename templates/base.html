@@ -130,16 +130,22 @@
 
 <!-- Модалка цели -->
 <div id="goalModal" class="modal">
-    <div class="modal-content">
-        <h3>Новая цель</h3>
-        <form id="goalForm">
-            <input name="title" placeholder="Название цели">
-            <input name="target" placeholder="Сколько нужно" type="number">
-            <button type="submit">Сохранить</button>
+    <div class="goal-modal-content">
+
+        <button class="goal-close-btn" onclick="closeGoalModal()">✕</button>
+
+        <h3 class="goal-modal-title">Новая цель</h3>
+
+        <form id="goalForm" class="goal-form">
+            <input name="title" placeholder="Название цели" class="goal-input">
+            <input name="target" placeholder="Сколько нужно" type="number" class="goal-input">
+
+            <button type="submit" class="goal-save-btn">Сохранить</button>
         </form>
-        <button class="modal-close-btn" onclick="closeGoalModal()">Закрыть</button>
+
     </div>
 </div>
+
 
 </body>
 </html>
