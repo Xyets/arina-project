@@ -112,9 +112,10 @@ function handleWSMessage(data) {
     }
 
     if (data.goal_update) {
-        updateGoalUI(data.goal);
+        updateGoalCircle(data.goal);
         return;
     }
+
 
     if (data.rules_update) {
         reloadInnerContent(() => {
