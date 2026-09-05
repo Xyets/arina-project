@@ -128,7 +128,7 @@
 }
 
 /* ============================================================
-   🎯 Круглая цель — Apple Activity Ring (Deluxe)
+   🎯 FlowTip Pastel Ring — круглая цель
 ============================================================ */
 
 .goal-circle {
@@ -143,16 +143,16 @@
     align-items: center;
     justify-content: center;
 
-    background: rgba(20,20,20,0.45); /* тёмное стекло */
+    background: rgba(255,255,255,0.65); /* светлое стекло */
     backdrop-filter: blur(18px);
     border-radius: 22px;
 
     padding: 10px;
     box-shadow:
-        0 8px 25px rgba(0,0,0,0.35),
-        inset 0 0 12px rgba(255,255,255,0.15);
+        0 10px 26px rgba(0,0,0,0.12),
+        inset 0 0 18px rgba(255,255,255,0.45);
 
-    border: 1px solid rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.55);
 
     z-index: 60;
 }
@@ -167,7 +167,7 @@
 /* Фон кольца */
 .goal-bg {
     fill: none;
-    stroke: rgba(255,255,255,0.12);
+    stroke: rgba(255,255,255,0.35);
     stroke-width: 10;
 }
 
@@ -176,21 +176,20 @@
     fill: none;
     stroke-width: 10;
     stroke-linecap: round;
-    stroke-dasharray: 264; /* 2πr */
+    stroke-dasharray: 264;
     stroke-dashoffset: 264;
     transition: stroke-dashoffset 0.6s ease;
 
-    stroke: url(#goalGradient);
+    stroke: url(#goalGradient); /* пастельный градиент */
 }
 
 /* Текст */
 .goal-circle-text {
     position: absolute;
     text-align: center;
-    color: #fff;
+    color: var(--text-main); /* твой тёмный зелёно-серый */
     font-weight: 600;
     pointer-events: none;
-    text-shadow: 0 0 6px rgba(0,0,0,0.6);
 }
 
 #goalCircleTitle {
@@ -208,7 +207,7 @@
     bottom: -4px;
     right: -4px;
 
-    background: #a78bfa;
+    background: #99CDD8; /* бирюза */
     color: white;
     border: none;
     border-radius: 50%;
@@ -218,13 +217,13 @@
     font-size: 14px;
     cursor: pointer;
 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    border: 2px solid rgba(255,255,255,0.5);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border: 2px solid rgba(255,255,255,0.6);
 
     transition: 0.25s ease;
 }
 
 .goal-circle-btn:hover {
-    background: #8f6dfd;
+    background: #8fc3d0;
     transform: scale(1.12);
 }
