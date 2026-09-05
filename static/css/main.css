@@ -15,7 +15,7 @@
 @import url("modules/goal.css");
 @import url("modules/modals.css");
 
-@import url("modules/rules.css");      /* ← новый модуль для rules_beta.html */
-@import url("modules/wheel.css");      /* ← создадим позже, если нужно */
-@import url("modules/animations.css"); /* ← создадим позже, если нужно */
+@import url("modules/rules.css");     
+@import url("modules/wheel.css");      
+@import url("modules/animations.css"); 
 @import url("modules/index.css");

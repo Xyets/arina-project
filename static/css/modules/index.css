@@ -128,56 +128,52 @@
 }
 
 /* ============================================================
-   🎯 Горизонтальная цель — FlowTip Deluxe
+   🎯 Компактная горизонтальная цель — FlowTip Deluxe
 ============================================================ */
 
 .goal-panel {
     position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 1100px;
+    top: 16px;
 
-    background: rgba(255,255,255,0.65);
-    backdrop-filter: blur(18px);
-    padding: 18px 24px;
-    border-radius: 20px;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-    border: 1px solid rgba(255,255,255,0.5);
+    /* sidebar width = 240px, + отступ */
+    left: calc(240px + 20px);
+    right: 20px;
+
+    height: 52px;
+
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(14px);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
+    padding: 10px 18px;
 
-    z-index: 999;
-}
-
-.goal-left {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    z-index: 50; /* ниже меню, выше контента */
 }
 
 .goal-title {
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .goal-values {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--accent);
+    color: #7b5dfd;
+    white-space: nowrap;
 }
 
 .goal-progress {
     flex-grow: 1;
-    height: 16px;
+    height: 8px;
     background: rgba(255,255,255,0.45);
-    border-radius: 10px;
+    border-radius: 6px;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.55);
 }
 
 .goal-fill {
@@ -188,14 +184,15 @@
 }
 
 .goal-new-btn {
-    background: var(--accent);
+    background: #a78bfa;
     color: white;
     border: none;
-    padding: 10px 16px;
-    border-radius: 14px;
-    font-size: 15px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: 0.25s ease;
 }
 
