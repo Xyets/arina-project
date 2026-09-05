@@ -546,17 +546,19 @@ function openGoalModal() {
 function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
 }
+
 async function loadGoalFromServer() {
     try {
         const res = await fetch("/goal_data");
         const data = await res.json();
 
         // data: { title, current, target }
-        updateGoalUI(data);
+        updateGoalCircle(data);   // ← правильный вызов
     } catch (e) {
         console.error("Ошибка загрузки цели:", e);
     }
 }
+
 
 
 /* ============================================================
