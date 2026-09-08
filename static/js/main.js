@@ -95,12 +95,9 @@ function handleWSMessage(data) {
     }
 
     if (data.status === "hello_ok") {
-        socket.send(JSON.stringify({
-            type: "get_queue",
-            profile_key: `${CURRENT_USER}_${CURRENT_MODE}`
-        }));
         return;
     }
+
 
     if (data.vibration) {
         startVibrationTimer(data.vibration.duration, data.vibration.strength);
@@ -521,10 +518,6 @@ function updateGoalVisibility() {
         circle.style.display = "none";
     }
 }
-
-/* ============================================================
-   🎯 Постоянная цель
-============================================================ */
 /* ============================================================
    🎯 Круглая цель — Apple Ring
 ============================================================ */
