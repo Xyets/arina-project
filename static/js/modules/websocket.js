@@ -1,18 +1,15 @@
 // websocket.js — модуль WebSocket для FlowTip
 import { showMemberCard, hideMemberCard } from "./member_card.js";
+import { createDeleteRule, createDeleteSegment } from "./rules.js";
 
-import {
-    createDeleteRule,
-    createDeleteSegment
-} from "./rules.js";
 let CURRENT_MEMBER_ID = null;
+
 export let socket = null;
 let wsReconnectAttempts = 0;
 const WS_MAX_RECONNECT = 10;
 
 export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloadInnerContent, showToast) {
 
-    // Делаем переменные глобальными для sendStop()
     window.CURRENT_USER = CURRENT_USER;
     window.CURRENT_MODE = CURRENT_MODE;
     window.CURRENT_PROFILE = CURRENT_PROFILE;
@@ -42,7 +39,6 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             }, 30000);
         };
 
-        // глобальные функции для HTML onclick
         window.deleteRule = createDeleteRule(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
         window.deleteSegment = createDeleteSegment(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
 
@@ -66,7 +62,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
-        // 🔴 FC2 logout → скрыть карточку только если это тот же мембер
+        // 🔴 LOGOUT — скрываем карточку только если это тот же мембер
         if (data.event === "logout") {
             if (data.user_id === CURRENT_MEMBER_ID) {
                 hideMemberCard();
@@ -75,10 +71,8 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-        // 👤 VIP entry → показать карточку
+        // 👤 VIP entry — обновляем карточку, но НЕ трогаем CURRENT_MEMBER_ID
         if (data.entry) {
-            CURRENT_MEMBER_ID = data.entry.user_id || data.entry.id || null;
-
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
                     username: data.entry.name,
@@ -91,9 +85,10 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-
-        // 🟦 FC2 login → fallback
+        // 🟦 LOGIN — устанавливаем CURRENT_MEMBER_ID
         if (data.event === "login") {
+            CURRENT_MEMBER_ID = data.user_id;
+
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
                     username: data.name || data.user,
@@ -106,25 +101,12 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         }
 
         // 🟦 Новый формат (если появится)
-        if (data.type === "member_enter") {
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.username,
-                    note: data.note,
-                    last_seen: data.last_seen,
-                    tips: data.tips,
-                    visits: data.visits
-                });
-            }
-            return;
-        }
-
         if (data.type === "member_exit") {
             hideMemberCard();
+            CURRENT_MEMBER_ID = null;
             return;
         }
 
-        // 🔄 Обновление логов
         if (data.type === "refresh_logs") {
             window.loadLogs?.();
             return;
