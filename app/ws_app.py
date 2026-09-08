@@ -283,7 +283,6 @@ async def handle_viewer_event(websocket, data):
 
     profile_key = f"{user}_{mode}"
 
-    # проверяем профиль ТОЛЬКО после создания profile_key
     if not get_profile_by_key(profile_key):
         print(f"❌ viewer_event: unknown profile_key {profile_key}")
         return
@@ -306,7 +305,6 @@ async def handle_viewer_event(websocket, data):
             }
         }, role="panel", profile_key=profile_key)
 
-        # --- Расширенный лог ---
         name = profile.get("name", viewer_name)
         notes = profile.get("notes", "").strip() or "нет"
         total = profile.get("total", 0)
@@ -323,14 +321,22 @@ async def handle_viewer_event(websocket, data):
 
         add_log(profile_key, log_message)
 
-
     elif event == "logout":
         add_log(profile_key, f"🔴 LOGOUT | {viewer_name} ({viewer_id})")
+
+        ws_send({
+            "event": "logout",
+            "user": user,
+            "user_id": viewer_id,
+            "name": viewer_name,
+            "text": text
+        }, role="panel", profile_key=profile_key)
 
     else:
         add_log(profile_key, f"📥 EVENT | {event.upper()} | {viewer_name} ({viewer_id}) → {text}")
 
     ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
+
 
 async def handle_donation_event(websocket, data):
     from services.donation_service import handle_donation
