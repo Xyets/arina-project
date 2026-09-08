@@ -2,8 +2,6 @@
 import { showMemberCard, hideMemberCard } from "./member_card.js";
 import { createDeleteRule, createDeleteSegment } from "./rules.js";
 
-let CURRENT_MEMBER_ID = null;
-
 export let socket = null;
 let wsReconnectAttempts = 0;
 const WS_MAX_RECONNECT = 10;
@@ -62,16 +60,13 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
-        // 🔴 LOGOUT — скрываем карточку только если это тот же мембер
+        // 🔴 ЛЮБОЙ logout → закрыть карточку, если она открыта
         if (data.event === "logout") {
-            if (data.user_id === CURRENT_MEMBER_ID) {
-                hideMemberCard();
-                CURRENT_MEMBER_ID = null;
-            }
+            hideMemberCard();
             return;
         }
 
-        // 👤 VIP entry — обновляем карточку, но НЕ трогаем CURRENT_MEMBER_ID
+        // 👤 VIP entry → показать карточку
         if (data.entry) {
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
@@ -85,10 +80,8 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-        // 🟦 LOGIN — устанавливаем CURRENT_MEMBER_ID
+        // 🟦 LOGIN → fallback (если entry ещё не пришёл)
         if (data.event === "login") {
-            CURRENT_MEMBER_ID = data.user_id;
-
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
                     username: data.name || data.user,
@@ -103,10 +96,10 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         // 🟦 Новый формат (если появится)
         if (data.type === "member_exit") {
             hideMemberCard();
-            CURRENT_MEMBER_ID = null;
             return;
         }
 
+        // 🔄 Обновление логов
         if (data.type === "refresh_logs") {
             window.loadLogs?.();
             return;
