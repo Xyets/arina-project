@@ -1,81 +1,67 @@
-// ============================================================
-// ⚙ RULES — логика правил, модалки, формы, сегменты
-// ============================================================
+// static/js/modules/rules.js
 
-import { CURRENT_PROFILE } from "./core.js";
-import { showToast } from "./toast.js";
-import { reloadInnerContent } from "./spa.js";
+/* ============================================================
+   RULES — WebSocket helpers
+============================================================ */
 
-// ============================================================
-// 📡 Отправка команд правил через WebSocket
-// ============================================================
-
-export function sendRuleCommand(payload) {
-    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-        window.socket.send(JSON.stringify(payload));
-    }
+export function sendRuleCommand(socket, payload) {
+    socket.send(JSON.stringify(payload));
 }
 
-// ============================================================
-// 🗑 Удаление правила
-// ============================================================
+export function createDeleteRule(socket, CURRENT_PROFILE, reloadInnerContent, showToast) {
+    return function(id) {
+        sendRuleCommand(socket, {
+            type: "delete_rule",
+            profile_key: CURRENT_PROFILE,
+            id
+        });
 
-export function deleteRule(id) {
-    sendRuleCommand({
-        type: "delete_rule",
-        profile_key: CURRENT_PROFILE,
-        id
-    });
+        showToast("Правило удалено");
 
-    showToast("Правило удалено");
-
-    reloadInnerContent(() => {
-        if (document.querySelector(".rules-page")) {
-            initRulesPage();
-            initRuleForms();
-            initRuleModals();
-        }
-    });
+        reloadInnerContent(() => {
+            if (document.querySelector(".rules-page")) {
+                initRulesPage(socket, showToast);
+                initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                initRuleModals();
+            }
+        });
+    };
 }
 
-// ============================================================
-// 🗑 Удаление сегмента
-// ============================================================
+export function createDeleteSegment(socket, CURRENT_PROFILE, reloadInnerContent, showToast) {
+    return function(ruleId, segIndex) {
+        sendRuleCommand(socket, {
+            type: "delete_segment",
+            profile_key: CURRENT_PROFILE,
+            rule_id: ruleId,
+            seg_index: segIndex
+        });
 
-export function deleteSegment(ruleId, segIndex) {
-    sendRuleCommand({
-        type: "delete_segment",
-        profile_key: CURRENT_PROFILE,
-        rule_id: ruleId,
-        seg_index: segIndex
-    });
+        showToast("Сегмент удалён");
 
-    showToast("Сегмент удалён");
-
-    reloadInnerContent(() => {
-        if (document.querySelector(".rules-page")) {
-            initRulesPage();
-            initRuleForms();
-            initRuleModals();
-        }
-    });
+        reloadInnerContent(() => {
+            if (document.querySelector(".rules-page")) {
+                initRulesPage(socket, showToast);
+                initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                initRuleModals();
+            }
+        });
+    };
 }
 
-// ============================================================
-// 🎛 Инициализация страницы правил
-// ============================================================
+/* ============================================================
+   RULES — Page init
+============================================================ */
 
-export function initRulesPage() {
+export function initRulesPage(socket, showToast) {
     if (!document.querySelector(".rules-page")) return;
 
-    // Анимация шансов сегментов
     document.querySelectorAll(".segment-chance-fill").forEach(el => {
         if (el.dataset.chance) {
             el.style.width = el.dataset.chance + "%";
         }
     });
 
-    // Тест вибрации
     const testVibrationBtn = document.getElementById("testVibrationBtn");
     if (testVibrationBtn) {
         testVibrationBtn.onclick = () => {
@@ -86,7 +72,6 @@ export function initRulesPage() {
         };
     }
 
-    // Тест правила
     document.querySelectorAll(".testRuleBtn").forEach(btn => {
         btn.onclick = () => {
             const index = btn.dataset.index;
@@ -96,8 +81,8 @@ export function initRulesPage() {
                 .then(data => {
                     showToast(data.message || `Правило ${index} проверено`);
 
-                    if (data.wheel_result && window.socket.readyState === WebSocket.OPEN) {
-                        window.socket.send(JSON.stringify({
+                    if (data.wheel_result && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
                             type: "wheel_result",
                             profile: data.wheel_result.profile,
                             segment: data.wheel_result.segment
@@ -109,9 +94,9 @@ export function initRulesPage() {
     });
 }
 
-// ============================================================
-// 🎛 Модалки правил
-// ============================================================
+/* ============================================================
+   RULES — Modals
+============================================================ */
 
 export function initRuleModals() {
     if (!document.querySelector(".rules-page")) return;
@@ -183,138 +168,9 @@ export function initRuleModals() {
     };
 }
 
-// ============================================================
-// 🎛 Формы правил
-// ============================================================
-
-export function initRuleForms() {
-    if (!document.querySelector(".rules-page")) return;
-
-    const addForm = document.getElementById("addRuleForm");
-    const editForm = document.getElementById("ruleEditForm");
-    const segForm = document.getElementById("segmentAddForm");
-
-    if (addForm) addForm.replaceWith(addForm.cloneNode(true));
-    if (editForm) editForm.replaceWith(editForm.cloneNode(true));
-    if (segForm) segForm.replaceWith(segForm.cloneNode(true));
-
-    const addFormNew = document.getElementById("addRuleForm");
-    const editFormNew = document.getElementById("ruleEditForm");
-    const segFormNew = document.getElementById("segmentAddForm");
-
-    // ➕ Добавление правила
-    if (addFormNew) {
-        addFormNew.addEventListener("submit", (e) => {
-            e.preventDefault();
-
-            const payload = {
-                type: "add_rule",
-                profile_key: CURRENT_PROFILE,
-                min: Number(document.getElementById("new_min").value),
-                max: Number(document.getElementById("new_max").value),
-                strength: Number(document.getElementById("new_strength").value || 0),
-                duration: Number(document.getElementById("new_duration").value || 0),
-                action_type: document.getElementById("new_action_type").value,
-                action: document.getElementById("new_action").value || ""
-            };
-
-            sendRuleCommand(payload);
-            showToast("Правило добавлено");
-
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage();
-                    initRuleForms();
-                    initRuleModals();
-                }
-            });
-        });
-    }
-
-    // ✏️ Редактирование правила
-    if (editFormNew) {
-        editFormNew.addEventListener("submit", (e) => {
-            e.preventDefault();
-
-            const payload = {
-                type: "edit_rule",
-                profile_key: CURRENT_PROFILE,
-                id: document.getElementById("edit_rule_id").value,
-                min: Number(document.getElementById("edit_min").value),
-                max: Number(document.getElementById("edit_max").value),
-                strength: Number(document.getElementById("edit_strength").value || 0),
-                duration: Number(document.getElementById("edit_duration").value || 0),
-                action_type: document.getElementById("edit_type").value,
-                action: document.getElementById("edit_action").value || ""
-            };
-
-            sendRuleCommand(payload);
-            showToast("Правило обновлено");
-
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage();
-                    initRuleForms();
-                    initRuleModals();
-                }
-            });
-        });
-    }
-
-    // 🎡 Добавление сегмента
-    if (segFormNew) {
-        segFormNew.addEventListener("submit", (e) => {
-            e.preventDefault();
-
-            const payload = {
-                type: "add_segment",
-                profile_key: CURRENT_PROFILE,
-                rule_id: document.getElementById("segment_rule_id").value,
-                name: document.getElementById("seg_name").value,
-                chance: Number(document.getElementById("seg_chance").value),
-                seg_type: document.getElementById("seg_type").value,
-                strength: Number(document.getElementById("seg_strength").value || 0),
-                duration: Number(document.getElementById("seg_duration").value || 0),
-                action: document.getElementById("seg_action").value || ""
-            };
-
-            sendRuleCommand(payload);
-            showToast("Сегмент добавлен");
-
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage();
-                    initRuleForms();
-                    initRuleModals();
-                }
-            });
-        });
-    }
-}
-
-// ============================================================
-// 🎛 Переключение полей сегмента
-// ============================================================
-
-export function updateSegmentFields(selectEl) {
-    const modal = selectEl.closest(".modal-content");
-
-    const vib = modal.querySelector(".seg-vibration-fields");
-    const act = modal.querySelector(".seg-action-fields");
-    const retry = modal.querySelector(".seg-retry-fields");
-
-    vib.classList.add("hidden");
-    act.classList.add("hidden");
-    retry.classList.add("hidden");
-
-    if (selectEl.value === "vibration") vib.classList.remove("hidden");
-    if (selectEl.value === "action") act.classList.remove("hidden");
-    if (selectEl.value === "retry") retry.classList.remove("hidden");
-}
-
-// ============================================================
-// 🎛 Поля редактирования правила
-// ============================================================
+/* ============================================================
+   RULES — Edit fields
+============================================================ */
 
 export function updateRuleEditFields() {
     const type = document.getElementById("edit_type").value;
@@ -339,9 +195,9 @@ export function updateRuleEditFields() {
     }
 }
 
-// ============================================================
-// 🎛 Поля нового правила
-// ============================================================
+/* ============================================================
+   RULES — New rule fields
+============================================================ */
 
 export function updateNewRuleFields() {
     const type = document.getElementById("new_action_type").value;
@@ -377,4 +233,24 @@ export function updateNewRuleFields() {
         cellMin.style.display = "flex";
         cellMax.style.display = "flex";
     }
+}
+
+/* ============================================================
+   RULES — Segment fields
+============================================================ */
+
+export function updateSegmentFields(selectEl) {
+    const modal = selectEl.closest(".modal-content");
+
+    const vib = modal.querySelector(".seg-vibration-fields");
+    const act = modal.querySelector(".seg-action-fields");
+    const retry = modal.querySelector(".seg-retry-fields");
+
+    vib.classList.add("hidden");
+    act.classList.add("hidden");
+    retry.classList.add("hidden");
+
+    if (selectEl.value === "vibration") vib.classList.remove("hidden");
+    if (selectEl.value === "action") act.classList.remove("hidden");
+    if (selectEl.value === "retry") retry.classList.remove("hidden");
 }
