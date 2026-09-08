@@ -84,11 +84,21 @@ export function renderVipCards(list) {
 }
 
 
+
 /* ------------------------------------------------------------
    СОХРАНЕНИЕ VIP
 ------------------------------------------------------------ */
 export function initVipForms() {
     document.querySelectorAll(".vip-form").forEach(form => {
+
+        // Сохранение по Enter
+        form.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
@@ -114,6 +124,7 @@ export function initVipForms() {
         });
     });
 }
+
 
 /* ------------------------------------------------------------
    ОБНОВЛЕНИЕ ОДНОЙ КАРТОЧКИ
@@ -163,7 +174,6 @@ export async function refreshVipCard(userId) {
         initVipDeleteButtons();
     } catch (e) {}
 }
-
 
 /* ------------------------------------------------------------
    СОРТИРОВКА

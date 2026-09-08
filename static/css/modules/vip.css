@@ -1,5 +1,5 @@
 /* ============================================================
-   👑 VIP — стеклянная пастельная страница в стиле FlowTip
+   👑 VIP — стеклянная пастельная страница FlowTip
 ============================================================ */
 
 /* Верхняя панель */
@@ -24,11 +24,7 @@
     padding: 12px 16px;
     border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.55);
-    background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.65),
-        rgba(240,240,255,0.45)
-    );
+    background: linear-gradient(135deg, rgba(255,255,255,0.65), rgba(240,240,255,0.45));
     backdrop-filter: blur(12px);
     font-size: 15px;
     width: 240px;
@@ -68,19 +64,20 @@
     padding: 10px 16px;
     border-radius: 14px;
     border: none;
-    background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.65),
-        rgba(240,240,255,0.45)
-    );
+    background: linear-gradient(135deg, rgba(255,255,255,0.65), rgba(240,240,255,0.45));
     backdrop-filter: blur(12px);
     cursor: pointer;
-    font-weight: 600;
+
+    /* исправлено: не жирные */
+    font-weight: 500;
+    font-size: 14px;
+    opacity: 0.85;
+
     transition: 0.25s ease;
 }
 
 .vip-sort-btn:hover {
-    background: rgba(255,255,255,0.85);
+    opacity: 1;
     transform: translateY(-3px);
 }
 
@@ -97,15 +94,11 @@
    💎 VIP‑карточка — стиль как rule-card
 ============================================================ */
 .vip-card {
-    background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.75),
-        rgba(240,240,255,0.55)
-    );
+    background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,240,255,0.55));
     backdrop-filter: blur(18px);
 
     border-radius: 22px;
-    padding: 20px;
+    padding: 22px; /* исправлено: больше отступ */
 
     box-shadow:
         0 10px 26px rgba(0,0,0,0.12),
@@ -147,11 +140,7 @@
 
 /* Заблокированный мембер */
 .vip-card.blocked {
-    background: linear-gradient(
-        135deg,
-        rgba(255,220,220,0.75),
-        rgba(255,200,200,0.55)
-    );
+    background: linear-gradient(135deg, rgba(255,220,220,0.75), rgba(255,200,200,0.55));
 }
 
 /* ============================================================
@@ -159,6 +148,9 @@
 ============================================================ */
 .vip-card input[type="text"] {
     width: 100%;
+    max-width: 100%; /* исправлено: не выезжает */
+    box-sizing: border-box;
+
     padding: 10px 12px;
     border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.65);
@@ -185,11 +177,20 @@
 /* ============================================================
    🎛 Кнопки — только иконки
 ============================================================ */
+
+/* новая сетка: 💾 слева, 🗑️ справа */
 .vip-card .actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 10px;
+}
+
+.vip-card .actions .vip-icon-btn:first-child {
+    justify-self: start; /* 💾 слева */
+}
+
+.vip-card .actions .vip-icon-btn:last-child {
+    justify-self: end;   /* 🗑️ справа */
 }
 
 .vip-icon-btn {
@@ -221,11 +222,7 @@
    🗑️ Модалка удаления
 ============================================================ */
 #vipDeleteModal .goal-modal-content {
-    background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.75),
-        rgba(240,240,255,0.55)
-    );
+    background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,240,255,0.55));
     backdrop-filter: blur(18px);
     border-radius: 22px;
     box-shadow: var(--shadow-card);
