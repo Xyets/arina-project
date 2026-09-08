@@ -276,14 +276,16 @@ function initModeSwitch() {
 
                 reloadInnerContent(() => {
                     updateGoalVisibility();
+
+                    // 🔥 сразу обновляем логи после смены режима
+                    loadLogs();
+
                     if (document.querySelector(".rules-page")) {
-                        initRulesPage(socket, showToast);   // ← ДОБАВИТЬ ЭТУ СТРОКУ
+                        initRulesPage(socket, showToast);   // ← обязательно
                         initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                         initRuleModals();
                     }
                 });
-
-
                 showToast(`Режим переключен: ${newMode}`);
             }
 
