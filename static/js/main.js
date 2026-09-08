@@ -207,8 +207,7 @@ function navigateSPA(url) {
                     initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                     initRuleModals();
                     updateNewRuleFields();
-                    loadLogs();   // ← ДОБАВИТЬ СЮДА
-
+                    loadLogs();
                 }
 
                 loadLogs();
@@ -218,7 +217,13 @@ function navigateSPA(url) {
                 initTypeSelector();
                 updateGoalVisibility();
 
+                initLogButtons();      // ← ДОБАВИТЬ
+                initQueueButtons();    // ← ДОБАВИТЬ
+                initVipPage();         // ← ДОБАВИТЬ
+
             }, 50);
+
+
         });
 }
 
@@ -316,7 +321,7 @@ function reloadInnerContent(callback) {
                     callback();
                 } else {
                     if (document.querySelector(".rules-page")) {
-                        initRulesPage(socket, showToast);   // ← ДОБАВИТЬ ЭТУ СТРОКУ
+                        initRulesPage(socket, showToast);
                         initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                         initRuleModals();
                         updateNewRuleFields();
@@ -330,7 +335,12 @@ function reloadInnerContent(callback) {
                 initTypeSelector();
                 updateGoalVisibility();
 
+                initLogButtons();      // ← ДОБАВИТЬ
+                initQueueButtons();    // ← ДОБАВИТЬ
+                initVipPage();         // ← ДОБАВИТЬ
+
             }, 50);
+
         });
 }
 
@@ -638,6 +648,8 @@ function refreshQR() {
             showToast("QR‑код обновлён");
         });
 }
+
+window.refreshQR = refreshQR;
 
 
 /* ============================================================
