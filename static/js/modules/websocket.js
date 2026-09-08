@@ -66,7 +66,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
-        // 🔴 FC2 logout → скрыть карточку
+        // 🔴 FC2 logout → скрыть карточку (должно быть САМОЕ ПЕРВОЕ)
         if (data.event === "logout") {
             hideMemberCard();
             return;
@@ -86,7 +86,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-        // 🟦 FC2 login → fallback (если вдруг нет VIP entry)
+        // 🟦 FC2 login → fallback
         if (data.event === "login") {
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
@@ -160,6 +160,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
     }
+
 
 
 
