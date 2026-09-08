@@ -33,7 +33,7 @@ import {
 } from "/static/js/modules/goal.js";
 import { showEntryPopup, hideEntryPopup, showToast } from "/static/js/modules/ui.js";
 import { loadQR, refreshQR } from "/static/js/modules/qr.js";
-
+import { initQueueButtons } from "/static/js/modules/queue.js";
 window.showEntryPopup = showEntryPopup;
 window.hideEntryPopup = hideEntryPopup;
 window.showToast = showToast;
@@ -63,7 +63,16 @@ function initHandlers() {
     initSidebar();
     initModeSwitch();
     initLogButtons(showToast);
-    initQueueButtons();
+    initQueueButtons(
+        socket,
+        vibrationQueue,
+        updateQueueUI,
+        showToast,
+        CURRENT_USER,
+        CURRENT_MODE,
+        CURRENT_PROFILE
+    );
+
     initGoalModal(showToast, () => loadGoalFromServer(updateGoalCircle, CURRENT_MODE));
 }
 
@@ -161,7 +170,16 @@ function navigateSPA(url) {
                 updateGoalVisibility(CURRENT_MODE);
 
                 initLogButtons();      // ← ДОБАВИТЬ
-                initQueueButtons();    // ← ДОБАВИТЬ
+                initQueueButtons(
+                    socket,
+                    vibrationQueue,
+                    updateQueueUI,
+                    showToast,
+                    CURRENT_USER,
+                    CURRENT_MODE,
+                    CURRENT_PROFILE
+                );
+
                 if (document.querySelector(".vip-grid")) initVipPage();
 
             }, 50);
@@ -267,30 +285,21 @@ function reloadInnerContent(callback) {
 
 
                 initLogButtons();      // ← ДОБАВИТЬ
-                initQueueButtons();    // ← ДОБАВИТЬ
+                initQueueButtons(
+                    socket,
+                    vibrationQueue,
+                    updateQueueUI,
+                    showToast,
+                    CURRENT_USER,
+                    CURRENT_MODE,
+                    CURRENT_PROFILE
+                );
+
                 if (document.querySelector(".vip-grid")) initVipPage();
 
             }, 50);
 
         });
-}
-
-function initQueueButtons() {
-    const clearQueueBtn = document.getElementById("clearQueueBtn");
-    if (!clearQueueBtn) return;
-
-    clearQueueBtn.onclick = () => {
-        const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
-
-        socket.send(JSON.stringify({
-            type: "clear_queue",
-            profile_key
-        }));
-
-        vibrationQueue.length = 0;
-        updateQueueUI();
-        showToast("Очередь очищена ✅");
-    };
 }
 /* ============================================================
    🎛 Кастомный селект типа (всегда активный)
