@@ -1,8 +1,4 @@
-// ============================================================
-// 👑 VIP — управление VIP-карточками
-// ============================================================
-
-import { showToast } from "./toast.js";
+// vip.js — модуль VIP для FlowTip
 
 export let VIP_SORT = "total";
 export let VIP_DELETE_ID = null;
@@ -39,7 +35,7 @@ export async function loadVipList() {
 /* ------------------------------------------------------------
    РЕНДЕР КАРТОЧЕК
 ------------------------------------------------------------ */
-function renderVipCards(list) {
+export function renderVipCards(list) {
     const grid = document.getElementById("vipGrid");
     grid.innerHTML = "";
 
@@ -90,17 +86,13 @@ function renderVipCards(list) {
 /* ------------------------------------------------------------
    СОХРАНЕНИЕ VIP
 ------------------------------------------------------------ */
-function initVipForms() {
+export function initVipForms() {
     document.querySelectorAll(".vip-form").forEach(form => {
-
-        const cloned = form.cloneNode(true);
-        form.replaceWith(cloned);
-
-        cloned.addEventListener("submit", async (e) => {
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const userId = cloned.dataset.id;
-            const formData = new FormData(cloned);
+            const userId = form.dataset.id;
+            const formData = new FormData(form);
 
             try {
                 const res = await fetch("/vip", {
@@ -111,12 +103,12 @@ function initVipForms() {
                 if (res.ok) {
                     await refreshVipCard(userId);
                     sortVipList(VIP_SORT);
-                    showToast("Сохранено");
+                    window.showToast?.("Сохранено");
                 } else {
-                    showToast("Ошибка сохранения");
+                    window.showToast?.("Ошибка сохранения");
                 }
             } catch {
-                showToast("Ошибка сохранения");
+                window.showToast?.("Ошибка сохранения");
             }
         });
     });
@@ -125,7 +117,7 @@ function initVipForms() {
 /* ------------------------------------------------------------
    ОБНОВЛЕНИЕ ОДНОЙ КАРТОЧКИ
 ------------------------------------------------------------ */
-async function refreshVipCard(userId) {
+export async function refreshVipCard(userId) {
     try {
         const res = await fetch("/vip_data");
         const data = await res.json();
@@ -168,24 +160,22 @@ async function refreshVipCard(userId) {
 
         initVipForms();
         initVipDeleteButtons();
-    } catch (e) {
-        console.error("VIP refresh error", e);
-    }
+    } catch (e) {}
 }
 
 /* ------------------------------------------------------------
    СОРТИРОВКА
 ------------------------------------------------------------ */
-function initVipSortButtons() {
+export function initVipSortButtons() {
     document.querySelectorAll(".vip-sort-btn").forEach(btn => {
-        btn.onclick = () => {
+        btn.addEventListener("click", () => {
             VIP_SORT = btn.dataset.sort;
             sortVipList(VIP_SORT);
-        };
+        });
     });
 }
 
-function sortVipList(sortBy) {
+export function sortVipList(sortBy) {
     const grid = document.getElementById("vipGrid");
     const cards = Array.from(grid.children);
 
@@ -216,7 +206,7 @@ function sortVipList(sortBy) {
 /* ------------------------------------------------------------
    ПОИСК
 ------------------------------------------------------------ */
-function initVipSearch() {
+export function initVipSearch() {
     const input = document.getElementById("vipSearchInput");
     const btn = document.getElementById("vipSearchBtn");
 
@@ -226,7 +216,7 @@ function initVipSearch() {
     };
 }
 
-async function doVipSearch() {
+export async function doVipSearch() {
     const q = document.getElementById("vipSearchInput").value.trim().toLowerCase();
     if (!q) return loadVipList();
 
@@ -245,7 +235,7 @@ async function doVipSearch() {
 /* ------------------------------------------------------------
    МОДАЛКА УДАЛЕНИЯ
 ------------------------------------------------------------ */
-function initVipModals() {
+export function initVipModals() {
     const yesBtn = document.getElementById("vipDeleteYes");
     yesBtn.onclick = () => {
         if (!VIP_DELETE_ID) return;
@@ -254,7 +244,7 @@ function initVipModals() {
     };
 }
 
-function initVipDeleteButtons() {
+export function initVipDeleteButtons() {
     document.querySelectorAll(".vip-delete-btn").forEach(btn => {
         btn.onclick = () => {
             VIP_DELETE_ID = btn.dataset.id;
@@ -275,7 +265,7 @@ export function closeVipDeleteModal() {
 /* ------------------------------------------------------------
    УДАЛЕНИЕ VIP
 ------------------------------------------------------------ */
-async function deleteVipMember(userId) {
+export async function deleteVipMember(userId) {
     try {
         const res = await fetch("/remove_member", {
             method: "POST",
@@ -288,20 +278,11 @@ async function deleteVipMember(userId) {
         if (data.status === "ok") {
             document.getElementById("vip_" + userId)?.remove();
             sortVipList(VIP_SORT);
-            showToast("Удалено");
+            window.showToast?.("Удалено");
         } else {
-            showToast("Ошибка удаления");
+            window.showToast?.("Ошибка удаления");
         }
     } catch {
-        showToast("Ошибка удаления");
-    }
-}
-
-/* ------------------------------------------------------------
-   WEBSOCKET — обновление VIP
------------------------------------------------------------- */
-export function vipWebSocketUpdate(data) {
-    if (data.vip_update) {
-        loadVipList();
+        window.showToast?.("Ошибка удаления");
     }
 }
