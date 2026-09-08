@@ -104,6 +104,7 @@ export function initVipForms() {
             }
         });
 
+        // Сохранение по кнопке 💾
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
@@ -118,6 +119,11 @@ export function initVipForms() {
 
                 if (res.ok) {
                     await refreshVipCard(userId);
+
+                    // ВАЖНО: повторная инициализация после обновления карточки
+                    initVipForms();
+                    initVipDeleteButtons();
+
                     sortVipList(VIP_SORT);
                     window.showToast?.("Сохранено");
                 } else {
@@ -127,9 +133,9 @@ export function initVipForms() {
                 window.showToast?.("Ошибка сохранения");
             }
         });
-
     });
 }
+
 
 
 /* ------------------------------------------------------------
