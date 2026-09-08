@@ -58,3 +58,6 @@ export function startLogAutoUpdate() {
     if (logInterval) clearInterval(logInterval);
     logInterval = setInterval(loadLogs, 2000);
 }
+export function resetLogsCounter() {
+    lastLogCount = 0;
+}

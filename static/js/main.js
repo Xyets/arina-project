@@ -15,7 +15,22 @@ import {
     loadVipList
 } from "/static/js/modules/vip.js";
 import { initSidebar } from "/static/js/modules/sidebar.js";
-import { classifyLog, loadLogs, initLogButtons, startLogAutoUpdate } from "/static/js/modules/logs.js";
+import {
+    classifyLog,
+    loadLogs,
+    initLogButtons,
+    startLogAutoUpdate,
+    resetLogsCounter
+} from "/static/js/modules/logs.js";
+
+import {
+    updateGoalVisibility,
+    updateGoalCircle,
+    initGoalModal,
+    openGoalModal,
+    closeGoalModal,
+    loadGoalFromServer
+} from "/static/js/modules/goal.js";
 
 
 let CURRENT_PAGE_URL = "/beta";
@@ -43,7 +58,7 @@ function initHandlers() {
     initModeSwitch();
     initLogButtons(showToast);
     initQueueButtons();
-    initGoalModal();
+    initGoalModal(showToast, () => loadGoalFromServer(updateGoalCircle, CURRENT_MODE));
 }
 
 window.addEventListener("load", () => {
@@ -65,7 +80,7 @@ window.addEventListener("load", () => {
 
     // --- UI и данные ---
     loadQR();
-    loadGoalFromServer();
+    loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
     initTypeSelector();
 
     // --- Автообновление логов ---
@@ -114,8 +129,9 @@ function navigateSPA(url) {
             container.innerHTML = newContent;
             initSearchEnter(); 
             if (document.getElementById("logbox")) {
-                lastLogCount = 0;   // ← ВАЖНО
+                resetLogsCounter();
             }
+
 
 
             setTimeout(() => {
@@ -132,9 +148,9 @@ function navigateSPA(url) {
                 loadLogs();
                 updateQueueUI();
                 loadQR();
-                loadGoalFromServer();
+                loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
                 initTypeSelector();
-                updateGoalVisibility();
+                updateGoalVisibility(CURRENT_MODE);
 
                 initLogButtons();      // ← ДОБАВИТЬ
                 initQueueButtons();    // ← ДОБАВИТЬ
@@ -237,9 +253,10 @@ function reloadInnerContent(callback) {
                 setTimeout(loadLogs, 10);
                 updateQueueUI();
                 loadQR();
-                loadGoalFromServer();
+                loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
                 initTypeSelector();
-                updateGoalVisibility();
+                updateGoalVisibility(CURRENT_MODE);
+
 
                 initLogButtons();      // ← ДОБАВИТЬ
                 initQueueButtons();    // ← ДОБАВИТЬ
@@ -295,102 +312,6 @@ function showToast(msg) {
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 3000);
 }
-
-
-function updateGoalVisibility() {
-    const circle = document.getElementById("goalCircle");
-
-    if (!circle) return;
-
-    if (CURRENT_MODE === "public") {
-        circle.style.display = "flex";
-    } else {
-        circle.style.display = "none";
-    }
-}
-/* ============================================================
-   🎯 Круглая цель — Apple Ring
-============================================================ */
-function updateGoalCircle(newGoal = null) {
-    if (newGoal) goal = newGoal;
-    if (CURRENT_MODE !== "public") return;
-
-
-    const ring = document.querySelector(".goal-progress-ring");
-    const cur = document.getElementById("goalCurrent");
-    const tgt = document.getElementById("goalTarget");
-    const title = document.getElementById("goalCircleTitle");
-
-    if (!ring || !cur || !tgt || !title) return;
-
-    const percent = goal.target > 0 ? (goal.current / goal.target) : 0;
-    const circumference = 264; // r = 42
-    const offset = circumference - (circumference * percent);
-
-
-    ring.style.strokeDashoffset = offset;
-    cur.textContent = goal.current;
-    tgt.textContent = goal.target;
-    title.textContent = goal.title || "Цель";
-}
-
-
-
-
-function initGoalModal() {
-    const modal = document.getElementById("goalModal");
-    if (!modal) return;
-
-    const form = document.getElementById("goalForm");
-
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-
-        const formData = new FormData(form);
-
-        const res = await fetch("/goal_new", {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await res.json();
-
-        if (data.status === "ok") {
-            closeGoalModal();
-            showToast("Цель обновлена 🎯");
-
-            // 🔥 сразу подтягиваем актуальную цель с сервера
-            loadGoalFromServer();
-        } else {
-            showToast(data.message || "Ошибка сохранения цели");
-        }
-    };
-}
-
-
-
-function openGoalModal() {
-    document.getElementById("goalModal").classList.add("show");
-}
-
-function closeGoalModal() {
-    document.getElementById("goalModal").classList.remove("show");
-}
-
-async function loadGoalFromServer() {
-    if (CURRENT_MODE !== "public") return;
-    try {
-        const res = await fetch("/goal_data");
-        const data = await res.json();
-
-        // data: { title, current, target }
-        updateGoalCircle(data);   // ← правильный вызов
-    } catch (e) {
-        console.error("Ошибка загрузки цели:", e);
-    }
-}
-
-
 
 /* ============================================================
    📱 QR-код — стабильный
