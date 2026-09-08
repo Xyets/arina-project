@@ -1,19 +1,32 @@
-import { CURRENT_MODE, goal, setGoal } from "./core.js";
+// ============================================================
+// 🎯 GOAL — круглая цель и модалка
+// ============================================================
+
+import { CURRENT_MODE, goal } from "./core.js";
 import { showToast } from "./toast.js";
+
+// ============================================================
+// 🎯 Видимость цели
+// ============================================================
 
 export function updateGoalVisibility() {
     const circle = document.getElementById("goalCircle");
     if (!circle) return;
 
-    if (CURRENT_MODE === "public") {
-        circle.style.display = "flex";
-    } else {
-        circle.style.display = "none";
-    }
+    circle.style.display = CURRENT_MODE === "public" ? "flex" : "none";
 }
 
+// ============================================================
+// 🎯 Круглая цель — Apple Ring
+// ============================================================
+
 export function updateGoalCircle(newGoal = null) {
-    if (newGoal) setGoal(newGoal);
+    if (newGoal) {
+        goal.title = newGoal.title;
+        goal.current = newGoal.current;
+        goal.target = newGoal.target;
+    }
+
     if (CURRENT_MODE !== "public") return;
 
     const ring = document.querySelector(".goal-progress-ring");
@@ -33,17 +46,21 @@ export function updateGoalCircle(newGoal = null) {
     title.textContent = goal.title || "Цель";
 }
 
+// ============================================================
+// 🎯 Модалка цели
+// ============================================================
+
 export function initGoalModal() {
     const modal = document.getElementById("goalModal");
     if (!modal) return;
 
     const form = document.getElementById("goalForm");
-    if (!form) return;
 
     form.onsubmit = async (e) => {
         e.preventDefault();
 
         const formData = new FormData(form);
+
         const res = await fetch("/goal_new", {
             method: "POST",
             body: formData
@@ -62,15 +79,20 @@ export function initGoalModal() {
 }
 
 export function openGoalModal() {
-    document.getElementById("goalModal")?.classList.add("show");
+    document.getElementById("goalModal").classList.add("show");
 }
 
 export function closeGoalModal() {
-    document.getElementById("goalModal")?.classList.remove("show");
+    document.getElementById("goalModal").classList.remove("show");
 }
+
+// ============================================================
+// 🎯 Загрузка цели с сервера
+// ============================================================
 
 export async function loadGoalFromServer() {
     if (CURRENT_MODE !== "public") return;
+
     try {
         const res = await fetch("/goal_data");
         const data = await res.json();
@@ -79,6 +101,3 @@ export async function loadGoalFromServer() {
         console.error("Ошибка загрузки цели:", e);
     }
 }
-
-window.openGoalModal = openGoalModal;
-window.closeGoalModal = closeGoalModal;

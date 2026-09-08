@@ -1,10 +1,17 @@
-import { socket } from "./websocket.js";
+// ============================================================
+// 🔁 Очередь вибраций — стеклянный стиль
+// ============================================================
+
 import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
+import { socket } from "./websocket.js";
 import { showToast } from "./toast.js";
 
+// Глобальная очередь вибраций
 export let vibrationQueue = [];
-export function setVibrationQueue(q) { vibrationQueue = q; }
 
+/* ============================================================
+   📦 Обновление UI очереди
+============================================================ */
 export function updateQueueUI() {
     const box = document.getElementById("queuebox");
     if (!box) return;
@@ -23,6 +30,9 @@ export function updateQueueUI() {
         .join("");
 }
 
+/* ============================================================
+   🧹 Кнопка очистки очереди
+============================================================ */
 export function initQueueButtons() {
     const clearQueueBtn = document.getElementById("clearQueueBtn");
     if (!clearQueueBtn) return;
@@ -30,12 +40,10 @@ export function initQueueButtons() {
     clearQueueBtn.onclick = () => {
         const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-                type: "clear_queue",
-                profile_key
-            }));
-        }
+        socket.send(JSON.stringify({
+            type: "clear_queue",
+            profile_key
+        }));
 
         vibrationQueue = [];
         updateQueueUI();
@@ -43,7 +51,11 @@ export function initQueueButtons() {
     };
 }
 
+/* ============================================================
+   ⏱ Таймер вибрации
+============================================================ */
 export function startVibrationTimer(duration, strength) {
+
     if (window._vibrationTimerActive) {
         console.warn("Таймер уже активен — второй не запускаем");
         return;
@@ -77,29 +89,28 @@ export function startVibrationTimer(duration, strength) {
             box.remove();
             window._vibrationTimerActive = false;
         } else {
-            if (timeSpan) timeSpan.textContent = Math.ceil(remaining);
-            if (progressFill) progressFill.style.width = `${(remaining / duration) * 100}%`;
+            timeSpan.textContent = Math.ceil(remaining);
+            progressFill.style.width = `${(remaining / duration) * 100}%`;
         }
     }, 1000);
 
-    const stopBtn = box.querySelector(".vibration-stop-btn");
-    if (stopBtn) {
-        stopBtn.onclick = () => {
-            sendStop();
-            clearInterval(interval);
-            box.remove();
-            window._vibrationTimerActive = false;
-        };
-    }
+    box.querySelector(".vibration-stop-btn").onclick = () => {
+        sendStop();
+        clearInterval(interval);
+        box.remove();
+        window._vibrationTimerActive = false;
+    };
 }
 
-export function sendStop() {
+/* ============================================================
+   ⛔ Остановка вибрации
+============================================================ */
+function sendStop() {
     const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({
-            type: "stop",
-            user: CURRENT_USER,
-            profile_key
-        }));
-    }
+
+    socket.send(JSON.stringify({
+        type: "stop",
+        user: CURRENT_USER,
+        profile_key
+    }));
 }

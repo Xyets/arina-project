@@ -1,8 +1,15 @@
+// ============================================================
+// 👑 VIP — управление VIP-карточками
+// ============================================================
+
 import { showToast } from "./toast.js";
 
-let VIP_SORT = "total";
-let VIP_DELETE_ID = null;
+export let VIP_SORT = "total";
+export let VIP_DELETE_ID = null;
 
+/* ------------------------------------------------------------
+   ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ VIP
+------------------------------------------------------------ */
 export function initVipPage() {
     if (!document.querySelector(".vip-grid")) return;
 
@@ -14,6 +21,9 @@ export function initVipPage() {
     loadVipList();
 }
 
+/* ------------------------------------------------------------
+   ЗАГРУЗКА СПИСКА VIP
+------------------------------------------------------------ */
 export async function loadVipList() {
     try {
         const res = await fetch("/vip_data");
@@ -26,9 +36,11 @@ export async function loadVipList() {
     }
 }
 
-export function renderVipCards(list) {
+/* ------------------------------------------------------------
+   РЕНДЕР КАРТОЧЕК
+------------------------------------------------------------ */
+function renderVipCards(list) {
     const grid = document.getElementById("vipGrid");
-    if (!grid) return;
     grid.innerHTML = "";
 
     list.forEach(([user_id, info]) => {
@@ -52,7 +64,6 @@ export function renderVipCards(list) {
         card.innerHTML = `
             <form class="vip-form" data-id="${user_id}">
                 <input type="text" name="name" value="${info.name}" placeholder="Имя">
-
                 <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
 
                 <div class="meta">
@@ -76,13 +87,20 @@ export function renderVipCards(list) {
     initVipDeleteButtons();
 }
 
-export function initVipForms() {
+/* ------------------------------------------------------------
+   СОХРАНЕНИЕ VIP
+------------------------------------------------------------ */
+function initVipForms() {
     document.querySelectorAll(".vip-form").forEach(form => {
-        form.addEventListener("submit", async (e) => {
+
+        const cloned = form.cloneNode(true);
+        form.replaceWith(cloned);
+
+        cloned.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const userId = form.dataset.id;
-            const formData = new FormData(form);
+            const userId = cloned.dataset.id;
+            const formData = new FormData(cloned);
 
             try {
                 const res = await fetch("/vip", {
@@ -104,7 +122,10 @@ export function initVipForms() {
     });
 }
 
-export async function refreshVipCard(userId) {
+/* ------------------------------------------------------------
+   ОБНОВЛЕНИЕ ОДНОЙ КАРТОЧКИ
+------------------------------------------------------------ */
+async function refreshVipCard(userId) {
     try {
         const res = await fetch("/vip_data");
         const data = await res.json();
@@ -125,12 +146,10 @@ export async function refreshVipCard(userId) {
                 : rawDate;
 
         const card = document.getElementById("vip_" + userId);
-        if (!card) return;
 
         card.innerHTML = `
             <form class="vip-form" data-id="${userId}">
                 <input type="text" name="name" value="${info.name}" placeholder="Имя">
-
                 <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
 
                 <div class="meta">
@@ -149,29 +168,33 @@ export async function refreshVipCard(userId) {
 
         initVipForms();
         initVipDeleteButtons();
-    } catch (e) {}
+    } catch (e) {
+        console.error("VIP refresh error", e);
+    }
 }
 
-export function initVipSortButtons() {
+/* ------------------------------------------------------------
+   СОРТИРОВКА
+------------------------------------------------------------ */
+function initVipSortButtons() {
     document.querySelectorAll(".vip-sort-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.onclick = () => {
             VIP_SORT = btn.dataset.sort;
             sortVipList(VIP_SORT);
-        });
+        };
     });
 }
 
-export function sortVipList(sortBy) {
+function sortVipList(sortBy) {
     const grid = document.getElementById("vipGrid");
-    if (!grid) return;
     const cards = Array.from(grid.children);
 
     cards.sort((a, b) => {
         const dateA = new Date(a.querySelector(".date")?.dataset.lastLogin?.replace(" ", "T") || 0);
         const dateB = new Date(b.querySelector(".date")?.dataset.lastLogin?.replace(" ", "T") || 0);
 
-        const metaA = a.querySelector(".meta")?.textContent || "";
-        const metaB = b.querySelector(".meta")?.textContent || "";
+        const metaA = a.querySelector(".meta").textContent;
+        const metaB = b.querySelector(".meta").textContent;
 
         const visitsA = parseInt((metaA.match(/📅\s*(\d+)\s*вход/) || [])[1]);
         const visitsB = parseInt((metaB.match(/📅\s*(\d+)\s*вход/) || [])[1]);
@@ -190,10 +213,12 @@ export function sortVipList(sortBy) {
     cards.forEach(c => grid.appendChild(c));
 }
 
-export function initVipSearch() {
+/* ------------------------------------------------------------
+   ПОИСК
+------------------------------------------------------------ */
+function initVipSearch() {
     const input = document.getElementById("vipSearchInput");
     const btn = document.getElementById("vipSearchBtn");
-    if (!input || !btn) return;
 
     btn.onclick = doVipSearch;
     input.oninput = () => {
@@ -201,10 +226,8 @@ export function initVipSearch() {
     };
 }
 
-export async function doVipSearch() {
-    const input = document.getElementById("vipSearchInput");
-    if (!input) return;
-    const q = input.value.trim().toLowerCase();
+async function doVipSearch() {
+    const q = document.getElementById("vipSearchInput").value.trim().toLowerCase();
     if (!q) return loadVipList();
 
     const res = await fetch("/vip_data");
@@ -219,9 +242,11 @@ export async function doVipSearch() {
     sortVipList(VIP_SORT);
 }
 
-export function initVipModals() {
+/* ------------------------------------------------------------
+   МОДАЛКА УДАЛЕНИЯ
+------------------------------------------------------------ */
+function initVipModals() {
     const yesBtn = document.getElementById("vipDeleteYes");
-    if (!yesBtn) return;
     yesBtn.onclick = () => {
         if (!VIP_DELETE_ID) return;
         deleteVipMember(VIP_DELETE_ID);
@@ -229,7 +254,7 @@ export function initVipModals() {
     };
 }
 
-export function initVipDeleteButtons() {
+function initVipDeleteButtons() {
     document.querySelectorAll(".vip-delete-btn").forEach(btn => {
         btn.onclick = () => {
             VIP_DELETE_ID = btn.dataset.id;
@@ -239,15 +264,18 @@ export function initVipDeleteButtons() {
 }
 
 export function openVipDeleteModal() {
-    document.getElementById("vipDeleteModal")?.classList.add("show");
+    document.getElementById("vipDeleteModal").classList.add("show");
 }
 
 export function closeVipDeleteModal() {
-    document.getElementById("vipDeleteModal")?.classList.remove("show");
+    document.getElementById("vipDeleteModal").classList.remove("show");
     VIP_DELETE_ID = null;
 }
 
-export async function deleteVipMember(userId) {
+/* ------------------------------------------------------------
+   УДАЛЕНИЕ VIP
+------------------------------------------------------------ */
+async function deleteVipMember(userId) {
     try {
         const res = await fetch("/remove_member", {
             method: "POST",
@@ -269,6 +297,9 @@ export async function deleteVipMember(userId) {
     }
 }
 
+/* ------------------------------------------------------------
+   WEBSOCKET — обновление VIP
+------------------------------------------------------------ */
 export function vipWebSocketUpdate(data) {
     if (data.vip_update) {
         loadVipList();

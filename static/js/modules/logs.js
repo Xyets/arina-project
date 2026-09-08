@@ -1,10 +1,22 @@
-import { showToast } from "./toast.js";
+// ============================================================
+// 📜 LOGS — загрузка и классификация логов
+// ============================================================
 
 let lastLogCount = 0;
-let logInterval = setInterval(loadLogs, 2000);
+
+// Запускаем интервал только один раз
+if (!window._logsIntervalStarted) {
+    window._logsIntervalStarted = true;
+    setInterval(loadLogs, 2000);
+}
+
+// ============================================================
+// 📜 Классификация логов
+// ============================================================
 
 export function classifyLog(log) {
     log = log.toLowerCase();
+
     if (log.includes("вибрация")) return "vibration";
     if (log.includes("колесо")) return "wheel";
     if (log.includes("действие")) return "action";
@@ -13,43 +25,29 @@ export function classifyLog(log) {
     return "system";
 }
 
-export async function loadLogs() {
+// ============================================================
+// 📜 Загрузка логов
+// ============================================================
+
+export function loadLogs() {
     const box = document.getElementById("logbox");
     if (!box) return;
 
-    try {
-        const res = await fetch("/logs_data");
-        const data = await res.json();
+    fetch("/logs_data")
+        .then(r => r.json())
+        .then(data => {
+            const logs = data.logs || [];
+            const newLogs = logs.slice(lastLogCount);
+            lastLogCount = logs.length;
 
-        const logs = data.logs || [];
-        const newLogs = logs.slice(lastLogCount);
-        lastLogCount = logs.length;
+            newLogs.forEach(log => {
+                const div = document.createElement("div");
+                const type = classifyLog(log);
+                div.className = `event-item ${type}`;
+                div.textContent = log;
 
-        newLogs.forEach(log => {
-            const div = document.createElement("div");
-            const type = classifyLog(log);
-            div.className = `event-item ${type}`;
-            div.textContent = log;
-
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+            });
         });
-    } catch (e) {
-        console.error("Ошибка загрузки логов", e);
-    }
-}
-
-export function initLogButtons() {
-    const clearLogsBtn = document.getElementById("clearLogsBtn");
-    if (!clearLogsBtn) return;
-
-    clearLogsBtn.onclick = () => {
-        lastLogCount = 0;
-        const box = document.getElementById("logbox");
-        if (box) box.innerHTML = "";
-
-        fetch("/clear_logs", { method: "POST" })
-            .then(() => showToast("Логи очищены ✅"))
-            .catch(() => showToast("❌ Ошибка при очистке логов"));
-    };
 }

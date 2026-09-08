@@ -1,9 +1,12 @@
+// ============================================================
+// 📦 Sidebar collapse & mode switch
+// ============================================================
+
+import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { socket } from "./websocket.js";
-import { CURRENT_USER, CURRENT_MODE, setMode, setProfile } from "./core.js";
-import { showToast } from "./toast.js";
-import { updateGoalVisibility, loadGoalFromServer } from "./goal.js";
 import { reloadInnerContent } from "./spa.js";
-import { initRuleForms, initRuleModals } from "./rules.js";
+import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";
+import { showToast } from "./toast.js";
 
 export function initSidebarCollapse() {
     const sidebar = document.getElementById("sidebar");
@@ -21,14 +24,14 @@ export function initModeSwitch() {
     modeSwitch.onchange = () => {
         const newMode = modeSwitch.checked ? "private" : "public";
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-                type: "set_mode",
-                user: CURRENT_USER,
-                mode: newMode
-            }));
-        }
+        // WebSocket: set_mode
+        socket.send(JSON.stringify({
+            type: "set_mode",
+            user: CURRENT_USER,
+            mode: newMode
+        }));
 
+        // HTTP: set_mode
         fetch("/set_mode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -37,27 +40,24 @@ export function initModeSwitch() {
         .then(r => r.json())
         .then(data => {
             if (data.status === "ok") {
-                setMode(newMode);
-                updateGoalVisibility();
-                const newProfile = `${CURRENT_USER}_${newMode}`;
-                setProfile(newProfile);
 
+                // 🔥 обновляем глобальные переменные
+                CURRENT_MODE = newMode;
+                CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
+
+                updateGoalVisibility();
                 loadGoalFromServer();
 
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({
-                        type: "hello",
-                        role: "panel",
-                        profile_key: newProfile
-                    }));
-                }
+                // WebSocket: hello
+                socket.send(JSON.stringify({
+                    type: "hello",
+                    role: "panel",
+                    profile_key: CURRENT_PROFILE
+                }));
 
+                // SPA reload
                 reloadInnerContent(() => {
                     updateGoalVisibility();
-                    if (document.querySelector(".rules-page")) {
-                        initRuleForms();
-                        initRuleModals();
-                    }
                 });
 
                 showToast(`Режим переключен: ${newMode}`);
