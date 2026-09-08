@@ -70,8 +70,8 @@ export function renderVipCards(list) {
                 </div>
 
                 <div class="actions">
-                    <button type="submit">💾 Сохранить</button>
-                    <button type="button" class="vip-delete-btn" data-id="${user_id}">🗑️ Удалить</button>
+                    <button type="submit" class="vip-icon-btn">💾</button>
+                    <button type="button" class="vip-icon-btn vip-icon-delete vip-delete-btn" data-id="${user_id}">🗑️</button>
                 </div>
             </form>
         `;
@@ -82,6 +82,7 @@ export function renderVipCards(list) {
     initVipForms();
     initVipDeleteButtons();
 }
+
 
 /* ------------------------------------------------------------
    СОХРАНЕНИЕ VIP
@@ -152,8 +153,8 @@ export async function refreshVipCard(userId) {
                 </div>
 
                 <div class="actions">
-                    <button type="submit">💾 Сохранить</button>
-                    <button type="button" class="vip-delete-btn" data-id="${userId}">🗑️ Удалить</button>
+                    <button type="submit" class="vip-icon-btn">💾</button>
+                    <button type="button" class="vip-icon-btn vip-icon-delete vip-delete-btn" data-id="${userId}">🗑️</button>
                 </div>
             </form>
         `;
@@ -162,6 +163,7 @@ export async function refreshVipCard(userId) {
         initVipDeleteButtons();
     } catch (e) {}
 }
+
 
 /* ------------------------------------------------------------
    СОРТИРОВКА
