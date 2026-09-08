@@ -55,6 +55,7 @@ window.refreshQR = () => refreshQR(showToast);
 window.openGoalModal = openGoalModal;
 window.closeGoalModal = closeGoalModal;
 window.hideMemberCard = hideMemberCard;
+window.showMemberCard = showMemberCard;
 
 /* ============================================================
    📌 Глобальные переменные
