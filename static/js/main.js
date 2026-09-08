@@ -14,13 +14,9 @@ import {
     initVipPage,
     loadVipList
 } from "/static/js/modules/vip.js";
-import { initSidebarNavigation, navigateSPA, reloadInnerContent } from "/static/js/modules/spa.js";
 
 
-
-
-let CURRENT_PAGE_URL = { value: "/beta" };
-
+let CURRENT_PAGE_URL = "/beta";
 
 /* ============================================================
    📌 0. Инициализация данных из HTML
@@ -29,34 +25,6 @@ const app = document.getElementById("app");
 const CURRENT_USER = app?.dataset.user || "";
 let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
-let SPA_STATE = {
-    pageURL: CURRENT_PAGE_URL.value,
-    mode: CURRENT_MODE,
-    profile: CURRENT_PROFILE
-};
-let SPA_DEPS = {
-    initSearchEnter,
-    initRulesPage,
-    initRuleForms,
-    initRuleModals,
-    updateNewRuleFields,
-    loadLogs,
-    updateQueueUI,
-    loadQR,
-    loadGoalFromServer,
-    initTypeSelector,
-    updateGoalVisibility,
-    initLogButtons,
-    initQueueButtons,
-    initVipPage,
-    socket,
-    showToast,
-    lastLogCount: { value: lastLogCount },
-
-    reloadInnerContent: (callback) => {
-        reloadInnerContent(SPA_STATE, SPA_DEPS, callback);
-    }
-};
 
 // глобальная цель
 let goal = {
@@ -82,20 +50,12 @@ window.addEventListener("load", () => {
         CURRENT_USER,
         CURRENT_MODE,
         CURRENT_PROFILE,
-        SPA_DEPS.reloadInnerContent,
+        reloadInnerContent,
         showToast
     );
 
-
     initHandlers();
-    initSidebarNavigation((url) => {
-        navigateSPA(
-            url,
-            SPA_STATE,
-            SPA_DEPS
-        );
-    });
-
+    initSidebarNavigation();
     loadQR();
     loadGoalFromServer();
     initTypeSelector();
@@ -111,6 +71,77 @@ window.addEventListener("load", () => {
         });
     }
 });
+
+
+
+/* ============================================================
+   📦 SPA навигация
+============================================================ */
+function initSidebarNavigation() {
+    const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
+
+    links.forEach(link => {
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const url = link.getAttribute("href");
+            navigateSPA(url);
+        });
+    });
+}
+
+function navigateSPA(url) {
+    CURRENT_PAGE_URL = url;
+
+    const container = document.querySelector(".content-inner");
+    if (!container) {
+        window.location.href = url;
+        return;
+    }
+
+    container.style.opacity = "0";
+
+    fetch(url + "?mode=" + CURRENT_MODE)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+
+            container.innerHTML = newContent;
+            initSearchEnter(); 
+            if (document.getElementById("logbox")) {
+                lastLogCount = 0;   // ← ВАЖНО
+            }
+
+
+            setTimeout(() => {
+                container.style.opacity = "1";
+
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage(socket, showToast);
+                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                    initRuleModals();
+                    updateNewRuleFields();
+                    loadLogs();
+                }
+
+                loadLogs();
+                updateQueueUI();
+                loadQR();
+                loadGoalFromServer();
+                initTypeSelector();
+                updateGoalVisibility();
+
+                initLogButtons();      // ← ДОБАВИТЬ
+                initQueueButtons();    // ← ДОБАВИТЬ
+                if (document.querySelector(".vip-grid")) initVipPage();
+
+            }, 50);
+
+
+        });
+}
+
 
 /* ============================================================
    📦 Sidebar collapse
@@ -161,8 +192,7 @@ function initModeSwitch() {
                     profile_key: CURRENT_PROFILE
                 }));
 
-                SPA_DEPS.reloadInnerContent(() => {
-
+                reloadInnerContent(() => {
                     updateGoalVisibility();
 
                     // 🔥 сразу обновляем логи после смены режима
@@ -180,6 +210,55 @@ function initModeSwitch() {
         });
     };
 }
+
+/* ============================================================
+   🔄 Мгновенное обновление внутреннего контента
+============================================================ */
+function reloadInnerContent(callback) {
+    const container = document.querySelector(".content-inner");
+    if (!container) return;
+
+    container.style.opacity = "0";
+
+    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+
+            const newContent = doc.querySelector(".content-inner").innerHTML;
+            container.innerHTML = newContent;
+            initSearchEnter(); 
+            setTimeout(() => {
+                container.style.opacity = "1";
+
+                if (callback) {
+                    callback();
+                } else {
+                    if (document.querySelector(".rules-page")) {
+                        initRulesPage(socket, showToast);
+                        initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                        initRuleModals();
+                        updateNewRuleFields();
+                    }
+                }
+
+                setTimeout(loadLogs, 10);
+                updateQueueUI();
+                loadQR();
+                loadGoalFromServer();
+                initTypeSelector();
+                updateGoalVisibility();
+
+                initLogButtons();      // ← ДОБАВИТЬ
+                initQueueButtons();    // ← ДОБАВИТЬ
+                if (document.querySelector(".vip-grid")) initVipPage();
+
+            }, 50);
+
+        });
+}
+
 
 /* ============================================================
    📜 Цветные логи
