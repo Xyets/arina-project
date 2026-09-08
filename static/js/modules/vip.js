@@ -96,15 +96,15 @@ export function renderVipCards(list) {
 export function initVipForms() {
     document.querySelectorAll(".vip-form").forEach(form => {
 
-        // Сохранение по Enter
+        // --- ENTER сохраняет ---
         form.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                form.requestSubmit();
+                form.requestSubmit();   // вызывает submit-обработчик
             }
         });
 
-        // Сохранение по кнопке 💾
+        // --- КНОПКА 💾 сохраняет ---
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
@@ -120,7 +120,7 @@ export function initVipForms() {
                 if (res.ok) {
                     await refreshVipCard(userId);
 
-                    // ВАЖНО: повторная инициализация после обновления карточки
+                    // ВАЖНО: после обновления карточки нужно снова привязать обработчики
                     initVipForms();
                     initVipDeleteButtons();
 
@@ -135,6 +135,7 @@ export function initVipForms() {
         });
     });
 }
+
 
 
 
