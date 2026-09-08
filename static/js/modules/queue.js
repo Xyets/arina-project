@@ -1,17 +1,9 @@
-// ============================================================
-// 🔁 Очередь вибраций — стеклянный стиль
-// ============================================================
-
 import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { socket } from "./websocket.js";
 import { showToast } from "./toast.js";
 
-// Глобальная очередь вибраций (единая для всех модулей)
 export let vibrationQueue = [];
 
-/* ============================================================
-   📦 Обновление UI очереди
-============================================================ */
 export function updateQueueUI() {
     const box = document.getElementById("queuebox");
     if (!box) return;
@@ -30,9 +22,6 @@ export function updateQueueUI() {
         .join("");
 }
 
-/* ============================================================
-   🧹 Кнопка очистки очереди
-============================================================ */
 export function initQueueButtons() {
     const clearQueueBtn = document.getElementById("clearQueueBtn");
     if (!clearQueueBtn) return;
@@ -47,24 +36,13 @@ export function initQueueButtons() {
 
         vibrationQueue.length = 0;
         updateQueueUI();
-        showToast("Очередь очищена ✅");
+        showToast("Очередь очищена");
     };
 }
 
-/* ============================================================
-   ⏱ Таймер вибрации
-============================================================ */
 export function startVibrationTimer(duration, strength) {
 
-    // Сбрасываем блокировку при SPA-переходах
-    if (!window._vibrationTimerActive) {
-        window._vibrationTimerActive = false;
-    }
-
-    if (window._vibrationTimerActive) {
-        console.warn("Таймер уже активен — второй не запускаем");
-        return;
-    }
+    if (window._vibrationTimerActive) return;
     window._vibrationTimerActive = true;
 
     const container = document.getElementById("vibrationOverlay");
@@ -107,9 +85,6 @@ export function startVibrationTimer(duration, strength) {
     };
 }
 
-/* ============================================================
-   ⛔ Остановка вибрации
-============================================================ */
 export function sendStop() {
     const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 

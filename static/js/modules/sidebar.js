@@ -1,7 +1,3 @@
-// ============================================================
-// 📦 Sidebar collapse & mode switch
-// ============================================================
-
 import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { socket } from "./websocket.js";
 import { reloadInnerContent } from "./spa.js";
@@ -39,7 +35,6 @@ export function initModeSwitch() {
         .then(data => {
             if (data.status === "ok") {
 
-                // обновляем глобальные переменные
                 CURRENT_MODE = newMode;
                 CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
 
@@ -54,6 +49,10 @@ export function initModeSwitch() {
 
                 reloadInnerContent(() => {
                     updateGoalVisibility();
+                    if (document.querySelector(".rules-page")) {
+                        initRuleForms();
+                        initRuleModals();
+                    }
                 });
 
                 showToast(`Режим переключен: ${newMode}`);

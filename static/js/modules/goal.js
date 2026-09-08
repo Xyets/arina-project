@@ -1,9 +1,5 @@
-import { CURRENT_MODE, CURRENT_USER, CURRENT_PROFILE, goal } from "./core.js";
+import { CURRENT_MODE, goal } from "./core.js";
 import { showToast } from "./toast.js";
-
-// ============================================================
-// 🎯 Видимость цели
-// ============================================================
 
 export function updateGoalVisibility() {
     const circle = document.getElementById("goalCircle");
@@ -12,17 +8,8 @@ export function updateGoalVisibility() {
     circle.style.display = CURRENT_MODE === "public" ? "flex" : "none";
 }
 
-// ============================================================
-// 🎯 Круглая цель — Apple Ring
-// ============================================================
-
 export function updateGoalCircle(newGoal = null) {
-    if (newGoal) {
-        goal.title = newGoal.title;
-        goal.current = newGoal.current;
-        goal.target = newGoal.target;
-    }
-
+    if (newGoal) goal = newGoal;
     if (CURRENT_MODE !== "public") return;
 
     const ring = document.querySelector(".goal-progress-ring");
@@ -41,10 +28,6 @@ export function updateGoalCircle(newGoal = null) {
     tgt.textContent = goal.target;
     title.textContent = goal.title || "Цель";
 }
-
-// ============================================================
-// 🎯 Модалка цели
-// ============================================================
 
 export function initGoalModal() {
     const modal = document.getElementById("goalModal");
@@ -66,7 +49,7 @@ export function initGoalModal() {
 
         if (data.status === "ok") {
             closeGoalModal();
-            showToast("Цель обновлена 🎯");
+            showToast("Цель обновлена");
             loadGoalFromServer();
         } else {
             showToast(data.message || "Ошибка сохранения цели");
@@ -81,10 +64,6 @@ export function openGoalModal() {
 export function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
 }
-
-// ============================================================
-// 🎯 Загрузка цели с сервера
-// ============================================================
 
 export async function loadGoalFromServer() {
     if (CURRENT_MODE !== "public") return;

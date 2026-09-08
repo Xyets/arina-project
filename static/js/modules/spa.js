@@ -7,9 +7,6 @@ import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";
 import { initTypeSelector } from "./utils.js";
 import { initVipPage } from "./vip.js";
 
-/* ============================================================
-   📦 Sidebar navigation (SPA)
-============================================================ */
 export function initSidebarNavigation() {
     const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
 
@@ -22,10 +19,9 @@ export function initSidebarNavigation() {
     });
 }
 
-/* ============================================================
-   📦 SPA page loader
-============================================================ */
 export function navigateSPA(url) {
+    CURRENT_PAGE_URL = url;
+
     const container = document.querySelector(".content-inner");
     if (!container) {
         window.location.href = url;
@@ -46,7 +42,6 @@ export function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                /* RULES */
                 if (document.querySelector(".rules-page")) {
                     initRulesPage();
                     initRuleForms();
@@ -54,12 +49,10 @@ export function navigateSPA(url) {
                     updateNewRuleFields();
                 }
 
-                /* VIP */
                 if (document.querySelector(".vip-grid")) {
                     initVipPage();
                 }
 
-                /* COMMON */
                 loadLogs();
                 updateQueueUI();
                 loadQR();
@@ -71,9 +64,6 @@ export function navigateSPA(url) {
         });
 }
 
-/* ============================================================
-   🔄 Reload inner content (used by WebSocket)
-============================================================ */
 export function reloadInnerContent(callback) {
     const container = document.querySelector(".content-inner");
     if (!container) return;
@@ -92,9 +82,16 @@ export function reloadInnerContent(callback) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                if (callback) callback();
+                if (callback) {
+                    callback();
+                } else {
+                    if (document.querySelector(".rules-page")) {
+                        initRuleForms();
+                        initRuleModals();
+                        updateNewRuleFields();
+                    }
+                }
 
-                /* COMMON */
                 loadLogs();
                 updateQueueUI();
                 loadQR();

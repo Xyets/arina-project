@@ -88,16 +88,11 @@ function renderVipCards(list) {
 ------------------------------------------------------------ */
 function initVipForms() {
     document.querySelectorAll(".vip-form").forEach(form => {
-
-        // удаляем старые обработчики
-        const newForm = form.cloneNode(true);
-        form.replaceWith(newForm);
-
-        newForm.addEventListener("submit", async (e) => {
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const userId = newForm.dataset.id;
-            const formData = new FormData(newForm);
+            const userId = form.dataset.id;
+            const formData = new FormData(form);
 
             try {
                 const res = await fetch("/vip", {
@@ -165,9 +160,7 @@ async function refreshVipCard(userId) {
 
         initVipForms();
         initVipDeleteButtons();
-    } catch (e) {
-        console.error("VIP refresh error", e);
-    }
+    } catch (e) {}
 }
 
 /* ------------------------------------------------------------
@@ -175,10 +168,10 @@ async function refreshVipCard(userId) {
 ------------------------------------------------------------ */
 function initVipSortButtons() {
     document.querySelectorAll(".vip-sort-btn").forEach(btn => {
-        btn.onclick = () => {
+        btn.addEventListener("click", () => {
             VIP_SORT = btn.dataset.sort;
             sortVipList(VIP_SORT);
-        };
+        });
     });
 }
 

@@ -2,10 +2,6 @@ import { showToast } from "./toast.js";
 
 let savedQR = localStorage.getItem("qr_code");
 
-// ============================================================
-// 📱 Загрузка QR
-// ============================================================
-
 export function loadQR() {
     const img = document.getElementById("qrImage");
     if (!img) return;
@@ -23,10 +19,6 @@ export function loadQR() {
             img.src = savedQR;
         });
 }
-
-// ============================================================
-// 📱 Обновление QR
-// ============================================================
 
 export function refreshQR() {
     const img = document.getElementById("qrImage");
