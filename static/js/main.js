@@ -59,6 +59,9 @@ function connectWS() {
             }
         }, 30000);
     };
+    // Глобальные функции для HTML onclick
+    window.deleteRule = createDeleteRule(socket, CURRENT_PROFILE, reloadInnerContent, showToast);
+    window.deleteSegment = createDeleteSegment(socket, CURRENT_PROFILE, reloadInnerContent, showToast);
 
     socket.onclose = () => {
         console.log("WS closed");
