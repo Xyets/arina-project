@@ -93,6 +93,122 @@ export function initRulesPage(socket, showToast) {
         };
     });
 }
+/* ============================================================
+   RULES — Forms (Add / Edit / Segment)
+============================================================ */
+
+export function initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast) {
+    if (!document.querySelector(".rules-page")) return;
+
+    // Удаляем старые обработчики
+    const addForm = document.getElementById("addRuleForm");
+    const editForm = document.getElementById("ruleEditForm");
+    const segForm = document.getElementById("segmentAddForm");
+
+    if (addForm) addForm.replaceWith(addForm.cloneNode(true));
+    if (editForm) editForm.replaceWith(editForm.cloneNode(true));
+    if (segForm) segForm.replaceWith(segForm.cloneNode(true));
+
+    // Ищем формы снова
+    const addFormNew = document.getElementById("addRuleForm");
+    const editFormNew = document.getElementById("ruleEditForm");
+    const segFormNew = document.getElementById("segmentAddForm");
+
+    /* ============================================================
+       ➕ Добавление правила
+    ============================================================ */
+    if (addFormNew) {
+        addFormNew.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "add_rule",
+                profile_key: CURRENT_PROFILE,
+                min: Number(document.getElementById("new_min").value),
+                max: Number(document.getElementById("new_max").value),
+                strength: Number(document.getElementById("new_strength").value || 0),
+                duration: Number(document.getElementById("new_duration").value || 0),
+                action_type: document.getElementById("new_action_type").value,
+                action: document.getElementById("new_action").value || ""
+            };
+
+            sendRuleCommand(socket, payload);
+            showToast("Правило добавлено");
+
+            reloadInnerContent(() => {
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage(socket, showToast);
+                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                    initRuleModals();
+                }
+            });
+        });
+    }
+
+    /* ============================================================
+       ✏️ Редактирование правила
+    ============================================================ */
+    if (editFormNew) {
+        editFormNew.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "edit_rule",
+                profile_key: CURRENT_PROFILE,
+                id: document.getElementById("edit_rule_id").value,
+                min: Number(document.getElementById("edit_min").value),
+                max: Number(document.getElementById("edit_max").value),
+                strength: Number(document.getElementById("edit_strength").value || 0),
+                duration: Number(document.getElementById("edit_duration").value || 0),
+                action_type: document.getElementById("edit_type").value,
+                action: document.getElementById("edit_action").value || ""
+            };
+
+            sendRuleCommand(socket, payload);
+            showToast("Правило обновлено");
+
+            reloadInnerContent(() => {
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage(socket, showToast);
+                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                    initRuleModals();
+                }
+            });
+        });
+    }
+
+    /* ============================================================
+       🎡 Добавление сегмента
+    ============================================================ */
+    if (segFormNew) {
+        segFormNew.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const payload = {
+                type: "add_segment",
+                profile_key: CURRENT_PROFILE,
+                rule_id: document.getElementById("segment_rule_id").value,
+                name: document.getElementById("seg_name").value,
+                chance: Number(document.getElementById("seg_chance").value),
+                seg_type: document.getElementById("seg_type").value,
+                strength: Number(document.getElementById("seg_strength").value || 0),
+                duration: Number(document.getElementById("seg_duration").value || 0),
+                action: document.getElementById("seg_action").value || ""
+            };
+
+            sendRuleCommand(socket, payload);
+            showToast("Сегмент добавлен");
+
+            reloadInnerContent(() => {
+                if (document.querySelector(".rules-page")) {
+                    initRulesPage(socket, showToast);
+                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                    initRuleModals();
+                }
+            });
+        });
+    }
+}
 
 /* ============================================================
    RULES — Modals
