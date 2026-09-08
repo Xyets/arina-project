@@ -15,6 +15,7 @@ import {
     loadVipList
 } from "/static/js/modules/vip.js";
 import { initSidebar } from "/static/js/modules/sidebar.js";
+import { classifyLog, loadLogs, initLogButtons, startLogAutoUpdate } from "/static/js/modules/logs.js";
 
 
 let CURRENT_PAGE_URL = "/beta";
@@ -40,13 +41,14 @@ let goal = {
 function initHandlers() {
     initSidebar();
     initModeSwitch();
-    initLogButtons();
+    initLogButtons(showToast);
     initQueueButtons();
     initGoalModal();
 }
 
 window.addEventListener("load", () => {
 
+    // --- WebSocket ---
     initWebSocket(
         CURRENT_USER,
         CURRENT_MODE,
@@ -55,23 +57,24 @@ window.addEventListener("load", () => {
         showToast
     );
 
+    // --- Глобальные обработчики ---
     initHandlers();
+
+    // --- SPA навигация ---
     initSidebarNavigation();
+
+    // --- UI и данные ---
     loadQR();
     loadGoalFromServer();
     initTypeSelector();
 
+    // --- Автообновление логов ---
+    startLogAutoUpdate();
+
     // --- ENTER запускает поиск ---
-    const searchInput = document.querySelector('input[name="q"]');
-    if (searchInput) {
-        searchInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                doSearch();   // ← запускаем поиск
-            }
-        });
-    }
+    initSearchEnter();
 });
+
 
 
 
@@ -245,47 +248,6 @@ function reloadInnerContent(callback) {
             }, 50);
 
         });
-}
-
-
-/* ============================================================
-   📜 Цветные логи
-============================================================ */
-
-function classifyLog(log) {
-    log = log.toLowerCase();
-
-    if (log.includes("вибрация")) return "vibration";
-    if (log.includes("колесо")) return "wheel";
-    if (log.includes("действие")) return "action";
-    if (log.includes("вошёл") || log.includes("вошел")) return "entry";
-    if (log.includes("вышел")) return "exit";
-    return "system";
-}
-
-let lastLogCount = 0;
-let logInterval = setInterval(loadLogs, 2000);
-
-async function loadLogs() {
-    const box = document.getElementById("logbox");
-    if (!box) return;
-
-    const res = await fetch("/logs_data");
-    const data = await res.json();
-
-    const logs = data.logs || [];
-    const newLogs = logs.slice(lastLogCount);
-    lastLogCount = logs.length;
-
-    newLogs.forEach(log => {
-        const div = document.createElement("div");
-        const type = classifyLog(log);
-        div.className = `event-item ${type}`;
-        div.textContent = log;
-
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    });
 }
 
 function initQueueButtons() {
@@ -468,24 +430,6 @@ function refreshQR() {
 }
 
 window.refreshQR = refreshQR;
-
-
-/* ============================================================
-   🧹 10. Очистка логов
-============================================================ */
-function initLogButtons() {
-    const clearLogsBtn = document.getElementById("clearLogsBtn");
-    if (!clearLogsBtn) return;
-
-    clearLogsBtn.onclick = () => {
-        lastLogCount = 0;
-        document.getElementById("logbox").innerHTML = "";
-
-        fetch("/clear_logs", { method: "POST" })
-            .then(() => showToast("Логи очищены ✅"))
-            .catch(() => showToast("❌ Ошибка при очистке логов"));
-    };
-}
 /* ============================================================
    🎛 Кастомный селект типа (всегда активный)
 ============================================================ */
