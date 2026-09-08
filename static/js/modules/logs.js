@@ -38,13 +38,12 @@ export async function loadLogs() {
     });
 }
 
-// Кнопка очистки логов
 export function initLogButtons(showToast) {
     const clearLogsBtn = document.getElementById("clearLogsBtn");
     if (!clearLogsBtn) return;
 
     clearLogsBtn.onclick = () => {
-        lastLogCount = 0;
+        resetLogsCounter();
         document.getElementById("logbox").innerHTML = "";
 
         fetch("/clear_logs", { method: "POST" })
@@ -52,6 +51,7 @@ export function initLogButtons(showToast) {
             .catch(() => showToast("❌ Ошибка при очистке логов"));
     };
 }
+
 
 // Автообновление логов
 export function startLogAutoUpdate() {

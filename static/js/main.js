@@ -90,6 +90,8 @@ window.addEventListener("load", () => {
     initSearchEnter();
 });
 
+window.openGoalModal = openGoalModal;
+window.closeGoalModal = closeGoalModal;
 
 
 
