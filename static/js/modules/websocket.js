@@ -42,6 +42,9 @@ export let socket = null;
 let wsReconnectAttempts = 0;
 const WS_MAX_RECONNECT = 10;
 
+// 🔥 Флаг онлайн‑состояния мембера
+let MEMBER_ONLINE = false;
+
 export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloadInnerContent, showToast) {
 
     window.CURRENT_USER = CURRENT_USER;
@@ -104,16 +107,40 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
-        // 🔴 ЛЮБОЙ logout → закрыть карточку
+        // 🔴 LOGOUT → мембер оффлайн
         if (data.event === "logout") {
             debugLog("LOGOUT → hideMemberCard()");
+            MEMBER_ONLINE = false;
             hideMemberCard();
             return;
         }
 
-        // 👤 VIP entry → показать карточку
+        // 🟦 LOGIN → мембер онлайн
+        if (data.event === "login") {
+            debugLog("LOGIN → showMemberCard()");
+            MEMBER_ONLINE = true;
+
+            if (window.CURRENT_MODE === "private") {
+                showMemberCard({
+                    username: data.name || data.user,
+                    note: data.note || "—",
+                    last_seen: new Date().toLocaleString(),
+                    tips: data.tips || 0
+                });
+            }
+            return;
+        }
+
+        // 👤 ENTRY → показываем карточку ТОЛЬКО если мембер онлайн
         if (data.entry) {
+
+            if (!MEMBER_ONLINE) {
+                debugLog("ENTRY IGNORED (member offline)");
+                return;
+            }
+
             debugLog("ENTRY → showMemberCard()");
+
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
                     username: data.entry.name,
@@ -126,22 +153,9 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-        // 🟦 LOGIN → fallback
-        if (data.event === "login") {
-            debugLog("LOGIN → showMemberCard()");
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.name || data.user,
-                    note: data.note || "—",
-                    last_seen: new Date().toLocaleString(),
-                    tips: data.tips || 0
-                });
-            }
-            return;
-        }
-
         if (data.type === "member_exit") {
             debugLog("member_exit → hideMemberCard()");
+            MEMBER_ONLINE = false;
             hideMemberCard();
             return;
         }
