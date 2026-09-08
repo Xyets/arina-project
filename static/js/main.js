@@ -14,6 +14,7 @@ import {
     initVipPage,
     loadVipList
 } from "/static/js/modules/vip.js";
+import { initSidebar } from "/static/js/modules/sidebar.js";
 
 
 let CURRENT_PAGE_URL = "/beta";
@@ -37,7 +38,7 @@ let goal = {
    📦 3. Инициализация обработчиков
 ============================================================ */
 function initHandlers() {
-    initSidebarCollapse();
+    initSidebar();
     initModeSwitch();
     initLogButtons();
     initQueueButtons();
@@ -140,19 +141,6 @@ function navigateSPA(url) {
 
 
         });
-}
-
-
-/* ============================================================
-   📦 Sidebar collapse
-============================================================ */
-function initSidebarCollapse() {
-    const sidebar = document.getElementById("sidebar");
-    const sidebarLogo = document.getElementById("sidebarLogo");
-
-    if (sidebar && sidebarLogo) {
-        sidebarLogo.onclick = () => sidebar.classList.toggle("collapsed");
-    }
 }
 
 /* ============================================================
