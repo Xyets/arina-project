@@ -43,6 +43,7 @@ import {
 import { loadQR, refreshQR } from "/static/js/modules/qr.js";
 import { initQueueButtons } from "/static/js/modules/queue.js";
 import { initTypeSelector } from "/static/js/modules/type_selector.js";
+import { showMemberCard, hideMemberCard } from "/static/js/modules/member_card.js";
 
 /* ============================================================
    🌍 Глобальные функции для HTML
@@ -53,6 +54,7 @@ window.showToast = showToast;
 window.refreshQR = () => refreshQR(showToast);
 window.openGoalModal = openGoalModal;
 window.closeGoalModal = closeGoalModal;
+window.hideMemberCard = hideMemberCard;
 
 /* ============================================================
    📌 Глобальные переменные

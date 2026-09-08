@@ -1,4 +1,5 @@
 // websocket.js — модуль WebSocket для FlowTip
+import { showMemberCard, hideMemberCard } from "./member_card.js";
 
 import {
     createDeleteRule,
@@ -65,6 +66,25 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
+        // 🔵 Новый блок — мембер вошёл
+        if (data.type === "member_enter") {
+            if (window.CURRENT_MODE === "private") {
+                showMemberCard({
+                    username: data.username,
+                    note: data.note,
+                    last_seen: data.last_seen,
+                    tips: data.tips
+                });
+            }
+            return;
+        }
+
+        // 🔴 Новый блок — мембер вышел
+        if (data.type === "member_exit") {
+            hideMemberCard();
+            return;
+        }
+
         if (data.type === "refresh_logs") {
             if (typeof window.loadLogs === "function") window.loadLogs();
             return;
@@ -80,7 +100,6 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         }
 
         if (data.queue_update) {
-            // ВАЖНО: сохраняем ссылку на массив
             vibrationQueue.length = 0;
             (data.queue || []).forEach(v => {
                 vibrationQueue.push({
@@ -92,22 +111,14 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-        if (data.entry) {
-            if (typeof window.showEntryPopup === "function") {
-                window.showEntryPopup(`
-                    👤 <strong>${data.entry.name}</strong><br>
-                    🔢 Визитов: ${data.entry.visits}<br>
-                    💗 Чаевых всего: ${data.entry.total_tips}<br>
-                    📝 Заметки: ${data.entry.notes || "нет"}
-                `);
-            }
-            return;
-        }
+        // 🔥 Старый popup входа — можно отключить
+        // if (data.entry) {
+        //     window.showEntryPopup(...);
+        //     return;
+        // }
 
         if (data.goal_update) {
-            if (typeof window.updateGoalCircle === "function") {
-                window.updateGoalCircle(data.goal);
-            }
+            window.updateGoalCircle?.(data.goal);
             return;
         }
 
@@ -122,12 +133,11 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         }
 
         if (data.vip_update) {
-            if (typeof window.loadVipList === "function") {
-                window.loadVipList();
-            }
+            window.loadVipList?.();
             return;
         }
     }
+
 
     connectWS();
 }
