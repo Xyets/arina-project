@@ -1,40 +1,4 @@
-// =========================
-// 🔍 DEBUG PANEL
-// =========================
-
-(function() {
-    const box = document.createElement("div");
-    box.id = "debugPanel";
-    box.style.position = "fixed";
-    box.style.bottom = "10px";
-    box.style.right = "10px";
-    box.style.width = "280px";
-    box.style.maxHeight = "320px";
-    box.style.overflowY = "auto";
-    box.style.background = "rgba(0,0,0,0.75)";
-    box.style.color = "#fff";
-    box.style.fontFamily = "monospace";
-    box.style.fontSize = "12px";
-    box.style.padding = "10px";
-    box.style.borderRadius = "10px";
-    box.style.zIndex = "999999";
-    box.style.boxShadow = "0 0 10px rgba(0,0,0,0.4)";
-    box.innerHTML = "<b>DEBUG PANEL</b><br>";
-    document.body.appendChild(box);
-
-    window.debugLog = function(msg, data=null) {
-        const line = document.createElement("div");
-        line.style.marginTop = "4px";
-        line.textContent = msg + (data ? " → " + JSON.stringify(data) : "");
-        box.appendChild(line);
-        box.scrollTop = box.scrollHeight;
-    };
-})();
-
-// =========================
-// WebSocket
-// =========================
-
+// websocket.js — модуль WebSocket для FlowTip
 import { showMemberCard, hideMemberCard } from "./member_card.js";
 import { createDeleteRule, createDeleteSegment } from "./rules.js";
 
@@ -42,21 +6,7 @@ export let socket = null;
 let wsReconnectAttempts = 0;
 const WS_MAX_RECONNECT = 10;
 
-// 🔥 Флаг онлайн‑состояния мембера
-let MEMBER_ONLINE = false;
-
-// 🔥 Флаг SPA‑перезагрузки
-let SPA_RELOADED = false;
-
 export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloadInnerContent, showToast) {
-
-    // Перехватываем SPA reload
-    const originalReload = reloadInnerContent;
-    reloadInnerContent = function(cb) {
-        debugLog("SPA RELOAD");
-        SPA_RELOADED = true;
-        originalReload(cb);
-    };
 
     window.CURRENT_USER = CURRENT_USER;
     window.CURRENT_MODE = CURRENT_MODE;
@@ -69,8 +19,6 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            debugLog("WS CONNECTED");
-
             wsReconnectAttempts = 0;
 
             const profile_key = window.CURRENT_PROFILE || `${window.CURRENT_USER}_${window.CURRENT_MODE}`;
@@ -85,7 +33,6 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             socket._pingInterval = setInterval(() => {
                 if (socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ type: "ping" }));
-                    debugLog("PING SENT");
                 }
             }, 30000);
         };
@@ -94,13 +41,10 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         window.deleteSegment = createDeleteSegment(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
 
         socket.onclose = () => {
-            debugLog("WS CLOSED");
-
             if (socket._pingInterval) clearInterval(socket._pingInterval);
 
             if (wsReconnectAttempts < WS_MAX_RECONNECT) {
                 wsReconnectAttempts++;
-                debugLog("WS RECONNECT ATTEMPT", wsReconnectAttempts);
                 setTimeout(connectWS, 2000);
             }
         };
@@ -110,29 +54,14 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             try { data = JSON.parse(event.data); }
             catch { return; }
 
-            debugLog("WS EVENT RECEIVED", data);
-
             handleWSMessage(data);
         };
     }
 
     function handleWSMessage(data) {
 
-        // 🔴 LOGOUT → мембер оффлайн
-        if (data.event === "logout") {
-            debugLog("LOGOUT → hideMemberCard()");
-            MEMBER_ONLINE = false;
-            SPA_RELOADED = false;
-            hideMemberCard();
-            return;
-        }
-
-        // 🟦 LOGIN → мембер онлайн
+        // 🔵 LOGIN → всегда показываем карточку
         if (data.event === "login") {
-            debugLog("LOGIN → showMemberCard()");
-            MEMBER_ONLINE = true;
-            SPA_RELOADED = false;
-
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
                     username: data.name || data.user,
@@ -144,58 +73,35 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
 
-        // 👤 ENTRY → показываем карточку ТОЛЬКО если мембер онлайн
-        // или если SPA перезагрузила страницу
-        if (data.entry) {
-
-            if (!MEMBER_ONLINE && !SPA_RELOADED) {
-                debugLog("ENTRY IGNORED (member offline)");
-                return;
-            }
-
-            debugLog("ENTRY → showMemberCard() (SPA recovery?)");
-
-            SPA_RELOADED = false;
-
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.entry.name,
-                    note: data.entry.notes || "—",
-                    last_seen: new Date().toLocaleString(),
-                    tips: data.entry.total_tips || 0,
-                    visits: data.entry.visits || 0
-                });
-            }
-            return;
-        }
-
-        if (data.type === "member_exit") {
-            debugLog("member_exit → hideMemberCard()");
-            MEMBER_ONLINE = false;
-            SPA_RELOADED = false;
+        // 🔴 LOGOUT → всегда скрываем карточку
+        if (data.event === "logout") {
             hideMemberCard();
             return;
         }
 
+        // ❌ ENTRY → игнорируем полностью
+        // (он приходит слишком часто и не в нужный момент)
+
+        // ❌ member_exit → тоже скрываем карточку
+        if (data.type === "member_exit") {
+            hideMemberCard();
+            return;
+        }
+
+        // Остальное — как было
         if (data.type === "refresh_logs") {
-            debugLog("refresh_logs");
             window.loadLogs?.();
             return;
         }
 
-        if (data.status === "hello_ok") {
-            debugLog("hello_ok");
-            return;
-        }
+        if (data.status === "hello_ok") return;
 
         if (data.vibration) {
-            debugLog("vibration event");
             startVibrationTimer(data.vibration.duration, data.vibration.strength);
             return;
         }
 
         if (data.queue_update) {
-            debugLog("queue_update");
             vibrationQueue.length = 0;
             (data.queue || []).forEach(v => {
                 vibrationQueue.push({ strength: v[0], duration: v[1] });
@@ -205,13 +111,11 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         }
 
         if (data.goal_update) {
-            debugLog("goal_update");
             window.updateGoalCircle?.(data.goal);
             return;
         }
 
         if (data.rules_update) {
-            debugLog("rules_update");
             reloadInnerContent(() => {
                 if (document.querySelector(".rules-page")) {
                     window.initRuleForms?.(window.CURRENT_PROFILE, socket, reloadInnerContent, showToast);
@@ -222,7 +126,6 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         }
 
         if (data.vip_update) {
-            debugLog("vip_update");
             window.loadVipList?.();
             return;
         }
