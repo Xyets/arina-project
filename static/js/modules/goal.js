@@ -1,32 +1,16 @@
-// ============================================================
-// 🎯 GOAL — круглая цель и модалка
-// ============================================================
+// goal.js — круглая цель + модалка
 
-import { CURRENT_MODE, goal } from "./core.js";
-import { showToast } from "./toast.js";
+export let goal = { title: "", current: 0, target: 0 };
 
-// ============================================================
-// 🎯 Видимость цели
-// ============================================================
-
-export function updateGoalVisibility() {
+export function updateGoalVisibility(CURRENT_MODE) {
     const circle = document.getElementById("goalCircle");
     if (!circle) return;
 
     circle.style.display = CURRENT_MODE === "public" ? "flex" : "none";
 }
 
-// ============================================================
-// 🎯 Круглая цель — Apple Ring
-// ============================================================
-
-export function updateGoalCircle(newGoal = null) {
-    if (newGoal) {
-        goal.title = newGoal.title;
-        goal.current = newGoal.current;
-        goal.target = newGoal.target;
-    }
-
+export function updateGoalCircle(newGoal = null, CURRENT_MODE) {
+    if (newGoal) goal = newGoal;
     if (CURRENT_MODE !== "public") return;
 
     const ring = document.querySelector(".goal-progress-ring");
@@ -46,11 +30,7 @@ export function updateGoalCircle(newGoal = null) {
     title.textContent = goal.title || "Цель";
 }
 
-// ============================================================
-// 🎯 Модалка цели
-// ============================================================
-
-export function initGoalModal() {
+export function initGoalModal(loadGoalFromServer, showToast) {
     const modal = document.getElementById("goalModal");
     if (!modal) return;
 
@@ -60,12 +40,7 @@ export function initGoalModal() {
         e.preventDefault();
 
         const formData = new FormData(form);
-
-        const res = await fetch("/goal_new", {
-            method: "POST",
-            body: formData
-        });
-
+        const res = await fetch("/goal_new", { method: "POST", body: formData });
         const data = await res.json();
 
         if (data.status === "ok") {
@@ -86,17 +61,13 @@ export function closeGoalModal() {
     document.getElementById("goalModal").classList.remove("show");
 }
 
-// ============================================================
-// 🎯 Загрузка цели с сервера
-// ============================================================
-
-export async function loadGoalFromServer() {
+export async function loadGoalFromServer(CURRENT_MODE, updateGoalCircle) {
     if (CURRENT_MODE !== "public") return;
 
     try {
         const res = await fetch("/goal_data");
         const data = await res.json();
-        updateGoalCircle(data);
+        updateGoalCircle(data, CURRENT_MODE);
     } catch (e) {
         console.error("Ошибка загрузки цели:", e);
     }
