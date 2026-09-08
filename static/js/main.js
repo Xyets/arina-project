@@ -132,7 +132,7 @@ function handleWSMessage(data) {
     if (data.rules_update) {
         reloadInnerContent(() => {
             if (document.querySelector(".rules-page")) {
-                initRuleForms();
+                initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                 initRuleModals();
             }
         });
@@ -203,10 +203,11 @@ function navigateSPA(url) {
                 container.style.opacity = "1";
 
                 if (document.querySelector(".rules-page")) {
-                    initRulesPage();
-                    initRuleForms();
+                    initRulesPage(socket, showToast);
+                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                     initRuleModals();
-                    updateNewRuleFields();   // ← ВАЖНО
+                    updateNewRuleFields();
+
                 }
 
                 loadLogs();
@@ -273,8 +274,9 @@ function initModeSwitch() {
                 reloadInnerContent(() => {
                     updateGoalVisibility();
                     if (document.querySelector(".rules-page")) {
-                        initRuleForms();
+                        initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                         initRuleModals();
+
                     }
                 });
 
@@ -311,9 +313,10 @@ function reloadInnerContent(callback) {
                     callback();
                 } else {
                     if (document.querySelector(".rules-page")) {
-                        initRuleForms();
+                        initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                         initRuleModals();
-                        updateNewRuleFields();   // ← ВАЖНО
+                        updateNewRuleFields();
+
                     }
                 }
 
