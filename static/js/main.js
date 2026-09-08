@@ -66,13 +66,11 @@ window.addEventListener("load", () => {
         searchInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                doSearch();
+                doSearch();   // ← запускаем поиск
             }
         });
     }
 });
-
-
 
 
 /* ============================================================
@@ -109,6 +107,7 @@ function navigateSPA(url) {
             const newContent = doc.querySelector(".content-inner").innerHTML;
 
             container.innerHTML = newContent;
+            initSearchEnter(); 
             if (document.getElementById("logbox")) {
                 lastLogCount = 0;   // ← ВАЖНО
             }
@@ -228,7 +227,7 @@ function reloadInnerContent(callback) {
 
             const newContent = doc.querySelector(".content-inner").innerHTML;
             container.innerHTML = newContent;
-
+            initSearchEnter(); 
             setTimeout(() => {
                 container.style.opacity = "1";
 
@@ -533,4 +532,15 @@ function initTypeSelector() {
     document.removeEventListener("click", typeSelectorGlobalHandler);
     document.addEventListener("click", typeSelectorGlobalHandler);
 
+}
+function initSearchEnter() {
+    const searchInput = document.querySelector('input[name="q"]');
+    if (!searchInput) return;
+
+    searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            doSearch();
+        }
+    });
 }
