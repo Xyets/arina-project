@@ -164,8 +164,17 @@ export async function refreshVipCard(userId) {
 
         const card = document.getElementById("vip_" + userId);
 
-        card.innerHTML = `
+        // создаём новую карточку
+        const newCard = document.createElement("div");
+        newCard.className = "vip-card" + (info.blocked ? " blocked" : "");
+        newCard.id = "vip_" + userId;
+
+        newCard.innerHTML = `
             <form class="vip-form" data-id="${userId}">
+                <input type="hidden" name="user_id" value="${userId}">
+                <input type="hidden" name="sort" value="${VIP_SORT}">
+                <input type="hidden" name="q" value="${document.getElementById('vipSearchInput')?.value || ''}">
+
                 <input type="text" name="name" value="${info.name}" placeholder="Имя">
                 <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
 
@@ -183,10 +192,45 @@ export async function refreshVipCard(userId) {
             </form>
         `;
 
-        initVipForms();
-        initVipDeleteButtons();
+        // заменяем карточку
+        card.replaceWith(newCard);
+
+        // ВАЖНО: привязываем обработчики ТОЛЬКО к новой форме
+        const form = newCard.querySelector(".vip-form");
+
+        form.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+
+            const res = await fetch("/vip", {
+                method: "POST",
+                body: formData
+            });
+
+            if (res.ok) {
+                await refreshVipCard(userId);
+                sortVipList(VIP_SORT);
+                window.showToast?.("Сохранено");
+            }
+        });
+
+        // привязываем delete‑кнопку
+        newCard.querySelector(".vip-delete-btn").onclick = () => {
+            VIP_DELETE_ID = userId;
+            openVipDeleteModal();
+        };
+
     } catch (e) {}
 }
+
 
 /* ------------------------------------------------------------
    СОРТИРОВКА
