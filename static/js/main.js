@@ -277,9 +277,9 @@ function initModeSwitch() {
                 reloadInnerContent(() => {
                     updateGoalVisibility();
                     if (document.querySelector(".rules-page")) {
+                        initRulesPage(socket, showToast);   // ← ДОБАВИТЬ ЭТУ СТРОКУ
                         initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                         initRuleModals();
-
                     }
                 });
 
@@ -316,10 +316,10 @@ function reloadInnerContent(callback) {
                     callback();
                 } else {
                     if (document.querySelector(".rules-page")) {
+                        initRulesPage(socket, showToast);   // ← ДОБАВИТЬ ЭТУ СТРОКУ
                         initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                         initRuleModals();
                         updateNewRuleFields();
-
                     }
                 }
 
