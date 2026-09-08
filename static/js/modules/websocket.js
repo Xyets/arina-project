@@ -1,6 +1,10 @@
 // websocket.js — модуль WebSocket для FlowTip
 import { showMemberCard, hideMemberCard } from "./member_card.js";
-import { createDeleteRule, createDeleteSegment } from "./rules.js";
+
+import {
+    createDeleteRule,
+    createDeleteSegment
+} from "./rules.js";
 
 export let socket = null;
 let wsReconnectAttempts = 0;
@@ -8,6 +12,7 @@ const WS_MAX_RECONNECT = 10;
 
 export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloadInnerContent, showToast) {
 
+    // Делаем переменные глобальными для sendStop()
     window.CURRENT_USER = CURRENT_USER;
     window.CURRENT_MODE = CURRENT_MODE;
     window.CURRENT_PROFILE = CURRENT_PROFILE;
@@ -37,6 +42,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             }, 30000);
         };
 
+        // глобальные функции для HTML onclick
         window.deleteRule = createDeleteRule(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
         window.deleteSegment = createDeleteSegment(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
 
@@ -60,41 +66,33 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
-        // 🔵 LOGIN → всегда показываем карточку
-        if (data.event === "login") {
+        // 🔵 Новый блок — мембер вошёл
+        if (data.type === "member_enter") {
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
-                    username: data.name || data.user,
-                    note: data.note || "—",
-                    last_seen: new Date().toLocaleString(),
-                    tips: data.tips || 0
+                    username: data.username,
+                    note: data.note,
+                    last_seen: data.last_seen,
+                    tips: data.tips
                 });
             }
             return;
         }
 
-        // 🔴 LOGOUT → всегда скрываем карточку
-        if (data.event === "logout") {
-            hideMemberCard();
-            return;
-        }
-
-        // ❌ ENTRY → игнорируем полностью
-        // (он приходит слишком часто и не в нужный момент)
-
-        // ❌ member_exit → тоже скрываем карточку
+        // 🔴 Новый блок — мембер вышел
         if (data.type === "member_exit") {
             hideMemberCard();
             return;
         }
 
-        // Остальное — как было
         if (data.type === "refresh_logs") {
-            window.loadLogs?.();
+            if (typeof window.loadLogs === "function") window.loadLogs();
             return;
         }
 
-        if (data.status === "hello_ok") return;
+        if (data.status === "hello_ok") {
+            return;
+        }
 
         if (data.vibration) {
             startVibrationTimer(data.vibration.duration, data.vibration.strength);
@@ -104,11 +102,20 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         if (data.queue_update) {
             vibrationQueue.length = 0;
             (data.queue || []).forEach(v => {
-                vibrationQueue.push({ strength: v[0], duration: v[1] });
+                vibrationQueue.push({
+                    strength: v[0],
+                    duration: v[1]
+                });
             });
             updateQueueUI();
             return;
         }
+
+        // 🔥 Старый popup входа — можно отключить
+        // if (data.entry) {
+        //     window.showEntryPopup(...);
+        //     return;
+        // }
 
         if (data.goal_update) {
             window.updateGoalCircle?.(data.goal);
@@ -130,6 +137,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
     }
+
 
     connectWS();
 }
