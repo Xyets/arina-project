@@ -32,10 +32,12 @@ import {
     loadGoalFromServer
 } from "/static/js/modules/goal.js";
 import { showEntryPopup, hideEntryPopup, showToast } from "/static/js/modules/ui.js";
+import { loadQR, refreshQR } from "/static/js/modules/qr.js";
 
 window.showEntryPopup = showEntryPopup;
 window.hideEntryPopup = hideEntryPopup;
 window.showToast = showToast;
+window.refreshQR = () => refreshQR(showToast);
 
 let CURRENT_PAGE_URL = "/beta";
 
@@ -290,44 +292,6 @@ function initQueueButtons() {
         showToast("Очередь очищена ✅");
     };
 }
-/* ============================================================
-   📱 QR-код — стабильный
-============================================================ */
-let savedQR = localStorage.getItem("qr_code");
-
-function loadQR() {
-    const img = document.getElementById("qrImage");
-    if (!img) return;
-
-    if (savedQR) {
-        img.src = savedQR;
-        return;
-    }
-
-    fetch("/qr_generate")
-        .then(r => r.json())
-        .then(data => {
-            savedQR = data.qr;
-            localStorage.setItem("qr_code", savedQR);
-            img.src = savedQR;
-        });
-}
-
-function refreshQR() {
-    const img = document.getElementById("qrImage");
-    if (!img) return;
-
-    fetch("/qr_generate?refresh=1")
-        .then(r => r.json())
-        .then(data => {
-            savedQR = data.qr;
-            localStorage.setItem("qr_code", savedQR);
-            img.src = savedQR;
-            showToast("QR‑код обновлён");
-        });
-}
-
-window.refreshQR = refreshQR;
 /* ============================================================
    🎛 Кастомный селект типа (всегда активный)
 ============================================================ */
