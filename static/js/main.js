@@ -59,7 +59,19 @@ window.addEventListener("load", () => {
     loadQR();
     loadGoalFromServer();
     initTypeSelector();
+
+    // --- ENTER запускает поиск ---
+    const searchInput = document.querySelector('input[name="q"]');
+    if (searchInput) {
+        searchInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                doSearch();
+            }
+        });
+    }
 });
+
 
 
 
