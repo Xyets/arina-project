@@ -31,7 +31,11 @@ import {
     closeGoalModal,
     loadGoalFromServer
 } from "/static/js/modules/goal.js";
+import { showEntryPopup, hideEntryPopup, showToast } from "/static/js/modules/ui.js";
 
+window.showEntryPopup = showEntryPopup;
+window.hideEntryPopup = hideEntryPopup;
+window.showToast = showToast;
 
 let CURRENT_PAGE_URL = "/beta";
 
@@ -286,35 +290,6 @@ function initQueueButtons() {
         showToast("Очередь очищена ✅");
     };
 }
-/* ============================================================
-   🔔 Popup
-============================================================ */
-function showEntryPopup(message) {
-    const popup = document.getElementById("entryPopup");
-    popup.innerHTML = `<div>${message}</div><button onclick="hideEntryPopup()">ОК</button>`;
-    popup.classList.add("show");
-
-    let hideTimer = setTimeout(hideEntryPopup, 8000);
-
-    popup.onmouseenter = () => clearTimeout(hideTimer);
-    popup.onmouseleave = () => hideTimer = setTimeout(hideEntryPopup, 8000);
-}
-
-function hideEntryPopup() {
-    const popup = document.getElementById("entryPopup");
-    popup.classList.remove("show");
-}
-
-/* ============================================================
-   🔔 Toast
-============================================================ */
-function showToast(msg) {
-    const toast = document.getElementById("toast");
-    toast.textContent = msg;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 3000);
-}
-
 /* ============================================================
    📱 QR-код — стабильный
 ============================================================ */
