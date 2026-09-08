@@ -1,6 +1,6 @@
 import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { loadLogs } from "./logs.js";
-import { startVibrationTimer, updateQueueUI, vibrationQueue } from "./queue.js";
+import { updateQueueUI, startVibrationTimer, setVibrationQueue } from "./queue.js";
 import { showEntryPopup } from "./popup.js";
 import { updateGoalCircle } from "./goal.js";
 import { reloadInnerContent } from "./spa.js";
@@ -17,8 +17,8 @@ export function connectWS() {
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
+        console.log("WS connected");
         wsReconnectAttempts = 0;
-
         const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
         socket.send(JSON.stringify({
@@ -36,6 +36,7 @@ export function connectWS() {
     };
 
     socket.onclose = () => {
+        console.log("WS closed");
         if (socket._pingInterval) clearInterval(socket._pingInterval);
 
         if (wsReconnectAttempts < WS_MAX_RECONNECT) {
@@ -46,14 +47,13 @@ export function connectWS() {
 
     socket.onmessage = (event) => {
         let data;
-        try { data = JSON.parse(event.data); }
-        catch { return; }
-
+        try { data = JSON.parse(event.data); } catch { return; }
         handleWSMessage(data);
     };
 }
 
 export function handleWSMessage(data) {
+    console.log("WS:", data);
 
     if (data.type === "refresh_logs") {
         loadLogs();
@@ -74,8 +74,10 @@ export function handleWSMessage(data) {
     }
 
     if (data.queue_update) {
-        vibrationQueue.length = 0;
-        data.queue.forEach(v => vibrationQueue.push({ strength: v[0], duration: v[1] }));
+        setVibrationQueue((data.queue || []).map(v => ({
+            strength: v[0],
+            duration: v[1]
+        })));
         updateQueueUI();
         return;
     }

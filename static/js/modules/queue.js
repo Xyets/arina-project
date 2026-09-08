@@ -1,8 +1,9 @@
-import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { socket } from "./websocket.js";
+import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { showToast } from "./toast.js";
 
 export let vibrationQueue = [];
+export function setVibrationQueue(q) { vibrationQueue = q; }
 
 export function updateQueueUI() {
     const box = document.getElementById("queuebox");
@@ -29,20 +30,24 @@ export function initQueueButtons() {
     clearQueueBtn.onclick = () => {
         const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
 
-        socket.send(JSON.stringify({
-            type: "clear_queue",
-            profile_key
-        }));
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: "clear_queue",
+                profile_key
+            }));
+        }
 
-        vibrationQueue.length = 0;
+        vibrationQueue = [];
         updateQueueUI();
-        showToast("Очередь очищена");
+        showToast("Очередь очищена ✅");
     };
 }
 
 export function startVibrationTimer(duration, strength) {
-
-    if (window._vibrationTimerActive) return;
+    if (window._vibrationTimerActive) {
+        console.warn("Таймер уже активен — второй не запускаем");
+        return;
+    }
     window._vibrationTimerActive = true;
 
     const container = document.getElementById("vibrationOverlay");
@@ -72,25 +77,29 @@ export function startVibrationTimer(duration, strength) {
             box.remove();
             window._vibrationTimerActive = false;
         } else {
-            timeSpan.textContent = Math.ceil(remaining);
-            progressFill.style.width = `${(remaining / duration) * 100}%`;
+            if (timeSpan) timeSpan.textContent = Math.ceil(remaining);
+            if (progressFill) progressFill.style.width = `${(remaining / duration) * 100}%`;
         }
     }, 1000);
 
-    box.querySelector(".vibration-stop-btn").onclick = () => {
-        sendStop();
-        clearInterval(interval);
-        box.remove();
-        window._vibrationTimerActive = false;
-    };
+    const stopBtn = box.querySelector(".vibration-stop-btn");
+    if (stopBtn) {
+        stopBtn.onclick = () => {
+            sendStop();
+            clearInterval(interval);
+            box.remove();
+            window._vibrationTimerActive = false;
+        };
+    }
 }
 
 export function sendStop() {
     const profile_key = CURRENT_PROFILE || `${CURRENT_USER}_${CURRENT_MODE}`;
-
-    socket.send(JSON.stringify({
-        type: "stop",
-        user: CURRENT_USER,
-        profile_key
-    }));
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+            type: "stop",
+            user: CURRENT_USER,
+            profile_key
+        }));
+    }
 }

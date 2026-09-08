@@ -1,11 +1,10 @@
-import { CURRENT_MODE, CURRENT_PAGE_URL } from "./core.js";
+import { CURRENT_MODE, CURRENT_PAGE_URL, setPageUrl } from "./core.js";
 import { initRulesPage, initRuleForms, initRuleModals, updateNewRuleFields } from "./rules.js";
 import { loadLogs } from "./logs.js";
 import { updateQueueUI } from "./queue.js";
 import { loadQR } from "./qr.js";
 import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";
 import { initTypeSelector } from "./utils.js";
-import { initVipPage } from "./vip.js";
 
 export function initSidebarNavigation() {
     const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
@@ -14,13 +13,13 @@ export function initSidebarNavigation() {
         link.addEventListener("click", (e) => {
             e.preventDefault();
             const url = link.getAttribute("href");
-            navigateSPA(url);
+            if (url) navigateSPA(url);
         });
     });
 }
 
 export function navigateSPA(url) {
-    CURRENT_PAGE_URL = url;
+    setPageUrl(url);
 
     const container = document.querySelector(".content-inner");
     if (!container) {
@@ -35,7 +34,7 @@ export function navigateSPA(url) {
         .then(html => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
-            const newContent = doc.querySelector(".content-inner").innerHTML;
+            const newContent = doc.querySelector(".content-inner")?.innerHTML || "";
 
             container.innerHTML = newContent;
 
@@ -49,17 +48,12 @@ export function navigateSPA(url) {
                     updateNewRuleFields();
                 }
 
-                if (document.querySelector(".vip-grid")) {
-                    initVipPage();
-                }
-
                 loadLogs();
                 updateQueueUI();
                 loadQR();
                 loadGoalFromServer();
                 initTypeSelector();
                 updateGoalVisibility();
-
             }, 50);
         });
 }
@@ -76,7 +70,7 @@ export function reloadInnerContent(callback) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
 
-            const newContent = doc.querySelector(".content-inner").innerHTML;
+            const newContent = doc.querySelector(".content-inner")?.innerHTML || "";
             container.innerHTML = newContent;
 
             setTimeout(() => {
@@ -98,7 +92,6 @@ export function reloadInnerContent(callback) {
                 loadGoalFromServer();
                 initTypeSelector();
                 updateGoalVisibility();
-
             }, 50);
         });
 }

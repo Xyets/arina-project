@@ -1,8 +1,9 @@
-import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
 import { socket } from "./websocket.js";
-import { reloadInnerContent } from "./spa.js";
-import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";
+import { CURRENT_USER, CURRENT_MODE, setMode, setProfile } from "./core.js";
 import { showToast } from "./toast.js";
+import { updateGoalVisibility, loadGoalFromServer } from "./goal.js";
+import { reloadInnerContent } from "./spa.js";
+import { initRuleForms, initRuleModals } from "./rules.js";
 
 export function initSidebarCollapse() {
     const sidebar = document.getElementById("sidebar");
@@ -20,11 +21,13 @@ export function initModeSwitch() {
     modeSwitch.onchange = () => {
         const newMode = modeSwitch.checked ? "private" : "public";
 
-        socket.send(JSON.stringify({
-            type: "set_mode",
-            user: CURRENT_USER,
-            mode: newMode
-        }));
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: "set_mode",
+                user: CURRENT_USER,
+                mode: newMode
+            }));
+        }
 
         fetch("/set_mode", {
             method: "POST",
@@ -34,18 +37,20 @@ export function initModeSwitch() {
         .then(r => r.json())
         .then(data => {
             if (data.status === "ok") {
-
-                CURRENT_MODE = newMode;
-                CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
-
+                setMode(newMode);
                 updateGoalVisibility();
+                const newProfile = `${CURRENT_USER}_${newMode}`;
+                setProfile(newProfile);
+
                 loadGoalFromServer();
 
-                socket.send(JSON.stringify({
-                    type: "hello",
-                    role: "panel",
-                    profile_key: CURRENT_PROFILE
-                }));
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: "hello",
+                        role: "panel",
+                        profile_key: newProfile
+                    }));
+                }
 
                 reloadInnerContent(() => {
                     updateGoalVisibility();

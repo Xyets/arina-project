@@ -1,15 +1,19 @@
-import { CURRENT_MODE, goal } from "./core.js";
+import { CURRENT_MODE, goal, setGoal } from "./core.js";
 import { showToast } from "./toast.js";
 
 export function updateGoalVisibility() {
     const circle = document.getElementById("goalCircle");
     if (!circle) return;
 
-    circle.style.display = CURRENT_MODE === "public" ? "flex" : "none";
+    if (CURRENT_MODE === "public") {
+        circle.style.display = "flex";
+    } else {
+        circle.style.display = "none";
+    }
 }
 
 export function updateGoalCircle(newGoal = null) {
-    if (newGoal) goal = newGoal;
+    if (newGoal) setGoal(newGoal);
     if (CURRENT_MODE !== "public") return;
 
     const ring = document.querySelector(".goal-progress-ring");
@@ -34,12 +38,12 @@ export function initGoalModal() {
     if (!modal) return;
 
     const form = document.getElementById("goalForm");
+    if (!form) return;
 
     form.onsubmit = async (e) => {
         e.preventDefault();
 
         const formData = new FormData(form);
-
         const res = await fetch("/goal_new", {
             method: "POST",
             body: formData
@@ -49,7 +53,7 @@ export function initGoalModal() {
 
         if (data.status === "ok") {
             closeGoalModal();
-            showToast("Цель обновлена");
+            showToast("Цель обновлена 🎯");
             loadGoalFromServer();
         } else {
             showToast(data.message || "Ошибка сохранения цели");
@@ -58,16 +62,15 @@ export function initGoalModal() {
 }
 
 export function openGoalModal() {
-    document.getElementById("goalModal").classList.add("show");
+    document.getElementById("goalModal")?.classList.add("show");
 }
 
 export function closeGoalModal() {
-    document.getElementById("goalModal").classList.remove("show");
+    document.getElementById("goalModal")?.classList.remove("show");
 }
 
 export async function loadGoalFromServer() {
     if (CURRENT_MODE !== "public") return;
-
     try {
         const res = await fetch("/goal_data");
         const data = await res.json();
@@ -76,3 +79,6 @@ export async function loadGoalFromServer() {
         console.error("Ошибка загрузки цели:", e);
     }
 }
+
+window.openGoalModal = openGoalModal;
+window.closeGoalModal = closeGoalModal;

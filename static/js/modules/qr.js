@@ -33,3 +33,5 @@ export function refreshQR() {
             showToast("QR‑код обновлён");
         });
 }
+
+window.refreshQR = refreshQR;
