@@ -198,6 +198,10 @@ function navigateSPA(url) {
             const newContent = doc.querySelector(".content-inner").innerHTML;
 
             container.innerHTML = newContent;
+            if (document.getElementById("logbox")) {
+                lastLogCount = 0;   // ← ВАЖНО
+            }
+
 
             setTimeout(() => {
                 container.style.opacity = "1";
@@ -328,7 +332,7 @@ function reloadInnerContent(callback) {
                     }
                 }
 
-                loadLogs();
+                setTimeout(loadLogs, 10);
                 updateQueueUI();
                 loadQR();
                 loadGoalFromServer();
