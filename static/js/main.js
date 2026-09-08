@@ -19,7 +19,8 @@ import { initSidebarNavigation, navigateSPA, reloadInnerContent } from "/static/
 
 
 
-let CURRENT_PAGE_URL = "/beta";
+let CURRENT_PAGE_URL = { value: "/beta" };
+
 
 /* ============================================================
    📌 0. Инициализация данных из HTML
@@ -28,6 +29,34 @@ const app = document.getElementById("app");
 const CURRENT_USER = app?.dataset.user || "";
 let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
+let SPA_STATE = {
+    pageURL: CURRENT_PAGE_URL.value,
+    mode: CURRENT_MODE,
+    profile: CURRENT_PROFILE
+};
+let SPA_DEPS = {
+    initSearchEnter,
+    initRulesPage,
+    initRuleForms,
+    initRuleModals,
+    updateNewRuleFields,
+    loadLogs,
+    updateQueueUI,
+    loadQR,
+    loadGoalFromServer,
+    initTypeSelector,
+    updateGoalVisibility,
+    initLogButtons,
+    initQueueButtons,
+    initVipPage,
+    socket,
+    showToast,
+    lastLogCount: { value: lastLogCount },
+
+    reloadInnerContent: (callback) => {
+        reloadInnerContent(SPA_STATE, SPA_DEPS, callback);
+    }
+};
 
 // глобальная цель
 let goal = {
@@ -53,12 +82,20 @@ window.addEventListener("load", () => {
         CURRENT_USER,
         CURRENT_MODE,
         CURRENT_PROFILE,
-        reloadInnerContent,
+        SPA_DEPS.reloadInnerContent,
         showToast
     );
 
+
     initHandlers();
-    initSidebarNavigation(navigateSPA);
+    initSidebarNavigation((url) => {
+        navigateSPA(
+            url,
+            SPA_STATE,
+            SPA_DEPS
+        );
+    });
+
     loadQR();
     loadGoalFromServer();
     initTypeSelector();
@@ -124,7 +161,8 @@ function initModeSwitch() {
                     profile_key: CURRENT_PROFILE
                 }));
 
-                reloadInnerContent(() => {
+                SPA_DEPS.reloadInnerContent(() => {
+
                     updateGoalVisibility();
 
                     // 🔥 сразу обновляем логи после смены режима

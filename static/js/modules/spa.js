@@ -1,5 +1,8 @@
 // spa.js — модуль SPA навигации и обновления контента
 
+// ---------------------------------------------
+// Sidebar navigation
+// ---------------------------------------------
 export function initSidebarNavigation(navigateSPA) {
     const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
 
@@ -13,29 +16,17 @@ export function initSidebarNavigation(navigateSPA) {
     });
 }
 
+
+// ---------------------------------------------
+// SPA page loader
+// ---------------------------------------------
 export function navigateSPA(
     url,
-    CURRENT_MODE,
-    CURRENT_PROFILE,
-    initSearchEnter,
-    initRulesPage,
-    initRuleForms,
-    initRuleModals,
-    updateNewRuleFields,
-    loadLogs,
-    updateQueueUI,
-    loadQR,
-    loadGoalFromServer,
-    initTypeSelector,
-    updateGoalVisibility,
-    initLogButtons,
-    initQueueButtons,
-    initVipPage,
-    socket,
-    showToast,
-    reloadInnerContent
+    state,                 // { pageURL, mode, profile }
+    deps                   // { all functions }
 ) {
-    CURRENT_PAGE_URL = url;
+    // обновляем текущий URL
+    state.pageURL = url;
 
     const container = document.querySelector(".content-inner");
     if (!container) {
@@ -45,7 +36,7 @@ export function navigateSPA(
 
     container.style.opacity = "0";
 
-    fetch(url + "?mode=" + CURRENT_MODE)
+    fetch(url + "?mode=" + state.mode)
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -54,66 +45,56 @@ export function navigateSPA(
 
             container.innerHTML = newContent;
 
-            initSearchEnter();
+            deps.initSearchEnter();
 
             if (document.getElementById("logbox")) {
-                lastLogCount = 0;
+                deps.lastLogCount.value = 0;
             }
 
             setTimeout(() => {
                 container.style.opacity = "1";
 
+                // Rules page
                 if (document.querySelector(".rules-page")) {
-                    initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    initRuleModals();
-                    updateNewRuleFields();
-                    loadLogs();
+                    deps.initRulesPage(deps.socket, deps.showToast);
+                    deps.initRuleForms(state.profile, deps.socket, deps.reloadInnerContent, deps.showToast);
+                    deps.initRuleModals();
+                    deps.updateNewRuleFields();
+                    deps.loadLogs();
                 }
 
-                loadLogs();
-                updateQueueUI();
-                loadQR();
-                loadGoalFromServer();
-                initTypeSelector();
-                updateGoalVisibility();
+                // Common updates
+                deps.loadLogs();
+                deps.updateQueueUI();
+                deps.loadQR();
+                deps.loadGoalFromServer();
+                deps.initTypeSelector();
+                deps.updateGoalVisibility();
 
-                initLogButtons();
-                initQueueButtons();
-                if (document.querySelector(".vip-grid")) initVipPage();
+                deps.initLogButtons();
+                deps.initQueueButtons();
+
+                if (document.querySelector(".vip-grid")) deps.initVipPage();
 
             }, 50);
         });
 }
 
+
+// ---------------------------------------------
+// Reload inner content
+// ---------------------------------------------
 export function reloadInnerContent(
-    CURRENT_PAGE_URL,
-    CURRENT_MODE,
-    CURRENT_PROFILE,
-    initSearchEnter,
-    initRulesPage,
-    initRuleForms,
-    initRuleModals,
-    updateNewRuleFields,
-    loadLogs,
-    updateQueueUI,
-    loadQR,
-    loadGoalFromServer,
-    initTypeSelector,
-    updateGoalVisibility,
-    initLogButtons,
-    initQueueButtons,
-    initVipPage,
-    socket,
-    showToast,
-    callback
+    state,
+    deps,
+    callback = null
 ) {
     const container = document.querySelector(".content-inner");
     if (!container) return;
 
     container.style.opacity = "0";
 
-    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)
+    fetch(state.pageURL + "?mode=" + state.mode)
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -122,7 +103,7 @@ export function reloadInnerContent(
             const newContent = doc.querySelector(".content-inner").innerHTML;
             container.innerHTML = newContent;
 
-            initSearchEnter();
+            deps.initSearchEnter();
 
             setTimeout(() => {
                 container.style.opacity = "1";
@@ -131,23 +112,24 @@ export function reloadInnerContent(
                     callback();
                 } else {
                     if (document.querySelector(".rules-page")) {
-                        initRulesPage(socket, showToast);
-                        initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                        initRuleModals();
-                        updateNewRuleFields();
+                        deps.initRulesPage(deps.socket, deps.showToast);
+                        deps.initRuleForms(state.profile, deps.socket, deps.reloadInnerContent, deps.showToast);
+                        deps.initRuleModals();
+                        deps.updateNewRuleFields();
                     }
                 }
 
-                setTimeout(loadLogs, 10);
-                updateQueueUI();
-                loadQR();
-                loadGoalFromServer();
-                initTypeSelector();
-                updateGoalVisibility();
+                setTimeout(deps.loadLogs, 10);
+                deps.updateQueueUI();
+                deps.loadQR();
+                deps.loadGoalFromServer();
+                deps.initTypeSelector();
+                deps.updateGoalVisibility();
 
-                initLogButtons();
-                initQueueButtons();
-                if (document.querySelector(".vip-grid")) initVipPage();
+                deps.initLogButtons();
+                deps.initQueueButtons();
+
+                if (document.querySelector(".vip-grid")) deps.initVipPage();
 
             }, 50);
         });
