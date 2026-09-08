@@ -1,4 +1,4 @@
-import { CURRENT_MODE, CURRENT_PAGE_URL } from "./core.js";
+import * as Core from "./core.js";
 import { initRulesPage, initRuleForms, initRuleModals, updateNewRuleFields } from "./rules.js";
 import { loadLogs } from "./logs.js";
 import { updateQueueUI } from "./queue.js";
@@ -7,9 +7,6 @@ import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";
 import { initTypeSelector } from "./utils.js";
 import { initVipPage } from "./vip.js";
 
-/* ============================================================
-   📦 Sidebar navigation (SPA)
-============================================================ */
 export function initSidebarNavigation() {
     const links = document.querySelectorAll(".sidebar-menu .sidebar-item");
 
@@ -22,9 +19,6 @@ export function initSidebarNavigation() {
     });
 }
 
-/* ============================================================
-   📦 SPA page loader
-============================================================ */
 export function navigateSPA(url) {
     const container = document.querySelector(".content-inner");
     if (!container) {
@@ -32,11 +26,11 @@ export function navigateSPA(url) {
         return;
     }
 
-    CURRENT_PAGE_URL = url; // 🔥 важно для reloadInnerContent
+    Core.CURRENT_PAGE_URL = url;   // ✔ теперь можно менять
 
     container.style.opacity = "0";
 
-    fetch(url + "?mode=" + CURRENT_MODE)
+    fetch(url + "?mode=" + Core.CURRENT_MODE)
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -48,7 +42,6 @@ export function navigateSPA(url) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                /* RULES */
                 if (document.querySelector(".rules-page")) {
                     initRulesPage();
                     initRuleForms();
@@ -56,12 +49,10 @@ export function navigateSPA(url) {
                     updateNewRuleFields();
                 }
 
-                /* VIP */
                 if (document.querySelector(".vip-grid")) {
                     initVipPage();
                 }
 
-                /* COMMON */
                 loadLogs();
                 updateQueueUI();
                 loadQR();
@@ -73,16 +64,13 @@ export function navigateSPA(url) {
         });
 }
 
-/* ============================================================
-   🔄 Reload inner content (used by WebSocket)
-============================================================ */
 export function reloadInnerContent(callback) {
     const container = document.querySelector(".content-inner");
     if (!container) return;
 
     container.style.opacity = "0";
 
-    fetch(CURRENT_PAGE_URL + "?mode=" + CURRENT_MODE)
+    fetch(Core.CURRENT_PAGE_URL + "?mode=" + Core.CURRENT_MODE)
         .then(r => r.text())
         .then(html => {
             const parser = new DOMParser();
@@ -96,7 +84,6 @@ export function reloadInnerContent(callback) {
 
                 if (callback) callback();
 
-                /* COMMON */
                 loadLogs();
                 updateQueueUI();
                 loadQR();

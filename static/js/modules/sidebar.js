@@ -1,8 +1,4 @@
-// ============================================================
-// 📦 Sidebar collapse & mode switch
-// ============================================================
-
-import { CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE } from "./core.js";
+import * as Core from "./core.js";
 import { socket } from "./websocket.js";
 import { reloadInnerContent } from "./spa.js";
 import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";
@@ -24,14 +20,12 @@ export function initModeSwitch() {
     modeSwitch.onchange = () => {
         const newMode = modeSwitch.checked ? "private" : "public";
 
-        // WebSocket: set_mode
         socket.send(JSON.stringify({
             type: "set_mode",
-            user: CURRENT_USER,
+            user: Core.CURRENT_USER,
             mode: newMode
         }));
 
-        // HTTP: set_mode
         fetch("/set_mode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -41,21 +35,18 @@ export function initModeSwitch() {
         .then(data => {
             if (data.status === "ok") {
 
-                // 🔥 обновляем глобальные переменные
-                CURRENT_MODE = newMode;
-                CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
+                Core.CURRENT_MODE = newMode;   // ✔ теперь можно менять
+                Core.CURRENT_PROFILE = `${Core.CURRENT_USER}_${Core.CURRENT_MODE}`;
 
                 updateGoalVisibility();
                 loadGoalFromServer();
 
-                // WebSocket: hello
                 socket.send(JSON.stringify({
                     type: "hello",
                     role: "panel",
-                    profile_key: CURRENT_PROFILE
+                    profile_key: Core.CURRENT_PROFILE
                 }));
 
-                // SPA reload
                 reloadInnerContent(() => {
                     updateGoalVisibility();
                 });
