@@ -1,17 +1,26 @@
 // ============================================================
-// 🌐 CORE — глобальные переменные и базовая инициализация
+// 🌐 CORE — глобальные переменные FlowTip
 // ============================================================
 
-export let CURRENT_PAGE_URL = "/beta";
-
-export const app = document.getElementById("app");
-export const CURRENT_USER = app?.dataset.user || "";
-export let CURRENT_MODE = app?.dataset.mode || "public";
-export let CURRENT_PROFILE = app?.dataset.profile || "";
-
-// глобальная цель
-export let goal = {
-    title: "",
-    current: 0,
-    target: 0
+// Глобальный объект, который МОЖНО менять
+window.FlowTipCore = {
+    CURRENT_PAGE_URL: "/beta",
+    CURRENT_USER: "",
+    CURRENT_MODE: "public",
+    CURRENT_PROFILE: "",
+    goal: {
+        title: "",
+        current: 0,
+        target: 0
+    }
 };
+
+// Инициализация из DOM
+const app = document.getElementById("app");
+if (app) {
+    FlowTipCore.CURRENT_USER = app.dataset.user || "";
+    FlowTipCore.CURRENT_MODE = app.dataset.mode || "public";
+    FlowTipCore.CURRENT_PROFILE = app.dataset.profile || "";
+}
+
+export const Core = FlowTipCore;

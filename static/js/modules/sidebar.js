@@ -1,4 +1,4 @@
-import * as Core from "./core.js";
+import { Core } from "./core.js";
 import { socket } from "./websocket.js";
 import { reloadInnerContent } from "./spa.js";
 import { loadGoalFromServer, updateGoalVisibility } from "./goal.js";

@@ -1,4 +1,4 @@
-import * as Core from "./core.js";
+import { Core } from "./core.js";
 import { initRulesPage, initRuleForms, initRuleModals, updateNewRuleFields } from "./rules.js";
 import { loadLogs } from "./logs.js";
 import { updateQueueUI } from "./queue.js";
