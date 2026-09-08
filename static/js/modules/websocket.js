@@ -45,7 +45,18 @@ const WS_MAX_RECONNECT = 10;
 // 🔥 Флаг онлайн‑состояния мембера
 let MEMBER_ONLINE = false;
 
+// 🔥 Флаг SPA‑перезагрузки
+let SPA_RELOADED = false;
+
 export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloadInnerContent, showToast) {
+
+    // Перехватываем SPA reload
+    const originalReload = reloadInnerContent;
+    reloadInnerContent = function(cb) {
+        debugLog("SPA RELOAD");
+        SPA_RELOADED = true;
+        originalReload(cb);
+    };
 
     window.CURRENT_USER = CURRENT_USER;
     window.CURRENT_MODE = CURRENT_MODE;
@@ -111,6 +122,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         if (data.event === "logout") {
             debugLog("LOGOUT → hideMemberCard()");
             MEMBER_ONLINE = false;
+            SPA_RELOADED = false;
             hideMemberCard();
             return;
         }
@@ -119,6 +131,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         if (data.event === "login") {
             debugLog("LOGIN → showMemberCard()");
             MEMBER_ONLINE = true;
+            SPA_RELOADED = false;
 
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
@@ -132,14 +145,17 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         }
 
         // 👤 ENTRY → показываем карточку ТОЛЬКО если мембер онлайн
+        // или если SPA перезагрузила страницу
         if (data.entry) {
 
-            if (!MEMBER_ONLINE) {
+            if (!MEMBER_ONLINE && !SPA_RELOADED) {
                 debugLog("ENTRY IGNORED (member offline)");
                 return;
             }
 
-            debugLog("ENTRY → showMemberCard()");
+            debugLog("ENTRY → showMemberCard() (SPA recovery?)");
+
+            SPA_RELOADED = false;
 
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
@@ -156,6 +172,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         if (data.type === "member_exit") {
             debugLog("member_exit → hideMemberCard()");
             MEMBER_ONLINE = false;
+            SPA_RELOADED = false;
             hideMemberCard();
             return;
         }
