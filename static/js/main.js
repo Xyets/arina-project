@@ -210,6 +210,7 @@ function navigateSPA(url) {
                     initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                     initRuleModals();
                     updateNewRuleFields();
+                    loadLogs();   // ← ДОБАВИТЬ СЮДА
 
                 }
 
