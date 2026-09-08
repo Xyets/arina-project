@@ -5,7 +5,7 @@ import {
     createDeleteRule,
     createDeleteSegment
 } from "./rules.js";
-
+let CURRENT_MEMBER_ID = null;
 export let socket = null;
 let wsReconnectAttempts = 0;
 const WS_MAX_RECONNECT = 10;
@@ -66,14 +66,19 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
 
     function handleWSMessage(data) {
 
-        // 🔴 FC2 logout → скрыть карточку (ДОЛЖНО БЫТЬ САМОЕ ПЕРВОЕ)
+        // 🔴 FC2 logout → скрыть карточку только если это тот же мембер
         if (data.event === "logout") {
-            hideMemberCard();
+            if (data.user_id === CURRENT_MEMBER_ID) {
+                hideMemberCard();
+                CURRENT_MEMBER_ID = null;
+            }
             return;
         }
 
-        // 👤 VIP entry → показать карточку (основной источник данных)
+        // 👤 VIP entry → показать карточку
         if (data.entry) {
+            CURRENT_MEMBER_ID = data.entry.user_id || data.entry.id || null;
+
             if (window.CURRENT_MODE === "private") {
                 showMemberCard({
                     username: data.entry.name,
@@ -85,6 +90,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             }
             return;
         }
+
 
         // 🟦 FC2 login → fallback
         if (data.event === "login") {
@@ -160,7 +166,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             return;
         }
     }
-    
+
     connectWS();
 }
 
