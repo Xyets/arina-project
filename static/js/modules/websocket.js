@@ -64,79 +64,111 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         };
     }
 
-    function handleWSMessage(data) {
+function handleWSMessage(data) {
 
-        // 🔵 Новый блок — мембер вошёл
-        if (data.type === "member_enter") {
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.username,
-                    note: data.note,
-                    last_seen: data.last_seen,
-                    tips: data.tips
-                });
-            }
-            return;
-        }
-
-        // 🔴 Новый блок — мембер вышел
-        if (data.type === "member_exit") {
-            hideMemberCard();
-            return;
-        }
-
-        if (data.type === "refresh_logs") {
-            if (typeof window.loadLogs === "function") window.loadLogs();
-            return;
-        }
-
-        if (data.status === "hello_ok") {
-            return;
-        }
-
-        if (data.vibration) {
-            startVibrationTimer(data.vibration.duration, data.vibration.strength);
-            return;
-        }
-
-        if (data.queue_update) {
-            vibrationQueue.length = 0;
-            (data.queue || []).forEach(v => {
-                vibrationQueue.push({
-                    strength: v[0],
-                    duration: v[1]
-                });
-            });
-            updateQueueUI();
-            return;
-        }
-
-        // 🔥 Старый popup входа — можно отключить
-        // if (data.entry) {
-        //     window.showEntryPopup(...);
-        //     return;
-        // }
-
-        if (data.goal_update) {
-            window.updateGoalCircle?.(data.goal);
-            return;
-        }
-
-        if (data.rules_update) {
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    window.initRuleForms?.(window.CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    window.initRuleModals?.();
-                }
-            });
-            return;
-        }
-
-        if (data.vip_update) {
-            window.loadVipList?.();
-            return;
-        }
+    // 🔴 FC2 logout → скрыть карточку
+    if (data.event === "logout") {
+        hideMemberCard();
+        return;
     }
+
+    // 👤 VIP entry → показать карточку (основной источник данных)
+    if (data.entry) {
+        if (window.CURRENT_MODE === "private") {
+            showMemberCard({
+                username: data.entry.name,
+                note: data.entry.notes || "—",
+                last_seen: new Date().toLocaleString(),
+                tips: data.entry.total_tips || 0,
+                visits: data.entry.visits || 0
+            });
+        }
+        return;
+    }
+
+    // 🟦 FC2 login → fallback (если вдруг нет VIP entry)
+    if (data.event === "login") {
+        if (window.CURRENT_MODE === "private") {
+            showMemberCard({
+                username: data.name || data.user,
+                note: data.note || "—",
+                last_seen: new Date().toLocaleString(),
+                tips: data.tips || 0
+            });
+        }
+        return;
+    }
+
+    // 🟦 Новый формат (если появится)
+    if (data.type === "member_enter") {
+        if (window.CURRENT_MODE === "private") {
+            showMemberCard({
+                username: data.username,
+                note: data.note,
+                last_seen: data.last_seen,
+                tips: data.tips,
+                visits: data.visits
+            });
+        }
+        return;
+    }
+
+    if (data.type === "member_exit") {
+        hideMemberCard();
+        return;
+    }
+
+    // 🔄 Обновление логов
+    if (data.type === "refresh_logs") {
+        window.loadLogs?.();
+        return;
+    }
+
+    // hello_ok
+    if (data.status === "hello_ok") {
+        return;
+    }
+
+    // 🔔 Вибрация
+    if (data.vibration) {
+        startVibrationTimer(data.vibration.duration, data.vibration.strength);
+        return;
+    }
+
+    // 🔁 Очередь вибраций
+    if (data.queue_update) {
+        vibrationQueue.length = 0;
+        (data.queue || []).forEach(v => {
+            vibrationQueue.push({ strength: v[0], duration: v[1] });
+        });
+        updateQueueUI();
+        return;
+    }
+
+    // 🎯 Обновление цели
+    if (data.goal_update) {
+        window.updateGoalCircle?.(data.goal);
+        return;
+    }
+
+    // ⚙️ Обновление правил
+    if (data.rules_update) {
+        reloadInnerContent(() => {
+            if (document.querySelector(".rules-page")) {
+                window.initRuleForms?.(window.CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                window.initRuleModals?.();
+            }
+        });
+        return;
+    }
+
+    // 👑 Обновление VIP
+    if (data.vip_update) {
+        window.loadVipList?.();
+        return;
+    }
+}
+
 
 
     connectWS();
