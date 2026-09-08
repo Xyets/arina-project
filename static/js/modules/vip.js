@@ -59,6 +59,10 @@ export function renderVipCards(list) {
 
         card.innerHTML = `
             <form class="vip-form" data-id="${user_id}">
+                <input type="hidden" name="user_id" value="${user_id}">
+                <input type="hidden" name="sort" value="${VIP_SORT}">
+                <input type="hidden" name="q" value="${document.getElementById('vipSearchInput')?.value || ''}">
+
                 <input type="text" name="name" value="${info.name}" placeholder="Имя">
                 <input type="text" name="notes" value="${info.notes || ""}" placeholder="Заметки">
 
@@ -75,6 +79,7 @@ export function renderVipCards(list) {
                 </div>
             </form>
         `;
+
 
         grid.appendChild(card);
     });
@@ -122,6 +127,7 @@ export function initVipForms() {
                 window.showToast?.("Ошибка сохранения");
             }
         });
+
     });
 }
 
