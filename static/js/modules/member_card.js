@@ -17,14 +17,19 @@ export function showMemberCard(data) {
 
     card.classList.remove("hidden");
 
-    // сохраняем значение чаевых
     card.dataset.tips = newTips;
 
-    // если чаевые изменились → запускаем анимацию
     if (oldTips !== null && newTips !== oldTips) {
         const tipsEl = document.getElementById("memberTips");
         tipsEl.classList.remove("pulse");
-        void tipsEl.offsetWidth; // перезапуск анимации
+        void tipsEl.offsetWidth;
         tipsEl.classList.add("pulse");
     }
+}
+
+export function hideMemberCard() {
+    const card = document.getElementById("memberCard");
+    if (!card) return;
+
+    card.classList.add("hidden");
 }
