@@ -117,3 +117,23 @@
 .member-card {
     animation: memberPop 0.35s ease;
 }
+/* Анимация обновления чаевых */
+.pulse {
+    animation: pulseAnim 0.45s ease;
+}
+
+@keyframes pulseAnim {
+    0% {
+        transform: scale(1);
+        background: linear-gradient(135deg, var(--accent-blue), var(--accent-pink));
+        color: #fff;
+    }
+    40% {
+        transform: scale(1.15);
+        background: linear-gradient(135deg, var(--accent-pink), var(--accent-blue));
+        color: #fff;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
