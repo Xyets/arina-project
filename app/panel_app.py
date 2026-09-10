@@ -171,19 +171,42 @@ def fc2_view_page():
 @login_required
 def run_fc2_fetch():
     import requests
-    import json
 
+    # 1. Узнаём информацию о текущем стриме
+    STREAM_ID = "58702021"  # основной streamid твоего канала
+    info_url = f"https://live.fc2.com/api/memberApi.php?streamid={STREAM_ID}&channel=1"
+    info = requests.get(info_url).json()
+
+    # Проверка структуры ответа
+    if "data" not in info or "channel_data" not in info["data"]:
+        return {"status": "error", "message": "FC2 не вернул данные о канале"}
+
+    channel_data = info["data"]["channel_data"]
+
+    # 2. Получаем channelid комнаты (общая или two-shot)
+    channel_id = channel_data.get("channelid")
+
+    # 3. Определяем тип комнаты
+    room_type = "two-shot" if channel_data.get("twoshot") == 1 else "main"
+
+    # 4. Загружаем комментарии из нужной комнаты
     API_URL = "https://live.fc2.com/api/getChannelComment.php"
-    CHANNEL_ID = "58702021"
     TOKEN = "ca09371d2972f3c0"
 
     params = {
-        "channel_id": CHANNEL_ID,
+        "channel_id": channel_id,
         "token": TOKEN,
         "last_comment_index": -1
     }
 
-    response = requests.get(API_URL, params=params)
-    data = response.json()
+    comment_data = requests.get(API_URL, params=params).json()
 
-    return data
+    # 5. Возвращаем данные в браузер
+    return {
+        "room_type": room_type,
+        "channel_id": channel_id,
+        "comments": comment_data.get("comments", []),
+        "last_comment_index": comment_data.get("last_comment_index"),
+        "status": comment_data.get("status")
+    }
+
