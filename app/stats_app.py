@@ -176,22 +176,36 @@ def close_period():
 @stats_bp.route("/stats_beta")
 @login_required
 def stats_beta_page():
-    user = session["username"]
+    user = session["username"]          # кто смотрит страницу (Arina или модель)
     mode = session.get("mode", "private")
-    profile_key = f"{user}_{mode}"
+
+    # --- список моделей (можно расширять) ---
+    models = ["Irina", "Arina"]         # позже добавишь Model2, Model3...
+
+    # --- выбранная модель ---
+    model = request.args.get("model", user)
+
+    # --- ключ профиля выбранной модели ---
+    profile_key = f"{model}_{mode}"
 
     profile = get_profile_by_key(profile_key)
     if not profile:
         return f"Профиль {profile_key} не найден", 500
 
+    # --- загружаем статистику выбранной модели ---
     stats_data = load_stats(profile_key)
-    results, summary = calculate_stats(stats_data, user=user)
+
+    # --- считаем статистику выбранной модели ---
+    results, summary = calculate_stats(stats_data, user=model)
 
     return render_template(
         "stats_beta.html",
-        user=user,
+        user=user,            # кто смотрит
+        model=model,          # чья статистика отображается
+        models=models,        # список моделей для выбора
         results=results,
         summary=summary,
         profile_key=profile_key,
         mode=mode
     )
+

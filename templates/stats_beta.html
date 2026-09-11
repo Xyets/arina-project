@@ -7,9 +7,32 @@
 
         <!-- HEADER -->
         <div class="glass-header">
-            <h2>📊 Статистика для {{ user }}</h2>
+            <h2>📊 Статистика для {{ model }}</h2>
             <div class="header-sub">Период: {{ summary.period_label }}</div>
         </div>
+
+        {% if user == "Arina" %}
+        <!-- SELECT MODEL -->
+        <div class="glass-card model-select-card">
+            <label class="model-label">Выбрать модель:</label>
+
+            <select id="modelSelect" class="glass-select"
+                    onchange="window.location.href='/stats_beta?model=' + this.value">
+                {% for m in models %}
+                    <option value="{{ m }}" {% if m == model %}selected{% endif %}>
+                        {{ m }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- ADMIN INCOME FROM MODEL -->
+        <div class="glass-card stat-card">
+            <div class="stat-icon">👑</div>
+            <div class="stat-value">{{ summary.admin_fee|int }}</div>
+            <div class="stat-label">Доход от модели</div>
+        </div>
+        {% endif %}
 
         <!-- SUMMARY CARDS -->
         <div class="stats-summary-grid">
@@ -17,7 +40,7 @@
             <div class="glass-card stat-card">
                 <div class="stat-icon">💰</div>
                 <div class="stat-value">{{ summary.total_income|int }}</div>
-                <div class="stat-label">Заработано всего</div>
+                <div class="stat-label">Чистый доход</div>
             </div>
 
             <div class="glass-card stat-card">
@@ -39,20 +62,10 @@
             </div>
 
             {% if user != "Arina" %}
-            <!-- МОДЕЛЬ: процент админу -->
             <div class="glass-card stat-card">
                 <div class="stat-icon">💗</div>
                 <div class="stat-value">{{ summary.admin_fee|int }}</div>
                 <div class="stat-label">% Админу</div>
-            </div>
-            {% endif %}
-
-            {% if user == "Arina" %}
-            <!-- АДМИН: доход от моделей -->
-            <div class="glass-card stat-card">
-                <div class="stat-icon">👑</div>
-                <div class="stat-value">{{ summary.models_income|int }}</div>
-                <div class="stat-label">Доход от моделей</div>
             </div>
             {% endif %}
 
@@ -82,10 +95,6 @@
                             <th>%Админу</th>
                             {% endif %}
 
-                            {% if user == "Arina" %}
-                            <th>Доход от моделей</th>
-                            {% endif %}
-
                             <th>Чистый доход</th>
                         </tr>
                     </thead>
@@ -103,10 +112,6 @@
                             <td>{{ data.admin_fee|int }}</td>
                             {% endif %}
 
-                            {% if user == "Arina" %}
-                            <td>{{ data.models_income|int }}</td>
-                            {% endif %}
-
                             <td>{{ data.net_income|int }}</td>
                         </tr>
                     {% endfor %}
@@ -122,10 +127,6 @@
 
                             {% if user != "Arina" %}
                             <td>{{ summary.admin_fee|int }}</td>
-                            {% endif %}
-
-                            {% if user == "Arina" %}
-                            <td>{{ summary.models_income|int }}</td>
                             {% endif %}
 
                             <td>{{ summary.total_income|int }}</td>
