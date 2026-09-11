@@ -163,6 +163,50 @@
 
     connectWS();
   </script>
+  <script>
+const PROFILE_KEY = "{{ profile_key or request.args.get('profile_key') }}";
+
+let socket = null;
+
+function connectWS() {
+  socket = new WebSocket("wss://arinairina.duckdns.org/ws/");
+
+  socket.onopen = () => {
+    console.log("Iframe WS connected");
+
+    socket.send(JSON.stringify({
+      type: "hello",
+      role: "obs",
+      profile_key: PROFILE_KEY
+    }));
+  };
+
+  socket.onmessage = (event) => {
+    let data;
+    try { data = JSON.parse(event.data); }
+    catch { return; }
+
+    console.log("Iframe reaction:", data);
+
+    if (data.reaction && data.profile === PROFILE_KEY) {
+      const img = document.getElementById("gif");
+      img.src = "/static/" + data.image;
+      img.style.display = "block";
+
+      setTimeout(() => {
+        img.style.display = "none";
+      }, data.duration * 1000);
+    }
+  };
+
+  socket.onclose = () => {
+    setTimeout(connectWS, 2000);
+  };
+}
+
+connectWS();
+</script>
+
 
 </body>
 </html>
