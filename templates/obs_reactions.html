@@ -67,7 +67,9 @@
   </div>
 
   <script>
-    const profileKey = "{{ profile_key }}";
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileKey = urlParams.get("profile_key") || "{{ profile_key }}";
+
     const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
 
     ws.onopen = () => {
