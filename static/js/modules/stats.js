@@ -1,13 +1,13 @@
 /* ============================================================
-   📊 ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ СТАТИСТИКИ
+   📊 ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ СТАТИСТИКИ (ES‑модуль)
 ============================================================ */
-function initStatsPage() {
+export function initStatsPage() {
     initChart();
     initModal();
 }
 
 /* ============================================================
-   📈 ГРАФИК Chart.js — стеклянный стиль FlowTip
+   📈 ГРАФИК Chart.js
 ============================================================ */
 function initChart() {
     if (typeof Chart === "undefined") {
@@ -15,7 +15,10 @@ function initChart() {
         return;
     }
 
-    const raw = document.getElementById("stats-data").textContent;
+    const rawEl = document.getElementById("stats-data");
+    if (!rawEl) return;
+
+    const raw = rawEl.textContent;
     const stats = JSON.parse(raw);
 
     const labels = Object.keys(stats);
@@ -25,7 +28,10 @@ function initChart() {
     const other      = labels.map(d => parseInt(stats[d].other || 0));
     const total      = labels.map(d => parseInt(stats[d].total || 0));
 
-    const ctx = document.getElementById("statsChart").getContext("2d");
+    const canvas = document.getElementById("statsChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
 
     new Chart(ctx, {
         type: "line",
@@ -37,73 +43,33 @@ function initChart() {
                     data: vibrations,
                     borderColor: "rgba(116,192,227,1)",
                     backgroundColor: "rgba(116,192,227,0.25)",
-                    tension: 0.35,
-                    borderWidth: 3,
-                    pointRadius: 4,
-                    pointBackgroundColor: "#74c0e3"
+                    tension: 0.35
                 },
                 {
                     label: "Действия",
                     data: actions,
                     borderColor: "rgba(129,199,132,1)",
                     backgroundColor: "rgba(129,199,132,0.25)",
-                    tension: 0.35,
-                    borderWidth: 3,
-                    pointRadius: 4,
-                    pointBackgroundColor: "#81c784"
+                    tension: 0.35
                 },
                 {
                     label: "Иное",
                     data: other,
                     borderColor: "rgba(255,183,77,1)",
                     backgroundColor: "rgba(255,183,77,0.25)",
-                    tension: 0.35,
-                    borderWidth: 3,
-                    pointRadius: 4,
-                    pointBackgroundColor: "#ffb74d"
+                    tension: 0.35
                 },
                 {
-                    label: "Всего поинтов",
+                    label: "Всего",
                     data: total,
                     borderColor: "rgba(242,132,151,1)",
                     backgroundColor: "rgba(242,132,151,0.25)",
-                    tension: 0.35,
-                    borderWidth: 3,
-                    pointRadius: 4,
-                    pointBackgroundColor: "#f28497"
+                    tension: 0.35
                 }
             ]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: "top",
-                    labels: {
-                        color: "#fff",
-                        font: { size: 14 }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)}`
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: { color: "#fff" },
-                    grid: { color: "rgba(255,255,255,0.1)" }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: "#fff",
-                        callback: (v) => parseInt(v)
-                    },
-                    grid: { color: "rgba(255,255,255,0.1)" }
-                }
-            }
+            responsive: true
         }
     });
 }
@@ -115,6 +81,9 @@ function initModal() {
     const overlay = document.getElementById("modalOverlay");
     const modal = document.getElementById("confirmModal");
 
+    if (!overlay || !modal) return;
+
+    // Глобальные функции для HTML
     window.showConfirm = () => {
         overlay.style.display = "block";
         modal.style.display = "block";
@@ -123,5 +92,20 @@ function initModal() {
     window.hideConfirm = () => {
         overlay.style.display = "none";
         modal.style.display = "none";
+    };
+
+    window.submitClosePeriod = () => {
+        hideConfirm();
+
+        const start = document.getElementById("periodStart").value;
+        const end = document.getElementById("periodEnd").value;
+
+        fetch("/close_period", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ start, end })
+        }).then(() => {
+            window.location.href = "/stats_history";
+        });
     };
 }

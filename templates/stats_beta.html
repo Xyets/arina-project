@@ -10,20 +10,18 @@
     </div>
 
     {% if user == "Arina" %}
-    <!-- SELECT MODEL — стеклянный селектор -->
+    <!-- SELECT MODEL -->
     <div class="glass-card model-select-card">
         <label class="model-label">Выбрать модель:</label>
 
         <div class="custom-select" id="modelSelect">
-            <div class="select-display" id="modelDisplay">
-                {{ model }}
-            </div>
+            <div class="select-display">{{ model }}</div>
 
             <div class="select-options" id="modelOptions">
                 {% for m in models %}
                     <div class="option"
                          data-value="{{ m }}"
-                         onclick="window.location.href='/stats_beta?model={{ m }}'">
+                         onclick="navigateSPA('/stats_beta?model={{ m }}')">
                         👤 {{ m }}
                     </div>
                 {% endfor %}
@@ -31,7 +29,7 @@
         </div>
     </div>
 
-    <!-- ADMIN INCOME FROM MODEL -->
+    <!-- ADMIN INCOME -->
     <div class="glass-card stat-card">
         <div class="stat-icon">👑</div>
         <div class="stat-value">{{ summary.admin_fee|int }}</div>
@@ -156,7 +154,7 @@
     <div id="confirmModal" class="glass-modal">
         <h3>📦 Завершить период</h3>
 
-        <p>Выберите диапазон дат, который нужно отправить в архив:</p>
+        <p>Выберите диапазон дат:</p>
 
         <div class="modal-date-range">
             <label>С даты:</label>
@@ -179,10 +177,10 @@
     {{ results|tojson|safe }}
 </script>
 
-<!-- STATS JS -->
-<script src="{{ url_for('static', filename='js/modules/stats.js') }}"></script>
+<!-- STATS MODULE -->
+<script type="module" src="{{ url_for('static', filename='js/modules/stats.js') }}"></script>
 
-<!-- MODEL SELECTOR JS -->
+<!-- MODEL SELECTOR -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const select = document.getElementById("modelSelect");
