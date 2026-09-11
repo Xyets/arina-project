@@ -213,11 +213,13 @@ async def redis_listener():
                         "segments": data["segments"]
                     }, role="obs", profile_key=data["profile"])
                     continue
-                # ---------- OTHER OBS REACTIONS ----------
+                # ---------- OTHER OBS + WEB REACTIONS ----------
                 if get_profile_by_key(profile_key):
                     ws_send(data, role="obs", profile_key=profile_key)
+                    ws_send(data, role="web", profile_key=profile_key)
                 else:
                     print(f"⚠ Redis: reaction for unknown profile {profile_key}")
+
 
 
             except Exception as e:
@@ -513,6 +515,15 @@ async def handle_wheel_result(websocket, data):
             },
             "profile": profile_key
         }, role="obs", profile_key=profile_key)
+
+        ws_send({
+            "reaction": {
+                "image": action_text,
+                "duration": 5
+            },
+            "profile": profile_key
+        }, role="web", profile_key=profile_key)
+
 
         ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
         return
