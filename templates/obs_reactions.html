@@ -73,7 +73,7 @@
     ws.onopen = () => {
       ws.send(JSON.stringify({
         type: "hello",
-        role: "web",
+        role: "obs",
         profile_key: profileKey
       }));
     };
