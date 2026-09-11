@@ -58,7 +58,7 @@ function initTestButtons(showToast) {
                     const iframeBox = document.getElementById("reactionPreviewIframe");
                     const iframe = iframeBox.querySelector("iframe");
 
-                    iframe.src = `/obs_alert/${window.CURRENT_USER}/${window.CURRENT_MODE}?profile_key=${window.CURRENT_PROFILE}`;
+                    iframe.src = `/obs_reactions/${window.CURRENT_USER}/${window.CURRENT_MODE}?profile_key=${window.CURRENT_PROFILE}`;
                     iframeBox.classList.add("show");
 
                     setTimeout(() => {
