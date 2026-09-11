@@ -304,6 +304,7 @@ function reloadInnerContent(callback) {
             }, 50);
         });
 }
+window.reloadInnerContent = reloadInnerContent;
 
 /* ============================================================
    🔍 Поиск по Enter
