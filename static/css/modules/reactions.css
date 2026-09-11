@@ -256,31 +256,23 @@
 .modal-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 18px 20px; /* больше воздуха */
+    gap: 22px 20px; /* больше воздуха вертикально */
     margin-top: 18px;
 }
 /* компактные поля */
 .modal-cell input {
     width: 100%;
-    padding: 5px 8px; /* меньше высота */
-    height: 34px; /* фиксированная компактная высота */
+    padding: 4px 8px; /* ещё компактнее */
+    height: 30px; /* ниже */
     border-radius: 8px;
     border: 1px solid #dcdcdc;
     background: #fafafa;
     color: #333;
-    font-size: 14px;
+    font-size: 15px; /* ЧИСЛА СТАНУТ ЧИТАЕМЫМИ */
 }
 
-/* уменьшенная кнопка выбора файла */
-.file-upload-btn {
-    background: linear-gradient(135deg, #ffffff, #f2f2f2);
-    border: 1px solid #dcdcdc;
-    padding: 6px 12px; /* уменьшенная высота */
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px; /* компактнее */
-    color: #333;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.modal-cell label {
+    margin-bottom: 4px; /* отступ под лейблом */
 }
 
 
@@ -295,13 +287,15 @@
 .file-upload-btn {
     background: linear-gradient(135deg, #ffffff, #f2f2f2);
     border: 1px solid #dcdcdc;
-    padding: 8px 14px;
+    padding: 6px 12px;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     color: #333;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 4px; /* добавлено */
 }
+
 
 .file-upload input[type="file"] {
     position: absolute;
