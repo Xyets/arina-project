@@ -40,6 +40,7 @@ import {
     showToast
 } from "/static/js/modules/ui.js";
 
+import { initReactionsPage } from "/static/js/modules/reactions.js";
 import { loadQR, refreshQR } from "/static/js/modules/qr.js";
 import { initQueueButtons } from "/static/js/modules/queue.js";
 import { initTypeSelector } from "/static/js/modules/type_selector.js";
@@ -129,6 +130,11 @@ function initPageAfterContent() {
     if (document.querySelector(".vip-grid")) {
         initVipPage();
     }
+    // Страница реакций
+    if (document.querySelector(".reaction-card-beta")) {
+        initReactionsPage(showToast);
+    }
+
 }
 
 /* ============================================================
@@ -253,6 +259,11 @@ function initModeSwitch() {
                 if (document.querySelector(".vip-grid")) {
                     initVipPage();
                 }
+                // Страница реакций
+                if (document.querySelector(".reaction-card-beta")) {
+                    initReactionsPage(showToast);
+                }
+
 
                 initPageAfterContent();
             });
