@@ -184,3 +184,5 @@ if (fileInput) {
             : "Файл не выбран";
     };
 }
+window.closeReactionEditModal = closeReactionEditModal;
+window.openReactionEditModal = openReactionEditModal;
