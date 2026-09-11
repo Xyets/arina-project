@@ -54,20 +54,22 @@ function initTestButtons(showToast) {
                 if (data.status === "ok") {
                     showToast("Тест отправлен в OBS");
 
-                    // мини-превью
-                    const card = btn.closest(".reaction-card");
-                    const img = card.querySelector(".reaction-thumb").src;
-                    const duration = card.querySelector(".reaction-duration").textContent.match(/\d+/)[0];
+                    // мини-iframe превью
+                    const iframeBox = document.getElementById("reactionPreviewIframe");
+                    const iframe = iframeBox.querySelector("iframe");
 
-                    showReactionPreview(img, duration);
-                } else {
-                    showToast("Ошибка: " + data.message);
+                    iframe.src = `/obs_reactions/${window.CURRENT_USER}/${window.CURRENT_MODE}`;
+                    iframeBox.classList.add("show");
+
+                    setTimeout(() => {
+                        iframeBox.classList.remove("show");
+                    }, 3000);
                 }
-            })
-            .catch(() => showToast("Ошибка запроса"));
+            });
         };
     });
 }
+
 
 /* ============================================================
    🔗 КОПИРОВАНИЕ OBS-ССЫЛКИ
@@ -201,4 +203,14 @@ function initCloseModal() {
     modal.addEventListener("click", e => {
         if (e.target === modal) closeReactionEditModal();
     });
+}
+const fileInput = document.getElementById("reactionAddImage");
+const fileName = document.getElementById("reactionAddFileName");
+
+if (fileInput) {
+    fileInput.onchange = () => {
+        fileName.textContent = fileInput.files[0]
+            ? fileInput.files[0].name
+            : "Файл не выбран";
+    };
 }

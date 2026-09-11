@@ -316,3 +316,63 @@ input[type="file"] {
 .close-btn:hover {
     background: rgba(255,255,255,0.35);
 }
+/* Красивая стеклянная кнопка выбора файла */
+.file-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.file-input {
+    opacity: 0;
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+}
+
+.file-button {
+    background: linear-gradient(135deg, rgba(255,255,255,0.35), rgba(255,255,255,0.18));
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 10px 16px;
+    border-radius: 12px;
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: 0.25s ease;
+}
+
+.file-button:hover {
+    background: rgba(255,255,255,0.45);
+}
+
+.file-name {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.reaction-preview-iframe {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 260px;
+    height: 260px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(14px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    overflow: hidden;
+}
+
+.reaction-preview-iframe.show {
+    opacity: 1;
+}
+
+.reaction-preview-iframe iframe {
+    width: 100%;
+    height: 100%;
+}

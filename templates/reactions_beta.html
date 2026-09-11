@@ -40,8 +40,15 @@
 
             <div class="form-cell">
                 <label>Картинка / GIF</label>
-                <input type="file" id="reactionAddImage" accept="image/*">
+
+                <div class="file-wrapper">
+                    <div class="file-button">Выберите файл</div>
+                    <input type="file" id="reactionAddImage" class="file-input" accept="image/*">
+                </div>
+
+                <div id="reactionAddFileName" class="file-name">Файл не выбран</div>
             </div>
+
         </div>
 
         <button id="reactionAddBtn" class="btn-primary add-btn">Добавить</button>
@@ -115,6 +122,9 @@
 </div>
 
 <!-- MINI PREVIEW -->
-<div id="reactionPreviewToast" class="reaction-preview-toast"></div>
+<div id="reactionPreviewIframe" class="reaction-preview-iframe">
+    <iframe src="" frameborder="0"></iframe>
+</div>
+
 
 {% endblock %}
