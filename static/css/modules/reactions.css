@@ -269,3 +269,50 @@
     border-radius: 12px;
     object-fit: cover;
 }
+/* ============================================================
+   🌟 Универсальные стеклянные кнопки FlowTip
+============================================================ */
+
+.btn-primary {
+    background: rgba(255,255,255,0.22);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 10px 16px;
+    border-radius: 12px;
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.25s ease;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background: rgba(255,255,255,0.35);
+    transform: translateY(-2px);
+}
+
+/* Кнопка выбора файла */
+input[type="file"] {
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    width: 100%;
+}
+
+/* Кнопка закрытия модалки */
+.close-btn {
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.35);
+}
