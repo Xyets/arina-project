@@ -89,9 +89,10 @@ def close_period():
     mode = session.get("mode", "private")
     profile_key = f"{user}_{mode}"
 
+    # Загружаем профиль
     profile = get_profile_by_key(profile_key)
     if not profile:
-        return f"Профиль {profile_key} не найден", 500
+        return "Профиль не найден", 500
 
     stats_file = profile["stats_file"]
     archive_file = f"data/stats/stats_archive_{profile_key}.json"
@@ -101,74 +102,72 @@ def close_period():
     if not stats:
         return redirect(url_for("stats.stats_history"))
 
+    # Получаем диапазон дат
+    data = request.get_json()
+    start = data.get("start")
+    end = data.get("end")
+
+    if not start or not end:
+        return "Неверный диапазон дат", 400
+
+    # Фильтруем дни
+    selected_days = {
+        day: info for day, info in stats.items()
+        if start <= day <= end
+    }
+
+    if not selected_days:
+        return "Нет данных в выбранном диапазоне", 400
+
     # Загружаем архив
     try:
         with open(archive_file, "r", encoding="utf-8") as f:
             archive = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except:
         archive = {"periods": []}
 
-    # Определяем границы периода
-    days_sorted = sorted(stats.keys())
-    start_day = days_sorted[0]
-    end_day = days_sorted[-1]
+    # Итоги
+    total_vibr = sum(float(d.get("vibrations", 0)) for d in selected_days.values())
+    total_act = sum(float(d.get("actions", 0)) for d in selected_days.values())
+    total_other = sum(float(d.get("other", 0)) for d in selected_days.values())
+    total_points = sum(float(d.get("total", 0)) for d in selected_days.values())
 
-    # Итоговые суммы
-    total_vibr = 0
-    total_act = 0
-    total_other = 0
-    total_points = 0
-    total_archi = 0
-    total_income = 0
+    # ARCHI только для Irina
+    if user.lower() == "irina":
+        total_archi = sum(float(d.get("vibrations", 0)) * 0.7 * 0.1 for d in selected_days.values())
+    else:
+        total_archi = 0
 
-    for day, data in stats.items():
-        vibr = float(data.get("vibrations", 0))
-        act = float(data.get("actions", 0))
-        other = float(data.get("other", 0))
-        total = float(data.get("total", vibr + act + other))
+    total_income = total_points * 0.7 - total_archi
 
-        # ARCHI (только Irina)
-        if user.lower() == "irina":
-            archi_fee = vibr * 0.7 * 0.1
-        else:
-            archi_fee = 0.0
-
-        net_income = total * 0.7 - archi_fee
-
-        total_vibr += vibr
-        total_act += act
-        total_other += other
-        total_points += total
-        total_archi += archi_fee
-        total_income += net_income
-
-    # Создаём новый период
+    # Создаём период
     new_period = {
         "id": len(archive["periods"]) + 1,
-        "start": start_day,
-        "end": end_day,
+        "start": start,
+        "end": end,
         "vibrations": total_vibr,
         "actions": total_act,
         "other": total_other,
         "total_points": total_points,
         "archi_fee": total_archi,
         "total_income": total_income,
-        "days": stats
+        "days": selected_days
     }
 
     archive["periods"].append(new_period)
 
     # Сохраняем архив
-    tmp = archive_file + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
+    with open(archive_file, "w", encoding="utf-8") as f:
         json.dump(archive, f, indent=2, ensure_ascii=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, archive_file)
 
-    # Очищаем текущую статистику
+    # Удаляем закрытые дни из текущей статистики
+    remaining_days = {
+        day: info for day, info in stats.items()
+        if day < start or day > end
+    }
+
     with open(stats_file, "w", encoding="utf-8") as f:
-        json.dump({}, f)
+        json.dump(remaining_days, f, indent=2, ensure_ascii=False)
 
     return redirect(url_for("stats.stats_history"))
 # -------------------- НОВАЯ СТРАНИЦА СТАТИСТИКИ (SPA) --------------------
@@ -176,36 +175,40 @@ def close_period():
 @stats_bp.route("/stats_beta")
 @login_required
 def stats_beta_page():
-    user = session["username"]          # кто смотрит страницу (Arina или модель)
+    user = session["username"]          # кто смотрит страницу
     mode = session.get("mode", "private")
 
-    # --- список моделей (можно расширять) ---
-    models = ["Irina", "Arina"]         # позже добавишь Model2, Model3...
+    # список моделей
+    models = ["Irina", "Arina"]
 
-    # --- выбранная модель ---
+    # выбранная модель
     model = request.args.get("model", user)
 
-    # --- ключ профиля выбранной модели ---
+    # ключ профиля выбранной модели
     profile_key = f"{model}_{mode}"
 
     profile = get_profile_by_key(profile_key)
     if not profile:
         return f"Профиль {profile_key} не найден", 500
 
-    # --- загружаем статистику выбранной модели ---
+    # загружаем статистику выбранной модели
     stats_data = load_stats(profile_key)
 
-    # --- считаем статистику выбранной модели ---
+    # считаем статистику выбранной модели
     results, summary = calculate_stats(stats_data, user=model)
+
+    # можно ли закрывать период?
+    can_close_period = (user == model)
 
     return render_template(
         "stats_beta.html",
-        user=user,            # кто смотрит
-        model=model,          # чья статистика отображается
-        models=models,        # список моделей для выбора
+        user=user,
+        model=model,
+        models=models,
         results=results,
         summary=summary,
         profile_key=profile_key,
-        mode=mode
+        mode=mode,
+        can_close_period=can_close_period
     )
 

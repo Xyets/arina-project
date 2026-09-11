@@ -145,20 +145,34 @@
 
         <!-- ACTION BUTTONS -->
         <div class="stats-actions">
-            <a href="{{ url_for('panel.index') }}" class="glass-btn">⬅ На главную</a>
             <a href="{{ url_for('stats.stats_history') }}" class="glass-btn">📜 История</a>
+            {% if user == model %}
             <button class="glass-btn danger" onclick="showConfirm()">📦 Завершить период</button>
+            {% endif %}
+
         </div>
 
         <!-- MODAL -->
         <div id="modalOverlay" class="modal-overlay"></div>
         <div id="confirmModal" class="glass-modal">
-            <p>Вы уверены, что хотите завершить период?</p>
+            <h3>📦 Завершить период</h3>
+
+            <p>Выберите диапазон дат, который нужно отправить в архив:</p>
+
+            <div class="modal-date-range">
+                <label>С даты:</label>
+                <input type="date" id="periodStart">
+
+                <label>По дату:</label>
+                <input type="date" id="periodEnd">
+            </div>
+
             <div class="modal-actions">
-                <button class="glass-btn" onclick="submitClosePeriod()">Да</button>
-                <button class="glass-btn danger" onclick="hideConfirm()">Нет</button>
+                <button class="glass-btn" onclick="submitClosePeriod()">Отправить</button>
+                <button class="glass-btn danger" onclick="hideConfirm()">Отмена</button>
             </div>
         </div>
+
 
     </div>
 

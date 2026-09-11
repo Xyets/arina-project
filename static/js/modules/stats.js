@@ -125,8 +125,19 @@ function initModal() {
 
     window.submitClosePeriod = () => {
         hideConfirm();
-        form.submit();
+
+        const start = document.getElementById("periodStart").value;
+        const end = document.getElementById("periodEnd").value;
+
+        fetch("/close_period", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ start, end })
+        }).then(() => {
+            window.location.href = "/stats_history";
+        });
     };
+
 
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") hideConfirm();
