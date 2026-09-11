@@ -12,26 +12,6 @@ export function initReactionsPage(showToast) {
     initCloseModal();
     initCopyObsLink(showToast);
 }
-
-/* ============================================================
-   🔔 МИНИ-ПРЕВЬЮ РЕАКЦИИ (TOAST)
-============================================================ */
-function showReactionPreview(image, duration) {
-    const toast = document.getElementById("reactionPreviewToast");
-    if (!toast) return;
-
-    toast.innerHTML = `
-        <img src="${image}" class="reaction-preview-thumb">
-        <div>${duration} сек</div>
-    `;
-
-    toast.classList.add("show");
-
-    setTimeout(() => {
-        toast.classList.remove("show");
-    }, duration * 1000);
-}
-
 /* ============================================================
    🔔 ТЕСТ РЕАКЦИИ
 ============================================================ */
@@ -54,16 +34,6 @@ function initTestButtons(showToast) {
                 if (data.status === "ok") {
                     showToast("Тест отправлен в OBS");
 
-                    // мини-iframe превью
-                    const iframeBox = document.getElementById("reactionPreviewIframe");
-                    const iframe = iframeBox.querySelector("iframe");
-
-                    iframe.src = `/obs_reactions/${window.CURRENT_USER}/${window.CURRENT_MODE}?profile_key=${window.CURRENT_PROFILE}`;
-                    iframeBox.classList.add("show");
-
-                    setTimeout(() => {
-                        iframeBox.classList.remove("show");
-                    }, 3000);
                 }
             });
         };
