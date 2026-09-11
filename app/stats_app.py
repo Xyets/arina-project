@@ -171,3 +171,27 @@ def close_period():
         json.dump({}, f)
 
     return redirect(url_for("stats.stats_history"))
+# -------------------- НОВАЯ СТРАНИЦА СТАТИСТИКИ (SPA) --------------------
+
+@stats_bp.route("/stats_beta")
+@login_required
+def stats_beta_page():
+    user = session["username"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return f"Профиль {profile_key} не найден", 500
+
+    stats_data = load_stats(profile_key)
+    results, summary = calculate_stats(stats_data, user=user)
+
+    return render_template(
+        "stats_beta.html",
+        user=user,
+        results=results,
+        summary=summary,
+        profile_key=profile_key,
+        mode=mode
+    )

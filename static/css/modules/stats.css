@@ -1,0 +1,234 @@
+/* ============================================================
+   📊 Стеклянная аналитика FlowTip — stats.css
+============================================================ */
+
+/* Общий стиль страницы */
+.stats-page {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* ============================================================
+   🧊 Стеклянный заголовок
+============================================================ */
+.glass-header {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: 25px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.glass-header h2 {
+    margin: 0;
+    font-size: 28px;
+    color: var(--text-main);
+}
+
+.header-sub {
+    margin-top: 8px;
+    font-size: 15px;
+    color: var(--text-secondary);
+}
+
+/* ============================================================
+   💎 Карточки итогов
+============================================================ */
+.stats-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 20px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    transition: 0.25s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    background: rgba(255,255,255,0.22);
+}
+
+.stat-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.stat-label {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* ============================================================
+   📈 График
+============================================================ */
+.chart-card {
+    padding: 25px;
+}
+
+#statsChart {
+    width: 100%;
+    height: 320px;
+}
+
+/* ============================================================
+   📅 Таблица
+============================================================ */
+.table-card {
+    padding: 25px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.glass-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.glass-table thead {
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(12px);
+}
+
+.glass-table th {
+    padding: 12px;
+    font-size: 15px;
+    color: var(--text-main);
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+}
+
+.glass-table td {
+    padding: 10px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.glass-table tbody tr {
+    background: rgba(255,255,255,0.12);
+    transition: 0.2s ease;
+}
+
+.glass-table tbody tr:hover {
+    background: rgba(255,255,255,0.22);
+}
+
+.glass-table tfoot tr {
+    background: rgba(255,255,255,0.25);
+    font-weight: 600;
+}
+
+/* ============================================================
+   🔘 Кнопки действий
+============================================================ */
+.stats-actions {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+}
+
+.glass-btn {
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.25s ease;
+    text-decoration: none;
+}
+
+.glass-btn:hover {
+    background: rgba(255,255,255,0.35);
+    transform: translateY(-3px);
+}
+
+.glass-btn.danger {
+    background: rgba(255,120,120,0.25);
+    border-color: rgba(255,120,120,0.35);
+}
+
+.glass-btn.danger:hover {
+    background: rgba(255,120,120,0.35);
+}
+
+/* ============================================================
+   🧊 Модалка
+============================================================ */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 9998;
+}
+
+.glass-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(16px);
+    border-radius: 18px;
+    padding: 25px;
+    width: 320px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    z-index: 9999;
+}
+
+.glass-modal p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: var(--text-main);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* ============================================================
+   📱 Адаптивность
+============================================================ */
+@media (max-width: 600px) {
+    .stats-summary-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+
+    .glass-header h2 {
+        font-size: 22px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+    }
+}

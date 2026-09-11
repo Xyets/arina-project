@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content-inner">
+
+    <div class="stats-page">
+
+        <!-- HEADER -->
+        <div class="glass-header">
+            <h2>📊 Статистика для {{ user }}</h2>
+            <div class="header-sub">Период: {{ summary.period_label }}</div>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="stats-summary-grid">
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value">{{ summary.total_income|int }}</div>
+                <div class="stat-label">Заработано всего</div>
+            </div>
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">🏰</div>
+                <div class="stat-value">{{ summary.sum_vibr|int }}</div>
+                <div class="stat-label">Вибрации</div>
+            </div>
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">{{ summary.sum_act|int }}</div>
+                <div class="stat-label">Действия</div>
+            </div>
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">🎲</div>
+                <div class="stat-value">{{ summary.sum_other|int }}</div>
+                <div class="stat-label">Иное</div>
+            </div>
+
+            {% if user == "Irina" %}
+            <div class="glass-card stat-card">
+                <div class="stat-icon">💗</div>
+                <div class="stat-value">{{ summary.archi_fee|int }}</div>
+                <div class="stat-label">% Арчи</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- CHART -->
+        <div class="glass-card chart-card">
+            <h3>📈 Динамика по дням</h3>
+            <canvas id="statsChart"></canvas>
+        </div>
+
+        <!-- TABLE -->
+        <div class="glass-card table-card">
+            <h3>📅 Таблица по дням</h3>
+
+            <div class="table-wrapper">
+                <table class="glass-table">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Вибрации</th>
+                            <th>Действия</th>
+                            <th>Иное</th>
+                            <th>Всего</th>
+                            {% if user == "Irina" %}
+                            <th>%Арчи</th>
+                            {% endif %}
+                            <th>Чистый доход</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for day, data in results.items() %}
+                        <tr>
+                            <td>{{ day }}</td>
+                            <td>{{ data.vibrations|int }}</td>
+                            <td>{{ data.actions|int }}</td>
+                            <td>{{ data.other|int }}</td>
+                            <td>{{ data.total|int }}</td>
+                            {% if user == "Irina" %}
+                            <td>{{ data.archi_fee|int }}</td>
+                            {% endif %}
+                            <td>{{ data.net_income|int }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <td>Итого</td>
+                            <td>{{ summary.sum_vibr|int }}</td>
+                            <td>{{ summary.sum_act|int }}</td>
+                            <td>{{ summary.sum_other|int }}</td>
+                            <td>{{ summary.sum_donations|int }}</td>
+                            {% if user == "Irina" %}
+                            <td>{{ summary.archi_fee|int }}</td>
+                            {% endif %}
+                            <td>{{ summary.total_income|int }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="stats-actions">
+            <a href="{{ url_for('panel.index') }}" class="glass-btn">⬅ На главную</a>
+            <a href="{{ url_for('stats.stats_history') }}" class="glass-btn">📜 История</a>
+            <button class="glass-btn danger" onclick="showConfirm()">📦 Завершить период</button>
+        </div>
+
+        <!-- MODAL -->
+        <div id="modalOverlay" class="modal-overlay"></div>
+        <div id="confirmModal" class="glass-modal">
+            <p>Вы уверены, что хотите завершить период?</p>
+            <div class="modal-actions">
+                <button class="glass-btn" onclick="submitClosePeriod()">Да</button>
+                <button class="glass-btn danger" onclick="hideConfirm()">Нет</button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script id="stats-data" type="application/json">
+    {{ results|tojson|safe }}
+</script>
+
+<script src="{{ url_for('static', filename='js/modules/stats.js') }}"></script>
+
+{% endblock %}

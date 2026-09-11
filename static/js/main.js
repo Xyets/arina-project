@@ -45,6 +45,7 @@ import { loadQR, refreshQR } from "/static/js/modules/qr.js";
 import { initQueueButtons } from "/static/js/modules/queue.js";
 import { initTypeSelector } from "/static/js/modules/type_selector.js";
 import { showMemberCard, hideMemberCard } from "/static/js/modules/member_card.js";
+import { initStatsPage } from "/static/js/modules/stats.js";
 
 /* ============================================================
    🌍 Глобальные функции для HTML
@@ -133,6 +134,11 @@ function initPageAfterContent() {
     // Страница реакций
     if (document.querySelector(".reactions-page")) {
         initReactionsPage(showToast);
+    }
+    
+    // Страница статистики
+    if (document.querySelector(".stats-page")) {
+        initStatsPage();
     }
 
 }
