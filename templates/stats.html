@@ -96,7 +96,7 @@
         <tr>
           <td><b>{{ summary.total_income|default(0)|int }}</b></td>
           {% if user in ["Irina","Arina"] %}
-            <td><b>{{ summary.archi_fee|default(0)|int }}</b></td>
+            <td><b>{{ summary.admin_fee|default(0)|int }}</b></td>
           {% endif %}
         </tr>
       </table>
@@ -128,7 +128,7 @@
           <td>{{ data.other|default(0)|int }}</td>
           <td>{{ data.total|default(0)|int }}</td>
           {% if user == "Irina" %}
-            <td><b>{{ data.archi_fee|default(0)|int }}</b></td>
+            <td><b>{{ data.admin_fee|default(0)|int }}</b></td>
           {% endif %}
           <td><b>{{ data.net_income|default(0)|int }}</b></td>
         </tr>
@@ -140,7 +140,7 @@
           <td>{{ summary.sum_other|default(0)|int }}</td>
           <td>{{ summary.sum_donations|default(0)|int }}</td>
           {% if user == "Irina" %}
-            <td>{{ summary.archi_fee|default(0)|int }}</td>
+            <td>{{ summary.admin_fee|default(0)|int }}</td>
           {% endif %}
           <td>{{ summary.total_income|default(0)|int }}</td>
         </tr>

@@ -38,13 +38,24 @@
                 <div class="stat-label">Иное</div>
             </div>
 
-            {% if user == "Irina" %}
+            {% if user != "Arina" %}
+            <!-- МОДЕЛЬ: процент админу -->
             <div class="glass-card stat-card">
                 <div class="stat-icon">💗</div>
-                <div class="stat-value">{{ summary.archi_fee|int }}</div>
-                <div class="stat-label">% Арчи</div>
+                <div class="stat-value">{{ summary.admin_fee|int }}</div>
+                <div class="stat-label">% Админу</div>
             </div>
             {% endif %}
+
+            {% if user == "Arina" %}
+            <!-- АДМИН: доход от моделей -->
+            <div class="glass-card stat-card">
+                <div class="stat-icon">👑</div>
+                <div class="stat-value">{{ summary.models_income|int }}</div>
+                <div class="stat-label">Доход от моделей</div>
+            </div>
+            {% endif %}
+
         </div>
 
         <!-- CHART -->
@@ -66,9 +77,15 @@
                             <th>Действия</th>
                             <th>Иное</th>
                             <th>Всего</th>
-                            {% if user == "Irina" %}
-                            <th>%Арчи</th>
+
+                            {% if user != "Arina" %}
+                            <th>%Админу</th>
                             {% endif %}
+
+                            {% if user == "Arina" %}
+                            <th>Доход от моделей</th>
+                            {% endif %}
+
                             <th>Чистый доход</th>
                         </tr>
                     </thead>
@@ -81,9 +98,15 @@
                             <td>{{ data.actions|int }}</td>
                             <td>{{ data.other|int }}</td>
                             <td>{{ data.total|int }}</td>
-                            {% if user == "Irina" %}
-                            <td>{{ data.archi_fee|int }}</td>
+
+                            {% if user != "Arina" %}
+                            <td>{{ data.admin_fee|int }}</td>
                             {% endif %}
+
+                            {% if user == "Arina" %}
+                            <td>{{ data.models_income|int }}</td>
+                            {% endif %}
+
                             <td>{{ data.net_income|int }}</td>
                         </tr>
                     {% endfor %}
@@ -96,9 +119,15 @@
                             <td>{{ summary.sum_act|int }}</td>
                             <td>{{ summary.sum_other|int }}</td>
                             <td>{{ summary.sum_donations|int }}</td>
-                            {% if user == "Irina" %}
-                            <td>{{ summary.archi_fee|int }}</td>
+
+                            {% if user != "Arina" %}
+                            <td>{{ summary.admin_fee|int }}</td>
                             {% endif %}
+
+                            {% if user == "Arina" %}
+                            <td>{{ summary.models_income|int }}</td>
+                            {% endif %}
+
                             <td>{{ summary.total_income|int }}</td>
                         </tr>
                     </tfoot>
