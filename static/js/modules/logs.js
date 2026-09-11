@@ -1,9 +1,16 @@
-// logs.js — модуль цветных логов
+// static/js/modules/logs.js
+
+/* ============================================================
+   Логи — состояние
+============================================================ */
 
 let lastLogCount = 0;
 let logInterval = null;
 
-// Классификация логов по типам
+/* ============================================================
+   Классификация логов
+============================================================ */
+
 export function classifyLog(log) {
     log = log.toLowerCase();
 
@@ -15,15 +22,24 @@ export function classifyLog(log) {
     return "system";
 }
 
-// Загрузка логов
+/* ============================================================
+   Загрузка логов (без дублирования)
+============================================================ */
+
 export async function loadLogs() {
     const box = document.getElementById("logbox");
-    if (!box) return;
+    if (!box) return; // SPA может перерисовать страницу
 
     const res = await fetch("/logs_data");
     const data = await res.json();
 
     const logs = data.logs || [];
+
+    // если logbox пустой — сбрасываем счётчик
+    if (box.children.length === 0) {
+        lastLogCount = 0;
+    }
+
     const newLogs = logs.slice(lastLogCount);
     lastLogCount = logs.length;
 
@@ -38,13 +54,19 @@ export async function loadLogs() {
     });
 }
 
+/* ============================================================
+   Кнопки логов
+============================================================ */
+
 export function initLogButtons(showToast) {
     const clearLogsBtn = document.getElementById("clearLogsBtn");
     if (!clearLogsBtn) return;
 
     clearLogsBtn.onclick = () => {
         resetLogsCounter();
-        document.getElementById("logbox").innerHTML = "";
+
+        const box = document.getElementById("logbox");
+        if (box) box.innerHTML = "";
 
         fetch("/clear_logs", { method: "POST" })
             .then(() => showToast("Логи очищены ✅"))
@@ -52,12 +74,23 @@ export function initLogButtons(showToast) {
     };
 }
 
+/* ============================================================
+   Автообновление — запускается только один раз
+============================================================ */
 
-// Автообновление логов
 export function startLogAutoUpdate() {
-    if (logInterval) clearInterval(logInterval);
-    logInterval = setInterval(loadLogs, 2000);
+    if (logInterval) return; // предотвращаем дублирование таймеров
+
+    logInterval = setInterval(() => {
+        const box = document.getElementById("logbox");
+        if (box) loadLogs();
+    }, 2000);
 }
+
+/* ============================================================
+   Сброс счётчика
+============================================================ */
+
 export function resetLogsCounter() {
     lastLogCount = 0;
 }

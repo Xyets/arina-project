@@ -1,6 +1,5 @@
 // websocket.js — модуль WebSocket для FlowTip
 import { showMemberCard, hideMemberCard } from "./member_card.js";
-
 import {
     createDeleteRule,
     createDeleteSegment
@@ -9,8 +8,16 @@ import {
 export let socket = null;
 let wsReconnectAttempts = 0;
 const WS_MAX_RECONNECT = 10;
+let wsInitialized = false;
 
+export let vibrationQueue = [];
+
+/* ============================================================
+   🚀 Инициализация WebSocket (один раз)
+============================================================ */
 export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloadInnerContent, showToast) {
+    if (wsInitialized) return;
+    wsInitialized = true;
 
     window.CURRENT_USER = CURRENT_USER;
     window.CURRENT_MODE = CURRENT_MODE;
@@ -41,6 +48,7 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             }, 30000);
         };
 
+        // Глобальные функции удаления правил/сегментов
         window.deleteRule = createDeleteRule(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
         window.deleteSegment = createDeleteSegment(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
 
@@ -58,119 +66,119 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
             try { data = JSON.parse(event.data); }
             catch { return; }
 
-            handleWSMessage(data);
+            handleWSMessage(data, reloadInnerContent, showToast);
         };
-    }
-
-    function handleWSMessage(data) {
-
-        // 🔴 1) LOGOUT — абсолютный приоритет
-        if (data.event === "logout" || data.type === "member_exit") {
-            hideMemberCard();
-            return;
-        }
-
-        // 👤 2) VIP entry — только если нет logout
-        if (data.entry) {
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.entry.name,
-                    note: data.entry.notes || "—",
-                    last_seen: new Date().toLocaleString(),
-                    tips: data.entry.total_tips || 0,
-                    visits: data.entry.visits || 0
-                });
-            }
-            return;
-        }
-
-        // 🟦 3) login fallback — только если нет logout
-        if (data.event === "login") {
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.name || data.user,
-                    note: data.note || "—",
-                    last_seen: new Date().toLocaleString(),
-                    tips: data.tips || 0
-                });
-            }
-            return;
-        }
-
-        // 🟦 4) новый формат входа
-        if (data.type === "member_enter") {
-            if (window.CURRENT_MODE === "private") {
-                showMemberCard({
-                    username: data.username,
-                    note: data.note,
-                    last_seen: data.last_seen,
-                    tips: data.tips,
-                    visits: data.visits
-                });
-            }
-            return;
-        }
-
-        // 🔄 Логи
-        if (data.type === "refresh_logs") {
-            window.loadLogs?.();
-            return;
-        }
-
-        if (data.status === "hello_ok") {
-            return;
-        }
-
-        // 🔔 Вибрация
-        if (data.vibration) {
-            startVibrationTimer(data.vibration.duration, data.vibration.strength);
-            return;
-        }
-
-        // 🔁 Очередь вибраций
-        if (data.queue_update) {
-            vibrationQueue.length = 0;
-            (data.queue || []).forEach(v => {
-                vibrationQueue.push({ strength: v[0], duration: v[1] });
-            });
-            updateQueueUI();
-            return;
-        }
-
-        // 🎯 Обновление цели
-        if (data.goal_update) {
-            window.updateGoalCircle?.(data.goal);
-            return;
-        }
-
-        // ⚙️ Обновление правил
-        if (data.rules_update) {
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    window.initRuleForms?.(window.CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    window.initRuleModals?.();
-                }
-            });
-            return;
-        }
-
-        // 👑 Обновление VIP
-        if (data.vip_update) {
-            window.loadVipList?.();
-            return;
-        }
     }
 
     connectWS();
 }
 
+/* ============================================================
+   📩 Обработка сообщений WebSocket
+============================================================ */
+function handleWSMessage(data, reloadInnerContent, showToast) {
 
-// =========================
-// ВИБРАЦИИ
-// =========================
+    // 🔴 LOGOUT / выход мембера
+    if (data.event === "logout" || data.type === "member_exit") {
+        hideMemberCard();
+        return;
+    }
 
-export let vibrationQueue = [];
+    // 👤 VIP entry (старый формат)
+    if (data.entry) {
+        if (window.CURRENT_MODE === "private") {
+            showMemberCard({
+                username: data.entry.name,
+                note: data.entry.notes || "—",
+                last_seen: new Date().toLocaleString(),
+                tips: data.entry.total_tips || 0,
+                visits: data.entry.visits || 0
+            });
+        }
+        return;
+    }
 
+    // 👤 login fallback
+    if (data.event === "login") {
+        if (window.CURRENT_MODE === "private") {
+            showMemberCard({
+                username: data.name || data.user,
+                note: data.note || "—",
+                last_seen: new Date().toLocaleString(),
+                tips: data.tips || 0
+            });
+        }
+        return;
+    }
+
+    // 👤 новый формат входа
+    if (data.type === "member_enter") {
+        if (window.CURRENT_MODE === "private") {
+            showMemberCard({
+                username: data.username,
+                note: data.note,
+                last_seen: data.last_seen,
+                tips: data.tips,
+                visits: data.visits
+            });
+        }
+        return;
+    }
+
+    // 🔄 Логи
+    if (data.type === "refresh_logs") {
+        window.loadLogs?.();
+        return;
+    }
+
+    if (data.status === "hello_ok") {
+        return;
+    }
+
+    // 🔔 Вибрация
+    if (data.vibration) {
+        startVibrationTimer(data.vibration.duration, data.vibration.strength);
+        return;
+    }
+
+    // 🔁 Очередь вибраций
+    if (data.queue_update) {
+        vibrationQueue.length = 0;
+        (data.queue || []).forEach(v => {
+            vibrationQueue.push({ strength: v[0], duration: v[1] });
+        });
+        updateQueueUI();
+        return;
+    }
+
+    // 🎯 Обновление цели
+    if (data.goal_update) {
+        window.updateGoalCircle?.(data.goal);
+        return;
+    }
+
+    // ⚙️ Обновление правил — мягко, через reloadInnerContent
+    if (data.rules_update) {
+        reloadInnerContent(() => {
+            if (document.querySelector(".rules-page")) {
+                window.initRuleForms?.(window.CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                window.initRuleModals?.();
+                window.updateNewRuleFields?.();
+            }
+        });
+        return;
+    }
+
+    // 👑 Обновление VIP
+    if (data.vip_update) {
+        window.loadVipList?.();
+        return;
+    }
+}
+
+/* ============================================================
+   🔁 Очередь вибраций
+============================================================ */
 export function updateQueueUI() {
     const box = document.getElementById("queuebox");
     if (!box) return;
@@ -189,6 +197,9 @@ export function updateQueueUI() {
         .join("");
 }
 
+/* ============================================================
+   💖 Таймер вибрации
+============================================================ */
 export function startVibrationTimer(duration, strength) {
     if (window._vibrationTimerActive) return;
     window._vibrationTimerActive = true;
@@ -233,6 +244,9 @@ export function startVibrationTimer(duration, strength) {
     };
 }
 
+/* ============================================================
+   ⛔ Остановка вибрации
+============================================================ */
 export function sendStop() {
     const profile_key = window.CURRENT_PROFILE || `${window.CURRENT_USER}_${window.CURRENT_MODE}`;
 

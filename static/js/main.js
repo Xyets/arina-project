@@ -68,14 +68,44 @@ let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
 
 /* ============================================================
-   🔧 Инициализация обработчиков
+   🔧 Инициализация глобальных обработчиков (то, что не зависит от SPA)
 ============================================================ */
 function initHandlers() {
     initSidebar();
     initModeSwitch();
 
-    initLogButtons(showToast);
+    // Модал цели — глобальный, не зависит от конкретной вкладки
+    initGoalModal(showToast, () =>
+        loadGoalFromServer(updateGoalCircle, CURRENT_MODE)
+    );
+}
 
+/* ============================================================
+   🧩 Инициализация контента после загрузки/перерисовки .content-inner
+   (единая точка входа для SPA)
+============================================================ */
+function initPageAfterContent() {
+    // Поиск
+    initSearchEnter();
+
+    // Видимость цели и сама цель
+    updateGoalVisibility(CURRENT_MODE);
+    loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
+
+    // QR
+    loadQR();
+
+    // Типы правил
+    initTypeSelector(updateNewRuleFields);
+
+    // Логи и кнопки логов
+    if (document.getElementById("logbox")) {
+        loadLogs();
+        initLogButtons(showToast);
+    }
+
+    // Очередь вибраций
+    updateQueueUI();
     initQueueButtons(
         socket,
         vibrationQueue,
@@ -86,16 +116,26 @@ function initHandlers() {
         CURRENT_PROFILE
     );
 
-    initGoalModal(showToast, () =>
-        loadGoalFromServer(updateGoalCircle, CURRENT_MODE)
-    );
+    // Страница правил
+    if (document.querySelector(".rules-page")) {
+        initRulesPage(socket, showToast);
+        initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+        initRuleModals();
+        updateNewRuleFields();
+        loadLogs();
+    }
+
+    // Страница VIP
+    if (document.querySelector(".vip-grid")) {
+        initVipPage();
+    }
 }
 
 /* ============================================================
    🚀 Старт приложения
 ============================================================ */
 window.addEventListener("load", () => {
-
+    // WebSocket — один раз за жизнь страницы
     initWebSocket(
         CURRENT_USER,
         CURRENT_MODE,
@@ -107,12 +147,11 @@ window.addEventListener("load", () => {
     initHandlers();
     initSidebarNavigation();
 
-    loadQR();
-    loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
-    initTypeSelector(updateNewRuleFields);
+    // Первичная инициализация контента главной страницы
+    initPageAfterContent();
 
+    // Автообновление логов
     startLogAutoUpdate();
-    initSearchEnter();
 });
 
 /* ============================================================
@@ -124,7 +163,9 @@ function initSidebarNavigation() {
     links.forEach(link => {
         link.addEventListener("click", e => {
             e.preventDefault();
-            navigateSPA(link.getAttribute("href"));
+            const href = link.getAttribute("href");
+            if (!href) return;
+            navigateSPA(href);
         });
     });
 }
@@ -144,48 +185,19 @@ function navigateSPA(url) {
         .then(r => r.text())
         .then(html => {
             const doc = new DOMParser().parseFromString(html, "text/html");
-            container.innerHTML = doc.querySelector(".content-inner").innerHTML;
+            const inner = doc.querySelector(".content-inner");
+            if (!inner) return;
 
-            initSearchEnter();
+            container.innerHTML = inner.innerHTML;
 
+            // Сброс счётчика логов при переходе
             if (document.getElementById("logbox")) {
                 resetLogsCounter();
             }
 
             setTimeout(() => {
                 container.style.opacity = "1";
-
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    initRuleModals();
-                    updateNewRuleFields();
-                    loadLogs();
-                }
-
-                loadLogs();
-                updateQueueUI();
-                loadQR();
-                loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
-                initTypeSelector(updateNewRuleFields);
-                updateGoalVisibility(CURRENT_MODE);
-
-                initLogButtons(showToast);
-
-                initQueueButtons(
-                    socket,
-                    vibrationQueue,
-                    updateQueueUI,
-                    showToast,
-                    CURRENT_USER,
-                    CURRENT_MODE,
-                    CURRENT_PROFILE
-                );
-
-                if (document.querySelector(".vip-grid")) {
-                    initVipPage();
-                }
-
+                initPageAfterContent();
             }, 50);
         });
 }
@@ -235,7 +247,14 @@ function initModeSwitch() {
                     initRulesPage(socket, showToast);
                     initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
                     initRuleModals();
+                    updateNewRuleFields();
                 }
+
+                if (document.querySelector(".vip-grid")) {
+                    initVipPage();
+                }
+
+                initPageAfterContent();
             });
 
             showToast(`Режим переключен: ${newMode}`);
@@ -244,7 +263,7 @@ function initModeSwitch() {
 }
 
 /* ============================================================
-   🔄 Обновление внутреннего контента
+   🔄 Обновление внутреннего контента (используется WebSocket и режим)
 ============================================================ */
 function reloadInnerContent(callback) {
     const container = document.querySelector(".content-inner");
@@ -256,45 +275,21 @@ function reloadInnerContent(callback) {
         .then(r => r.text())
         .then(html => {
             const doc = new DOMParser().parseFromString(html, "text/html");
-            container.innerHTML = doc.querySelector(".content-inner").innerHTML;
+            const inner = doc.querySelector(".content-inner");
+            if (!inner) return;
 
-            initSearchEnter();
+            container.innerHTML = inner.innerHTML;
 
             setTimeout(() => {
                 container.style.opacity = "1";
 
+                // Сначала пользовательский callback (если есть)
                 if (callback) {
                     callback();
-                } else if (document.querySelector(".rules-page")) {
-                    initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    initRuleModals();
-                    updateNewRuleFields();
                 }
 
-                setTimeout(loadLogs, 10);
-                updateQueueUI();
-                loadQR();
-                loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
-                initTypeSelector(updateNewRuleFields);
-                updateGoalVisibility(CURRENT_MODE);
-
-                initLogButtons(showToast);
-
-                initQueueButtons(
-                    socket,
-                    vibrationQueue,
-                    updateQueueUI,
-                    showToast,
-                    CURRENT_USER,
-                    CURRENT_MODE,
-                    CURRENT_PROFILE
-                );
-
-                if (document.querySelector(".vip-grid")) {
-                    initVipPage();
-                }
-
+                // Затем общая инициализация контента
+                initPageAfterContent();
             }, 50);
         });
 }

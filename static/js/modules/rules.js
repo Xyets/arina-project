@@ -8,7 +8,11 @@ export function sendRuleCommand(socket, payload) {
     socket.send(JSON.stringify(payload));
 }
 
-export function createDeleteRule(socket, CURRENT_PROFILE, reloadInnerContent, showToast) {
+/* ============================================================
+   RULES — Delete rule / segment (без reloadInnerContent!)
+============================================================ */
+
+export function createDeleteRule(socket, CURRENT_PROFILE, showToast) {
     return function(id) {
         sendRuleCommand(socket, {
             type: "delete_rule",
@@ -17,18 +21,11 @@ export function createDeleteRule(socket, CURRENT_PROFILE, reloadInnerContent, sh
         });
 
         showToast("Правило удалено");
-
-        reloadInnerContent(() => {
-            if (document.querySelector(".rules-page")) {
-                initRulesPage(socket, showToast);
-                initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                initRuleModals();
-            }
-        });
+        // SPA сама обновит страницу через WebSocket rules_update
     };
 }
 
-export function createDeleteSegment(socket, CURRENT_PROFILE, reloadInnerContent, showToast) {
+export function createDeleteSegment(socket, CURRENT_PROFILE, showToast) {
     return function(ruleId, segIndex) {
         sendRuleCommand(socket, {
             type: "delete_segment",
@@ -38,14 +35,7 @@ export function createDeleteSegment(socket, CURRENT_PROFILE, reloadInnerContent,
         });
 
         showToast("Сегмент удалён");
-
-        reloadInnerContent(() => {
-            if (document.querySelector(".rules-page")) {
-                initRulesPage(socket, showToast);
-                initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                initRuleModals();
-            }
-        });
+        // SPA сама обновит страницу через WebSocket rules_update
     };
 }
 
@@ -56,12 +46,14 @@ export function createDeleteSegment(socket, CURRENT_PROFILE, reloadInnerContent,
 export function initRulesPage(socket, showToast) {
     if (!document.querySelector(".rules-page")) return;
 
+    // Заполнение прогресс‑баров сегментов
     document.querySelectorAll(".segment-chance-fill").forEach(el => {
         if (el.dataset.chance) {
             el.style.width = el.dataset.chance + "%";
         }
     });
 
+    // Тест вибрации
     const testVibrationBtn = document.getElementById("testVibrationBtn");
     if (testVibrationBtn) {
         testVibrationBtn.onclick = () => {
@@ -72,6 +64,7 @@ export function initRulesPage(socket, showToast) {
         };
     }
 
+    // Тест правила
     document.querySelectorAll(".testRuleBtn").forEach(btn => {
         btn.onclick = () => {
             const index = btn.dataset.index;
@@ -93,11 +86,12 @@ export function initRulesPage(socket, showToast) {
         };
     });
 }
+
 /* ============================================================
    RULES — Forms (Add / Edit / Segment)
 ============================================================ */
 
-export function initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast) {
+export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
     if (!document.querySelector(".rules-page")) return;
 
     // Удаляем старые обработчики
@@ -134,14 +128,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showT
 
             sendRuleCommand(socket, payload);
             showToast("Правило добавлено");
-
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    initRuleModals();
-                }
-            });
+            // SPA сама обновит страницу через WebSocket rules_update
         });
     }
 
@@ -166,14 +153,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showT
 
             sendRuleCommand(socket, payload);
             showToast("Правило обновлено");
-
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    initRuleModals();
-                }
-            });
+            // SPA сама обновит страницу через WebSocket rules_update
         });
     }
 
@@ -198,14 +178,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showT
 
             sendRuleCommand(socket, payload);
             showToast("Сегмент добавлен");
-
-            reloadInnerContent(() => {
-                if (document.querySelector(".rules-page")) {
-                    initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                    initRuleModals();
-                }
-            });
+            // SPA сама обновит страницу через WebSocket rules_update
         });
     }
 }
