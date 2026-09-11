@@ -217,23 +217,7 @@
 }
 
 /* ============================================================
-   📱 Адаптивность
-============================================================ */
-@media (max-width: 600px) {
-    .stats-summary-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    }
-
-    .glass-header h2 {
-        font-size: 22px;
-    }
-
-    .stat-value {
-        font-size: 22px;
-    }
-}
-/* ============================================================
-   👤 Стеклянный селектор моделей (как в правилах)
+   👤 Стеклянный селектор моделей
 ============================================================ */
 
 .model-select-card {
@@ -244,6 +228,7 @@
     border: 1px solid rgba(255,255,255,0.25);
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     text-align: center;
+    position: relative; /* ВАЖНО */
 }
 
 .model-label {
@@ -298,7 +283,8 @@
     display: none;
     flex-direction: column;
     animation: fadeIn 0.25s ease;
-    z-index: 10;
+    z-index: 99999; /* ВАЖНО */
+    pointer-events: auto; /* ВАЖНО */
 }
 
 /* Анимация появления */
@@ -322,25 +308,20 @@
     background: rgba(255,255,255,0.85);
     transform: translateY(-2px);
 }
-.modal-date-range {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
-}
 
-.modal-date-range label {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-main);
-}
+/* ============================================================
+   📱 Адаптивность
+============================================================ */
+@media (max-width: 600px) {
+    .stats-summary-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
 
-.modal-date-range input {
-    padding: 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.55);
-    backdrop-filter: blur(10px);
-    font-size: 15px;
-    color: var(--text-main);
+    .glass-header h2 {
+        font-size: 22px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+    }
 }
