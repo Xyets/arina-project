@@ -108,22 +108,7 @@ def update_donations_sum(profile_key: str, amount: float = 0.0) -> None:
 
 # ---------------- CALCULATE ----------------
 
-def calculate_stats(
-    stats: Dict[str, Dict],
-    user: str
-) -> Tuple[Dict[str, Dict], Dict[str, float]]:
-    """
-    Считает статистику для конкретного профиля.
-    Логика:
-    - МОДЕЛЬ (Irina, другие):
-        admin_fee = процент админу
-        net_income = доход модели после выплаты админу
-
-    - АДМИН (Arina):
-        models_income = доход от этой модели
-        net_income = доход админа от этой модели
-    """
-
+def calculate_stats(stats: Dict[str, Dict], user: str):
     results = {}
 
     sum_vibr = sum(d["vibrations"] for d in stats.values())
@@ -133,8 +118,8 @@ def calculate_stats(
     sum_donations = sum(d.get("donations_sum", 0.0) for d in stats.values())
 
     sum_admin_fee = 0.0
-    sum_models_income = 0.0
-    sum_net = 0.0
+    sum_model_net = 0.0
+    sum_admin_income = 0.0
 
     for day, data in stats.items():
         vibr = float(data["vibrations"])
@@ -142,36 +127,40 @@ def calculate_stats(
         other = float(data["other"])
         total = float(data["total"])
 
-        # Процент админу (для моделей)
+        # процент админу (только от вибраций)
         admin_fee = vibr * 0.7 * 0.1
 
-        # Доход модели
+        # чистый доход модели
         model_net = total * 0.7 - admin_fee
 
-        # Доход админа от этой модели
+        # доход админа от модели
         admin_income = admin_fee
 
-        # Если это Arina — показываем доход от модели
         if user.lower() == "arina":
+            # админ смотрит статистику модели
             results[day] = {
                 **data,
-                "admin_fee": 0,            # у админа нет % админу
-                "models_income": admin_income,
-                "net_income": admin_income  # админ получает только процент
+                "admin_fee": admin_fee,      # сколько админ получил
+                "model_net": model_net,      # сколько модель получила
+                "net_income": model_net,     # показываем доход модели
+                "models_income": admin_income
             }
-            sum_models_income += admin_income
-            sum_net += admin_income
+
+            sum_admin_fee += admin_fee
+            sum_model_net += model_net
+            sum_admin_income += admin_income
 
         else:
-            # Если это модель — показываем % админу
+            # модель смотрит свою статистику
             results[day] = {
                 **data,
                 "admin_fee": admin_fee,
-                "models_income": 0,
+                "model_net": model_net,
                 "net_income": model_net
             }
+
             sum_admin_fee += admin_fee
-            sum_net += model_net
+            sum_model_net += model_net
 
     summary = {
         "sum_vibr": sum_vibr,
@@ -180,10 +169,9 @@ def calculate_stats(
         "sum_total": sum_total,
         "sum_donations": sum_donations,
 
-        "admin_fee": sum_admin_fee,          # для моделей
-        "models_income": sum_models_income,  # для Arina
-
-        "total_income": sum_net,
+        "admin_fee": sum_admin_fee,          # % админу
+        "models_income": sum_admin_income,   # доход админа от модели
+        "total_income": sum_model_net        # чистый доход модели
     }
 
     return results, summary

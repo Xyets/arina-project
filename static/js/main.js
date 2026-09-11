@@ -58,7 +58,6 @@ window.openGoalModal = openGoalModal;
 window.closeGoalModal = closeGoalModal;
 window.hideMemberCard = hideMemberCard;
 window.showMemberCard = showMemberCard;
-
 /* ============================================================
    📌 Глобальные переменные
 ============================================================ */
@@ -135,7 +134,7 @@ function initPageAfterContent() {
     if (document.querySelector(".reactions-page")) {
         initReactionsPage(showToast);
     }
-    
+
     // Страница статистики
     if (document.querySelector(".stats-page")) {
         initStatsPage();
@@ -213,6 +212,7 @@ function navigateSPA(url) {
             }, 50);
         });
 }
+window.navigateSPA = navigateSPA;
 
 /* ============================================================
    🔄 Переключатель режима
