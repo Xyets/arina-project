@@ -1,16 +1,19 @@
 // static/js/modules/reactions.js
 
 /* ============================================================
-   ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ РЕАКЦИЙ
+   ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ РЕАКЦИЙ (SPA)
 ============================================================ */
 export function initReactionsPage(showToast) {
     initTestButtons(showToast);
+    initAddReaction(showToast);
     initEditButtons();
+    initDeleteButtons(showToast);
+    initEditModalSave(showToast);
     initCloseModal();
 }
 
 /* ============================================================
-   ТЕСТ РЕАКЦИИ
+   🔔 ТЕСТ РЕАКЦИИ
 ============================================================ */
 function initTestButtons(showToast) {
     document.querySelectorAll(".testReactionBtn").forEach(btn => {
@@ -40,33 +43,120 @@ function initTestButtons(showToast) {
 }
 
 /* ============================================================
-   ОТКРЫТИЕ МОДАЛКИ РЕДАКТИРОВАНИЯ
+   ➕ ДОБАВЛЕНИЕ РЕАКЦИИ
+============================================================ */
+function initAddReaction(showToast) {
+    const btn = document.getElementById("reactionAddBtn");
+    if (!btn) return;
+
+    btn.onclick = async () => {
+        const min = document.getElementById("reactionAddMin").value;
+        const max = document.getElementById("reactionAddMax").value;
+        const duration = document.getElementById("reactionAddDuration").value;
+        const file = document.getElementById("reactionAddImage").files[0];
+
+        const formData = new FormData();
+        formData.append("add_reaction_rule", "1");
+        formData.append("min_points", min);
+        formData.append("max_points", max);
+        formData.append("duration", duration);
+        if (file) formData.append("image", file);
+
+        const res = await fetch("/reactions_beta", {
+            method: "POST",
+            body: formData
+        });
+
+        if (res.ok) {
+            showToast("Реакция добавлена");
+            reloadInnerContent();
+        } else {
+            showToast("Ошибка добавления");
+        }
+    };
+}
+
+/* ============================================================
+   ✏️ ОТКРЫТИЕ МОДАЛКИ РЕДАКТИРОВАНИЯ
 ============================================================ */
 function initEditButtons() {
     document.querySelectorAll(".editReactionBtn").forEach(btn => {
         btn.onclick = () => {
             const ruleId = btn.dataset.ruleId;
-
-            // Находим карточку
             const card = btn.closest(".reaction-card-beta");
             if (!card) return;
 
-            // Достаём данные
             const min = card.querySelector(".rule-range").textContent.match(/(\d+)\s*–\s*(\d+)/);
             const duration = card.querySelector(".rule-info").textContent.match(/(\d+)/);
 
-            const minVal = min ? min[1] : "";
-            const maxVal = min ? min[2] : "";
-            const durationVal = duration ? duration[1] : "";
+            document.getElementById("reactionEditId").value = ruleId;
+            document.getElementById("reactionEditMin").value = min ? min[1] : "";
+            document.getElementById("reactionEditMax").value = min ? min[2] : "";
+            document.getElementById("reactionEditDuration").value = duration ? duration[1] : "";
 
-            // Заполняем форму
-            document.getElementById("edit_reaction_id").value = ruleId;
-            document.getElementById("edit_min_points").value = minVal;
-            document.getElementById("edit_max_points").value = maxVal;
-            document.getElementById("edit_duration").value = durationVal;
-
-            // Открываем модалку
             openReactionEditModal();
+        };
+    });
+}
+
+/* ============================================================
+   💾 СОХРАНЕНИЕ РЕАКЦИИ (EDIT)
+============================================================ */
+function initEditModalSave(showToast) {
+    const btn = document.getElementById("reactionEditSaveBtn");
+    if (!btn) return;
+
+    btn.onclick = async () => {
+        const id = document.getElementById("reactionEditId").value;
+        const min = document.getElementById("reactionEditMin").value;
+        const max = document.getElementById("reactionEditMax").value;
+        const duration = document.getElementById("reactionEditDuration").value;
+        const file = document.getElementById("reactionEditImage").files[0];
+
+        const formData = new FormData();
+        formData.append("edit_reaction_rule", id);
+        formData.append("min_points", min);
+        formData.append("max_points", max);
+        formData.append("duration", duration);
+        if (file) formData.append("image", file);
+
+        const res = await fetch("/reactions_beta", {
+            method: "POST",
+            body: formData
+        });
+
+        if (res.ok) {
+            showToast("Сохранено");
+            closeReactionEditModal();
+            reloadInnerContent();
+        } else {
+            showToast("Ошибка сохранения");
+        }
+    };
+}
+
+/* ============================================================
+   ❌ УДАЛЕНИЕ РЕАКЦИИ
+============================================================ */
+function initDeleteButtons(showToast) {
+    document.querySelectorAll(".deleteReactionBtn").forEach(btn => {
+        btn.onclick = async () => {
+            const id = btn.dataset.ruleId;
+
+            const formData = new FormData();
+            formData.append("delete_reaction_rule", id);
+
+            const res = await fetch("/reactions_beta", {
+                method: "POST",
+                body: formData
+            });
+
+            if (res.ok) {
+                showToast("Удалено");
+                reloadInnerContent();
+            } else {
+                showToast("Ошибка удаления");
+            }
         };
     });
 }
