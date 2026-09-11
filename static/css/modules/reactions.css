@@ -109,10 +109,28 @@
     font-size: 14px;
 }
 
+/* ============================================================
+   🌸 Кнопка "Добавить реакцию" — пастельный градиент как в rules
+============================================================ */
 .add-btn {
     margin-top: 14px;
     width: 100%;
+    background: linear-gradient(135deg, #8ec5fc, #e0c3fc);
+    border: none;
+    padding: 12px;
+    border-radius: 14px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.25s ease;
 }
+
+.add-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-3px);
+}
+
 
 /* ============================================================
    🧩 Сетка мини‑карточек реакций
