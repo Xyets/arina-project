@@ -170,14 +170,14 @@
         </div>
     </div>
 
-    <!-- JSON DATA FOR CHART -->
-    <script id="stats-data" type="application/json">
-        {{ results|tojson|safe }}
-    </script>
-
-    <!-- STATS MODULE -->
-    <script type="module" src="{{ url_for('static', filename='js/modules/stats.js') }}"></script>
 
 </div>
+<!-- JSON DATA FOR CHART -->
+<script id="stats-data" type="application/json">
+    {{ results|tojson|safe }}
+</script>
+
+<!-- STATS MODULE -->
+<script type="module" src="{{ url_for('static', filename='js/modules/stats.js') }}"></script>
 
 {% endblock %}
