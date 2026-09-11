@@ -12,18 +12,25 @@
         </div>
 
         {% if user == "Arina" %}
-        <!-- SELECT MODEL -->
+        <!-- SELECT MODEL — стеклянный селектор как в правилах -->
         <div class="glass-card model-select-card">
             <label class="model-label">Выбрать модель:</label>
 
-            <select id="modelSelect" class="glass-select"
-                    onchange="window.location.href='/stats_beta?model=' + this.value">
-                {% for m in models %}
-                    <option value="{{ m }}" {% if m == model %}selected{% endif %}>
-                        {{ m }}
-                    </option>
-                {% endfor %}
-            </select>
+            <div class="custom-select" id="modelSelect">
+                <div class="select-display" id="modelDisplay">
+                    {{ model }}
+                </div>
+
+                <div class="select-options" id="modelOptions">
+                    {% for m in models %}
+                        <div class="option"
+                             data-value="{{ m }}"
+                             onclick="window.location.href='/stats_beta?model={{ m }}'">
+                            👤 {{ m }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
         <!-- ADMIN INCOME FROM MODEL -->
@@ -162,5 +169,26 @@
 </script>
 
 <script src="{{ url_for('static', filename='js/modules/stats.js') }}"></script>
+
+<!-- JS для селектора моделей -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const select = document.getElementById("modelSelect");
+    const options = document.getElementById("modelOptions");
+
+    if (select) {
+        select.onclick = () => {
+            options.style.display =
+                options.style.display === "flex" ? "none" : "flex";
+        };
+
+        document.addEventListener("click", (e) => {
+            if (!select.contains(e.target)) {
+                options.style.display = "none";
+            }
+        });
+    }
+});
+</script>
 
 {% endblock %}
