@@ -46,6 +46,7 @@ import { initQueueButtons } from "/static/js/modules/queue.js";
 import { initTypeSelector } from "/static/js/modules/type_selector.js";
 import { showMemberCard, hideMemberCard } from "/static/js/modules/member_card.js";
 import { initStatsPage } from "/static/js/modules/stats.js";
+import { initModelSelector } from "/static/js/modules/model_selector.js";
 
 /* ============================================================
    🌍 Глобальные функции для HTML
@@ -139,6 +140,8 @@ function initPageAfterContent() {
     if (document.querySelector(".stats-page")) {
         initStatsPage();
     }
+    // Селектор моделей
+    initModelSelector();
 
 }
 
