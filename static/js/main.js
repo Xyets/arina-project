@@ -131,7 +131,7 @@ function initPageAfterContent() {
         initVipPage();
     }
     // Страница реакций
-    if (document.querySelector(".reaction-card-beta")) {
+    if (document.querySelector(".reactions-page")) {
         initReactionsPage(showToast);
     }
 
@@ -260,7 +260,7 @@ function initModeSwitch() {
                     initVipPage();
                 }
                 // Страница реакций
-                if (document.querySelector(".reaction-card-beta")) {
+                if (document.querySelector(".reactions-page")) {
                     initReactionsPage(showToast);
                 }
 
