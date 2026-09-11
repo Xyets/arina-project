@@ -1,9 +1,7 @@
-// static/js/modules/stats.js
-
 /* ============================================================
    📊 ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ СТАТИСТИКИ
 ============================================================ */
-export function initStatsPage() {
+function initStatsPage() {
     initChart();
     initModal();
 }
@@ -12,6 +10,11 @@ export function initStatsPage() {
    📈 ГРАФИК Chart.js — стеклянный стиль FlowTip
 ============================================================ */
 function initChart() {
+    if (typeof Chart === "undefined") {
+        console.error("Chart.js не загружен!");
+        return;
+    }
+
     const raw = document.getElementById("stats-data").textContent;
     const stats = JSON.parse(raw);
 
@@ -106,12 +109,11 @@ function initChart() {
 }
 
 /* ============================================================
-   🧊 МОДАЛКА «Завершить период» — стеклянная
+   🧊 МОДАЛКА «Завершить период»
 ============================================================ */
 function initModal() {
     const overlay = document.getElementById("modalOverlay");
     const modal = document.getElementById("confirmModal");
-    const form = document.getElementById("closePeriodForm");
 
     window.showConfirm = () => {
         overlay.style.display = "block";
@@ -122,24 +124,4 @@ function initModal() {
         overlay.style.display = "none";
         modal.style.display = "none";
     };
-
-    window.submitClosePeriod = () => {
-        hideConfirm();
-
-        const start = document.getElementById("periodStart").value;
-        const end = document.getElementById("periodEnd").value;
-
-        fetch("/close_period", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ start, end })
-        }).then(() => {
-            window.location.href = "/stats_history";
-        });
-    };
-
-
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") hideConfirm();
-    });
 }
