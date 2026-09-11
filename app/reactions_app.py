@@ -145,3 +145,27 @@ def test_reaction():
     }))
 
     return jsonify({"status": "ok"})
+
+@reactions_bp.route("/reactions_beta", methods=["GET"])
+@login_required
+def reactions_beta_page():
+    user = session["username"]
+    mode = session.get("mode", "private")
+    profile_key = f"{user}_{mode}"
+
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    # Загружаем правила реакций
+    rules = load_reaction_rules(profile_key)
+    rules["rules"].sort(key=lambda r: r.get("min_points", 0))
+
+    return render_template(
+        "reactions_beta.html",
+        reactions=rules,
+        profile_key=profile_key,
+        profile=profile,
+        user=user,
+        mode=mode,
+    )
