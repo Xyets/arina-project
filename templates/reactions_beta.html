@@ -3,129 +3,91 @@
 
 <div class="content-inner reactions-page">
 
-    <!-- Заголовок -->
-    <div class="top-header">
-        <h1 class="hello">🎭 Реакции</h1>
-    </div>
-
-    <!-- OBS ссылка -->
-    <div class="events-card">
-        <div class="card-header">
-            <h2>🔗 Ссылка для OBS</h2>
+    <!-- OBS LINK CARD -->
+    <div class="reaction-obs-card glass-card">
+        <div class="obs-left">
+            <div class="obs-icon">🔗</div>
+            <div class="obs-info">
+                <div class="obs-title">Ссылка для OBS</div>
+                <div class="obs-desc">Скопируй и вставь в браузер‑источник OBS:</div>
+                <code class="obs-code">
+                    https://arinairina.duckdns.org/obs_reactions/{{ user }}/{{ mode }}
+                </code>
+            </div>
         </div>
-
-        <p class="text-secondary">
-            Скопируй и вставь в браузер‑источник OBS:
-        </p>
-
-        <code class="obs-code">
-            https://arinairina.duckdns.org/obs_reactions/{{ user }}/{{ mode }}
-        </code>
+        <button class="copy-btn" id="copyObsLink">Скопировать</button>
     </div>
 
-    <!-- Добавить реакцию -->
-    <div class="add-rule-card">
-        <h3>➕ Добавить реакцию</h3>
+    <!-- ADD REACTION -->
+    <div class="reaction-add-card glass-card">
+        <h3 class="section-title">➕ Добавить реакцию</h3>
 
-        <div class="form-grid">
-
+        <div class="reaction-add-grid">
             <div class="form-cell">
                 <label>Мин. поинтов</label>
-                <input type="number" id="reactionAddMin" required>
+                <input type="number" id="reactionAddMin">
             </div>
 
             <div class="form-cell">
                 <label>Макс. поинтов</label>
-                <input type="number" id="reactionAddMax" required>
+                <input type="number" id="reactionAddMax">
             </div>
 
             <div class="form-cell">
                 <label>Длительность (сек)</label>
-                <input type="number" id="reactionAddDuration" required>
+                <input type="number" id="reactionAddDuration">
             </div>
 
             <div class="form-cell">
                 <label>Картинка / GIF</label>
                 <input type="file" id="reactionAddImage" accept="image/*">
             </div>
-
         </div>
 
-        <button type="button" id="reactionAddBtn" class="btn-primary">
-            Добавить
-        </button>
+        <button id="reactionAddBtn" class="btn-primary add-btn">Добавить</button>
     </div>
 
-    <!-- Список реакций -->
-    <div class="rules-list-card">
-        <div class="rules-list-header">
-            <h2>Список реакций</h2>
-        </div>
+    <!-- REACTIONS LIST -->
+    <h3 class="section-title">Список реакций</h3>
 
-        <div class="rules-grid">
+    <div class="reactions-grid">
+        {% for rule in reactions["rules"] %}
+        <div class="reaction-card glass-card" data-reaction-id="{{ rule.id }}">
 
-            {% for rule in reactions["rules"] %}
-            <div class="rule-card reaction-card-beta" data-reaction-id="{{ rule.id }}">
-
-                <div class="rule-range">
-                    Диапазон: {{ rule.min_points }} – {{ rule.max_points }}
+            <div class="reaction-top">
+                <img class="reaction-thumb"
+                     src="{{ url_for('static', filename=rule.image) }}"
+                     alt="thumb">
+                <div class="reaction-info">
+                    <div class="reaction-range">{{ rule.min_points }} – {{ rule.max_points }}</div>
+                    <div class="reaction-duration">{{ rule.duration }} сек</div>
                 </div>
-
-                <div class="rule-info">
-                    Длительность: {{ rule.duration }}s
-                </div>
-
-                <div class="reaction-preview">
-                    {% if rule.image %}
-                        <img src="{{ url_for('static', filename=rule.image) }}" alt="Reaction image">
-                    {% else %}
-                        <div class="no-image">Нет картинки</div>
-                    {% endif %}
-                </div>
-
-                <div class="rule-actions-bottom">
-
-                    <!-- Тест -->
-                    <button class="btn-icon testReactionBtn"
-                            data-rule-id="{{ rule.id }}">
-                        🔔
-                    </button>
-
-                    <!-- Редактировать -->
-                    <button class="btn-icon editReactionBtn"
-                            data-rule-id="{{ rule.id }}">
-                        ✏️
-                    </button>
-
-                    <!-- Удалить -->
-                    <button class="btn-icon btn-delete deleteReactionBtn"
-                            data-rule-id="{{ rule.id }}">
-                        ❌
-                    </button>
-
-                </div>
-
             </div>
-            {% endfor %}
+
+            <div class="reaction-actions">
+                <button class="reaction-btn testReactionBtn" data-rule-id="{{ rule.id }}">🔔</button>
+                <button class="reaction-btn editReactionBtn" data-rule-id="{{ rule.id }}">✏️</button>
+                <button class="reaction-btn deleteReactionBtn" data-rule-id="{{ rule.id }}">❌</button>
+            </div>
 
         </div>
+        {% endfor %}
     </div>
 
 </div>
 
-<!-- Модалка редактирования -->
+<!-- EDIT MODAL -->
 <div class="modal" id="reactionEditModal">
-    <div class="modal-content edit-modal">
+    <div class="modal-content glass-modal">
 
         <div class="modal-header">
             <h3>✏️ Редактировать реакцию</h3>
             <button type="button" class="close-btn" onclick="closeReactionEditModal()">✖</button>
         </div>
 
+        <input type="hidden" id="reactionEditId">
+
         <div class="modal-grid">
-
-            <input type="hidden" id="reactionEditId">
-
             <div class="modal-cell">
                 <label>Мин:</label>
                 <input type="number" id="reactionEditMin">
@@ -145,14 +107,13 @@
                 <label>Картинка / GIF:</label>
                 <input type="file" id="reactionEditImage" accept="image/*">
             </div>
-
         </div>
 
-        <button type="button" id="reactionEditSaveBtn" class="btn-primary modal-save-btn">
-            💾 Сохранить
-        </button>
-
+        <button id="reactionEditSaveBtn" class="btn-primary modal-save-btn">💾 Сохранить</button>
     </div>
 </div>
+
+<!-- MINI PREVIEW -->
+<div id="reactionPreviewToast" class="reaction-preview-toast"></div>
 
 {% endblock %}

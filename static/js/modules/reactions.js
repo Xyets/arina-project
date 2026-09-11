@@ -10,6 +10,26 @@ export function initReactionsPage(showToast) {
     initDeleteButtons(showToast);
     initEditModalSave(showToast);
     initCloseModal();
+    initCopyObsLink(showToast);
+}
+
+/* ============================================================
+   🔔 МИНИ-ПРЕВЬЮ РЕАКЦИИ (TOAST)
+============================================================ */
+function showReactionPreview(image, duration) {
+    const toast = document.getElementById("reactionPreviewToast");
+    if (!toast) return;
+
+    toast.innerHTML = `
+        <img src="${image}" class="reaction-preview-thumb">
+        <div>${duration} сек</div>
+    `;
+
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, duration * 1000);
 }
 
 /* ============================================================
@@ -33,6 +53,13 @@ function initTestButtons(showToast) {
             .then(data => {
                 if (data.status === "ok") {
                     showToast("Тест отправлен в OBS");
+
+                    // мини-превью
+                    const card = btn.closest(".reaction-card");
+                    const img = card.querySelector(".reaction-thumb").src;
+                    const duration = card.querySelector(".reaction-duration").textContent.match(/\d+/)[0];
+
+                    showReactionPreview(img, duration);
                 } else {
                     showToast("Ошибка: " + data.message);
                 }
@@ -43,6 +70,20 @@ function initTestButtons(showToast) {
 }
 
 /* ============================================================
+   🔗 КОПИРОВАНИЕ OBS-ССЫЛКИ
+============================================================ */
+function initCopyObsLink(showToast) {
+    const btn = document.getElementById("copyObsLink");
+    if (!btn) return;
+
+    btn.onclick = () => {
+        const code = document.querySelector(".obs-code").textContent.trim();
+        navigator.clipboard.writeText(code);
+        showToast("Ссылка скопирована");
+    };
+}
+
+/* ============================================================
    ➕ ДОБАВЛЕНИЕ РЕАКЦИИ
 ============================================================ */
 function initAddReaction(showToast) {
@@ -50,22 +91,16 @@ function initAddReaction(showToast) {
     if (!btn) return;
 
     btn.onclick = async () => {
-        const min = document.getElementById("reactionAddMin").value;
-        const max = document.getElementById("reactionAddMax").value;
-        const duration = document.getElementById("reactionAddDuration").value;
-        const file = document.getElementById("reactionAddImage").files[0];
-
         const formData = new FormData();
         formData.append("add_reaction_rule", "1");
-        formData.append("min_points", min);
-        formData.append("max_points", max);
-        formData.append("duration", duration);
+        formData.append("min_points", document.getElementById("reactionAddMin").value);
+        formData.append("max_points", document.getElementById("reactionAddMax").value);
+        formData.append("duration", document.getElementById("reactionAddDuration").value);
+
+        const file = document.getElementById("reactionAddImage").files[0];
         if (file) formData.append("image", file);
 
-        const res = await fetch("/reactions_beta", {
-            method: "POST",
-            body: formData
-        });
+        const res = await fetch("/reactions_beta", { method: "POST", body: formData });
 
         if (res.ok) {
             showToast("Реакция добавлена");
@@ -82,17 +117,16 @@ function initAddReaction(showToast) {
 function initEditButtons() {
     document.querySelectorAll(".editReactionBtn").forEach(btn => {
         btn.onclick = () => {
-            const ruleId = btn.dataset.ruleId;
-            const card = btn.closest(".reaction-card-beta");
-            if (!card) return;
+            const card = btn.closest(".reaction-card");
+            const id = btn.dataset.ruleId;
 
-            const min = card.querySelector(".rule-range").textContent.match(/(\d+)\s*–\s*(\d+)/);
-            const duration = card.querySelector(".rule-info").textContent.match(/(\d+)/);
+            const minMax = card.querySelector(".reaction-range").textContent.match(/\d+/g);
+            const duration = card.querySelector(".reaction-duration").textContent.match(/\d+/)[0];
 
-            document.getElementById("reactionEditId").value = ruleId;
-            document.getElementById("reactionEditMin").value = min ? min[1] : "";
-            document.getElementById("reactionEditMax").value = min ? min[2] : "";
-            document.getElementById("reactionEditDuration").value = duration ? duration[1] : "";
+            document.getElementById("reactionEditId").value = id;
+            document.getElementById("reactionEditMin").value = minMax[0];
+            document.getElementById("reactionEditMax").value = minMax[1];
+            document.getElementById("reactionEditDuration").value = duration;
 
             openReactionEditModal();
         };
@@ -100,30 +134,23 @@ function initEditButtons() {
 }
 
 /* ============================================================
-   💾 СОХРАНЕНИЕ РЕАКЦИИ (EDIT)
+   💾 СОХРАНЕНИЕ РЕАКЦИИ
 ============================================================ */
 function initEditModalSave(showToast) {
     const btn = document.getElementById("reactionEditSaveBtn");
     if (!btn) return;
 
     btn.onclick = async () => {
-        const id = document.getElementById("reactionEditId").value;
-        const min = document.getElementById("reactionEditMin").value;
-        const max = document.getElementById("reactionEditMax").value;
-        const duration = document.getElementById("reactionEditDuration").value;
-        const file = document.getElementById("reactionEditImage").files[0];
-
         const formData = new FormData();
-        formData.append("edit_reaction_rule", id);
-        formData.append("min_points", min);
-        formData.append("max_points", max);
-        formData.append("duration", duration);
+        formData.append("edit_reaction_rule", document.getElementById("reactionEditId").value);
+        formData.append("min_points", document.getElementById("reactionEditMin").value);
+        formData.append("max_points", document.getElementById("reactionEditMax").value);
+        formData.append("duration", document.getElementById("reactionEditDuration").value);
+
+        const file = document.getElementById("reactionEditImage").files[0];
         if (file) formData.append("image", file);
 
-        const res = await fetch("/reactions_beta", {
-            method: "POST",
-            body: formData
-        });
+        const res = await fetch("/reactions_beta", { method: "POST", body: formData });
 
         if (res.ok) {
             showToast("Сохранено");
@@ -141,15 +168,10 @@ function initEditModalSave(showToast) {
 function initDeleteButtons(showToast) {
     document.querySelectorAll(".deleteReactionBtn").forEach(btn => {
         btn.onclick = async () => {
-            const id = btn.dataset.ruleId;
-
             const formData = new FormData();
-            formData.append("delete_reaction_rule", id);
+            formData.append("delete_reaction_rule", btn.dataset.ruleId);
 
-            const res = await fetch("/reactions_beta", {
-                method: "POST",
-                body: formData
-            });
+            const res = await fetch("/reactions_beta", { method: "POST", body: formData });
 
             if (res.ok) {
                 showToast("Удалено");
@@ -166,21 +188,17 @@ function initDeleteButtons(showToast) {
 ============================================================ */
 function openReactionEditModal() {
     const modal = document.getElementById("reactionEditModal");
-    if (modal) modal.classList.add("show");
+    modal.classList.add("show");
 }
 
 function closeReactionEditModal() {
     const modal = document.getElementById("reactionEditModal");
-    if (modal) modal.classList.remove("show");
+    modal.classList.remove("show");
 }
 
 function initCloseModal() {
     const modal = document.getElementById("reactionEditModal");
-    if (!modal) return;
-
     modal.addEventListener("click", e => {
-        if (e.target === modal) {
-            closeReactionEditModal();
-        }
+        if (e.target === modal) closeReactionEditModal();
     });
 }
