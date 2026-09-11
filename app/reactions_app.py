@@ -146,7 +146,9 @@ def test_reaction():
 
     return jsonify({"status": "ok"})
 
-@reactions_bp.route("/reactions_beta", methods=["GET"])
+# -------------------- REACTIONS PAGE (BETA) --------------------
+
+@reactions_bp.route("/reactions_beta", methods=["GET", "POST"])
 @login_required
 def reactions_beta_page():
     user = session["username"]
@@ -157,9 +159,67 @@ def reactions_beta_page():
     if not profile:
         return "Профиль не найден", 404
 
-    # Загружаем правила реакций
     rules = load_reaction_rules(profile_key)
     rules["rules"].sort(key=lambda r: r.get("min_points", 0))
+
+    # ADD RULE
+    if request.method == "POST" and "add_reaction_rule" in request.form:
+        new_rule = {
+            "id": str(uuid.uuid4()),
+            "min_points": int(request.form["min_points"]),
+            "max_points": int(request.form["max_points"]),
+            "duration": int(request.form["duration"]),
+            "image": None
+        }
+
+        file = request.files.get("image")
+        if file and file.filename:
+            safe_name = secure_filename(file.filename)
+            filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
+            full_path = os.path.join(STATIC_REACTIONS_DIR, filename)
+
+            os.makedirs(STATIC_REACTIONS_DIR, exist_ok=True)
+            file.save(full_path)
+
+            new_rule["image"] = f"reactions/{filename}"
+
+        rules["rules"].append(new_rule)
+        save_reaction_rules(profile_key, rules)
+
+        return redirect(url_for("reactions.reactions_beta_page"))
+
+    # DELETE RULE
+    if request.method == "POST" and "delete_reaction_rule" in request.form:
+        rule_id = request.form["delete_reaction_rule"]
+        rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
+        save_reaction_rules(profile_key, rules)
+        return redirect(url_for("reactions.reactions_beta_page"))
+
+    # EDIT RULE
+    if request.method == "POST" and "edit_reaction_rule" in request.form:
+        rule_id = request.form["edit_reaction_rule"]
+
+        for rule in rules["rules"]:
+            if rule["id"] == rule_id:
+                rule["min_points"] = int(request.form["min_points"])
+                rule["max_points"] = int(request.form["max_points"])
+                rule["duration"] = int(request.form["duration"])
+
+                file = request.files.get("image")
+                if file and file.filename:
+                    safe_name = secure_filename(file.filename)
+                    filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
+                    full_path = os.path.join(STATIC_REACTIONS_DIR, filename)
+
+                    os.makedirs(STATIC_REACTIONS_DIR, exist_ok=True)
+                    file.save(full_path)
+
+                    rule["image"] = f"reactions/{filename}"
+
+                break
+
+        save_reaction_rules(profile_key, rules)
+        return redirect(url_for("reactions.reactions_beta_page"))
 
     return render_template(
         "reactions_beta.html",
