@@ -175,7 +175,9 @@ def close_period():
 @stats_bp.route("/stats_beta")
 @login_required
 def stats_beta_page():
-    user = session["username"]          # кто смотрит страницу
+    user = session["username"]
+
+    # режим должен браться ТОЛЬКО из session
     mode = session.get("mode", "private")
 
     # список моделей
@@ -187,9 +189,19 @@ def stats_beta_page():
     # ключ профиля выбранной модели
     profile_key = f"{model}_{mode}"
 
+    print("DEBUG /stats_beta")
+    print("  user =", user)
+    print("  model =", model)
+    print("  mode =", mode)
+    print("  profile_key =", profile_key)
+
     profile = get_profile_by_key(profile_key)
     if not profile:
-        return f"Профиль {profile_key} не найден", 500
+        # ВАЖНО: вернуть HTML, а не текст → иначе SPA ломается
+        return render_template(
+            "error.html",
+            message=f"Профиль {profile_key} не найден"
+        ), 500
 
     # загружаем статистику выбранной модели
     stats_data = load_stats(profile_key)
@@ -197,7 +209,6 @@ def stats_beta_page():
     # считаем статистику выбранной модели
     results, summary = calculate_stats(stats_data, user=model)
 
-    # можно ли закрывать период?
     can_close_period = (user == model)
 
     return render_template(
