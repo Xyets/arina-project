@@ -175,31 +175,25 @@ def close_period():
 @stats_bp.route("/stats_beta")
 @login_required
 def stats_beta_page():
-    user = session["username"]              # кто смотрит страницу (Arina или Irina)
-    mode = session.get("mode", "private")   # режим всегда из session
+    user = session["username"]              # кто смотрит страницу
+    mode = session.get("mode", "public")    # режим всегда из session
 
-    # полный список моделей — доступен только админу
+    # полный список моделей
     all_models = ["Arina", "Irina"]
 
     # выбранная модель (если не указана — показываем свою)
     model = request.args.get("model", user)
 
-    # 🔒 ЖЁСТКАЯ ЗАЩИТА:
-    # Если Irina пытается открыть Arina → запрещаем
+    # 🔒 Жёсткая защита:
+    # Irina НЕ может смотреть Arina
     if user != "Arina" and model != user:
         return render_template(
             "error.html",
-            message="⛔ Доступ запрещён: вы не можете просматривать статистику других моделей."
+            message="⛔ Доступ запрещён"
         ), 403
 
     # ключ профиля выбранной модели
     profile_key = f"{model}_{mode}"
-
-    print("DEBUG /stats_beta")
-    print("  user =", user)
-    print("  model =", model)
-    print("  mode =", mode)
-    print("  profile_key =", profile_key)
 
     profile = get_profile_by_key(profile_key)
     if not profile:
@@ -208,22 +202,16 @@ def stats_beta_page():
             message=f"Профиль {profile_key} не найден"
         ), 500
 
-    # загружаем статистику выбранной модели
     stats_data = load_stats(profile_key)
-
-    # считаем статистику выбранной модели
     results, summary = calculate_stats(stats_data, user=model)
 
-    # можно ли закрывать период? — только если смотрим свою модель
     can_close_period = (user == model)
 
-    # список моделей для селектора:
-    # ✔ Arina видит всех
+    # ✔ Arina видит обе модели
     # ✔ Irina видит только себя
-    if user == "Arina":
-        models = all_models
-    else:
-        models = [user]
+    models = all_models if user == "Arina" else [user]
+
+    print("DEBUG MODELS SENT TO TEMPLATE:", models)
 
     return render_template(
         "stats_beta.html",
