@@ -68,6 +68,7 @@ window.openGoalModal = openGoalModal;
 window.closeGoalModal = closeGoalModal;
 window.hideMemberCard = hideMemberCard;
 window.showMemberCard = showMemberCard;
+
 /* ============================================================
    📌 Глобальные переменные
 ============================================================ */
@@ -79,43 +80,36 @@ let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
 
 /* ============================================================
-   🔧 Инициализация глобальных обработчиков (то, что не зависит от SPA)
+   🔧 Инициализация глобальных обработчиков
 ============================================================ */
 function initHandlers() {
     initSidebar();
     initModeSwitch();
 
-    // Модал цели — глобальный, не зависит от конкретной вкладки
     initGoalModal(showToast, () =>
-        loadGoalFromServer(updateGoalCircle, CURRENT_MODE)
+        loadGoalFromServer(updateGoalCircle)   // FIXED
     );
 }
 
 /* ============================================================
-   🧩 Инициализация контента после загрузки/перерисовки .content-inner
-   (единая точка входа для SPA)
+   🧩 Инициализация контента после загрузки SPA
 ============================================================ */
 function initPageAfterContent() {
-    // Поиск
+    console.log("SPA: initPageAfterContent START");
+
     initSearchEnter();
 
-    // Видимость цели и сама цель
     updateGoalVisibility(CURRENT_MODE);
-    loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
+    loadGoalFromServer(updateGoalCircle);   // FIXED
 
-    // QR
     loadQR();
-
-    // Типы правил
     initTypeSelector(updateNewRuleFields);
-    console.log("SPA: initPageAfterContent START");
-    // Логи и кнопки логов
+
     if (document.getElementById("logbox")) {
         loadLogs();
         initLogButtons(showToast);
     }
 
-    // Очередь вибраций
     updateQueueUI();
     initQueueButtons(
         socket,
@@ -127,7 +121,6 @@ function initPageAfterContent() {
         CURRENT_PROFILE
     );
 
-    // Страница правил
     if (document.querySelector(".rules-page")) {
         initRulesPage(socket, showToast);
         initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
@@ -136,31 +129,25 @@ function initPageAfterContent() {
         loadLogs();
     }
 
-    // Страница VIP
     if (document.querySelector(".vip-grid")) {
         initVipPage();
     }
-    // Страница реакций
+
     if (document.querySelector(".reactions-page")) {
         initReactionsPage(showToast);
     }
 
-    console.log("SPA: initPageAfterContent START");
-
-    // Страница статистики
     if (document.querySelector(".stats-page")) {
         initStatsPage();
     }
-    // Селектор моделей
-    initModelSelector();
 
+    initModelSelector();
 }
 
 /* ============================================================
    🚀 Старт приложения
 ============================================================ */
 window.addEventListener("load", () => {
-    // WebSocket — один раз за жизнь страницы
     initWebSocket(
         CURRENT_USER,
         CURRENT_MODE,
@@ -171,11 +158,7 @@ window.addEventListener("load", () => {
 
     initHandlers();
     initSidebarNavigation();
-
-    // Первичная инициализация контента главной страницы
     initPageAfterContent();
-
-    // Автообновление логов
     startLogAutoUpdate();
 });
 
@@ -202,14 +185,13 @@ function navigateSPA(url) {
 
     const container = document.querySelector(".content-inner");
     if (!container) {
-        console.error("SPA: .content-inner NOT FOUND");
         window.location.href = url;
         return;
     }
 
     container.style.opacity = "0";
 
-    fetch(`${url}?mode=${CURRENT_MODE}`)
+    fetch(url)   // FIXED — removed ?mode=
         .then(r => {
             console.log("SPA: response status", r.status);
             return r.text();
@@ -226,16 +208,11 @@ function navigateSPA(url) {
                 return;
             }
 
-            console.log("SPA: inner content FOUND, inserting...");
             container.innerHTML = inner.innerHTML;
 
             setTimeout(() => {
                 console.log("SPA: calling initPageAfterContent()");
-                try {
-                    initPageAfterContent();
-                } catch (err) {
-                    console.error("SPA INIT ERROR:", err);
-                }
+                initPageAfterContent();
                 container.style.opacity = "1";
             }, 50);
         })
@@ -275,14 +252,14 @@ function initModeSwitch() {
             CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
 
             updateGoalVisibility(CURRENT_MODE);
-            loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
+            loadGoalFromServer(updateGoalCircle);   // FIXED
 
             socket.send(JSON.stringify({
                 type: "hello",
                 role: "panel",
                 profile_key: CURRENT_PROFILE
             }));
-            
+
             reloadInnerContent(() => {
                 updateGoalVisibility(CURRENT_MODE);
                 loadLogs();
@@ -301,10 +278,7 @@ function initModeSwitch() {
                 if (document.querySelector(".reactions-page")) {
                     initReactionsPage(showToast);
                 }
-
-                // ❗ УБРАТЬ initPageAfterContent() отсюда
             });
-
 
             showToast(`Режим переключен: ${newMode}`);
         });
@@ -312,7 +286,7 @@ function initModeSwitch() {
 }
 
 /* ============================================================
-   🔄 Обновление внутреннего контента (используется WebSocket и режим)
+   🔄 Обновление внутреннего контента
 ============================================================ */
 function reloadInnerContent(callback) {
     const container = document.querySelector(".content-inner");
@@ -320,7 +294,7 @@ function reloadInnerContent(callback) {
 
     container.style.opacity = "0";
 
-    fetch(`${CURRENT_PAGE_URL}?mode=${CURRENT_MODE}`)
+    fetch(CURRENT_PAGE_URL)   // FIXED — removed ?mode=
         .then(r => r.text())
         .then(html => {
             const doc = new DOMParser().parseFromString(html, "text/html");
@@ -332,16 +306,13 @@ function reloadInnerContent(callback) {
             setTimeout(() => {
                 container.style.opacity = "1";
 
-                // Сначала пользовательский callback (если есть)
-                if (callback) {
-                    callback();
-                }
+                if (callback) callback();
 
-                // Затем общая инициализация контента
                 initPageAfterContent();
             }, 50);
         });
 }
+
 window.reloadInnerContent = reloadInnerContent;
 
 /* ============================================================
