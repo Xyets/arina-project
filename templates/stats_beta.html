@@ -28,15 +28,15 @@
             </div>
         </div>
     </div>
-    {% endif %}
 
     <!-- ADMIN INCOME — только если Arina смотрит свою модель -->
-    {% if user == "Arina" and model == "Arina" %}
+    {% if model == "Arina" %}
     <div class="glass-card stat-card">
         <div class="stat-icon">👑</div>
         <div class="stat-value">{{ summary.admin_fee|int }}</div>
         <div class="stat-label">Доход от модели</div>
     </div>
+    {% endif %}
     {% endif %}
 
     <!-- SUMMARY CARDS -->
