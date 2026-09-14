@@ -87,7 +87,7 @@ function initHandlers() {
     initModeSwitch();
 
     initGoalModal(showToast, () =>
-        loadGoalFromServer(updateGoalCircle)   // FIXED
+        loadGoalFromServer(updateGoalCircle, CURRENT_MODE)// FIXED
     );
 }
 
@@ -100,7 +100,7 @@ function initPageAfterContent() {
     initSearchEnter();
 
     updateGoalVisibility(CURRENT_MODE);
-    loadGoalFromServer(updateGoalCircle);   // FIXED
+    loadGoalFromServer(updateGoalCircle, CURRENT_MODE)// FIXED
 
     loadQR();
     initTypeSelector(updateNewRuleFields);
@@ -181,6 +181,14 @@ function initSidebarNavigation() {
 function navigateSPA(url) {
     console.log("SPA: navigate to", url);
 
+    // --- Обновляем профиль при выборе модели ---
+    const modelMatch = url.match(/model=([^&]+)/);
+    if (modelMatch) {
+        const selectedModel = modelMatch[1];
+        CURRENT_PROFILE = `${selectedModel}_${CURRENT_MODE}`;
+        console.log("SPA: switched profile →", CURRENT_PROFILE);
+    }
+
     CURRENT_PAGE_URL = url;
 
     const container = document.querySelector(".content-inner");
@@ -191,7 +199,7 @@ function navigateSPA(url) {
 
     container.style.opacity = "0";
 
-    fetch(url)   // FIXED — removed ?mode=
+    fetch(url)
         .then(r => {
             console.log("SPA: response status", r.status);
             return r.text();
@@ -208,11 +216,17 @@ function navigateSPA(url) {
                 return;
             }
 
+            // Вставляем только внутренний контент
             container.innerHTML = inner.innerHTML;
 
             setTimeout(() => {
                 console.log("SPA: calling initPageAfterContent()");
                 initPageAfterContent();
+
+                // --- Обновляем цель после загрузки ---
+                updateGoalVisibility(CURRENT_MODE);
+                loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
+
                 container.style.opacity = "1";
             }, 50);
         })
@@ -220,6 +234,7 @@ function navigateSPA(url) {
             console.error("SPA FETCH ERROR:", err);
         });
 }
+
 
 window.navigateSPA = navigateSPA;
 
@@ -252,7 +267,7 @@ function initModeSwitch() {
             CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
 
             updateGoalVisibility(CURRENT_MODE);
-            loadGoalFromServer(updateGoalCircle);   // FIXED
+            loadGoalFromServer(updateGoalCircle, CURRENT_MODE)   // FIXED
 
             socket.send(JSON.stringify({
                 type: "hello",
