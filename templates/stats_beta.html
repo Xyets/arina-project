@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- SPA контейнер, ОБЯЗАТЕЛЬНО -->
+<div id="app"
+     data-user="{{ user }}"
+     data-mode="{{ mode }}"
+     data-profile="{{ profile_key }}">
+
 <div class="stats-page">
 
     <!-- HEADER -->
@@ -173,7 +179,9 @@
         </div>
     </div>
 
-</div>
+</div> <!-- stats-page -->
+
+</div> <!-- app -->
 
 <!-- JSON DATA FOR CHART -->
 <script id="stats-data" type="application/json">
