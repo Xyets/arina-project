@@ -144,7 +144,7 @@ function initPageAfterContent() {
     if (document.querySelector(".reactions-page")) {
         initReactionsPage(showToast);
     }
-    
+
     console.log("SPA: initPageAfterContent START");
 
     // Страница статистики
@@ -282,7 +282,7 @@ function initModeSwitch() {
                 role: "panel",
                 profile_key: CURRENT_PROFILE
             }));
-
+            
             reloadInnerContent(() => {
                 updateGoalVisibility(CURRENT_MODE);
                 loadLogs();
@@ -297,14 +297,14 @@ function initModeSwitch() {
                 if (document.querySelector(".vip-grid")) {
                     initVipPage();
                 }
-                // Страница реакций
+
                 if (document.querySelector(".reactions-page")) {
                     initReactionsPage(showToast);
                 }
 
-
-                initPageAfterContent();
+                // ❗ УБРАТЬ initPageAfterContent() отсюда
             });
+
 
             showToast(`Режим переключен: ${newMode}`);
         });

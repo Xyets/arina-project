@@ -129,6 +129,7 @@ def set_mode():
 
     session["mode"] = mode
     redis_client.hset("user_modes", session["username"], mode)
+    print("DEBUG set_mode:", mode)
 
     return {"status": "ok", "mode": mode}
 
