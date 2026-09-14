@@ -1,3 +1,12 @@
+// ===== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ВСЕХ ОШИБОК =====
+window.onerror = function(message, source, lineno, colno, error) {
+    console.error("GLOBAL ERROR:", { message, source, lineno, colno, error });
+};
+
+window.addEventListener("unhandledrejection", function(event) {
+    console.error("UNHANDLED PROMISE REJECTION:", event.reason);
+});
+
 /* ============================================================
    📦 Импорты модулей
 ============================================================ */
@@ -99,7 +108,7 @@ function initPageAfterContent() {
 
     // Типы правил
     initTypeSelector(updateNewRuleFields);
-
+    console.log("SPA: initPageAfterContent START");
     // Логи и кнопки логов
     if (document.getElementById("logbox")) {
         loadLogs();
@@ -135,6 +144,8 @@ function initPageAfterContent() {
     if (document.querySelector(".reactions-page")) {
         initReactionsPage(showToast);
     }
+    
+    console.log("SPA: initPageAfterContent START");
 
     // Страница статистики
     if (document.querySelector(".stats-page")) {
@@ -185,10 +196,13 @@ function initSidebarNavigation() {
 }
 
 function navigateSPA(url) {
+    console.log("SPA: navigate to", url);
+
     CURRENT_PAGE_URL = url;
 
     const container = document.querySelector(".content-inner");
     if (!container) {
+        console.error("SPA: .content-inner NOT FOUND");
         window.location.href = url;
         return;
     }
@@ -196,25 +210,40 @@ function navigateSPA(url) {
     container.style.opacity = "0";
 
     fetch(`${url}?mode=${CURRENT_MODE}`)
-        .then(r => r.text())
+        .then(r => {
+            console.log("SPA: response status", r.status);
+            return r.text();
+        })
         .then(html => {
+            console.log("SPA: HTML loaded, length =", html.length);
+
             const doc = new DOMParser().parseFromString(html, "text/html");
             const inner = doc.querySelector(".content-inner");
-            if (!inner) return;
 
-            container.innerHTML = inner.innerHTML;
-
-            // Сброс счётчика логов при переходе
-            if (document.getElementById("logbox")) {
-                resetLogsCounter();
+            if (!inner) {
+                console.error("SPA: inner content NOT FOUND in loaded HTML");
+                console.log("SPA: loaded HTML:", html);
+                return;
             }
 
+            console.log("SPA: inner content FOUND, inserting...");
+            container.innerHTML = inner.innerHTML;
+
             setTimeout(() => {
+                console.log("SPA: calling initPageAfterContent()");
+                try {
+                    initPageAfterContent();
+                } catch (err) {
+                    console.error("SPA INIT ERROR:", err);
+                }
                 container.style.opacity = "1";
-                initPageAfterContent();
             }, 50);
+        })
+        .catch(err => {
+            console.error("SPA FETCH ERROR:", err);
         });
 }
+
 window.navigateSPA = navigateSPA;
 
 /* ============================================================

@@ -1,3 +1,9 @@
+export function initStatsPage() {
+    console.log("STATS: initStatsPage()");   // ← ВСТАВИТЬ СЮДА
+
+    try {
+        initChart();
+
 /* ============================================================
    📊 ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ СТАТИСТИКИ (ES‑модуль)
 ============================================================ */
@@ -5,7 +11,7 @@ export function initStatsPage() {
     try {
         initChart();
     } catch (err) {
-        console.error("Ошибка при построении графика:", err);
+        console.error("STATS CHART ERROR:", err);   // ← ЧЁТКИЙ ЛОГ
     }
 
     try {
@@ -27,6 +33,7 @@ function safeNum(v) {
    📈 ГРАФИК Chart.js
 ============================================================ */
 function initChart() {
+    console.log("STATS: initChart()");   // ← ВСТАВИТЬ СЮДА
     if (typeof Chart === "undefined") {
         console.error("Chart.js не загружен!");
         return;
@@ -40,13 +47,17 @@ function initChart() {
 
     let stats;
     try {
+        console.log("STATS: raw JSON length =", rawEl.textContent.length);  // ← ВСТАВИТЬ СЮДА
         stats = JSON.parse(rawEl.textContent);
+
     } catch (err) {
         console.error("Ошибка парсинга JSON статистики:", err);
         return;
     }
 
     const labels = Object.keys(stats);
+    console.log("STATS: parsed keys =", labels);   // ← ВСТАВИТЬ СЮДА
+
     if (!labels.length) {
         console.warn("Нет данных для графика");
         return;
@@ -64,7 +75,7 @@ function initChart() {
     }
 
     const ctx = canvas.getContext("2d");
-
+    console.log("STATS: building chart...");   // ← ВСТАВИТЬ СЮДА
     new Chart(ctx, {
         type: "line",
         data: {
@@ -145,6 +156,7 @@ function initChart() {
    🧊 МОДАЛКА «Завершить период»
 ============================================================ */
 function initModal() {
+    console.log("STATS: initModal()");   // ← ВСТАВИТЬ СЮДА
     const overlay = document.getElementById("modalOverlay");
     const modal = document.getElementById("confirmModal");
 
