@@ -25,8 +25,9 @@ def login_required(f):
 @login_required
 def goal_data():
     user = session["username"]
-    mode = session.get("mode", "private")   # ← FIXED
+    mode = session.get("mode", "private")
 
+    # ❗ В приватном режиме цели нет
     if mode == "private":
         return {"title": "", "target": 0, "current": 0}
 

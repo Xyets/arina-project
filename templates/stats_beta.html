@@ -1,12 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- SPA контейнер, ОБЯЗАТЕЛЬНО -->
-<div id="app"
-     data-user="{{ user }}"
-     data-mode="{{ mode }}"
-     data-profile="{{ profile_key }}">
-
 <div class="stats-page">
 
     <!-- HEADER -->
@@ -15,8 +9,8 @@
         <div class="header-sub">Период: {{ summary.period_label }}</div>
     </div>
 
-    <!-- SELECT MODEL — только для Arina -->
     {% if user == "Arina" %}
+    <!-- SELECT MODEL -->
     <div class="glass-card model-select-card">
         <label class="model-label">Выбрать модель:</label>
 
@@ -34,10 +28,8 @@
             </div>
         </div>
     </div>
-    {% endif %}
 
-    <!-- ADMIN INCOME — только если Arina смотрит свою модель -->
-    {% if user == "Arina" and model == "Arina" %}
+    <!-- ADMIN INCOME -->
     <div class="glass-card stat-card">
         <div class="stat-icon">👑</div>
         <div class="stat-value">{{ summary.admin_fee|int }}</div>
@@ -72,7 +64,6 @@
             <div class="stat-label">Иное</div>
         </div>
 
-        <!-- % админу — только если Irina смотрит свою статистику -->
         {% if user != "Arina" %}
         <div class="glass-card stat-card">
             <div class="stat-icon">💗</div>
@@ -179,9 +170,7 @@
         </div>
     </div>
 
-</div> <!-- stats-page -->
-
-</div> <!-- app -->
+</div>
 
 <!-- JSON DATA FOR CHART -->
 <script id="stats-data" type="application/json">

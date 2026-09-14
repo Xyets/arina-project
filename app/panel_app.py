@@ -210,4 +210,3 @@ def run_fc2_fetch():
         "last_comment_index": comment_data.get("last_comment_index"),
         "status": comment_data.get("status")
     }
-
