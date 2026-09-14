@@ -178,14 +178,14 @@ def stats_beta_page():
     user = session["username"]              # кто смотрит страницу (Arina или Irina)
     mode = session.get("mode", "private")   # режим всегда из session
 
-    # полный список моделей — доступен только админу
+    # полный список моделей
     all_models = ["Arina", "Irina"]
 
     # выбранная модель (если не указана — показываем свою)
     model = request.args.get("model", user)
 
     # 🔒 ЖЁСТКАЯ ЗАЩИТА:
-    # Если Irina пытается открыть Arina → запрещаем
+    # Irina НЕ может смотреть статистику Arina
     if user != "Arina" and model != user:
         return render_template(
             "error.html",
@@ -194,12 +194,6 @@ def stats_beta_page():
 
     # ключ профиля выбранной модели
     profile_key = f"{model}_{mode}"
-
-    print("DEBUG /stats_beta")
-    print("  user =", user)
-    print("  model =", model)
-    print("  mode =", mode)
-    print("  profile_key =", profile_key)
 
     profile = get_profile_by_key(profile_key)
     if not profile:
@@ -217,13 +211,9 @@ def stats_beta_page():
     # можно ли закрывать период? — только если смотрим свою модель
     can_close_period = (user == model)
 
-    # список моделей для селектора:
-    # ✔ Arina видит всех
-    # ✔ Irina видит только себя
-    if user == "Arina":
-        models = all_models
-    else:
-        models = [user]
+    # ✔ Arina видит ВСЕ модели
+    # ✔ Irina видит ТОЛЬКО себя
+    models = all_models if user == "Arina" else [user]
 
     return render_template(
         "stats_beta.html",
