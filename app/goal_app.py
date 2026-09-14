@@ -27,7 +27,7 @@ def goal_data():
     user = session["username"]
     mode = session.get("mode", "private")
 
-    # ❗ В приватном режиме цели нет
+    # В приватном режиме цели нет
     if mode == "private":
         return {"title": "", "target": 0, "current": 0}
 
