@@ -175,16 +175,22 @@ def close_period():
 @stats_bp.route("/stats_beta")
 @login_required
 def stats_beta_page():
-    user = session["username"]
+    user = session["username"]              # кто смотрит страницу (Arina или Irina)
+    mode = session.get("mode", "private")   # режим всегда из session
 
-    # режим должен браться ТОЛЬКО из session
-    mode = session.get("mode", "private")
+    # полный список моделей — доступен только админу
+    all_models = ["Arina", "Irina"]
 
-    # список моделей
-    models = ["Irina", "Arina"]
-
-    # выбранная модель
+    # выбранная модель (если не указана — показываем свою)
     model = request.args.get("model", user)
+
+    # 🔒 ЖЁСТКАЯ ЗАЩИТА:
+    # Если Irina пытается открыть Arina → запрещаем
+    if user != "Arina" and model != user:
+        return render_template(
+            "error.html",
+            message="⛔ Доступ запрещён: вы не можете просматривать статистику других моделей."
+        ), 403
 
     # ключ профиля выбранной модели
     profile_key = f"{model}_{mode}"
@@ -197,7 +203,6 @@ def stats_beta_page():
 
     profile = get_profile_by_key(profile_key)
     if not profile:
-        # ВАЖНО: вернуть HTML, а не текст → иначе SPA ломается
         return render_template(
             "error.html",
             message=f"Профиль {profile_key} не найден"
@@ -209,7 +214,16 @@ def stats_beta_page():
     # считаем статистику выбранной модели
     results, summary = calculate_stats(stats_data, user=model)
 
+    # можно ли закрывать период? — только если смотрим свою модель
     can_close_period = (user == model)
+
+    # список моделей для селектора:
+    # ✔ Arina видит всех
+    # ✔ Irina видит только себя
+    if user == "Arina":
+        models = all_models
+    else:
+        models = [user]
 
     return render_template(
         "stats_beta.html",
@@ -222,4 +236,3 @@ def stats_beta_page():
         mode=mode,
         can_close_period=can_close_period
     )
-
