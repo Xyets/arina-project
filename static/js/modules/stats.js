@@ -1,23 +1,19 @@
-export function initStatsPage() {
-    console.log("STATS: initStatsPage()");   // ← ВСТАВИТЬ СЮДА
-
-    try {
-        initChart();
-
 /* ============================================================
    📊 ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ СТАТИСТИКИ (ES‑модуль)
 ============================================================ */
 export function initStatsPage() {
+    console.log("STATS: initStatsPage()");
+
     try {
         initChart();
     } catch (err) {
-        console.error("STATS CHART ERROR:", err);   // ← ЧЁТКИЙ ЛОГ
+        console.error("STATS CHART ERROR:", err);
     }
 
     try {
         initModal();
     } catch (err) {
-        console.error("Ошибка при инициализации модалки:", err);
+        console.error("STATS MODAL ERROR:", err);
     }
 }
 
@@ -33,7 +29,8 @@ function safeNum(v) {
    📈 ГРАФИК Chart.js
 ============================================================ */
 function initChart() {
-    console.log("STATS: initChart()");   // ← ВСТАВИТЬ СЮДА
+    console.log("STATS: initChart()");
+
     if (typeof Chart === "undefined") {
         console.error("Chart.js не загружен!");
         return;
@@ -47,16 +44,15 @@ function initChart() {
 
     let stats;
     try {
-        console.log("STATS: raw JSON length =", rawEl.textContent.length);  // ← ВСТАВИТЬ СЮДА
+        console.log("STATS: raw JSON length =", rawEl.textContent.length);
         stats = JSON.parse(rawEl.textContent);
-
     } catch (err) {
         console.error("Ошибка парсинга JSON статистики:", err);
         return;
     }
 
     const labels = Object.keys(stats);
-    console.log("STATS: parsed keys =", labels);   // ← ВСТАВИТЬ СЮДА
+    console.log("STATS: parsed keys =", labels);
 
     if (!labels.length) {
         console.warn("Нет данных для графика");
@@ -75,7 +71,9 @@ function initChart() {
     }
 
     const ctx = canvas.getContext("2d");
-    console.log("STATS: building chart...");   // ← ВСТАВИТЬ СЮДА
+
+    console.log("STATS: building chart...");
+
     new Chart(ctx, {
         type: "line",
         data: {
@@ -156,7 +154,8 @@ function initChart() {
    🧊 МОДАЛКА «Завершить период»
 ============================================================ */
 function initModal() {
-    console.log("STATS: initModal()");   // ← ВСТАВИТЬ СЮДА
+    console.log("STATS: initModal()");
+
     const overlay = document.getElementById("modalOverlay");
     const modal = document.getElementById("confirmModal");
 
