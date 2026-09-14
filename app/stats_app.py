@@ -175,24 +175,19 @@ def close_period():
 @stats_bp.route("/stats_beta")
 @login_required
 def stats_beta_page():
-    user = session["username"]              # кто смотрит страницу
-    mode = session.get("mode", "public")    # режим всегда из session
+    user = session["username"]
+    mode = session.get("mode", "private")   # ← FIXED
 
-    # полный список моделей
     all_models = ["Arina", "Irina"]
 
-    # выбранная модель (если не указана — показываем свою)
     model = request.args.get("model", user)
 
-    # 🔒 Жёсткая защита:
-    # Irina НЕ может смотреть Arina
     if user != "Arina" and model != user:
         return render_template(
             "error.html",
             message="⛔ Доступ запрещён"
         ), 403
 
-    # ключ профиля выбранной модели
     profile_key = f"{model}_{mode}"
 
     profile = get_profile_by_key(profile_key)
@@ -205,13 +200,7 @@ def stats_beta_page():
     stats_data = load_stats(profile_key)
     results, summary = calculate_stats(stats_data, user=model)
 
-    can_close_period = (user == model)
-
-    # ✔ Arina видит обе модели
-    # ✔ Irina видит только себя
     models = all_models if user == "Arina" else [user]
-
-    print("DEBUG MODELS SENT TO TEMPLATE:", models)
 
     return render_template(
         "stats_beta.html",
@@ -221,6 +210,5 @@ def stats_beta_page():
         results=results,
         summary=summary,
         profile_key=profile_key,
-        mode=mode,
-        can_close_period=can_close_period
+        mode=mode
     )
