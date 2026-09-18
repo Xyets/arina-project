@@ -9,12 +9,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
-
 </head>
 
 <body>
 
-<!-- Основной каркас -->
 <div class="layout">
 
     <!-- Боковое меню -->
@@ -79,15 +77,16 @@
     <main class="content">
         <div class="content-wrapper">
 
-            <!-- ВАЖНО: app вынесен ВНЕ content-inner -->
-            <div id="app"
-                data-user="{{ user }}"
-                data-mode="{{ session['mode'] }}"
-                data-profile="{{ current_profile }}">
-            </div>
-
             <!-- Весь SPA‑контент загружается сюда -->
             <div class="content-inner">
+
+                <!-- ВАЖНО: теперь app находится внутри content-inner -->
+                <div id="app"
+                    data-user="{{ user }}"
+                    data-mode="{{ session['mode'] }}"
+                    data-profile="{{ current_profile }}">
+                </div>
+
                 {% block content %}
                 {% endblock %}
             </div>
@@ -102,10 +101,7 @@
 <div id="toast" class="toast"></div>
 <div id="vibrationOverlay"></div>
 
-<!-- Круглая цель — ВСЕГДА в DOM -->
 <div class="goal-circle" id="goalCircle" style="display:none;">
-
-
     <svg viewBox="0 0 100 100">
         <defs>
             <linearGradient id="goalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -130,10 +126,8 @@
     <button class="goal-circle-btn" onclick="openGoalModal()">✏️</button>
 </div>
 
-<!-- Модалка цели -->
 <div id="goalModal" class="modal">
     <div class="goal-modal-content">
-
         <button class="goal-close-btn" onclick="closeGoalModal()">✕</button>
 
         <h3 class="goal-modal-title">Новая цель</h3>
@@ -141,14 +135,11 @@
         <form id="goalForm" class="goal-form">
             <input name="title" placeholder="Название цели" class="goal-input">
             <input name="target" placeholder="Сколько нужно" type="number" class="goal-input">
-
             <button type="submit" class="goal-save-btn">Сохранить</button>
         </form>
-
     </div>
 </div>
 
-<!-- Карточка мембера — постоянный элемент -->
 <div id="memberCard" class="member-card hidden"></div>
 
 </body>
