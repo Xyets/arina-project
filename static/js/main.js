@@ -282,10 +282,18 @@ function reloadInnerContent(callback) {
 
             setTimeout(() => {
                 container.style.opacity = "1";
+
                 if (callback) callback();
+
+                // ⭐ ДОБАВИТЬ ЭТО:
+                if (document.querySelector(".reactions-page")) {
+                    initReactionsPage(showToast);
+                }
+
             }, 50);
         });
 }
+
 
 window.reloadInnerContent = reloadInnerContent;
 
