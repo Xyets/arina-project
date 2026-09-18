@@ -79,6 +79,10 @@ const CURRENT_USER = app?.dataset.user || "";
 let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
 
+// ДОБАВЬ ЭТО:
+window.CURRENT_PROFILE = CURRENT_PROFILE;
+window.CURRENT_USER = CURRENT_USER;
+window.CURRENT_MODE = CURRENT_MODE;
 /* ============================================================
    🔧 Инициализация глобальных обработчиков
 ============================================================ */
@@ -186,6 +190,7 @@ function navigateSPA(url) {
     if (modelMatch) {
         const selectedModel = modelMatch[1];
         CURRENT_PROFILE = `${selectedModel}_${CURRENT_MODE}`;
+        window.CURRENT_PROFILE = CURRENT_PROFILE;
         console.log("SPA: switched profile →", CURRENT_PROFILE);
     }
 
@@ -218,7 +223,7 @@ function navigateSPA(url) {
 
             // Вставляем только внутренний контент
             container.innerHTML = inner.innerHTML;
-            
+
             // FIX: обновляем профиль после загрузки новой страницы
             const newApp = document.getElementById("app");
             if (newApp) {
@@ -270,6 +275,8 @@ function initModeSwitch() {
 
             CURRENT_MODE = newMode;
             CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
+            window.CURRENT_PROFILE = CURRENT_PROFILE;
+            window.CURRENT_MODE = CURRENT_MODE;
 
             updateGoalVisibility(CURRENT_MODE);
             loadGoalFromServer(updateGoalCircle, CURRENT_MODE)   // FIXED
@@ -322,6 +329,11 @@ function reloadInnerContent(callback) {
             if (!inner) return;
 
             container.innerHTML = inner.innerHTML;
+            const app = document.getElementById("app");
+            if (app) {
+                CURRENT_PROFILE = app.dataset.profile || CURRENT_PROFILE;
+                window.CURRENT_PROFILE = CURRENT_PROFILE;
+            }
 
             setTimeout(() => {
                 container.style.opacity = "1";
