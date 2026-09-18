@@ -218,7 +218,12 @@ function navigateSPA(url) {
 
             // Вставляем только внутренний контент
             container.innerHTML = inner.innerHTML;
-
+            
+            // FIX: обновляем профиль после загрузки новой страницы
+            const newApp = document.getElementById("app");
+            if (newApp) {
+                CURRENT_PROFILE = newApp.dataset.profile || CURRENT_PROFILE;
+            }
             setTimeout(() => {
                 console.log("SPA: calling initPageAfterContent()");
                 initPageAfterContent();
