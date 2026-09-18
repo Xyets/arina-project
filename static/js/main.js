@@ -144,8 +144,6 @@ function initPageAfterContent() {
     if (document.querySelector(".stats-page")) {
         initStatsPage();
     }
-
-    initModelSelector();
 }
 
 /* ============================================================
