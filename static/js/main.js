@@ -1,4 +1,4 @@
-// ===== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ВСЕХ ОШИБОК =====
+// ===== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК =====
 window.onerror = function(message, source, lineno, colno, error) {
     console.error("GLOBAL ERROR:", { message, source, lineno, colno, error });
 };
@@ -10,45 +10,13 @@ window.addEventListener("unhandledrejection", function(event) {
 /* ============================================================
    📦 Импорты модулей
 ============================================================ */
-import {
-    initRulesPage,
-    initRuleForms,
-    initRuleModals,
-    updateNewRuleFields
-} from "/static/js/modules/rules.js";
-
-import {
-    initWebSocket,
-    socket,
-    vibrationQueue,
-    updateQueueUI
-} from "/static/js/modules/websocket.js";
-
+import { initRulesPage, initRuleForms, initRuleModals, updateNewRuleFields } from "/static/js/modules/rules.js";
+import { initWebSocket, socket, vibrationQueue, updateQueueUI } from "/static/js/modules/websocket.js";
 import { initVipPage } from "/static/js/modules/vip.js";
 import { initSidebar } from "/static/js/modules/sidebar.js";
-
-import {
-    loadLogs,
-    initLogButtons,
-    startLogAutoUpdate,
-    resetLogsCounter
-} from "/static/js/modules/logs.js";
-
-import {
-    updateGoalVisibility,
-    updateGoalCircle,
-    initGoalModal,
-    openGoalModal,
-    closeGoalModal,
-    loadGoalFromServer
-} from "/static/js/modules/goal.js";
-
-import {
-    showEntryPopup,
-    hideEntryPopup,
-    showToast
-} from "/static/js/modules/ui.js";
-
+import { loadLogs, initLogButtons, startLogAutoUpdate } from "/static/js/modules/logs.js";
+import { updateGoalVisibility, updateGoalCircle, initGoalModal, openGoalModal, closeGoalModal, loadGoalFromServer } from "/static/js/modules/goal.js";
+import { showEntryPopup, hideEntryPopup, showToast } from "/static/js/modules/ui.js";
 import { initReactionsPage } from "/static/js/modules/reactions.js";
 import { loadQR, refreshQR } from "/static/js/modules/qr.js";
 import { initQueueButtons } from "/static/js/modules/queue.js";
@@ -79,10 +47,8 @@ const CURRENT_USER = app?.dataset.user || "";
 let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
 
-// ДОБАВЬ ЭТО:
 window.CURRENT_PROFILE = CURRENT_PROFILE;
-window.CURRENT_USER = CURRENT_USER;
-window.CURRENT_MODE = CURRENT_MODE;
+
 /* ============================================================
    🔧 Инициализация глобальных обработчиков
 ============================================================ */
@@ -91,7 +57,7 @@ function initHandlers() {
     initModeSwitch();
 
     initGoalModal(showToast, () =>
-        loadGoalFromServer(updateGoalCircle, CURRENT_MODE)// FIXED
+        loadGoalFromServer(updateGoalCircle, CURRENT_MODE)
     );
 }
 
@@ -104,7 +70,7 @@ function initPageAfterContent() {
     initSearchEnter();
 
     updateGoalVisibility(CURRENT_MODE);
-    loadGoalFromServer(updateGoalCircle, CURRENT_MODE)// FIXED
+    loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
 
     loadQR();
     initTypeSelector(updateNewRuleFields);
@@ -143,11 +109,8 @@ function initPageAfterContent() {
 
     if (document.querySelector(".stats-page")) {
         initStatsPage();
+        initModelSelector();   // работает только здесь
     }
-    if (document.querySelector(".stats-page")) {
-        initModelSelector();
-    }
-
 }
 
 /* ============================================================
@@ -187,15 +150,6 @@ function initSidebarNavigation() {
 function navigateSPA(url) {
     console.log("SPA: navigate to", url);
 
-    // --- Обновляем профиль при выборе модели ---
-    const modelMatch = url.match(/model=([^&]+)/);
-    if (modelMatch) {
-        const selectedModel = modelMatch[1];
-        CURRENT_PROFILE = `${selectedModel}_${CURRENT_MODE}`;
-        window.CURRENT_PROFILE = CURRENT_PROFILE;
-        console.log("SPA: switched profile →", CURRENT_PROFILE);
-    }
-
     CURRENT_PAGE_URL = url;
 
     const container = document.querySelector(".content-inner");
@@ -207,10 +161,7 @@ function navigateSPA(url) {
     container.style.opacity = "0";
 
     fetch(url)
-        .then(r => {
-            console.log("SPA: response status", r.status);
-            return r.text();
-        })
+        .then(r => r.text())
         .then(html => {
             console.log("SPA: HTML loaded, length =", html.length);
 
@@ -218,35 +169,27 @@ function navigateSPA(url) {
             const inner = doc.querySelector(".content-inner");
 
             if (!inner) {
-                console.error("SPA: inner content NOT FOUND in loaded HTML");
-                console.log("SPA: loaded HTML:", html);
+                console.error("SPA: inner content NOT FOUND");
                 return;
             }
 
-            // Вставляем только внутренний контент
             container.innerHTML = inner.innerHTML;
 
-            // FIX: обновляем профиль после загрузки новой страницы
             const newApp = document.getElementById("app");
             if (newApp) {
-                CURRENT_PROFILE = newApp.dataset.profile || CURRENT_PROFILE;
+                CURRENT_PROFILE = newApp.dataset.profile;
+                window.CURRENT_PROFILE = CURRENT_PROFILE;
             }
-            setTimeout(() => {
-                console.log("SPA: calling initPageAfterContent()");
-                initPageAfterContent();
 
-                // --- Обновляем цель после загрузки ---
+            setTimeout(() => {
+                initPageAfterContent();
                 updateGoalVisibility(CURRENT_MODE);
                 loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
-
                 container.style.opacity = "1";
             }, 50);
         })
-        .catch(err => {
-            console.error("SPA FETCH ERROR:", err);
-        });
+        .catch(err => console.error("SPA FETCH ERROR:", err));
 }
-
 
 window.navigateSPA = navigateSPA;
 
@@ -278,10 +221,9 @@ function initModeSwitch() {
             CURRENT_MODE = newMode;
             CURRENT_PROFILE = `${CURRENT_USER}_${CURRENT_MODE}`;
             window.CURRENT_PROFILE = CURRENT_PROFILE;
-            window.CURRENT_MODE = CURRENT_MODE;
 
             updateGoalVisibility(CURRENT_MODE);
-            loadGoalFromServer(updateGoalCircle, CURRENT_MODE)   // FIXED
+            loadGoalFromServer(updateGoalCircle, CURRENT_MODE);
 
             socket.send(JSON.stringify({
                 type: "hello",
@@ -323,7 +265,7 @@ function reloadInnerContent(callback) {
 
     container.style.opacity = "0";
 
-    fetch(CURRENT_PAGE_URL)   // FIXED — removed ?mode=
+    fetch(CURRENT_PAGE_URL)
         .then(r => r.text())
         .then(html => {
             const doc = new DOMParser().parseFromString(html, "text/html");
@@ -331,17 +273,16 @@ function reloadInnerContent(callback) {
             if (!inner) return;
 
             container.innerHTML = inner.innerHTML;
+
             const app = document.getElementById("app");
             if (app) {
-                CURRENT_PROFILE = app.dataset.profile || CURRENT_PROFILE;
+                CURRENT_PROFILE = app.dataset.profile;
                 window.CURRENT_PROFILE = CURRENT_PROFILE;
             }
 
             setTimeout(() => {
                 container.style.opacity = "1";
-
                 if (callback) callback();
-
                 initPageAfterContent();
             }, 50);
         });
