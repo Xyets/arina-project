@@ -283,7 +283,6 @@ function reloadInnerContent(callback) {
             setTimeout(() => {
                 container.style.opacity = "1";
                 if (callback) callback();
-                initPageAfterContent();
             }, 50);
         });
 }
