@@ -20,25 +20,34 @@ function initTestButtons(showToast) {
         btn.onclick = () => {
             const ruleId = btn.dataset.ruleId;
 
+            const profileKey =
+                window.CURRENT_PROFILE ||
+                `${window.CURRENT_USER}_${window.CURRENT_MODE}`;
+
+            console.log("TEST REACTION: rule", ruleId, "profile", profileKey);
+
             fetch("/test_reaction", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "same-origin",
                 body: JSON.stringify({
                     rule_id: ruleId,
-                    profile_key: window.CURRENT_PROFILE
+                    profile_key: profileKey
                 })
             })
             .then(r => r.json())
             .then(data => {
+                console.log("TEST REACTION RESPONSE:", data);
                 if (data.status === "ok") {
                     showToast("Тест отправлен в OBS");
-
+                } else {
+                    showToast("Ошибка теста реакции");
                 }
             });
         };
     });
 }
+
 
 
 /* ============================================================
