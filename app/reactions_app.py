@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, session, redirect, url_for, jsonify
+from flask import Blueprint, request, render_template, session, redirect, url_for, jsonify, send_from_directory
 from functools import wraps
 import uuid
 import os
@@ -11,7 +11,9 @@ from services.database import get_profile_by_key
 
 reactions_bp = Blueprint("reactions", __name__)
 
-STATIC_REACTIONS_DIR = os.path.join("static", "reactions")
+# -------------------- ПРАВИЛЬНАЯ ПАПКА ДЛЯ GIF --------------------
+DATA_REACTIONS_DIR = os.path.join(os.getcwd(), "data", "reactions", "images")
+os.makedirs(DATA_REACTIONS_DIR, exist_ok=True)
 
 
 # -------------------- AUTH --------------------
@@ -40,12 +42,12 @@ def apply_add_rule(profile_key, rules):
     if file and file.filename:
         safe_name = secure_filename(file.filename)
         filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
-        full_path = os.path.join(STATIC_REACTIONS_DIR, filename)
+        full_path = os.path.join(DATA_REACTIONS_DIR, filename)
 
-        os.makedirs(STATIC_REACTIONS_DIR, exist_ok=True)
         file.save(full_path)
 
-        new_rule["image"] = f"reactions/{filename}"
+        # В JSON сохраняем только имя файла
+        new_rule["image"] = filename
 
     rules["rules"].append(new_rule)
     save_reaction_rules(profile_key, rules)
@@ -70,19 +72,25 @@ def apply_edit_rule(profile_key, rules):
             if file and file.filename:
                 safe_name = secure_filename(file.filename)
                 filename = f"{profile_key}_{uuid.uuid4()}_{safe_name}"
-                full_path = os.path.join(STATIC_REACTIONS_DIR, filename)
+                full_path = os.path.join(DATA_REACTIONS_DIR, filename)
 
-                os.makedirs(STATIC_REACTIONS_DIR, exist_ok=True)
                 file.save(full_path)
 
-                rule["image"] = f"reactions/{filename}"
+                rule["image"] = filename
 
             break
 
     save_reaction_rules(profile_key, rules)
 
 
-# -------------------- OLD PAGE (classic HTML) --------------------
+# -------------------- ОТДАЧА GIF ФАЙЛОВ --------------------
+
+@reactions_bp.route("/reaction_image/<path:filename>")
+def reaction_image(filename):
+    return send_from_directory(DATA_REACTIONS_DIR, filename)
+
+
+# -------------------- OLD PAGE --------------------
 
 @reactions_bp.route("/reactions", methods=["GET", "POST"])
 @login_required
@@ -183,7 +191,7 @@ def test_reaction():
 
     redis_client.publish("obs_reactions", json.dumps({
         "reaction": {
-            "image": rule["image"],
+            "image": f"/reaction_image/{rule['image']}",
             "duration": rule["duration"]
         },
         "profile": profile_key

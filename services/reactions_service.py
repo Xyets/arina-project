@@ -3,12 +3,17 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+# Папка с JSON правилами
 BASE_DIR = Path("data/reactions")
+
+# Папка с изображениями реакций
+IMAGES_DIR = Path("data/reactions/images")
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _get_reactions_path(profile_key: str) -> Path:
     """
-    Возвращает путь к файлу реакций для данного профиля.
+    Возвращает путь к JSON-файлу реакций для данного профиля.
     """
     return BASE_DIR / f"reactions_{profile_key}.json"
 
@@ -42,7 +47,6 @@ def save_reaction_rules(profile_key: str, rules: Dict[str, Any]) -> None:
     path = _get_reactions_path(profile_key)
     tmp = path.with_suffix(".json.tmp")
 
-    # гарантируем, что каталог существует
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(tmp, "w", encoding="utf-8") as f:
@@ -62,7 +66,7 @@ def apply_reaction_rule(profile_key: str, amount: int) -> Optional[Dict[str, Any
         {
             "reaction": rule_id,
             "duration": X,
-            "image": "reactions/xxx.png"
+            "image": "/reaction_image/filename.gif"
         }
     """
     rules = load_reaction_rules(profile_key)
@@ -72,7 +76,7 @@ def apply_reaction_rule(profile_key: str, amount: int) -> Optional[Dict[str, Any
             return {
                 "reaction": rule["id"],
                 "duration": rule.get("duration", 5),
-                "image": rule.get("image")
+                "image": f"/reaction_image/{rule.get('image')}"
             }
 
     return None

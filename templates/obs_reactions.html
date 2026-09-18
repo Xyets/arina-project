@@ -98,9 +98,10 @@
 
     function showReaction(imagePath, duration) {
       const container = document.getElementById("reaction");
-      container.innerHTML = `<img src="/static/${imagePath}" alt="reaction">`;
+      container.innerHTML = `<img src="${imagePath}" alt="reaction">`;
       container.style.display = "block";
       container.style.animation = "fadeIn 0.5s";
+
 
       setTimeout(() => {
         container.style.animation = "fadeOut 0.5s forwards";
