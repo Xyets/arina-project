@@ -40,10 +40,12 @@ def login():
         model = get_model_by_username(username)
 
         if not model:
-            return render_template("login.html", error="Неверный логин или пароль")
+            return render_template("login_beta.html", error="Неверный логин или пароль")
+
 
         if model["password_hash"] != pwd:
-            return render_template("login.html", error="Неверный логин или пароль")
+            return render_template("login_beta.html", error="Неверный логин или пароль")
+
 
         session["user_id"] = model["id"]
         session["username"] = model["username"]
@@ -51,7 +53,7 @@ def login():
 
         return redirect(url_for("panel.index"))
 
-    return render_template("login.html")
+    return render_template("login_beta.html")
 
 
 @panel_bp.route("/logout")
@@ -210,3 +212,40 @@ def run_fc2_fetch():
         "last_comment_index": comment_data.get("last_comment_index"),
         "status": comment_data.get("status")
     }
+
+@panel_bp.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        pwd = request.form.get("password", "").strip()
+        confirm = request.form.get("confirm", "").strip()
+
+        if pwd != confirm:
+            return render_template("register.html", error="Пароли не совпадают")
+
+        model = get_model_by_username(username)
+        if model:
+            return render_template("register.html", error="Имя уже занято")
+
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO models (username, password_hash) VALUES (?, ?)",
+            (username, pwd)
+        )
+        conn.commit()
+        conn.close()
+
+        profile_key = f"{username}_private"
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO profiles (profile_key, username, mode) VALUES (?, ?, ?)",
+            (profile_key, username, "private")
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("panel.login"))
+
+    return render_template("register.html")

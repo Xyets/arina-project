@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация модели</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="auth-body">
+
+<div class="auth-container">
+
+    <div class="auth-card glass">
+        <h2 class="auth-title">Создание модели 🌸</h2>
+
+        {% if error %}
+            <div class="auth-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+
+            <div class="auth-field">
+                <label>Имя модели</label>
+                <input type="text" name="username" placeholder="Arina" required>
+            </div>
+
+            <div class="auth-field">
+                <label>Пароль</label>
+                <input type="password" name="password" placeholder="••••••" required>
+            </div>
+
+            <div class="auth-field">
+                <label>Повторите пароль</label>
+                <input type="password" name="confirm" placeholder="••••••" required>
+            </div>
+
+            <button class="auth-btn">Создать</button>
+
+        </form>
+
+        <div class="auth-footer">
+            Уже есть аккаунт?
+            <a href="{{ url_for('panel.login') }}">Войти</a>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

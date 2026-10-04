@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход в FlowTip</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="auth-body">
+
+<div class="auth-container">
+
+    <div class="auth-card glass">
+        <h2 class="auth-title">Добро пожаловать 🌸</h2>
+
+        {% if error %}
+            <div class="auth-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+
+            <div class="auth-field">
+                <label>Имя модели</label>
+                <input type="text" name="username" placeholder="Arina" required>
+            </div>
+
+            <div class="auth-field">
+                <label>Пароль</label>
+                <input type="password" name="password" placeholder="••••••" required>
+            </div>
+
+            <button class="auth-btn">Войти</button>
+
+        </form>
+
+        <div class="auth-footer">
+            Нет аккаунта?
+            <a href="{{ url_for('panel.register') }}">Создать модель</a>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
