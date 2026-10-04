@@ -51,7 +51,8 @@ def login():
         session["username"] = model["username"]
         session["mode"] = "private"
 
-        return redirect(url_for("panel.index"))
+        return redirect(url_for("panel.beta_page"))
+
 
     return render_template("login_beta.html")
 
