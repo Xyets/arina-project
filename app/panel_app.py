@@ -243,7 +243,7 @@ def register():
 
         try:
             register_model_with_code(
-                code=registration_code,
+                registration_code=registration_code,
                 username=username,
                 password_hash=pwd,
                 display_name=username,
