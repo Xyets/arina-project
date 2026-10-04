@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from functools import wraps
 
-from services.database import get_model_by_username, get_connection
+from services.database import get_model_by_username, get_connection, register_model_with_code, RegistrationError
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
 from services.audit import audit_event
@@ -216,37 +216,50 @@ def run_fc2_fetch():
 
 @panel_bp.route("/register", methods=["GET", "POST"])
 def register():
+
+    # ЗАМЕНИ этот адрес на свой рабочий email.
+    contact_email = "YOUR_EMAIL@example.com"
+
     if request.method == "POST":
+
         username = request.form.get("username", "").strip()
         pwd = request.form.get("password", "").strip()
         confirm = request.form.get("confirm", "").strip()
+        registration_code = request.form.get("registration_code", "").strip()
+
+        if not registration_code:
+            return render_template(
+                "register.html",
+                error="Для регистрации нужен персональный код приглашения.",
+                contact_email=contact_email
+            )
 
         if pwd != confirm:
-            return render_template("register.html", error="Пароли не совпадают")
+            return render_template(
+                "register.html",
+                error="Пароли не совпадают",
+                contact_email=contact_email
+            )
 
-        model = get_model_by_username(username)
-        if model:
-            return render_template("register.html", error="Имя уже занято")
-
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO models (username, password_hash) VALUES (?, ?)",
-            (username, pwd)
-        )
-        conn.commit()
-        conn.close()
-
-        profile_key = f"{username}_private"
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO profiles (profile_key, username, mode) VALUES (?, ?, ?)",
-            (profile_key, username, "private")
-        )
-        conn.commit()
-        conn.close()
+        try:
+            register_model_with_code(
+                code=registration_code,
+                username=username,
+                password_hash=pwd,
+                display_name=username,
+                lovense_token=None,
+                uid=None
+            )
+        except RegistrationError as exc:
+            return render_template(
+                "register.html",
+                error=str(exc),
+                contact_email=contact_email
+            )
 
         return redirect(url_for("panel.login"))
 
-    return render_template("register.html")
+    return render_template(
+        "register.html",
+        contact_email=contact_email
+    )

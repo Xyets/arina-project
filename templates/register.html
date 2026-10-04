@@ -22,6 +22,17 @@
         <form method="POST" class="auth-form">
 
             <div class="auth-field">
+                <label>Персональный код</label>
+                <input
+                    type="text"
+                    name="registration_code"
+                    placeholder="MODEL-XXXX-XXXX"
+                    autocomplete="off"
+                    required
+                >
+            </div>
+
+            <div class="auth-field">
                 <label>Имя модели</label>
                 <input type="text" name="username" placeholder="Arina" required>
             </div>
@@ -43,6 +54,12 @@
         <div class="auth-footer">
             Уже есть аккаунт?
             <a href="{{ url_for('panel.login') }}">Войти</a>
+        </div>
+
+        <div class="auth-footer" style="margin-top: 12px;">
+            Нет персонального кода?<br>
+            Хотите сотрудничать — напишите на
+            <strong>{{ contact_email }}</strong>
         </div>
     </div>
 
