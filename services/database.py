@@ -290,11 +290,13 @@ def register_model_with_code(
     except sqlite3.IntegrityError as exc:
         conn.rollback()
 
+        print("REGISTRATION SQLITE ERROR:", repr(exc), flush=True)
+
         if "username" in str(exc).lower():
             raise RegistrationError("Такой логин уже существует")
 
         raise RegistrationError(
-            "Не удалось создать аккаунт. Проверьте введённые данные"
+            f"Ошибка базы данных: {exc}"
         )
 
     except Exception:
