@@ -28,19 +28,33 @@ def init_db():
     );
     """)
 
-    # Таблица профилей
+    # Таблица профилей.
+    #
+    # В существующей базе profiles уже содержит обязательные поля:
+    # rules_file
+    # vip_file
+    # stats_file
+    # goal_file
+    # reactions_file
+    #
+    # Здесь CREATE TABLE используется только для новой базы.
+    # Существующая таблица не изменяется.
     cur.execute("""
     CREATE TABLE IF NOT EXISTS profiles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         model_id INTEGER NOT NULL,
         profile_key TEXT UNIQUE NOT NULL,
         mode TEXT NOT NULL CHECK (mode IN ('private', 'public')),
+        rules_file TEXT NOT NULL,
+        vip_file TEXT NOT NULL,
+        stats_file TEXT NOT NULL,
+        goal_file TEXT NOT NULL,
+        reactions_file TEXT NOT NULL,
         FOREIGN KEY (model_id) REFERENCES models(id) ON DELETE CASCADE
     );
     """)
 
-    # Персональные коды для регистрации моделей.
-    # Существующие таблицы models и profiles не изменяются.
+    # Персональные коды регистрации моделей.
     cur.execute("""
     CREATE TABLE IF NOT EXISTS registration_codes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,13 +80,26 @@ def create_model(username, password_hash, display_name, lovense_token, uid):
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO models (username, password_hash, display_name, lovense_token, uid)
+        INSERT INTO models (
+            username,
+            password_hash,
+            display_name,
+            lovense_token,
+            uid
+        )
         VALUES (?, ?, ?, ?, ?)
-    """, (username, password_hash, display_name, lovense_token, uid))
+    """, (
+        username,
+        password_hash,
+        display_name,
+        lovense_token,
+        uid
+    ))
 
     conn.commit()
     model_id = cur.lastrowid
     conn.close()
+
     return model_id
 
 
@@ -80,7 +107,11 @@ def get_model_by_username(username):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM models WHERE username = ?", (username,))
+    cur.execute(
+        "SELECT * FROM models WHERE username = ?",
+        (username,)
+    )
+
     row = cur.fetchone()
 
     conn.close()
@@ -88,27 +119,68 @@ def get_model_by_username(username):
 
 
 def create_profiles_for_model(model_id, username):
-    private_key = f"{username}_private"
-    public_key = f"{username}_public"
+    """
+    Создаёт private/public профили для модели
+    со всеми обязательными файлами.
+    """
 
     conn = get_connection()
     cur = conn.cursor()
 
-    for mode, key in [("private", private_key), ("public", public_key)]:
-        cur.execute("""
-            INSERT INTO profiles (model_id, profile_key, mode)
-            VALUES (?, ?, ?)
-        """, (model_id, key, mode))
+    try:
+        for mode in ("private", "public"):
+            profile_key = f"{username}_{mode}"
 
-    conn.commit()
-    conn.close()
+            rules_file = f"data/rules/rules_{profile_key}.json"
+            vip_file = f"data/vip/vip_{profile_key}.json"
+            stats_file = f"data/stats/stats_{profile_key}.json"
+            goal_file = f"data/goals/goal_{profile_key}.json"
+            reactions_file = f"data/reactions/reactions_{profile_key}.json"
+
+            cur.execute("""
+                INSERT INTO profiles (
+                    model_id,
+                    profile_key,
+                    mode,
+                    rules_file,
+                    vip_file,
+                    stats_file,
+                    goal_file,
+                    reactions_file
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                model_id,
+                profile_key,
+                mode,
+                rules_file,
+                vip_file,
+                stats_file,
+                goal_file,
+                reactions_file
+            ))
+
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
 
 
 def get_model_by_id(model_id):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM models WHERE id = ?", (model_id,))
+
+    cur.execute(
+        "SELECT * FROM models WHERE id = ?",
+        (model_id,)
+    )
+
     row = cur.fetchone()
+
     conn.close()
     return row
 
@@ -116,8 +188,14 @@ def get_model_by_id(model_id):
 def get_profile_by_key(profile_key):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM profiles WHERE profile_key = ?", (profile_key,))
+
+    cur.execute(
+        "SELECT * FROM profiles WHERE profile_key = ?",
+        (profile_key,)
+    )
+
     row = cur.fetchone()
+
     conn.close()
     return row
 
@@ -125,14 +203,21 @@ def get_profile_by_key(profile_key):
 def get_model_by_uid(uid):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM models WHERE uid = ?", (uid,))
+
+    cur.execute(
+        "SELECT * FROM models WHERE uid = ?",
+        (uid,)
+    )
+
     row = cur.fetchone()
+
     conn.close()
     return row
 
 
 def create_registration_code(code):
     """Создаёт новый персональный код регистрации."""
+
     code = (code or "").strip().upper()
 
     if not code:
@@ -148,10 +233,13 @@ def create_registration_code(code):
             INSERT INTO registration_codes (code)
             VALUES (?)
         """, (code,))
+
         conn.commit()
+
     except sqlite3.IntegrityError:
         conn.rollback()
         raise ValueError("Такой код уже существует")
+
     finally:
         conn.close()
 
@@ -160,6 +248,7 @@ def create_registration_code(code):
 
 def get_registration_code(code):
     """Возвращает персональный код или None, если его нет."""
+
     code = (code or "").strip().upper()
 
     if not code:
@@ -171,11 +260,13 @@ def get_registration_code(code):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT * FROM registration_codes
+        SELECT *
+        FROM registration_codes
         WHERE code = ?
     """, (code,))
 
     row = cur.fetchone()
+
     conn.close()
     return row
 
@@ -189,15 +280,26 @@ def register_model_with_code(
     registration_code
 ):
     """
-    Регистрирует новую модель только по действующему персональному коду.
+    Регистрирует новую модель только по действующему
+    персональному коду.
+
     Код можно использовать только один раз.
-    Модель и оба профиля создаются в одной транзакции.
+
+    Модель, private/public профили и отметка использования
+    регистрационного кода создаются в одной транзакции.
     """
+
     username = (username or "").strip()
     registration_code = (registration_code or "").strip().upper()
 
     if not username:
         raise RegistrationError("Введите логин")
+
+    if not password_hash:
+        raise RegistrationError("Введите пароль")
+
+    if not display_name:
+        display_name = username
 
     if not registration_code:
         raise RegistrationError("Введите персональный код")
@@ -208,9 +310,12 @@ def register_model_with_code(
     cur = conn.cursor()
 
     try:
-        # Не даём двум одновременным регистрациям использовать один код.
+        # Блокируем запись на время регистрации,
+        # чтобы один код нельзя было использовать одновременно
+        # в двух запросах.
         cur.execute("BEGIN IMMEDIATE")
 
+        # Проверяем персональный код.
         cur.execute("""
             SELECT id, used
             FROM registration_codes
@@ -223,9 +328,11 @@ def register_model_with_code(
             raise RegistrationError("Неверный персональный код")
 
         if code_row["used"]:
-            raise RegistrationError("Этот персональный код уже использован")
+            raise RegistrationError(
+                "Этот персональный код уже использован"
+            )
 
-        # Проверяем, что логин ещё свободен.
+        # Проверяем, что логин свободен.
         cur.execute("""
             SELECT id
             FROM models
@@ -233,9 +340,11 @@ def register_model_with_code(
         """, (username,))
 
         if cur.fetchone() is not None:
-            raise RegistrationError("Такой логин уже существует")
+            raise RegistrationError(
+                "Такой логин уже существует"
+            )
 
-        # Создаём модель в существующей таблице models.
+        # Создаём модель.
         cur.execute("""
             INSERT INTO models (
                 username,
@@ -255,18 +364,58 @@ def register_model_with_code(
 
         model_id = cur.lastrowid
 
-        # Создаём стандартные private/public профили.
-        cur.execute("""
-            INSERT INTO profiles (model_id, profile_key, mode)
-            VALUES (?, ?, ?)
-        """, (model_id, f"{username}_private", "private"))
+        # Создаём private и public профили.
+        #
+        # Формат полностью соответствует существующим
+        # профилям Arina и Irina.
+        for mode in ("private", "public"):
 
-        cur.execute("""
-            INSERT INTO profiles (model_id, profile_key, mode)
-            VALUES (?, ?, ?)
-        """, (model_id, f"{username}_public", "public"))
+            profile_key = f"{username}_{mode}"
 
-        # Помечаем код использованным.
+            rules_file = (
+                f"data/rules/rules_{profile_key}.json"
+            )
+
+            vip_file = (
+                f"data/vip/vip_{profile_key}.json"
+            )
+
+            stats_file = (
+                f"data/stats/stats_{profile_key}.json"
+            )
+
+            goal_file = (
+                f"data/goals/goal_{profile_key}.json"
+            )
+
+            reactions_file = (
+                f"data/reactions/reactions_{profile_key}.json"
+            )
+
+            cur.execute("""
+                INSERT INTO profiles (
+                    model_id,
+                    profile_key,
+                    mode,
+                    rules_file,
+                    vip_file,
+                    stats_file,
+                    goal_file,
+                    reactions_file
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                model_id,
+                profile_key,
+                mode,
+                rules_file,
+                vip_file,
+                stats_file,
+                goal_file,
+                reactions_file
+            ))
+
+        # Помечаем персональный код использованным.
         cur.execute("""
             UPDATE registration_codes
             SET
@@ -275,12 +424,19 @@ def register_model_with_code(
                 used_at = CURRENT_TIMESTAMP
             WHERE id = ?
               AND used = 0
-        """, (model_id, code_row["id"]))
+        """, (
+            model_id,
+            code_row["id"]
+        ))
 
         if cur.rowcount != 1:
-            raise RegistrationError("Этот персональный код уже использован")
+            raise RegistrationError(
+                "Этот персональный код уже использован"
+            )
 
+        # Всё успешно — сохраняем всю регистрацию.
         conn.commit()
+
         return model_id
 
     except RegistrationError:
@@ -290,13 +446,31 @@ def register_model_with_code(
     except sqlite3.IntegrityError as exc:
         conn.rollback()
 
-        print("REGISTRATION SQLITE ERROR:", repr(exc), flush=True)
+        print(
+            "REGISTRATION SQLITE ERROR:",
+            repr(exc),
+            flush=True
+        )
 
-        if "username" in str(exc).lower():
-            raise RegistrationError("Такой логин уже существует")
+        error_text = str(exc).lower()
+
+        if "username" in error_text:
+            raise RegistrationError(
+                "Такой логин уже существует"
+            )
+
+        if "profile_key" in error_text:
+            raise RegistrationError(
+                "Профиль с таким именем уже существует"
+            )
+
+        if "uid" in error_text:
+            raise RegistrationError(
+                "Такой UID уже существует"
+            )
 
         raise RegistrationError(
-            f"Ошибка базы данных: {exc}"
+            "Не удалось создать аккаунт. Проверьте введённые данные"
         )
 
     except Exception:
