@@ -193,31 +193,38 @@
                                 %}
 
 
-                                {% if strength <= 5 %}
+                                {% if strength <= 4 %}
 
                                     <span class="strength">
                                         ⚡
                                     </span>
 
 
-                                {% elif strength <= 11 %}
+                                {% elif strength <= 8 %}
 
                                     <span class="strength">
                                         ⚡ ⚡
                                     </span>
 
 
-                                {% elif strength <= 17 %}
+                                {% elif strength <= 12 %}
 
                                     <span class="strength">
                                         ⚡ ⚡ ⚡
                                     </span>
 
 
-                                {% else %}
+                                {% elif strength <= 16 %}
 
                                     <span class="strength">
                                         ⚡ ⚡ ⚡ ⚡
+                                    </span>
+
+
+                                {% else %}
+
+                                    <span class="strength">
+                                        ⚡ ⚡ ⚡ ⚡ ⚡
                                     </span>
 
                                 {% endif %}

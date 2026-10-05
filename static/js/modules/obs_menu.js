@@ -51,7 +51,34 @@ function setupPagination(options) {
         options.counterSelector
     );
 
+    const viewport =
+        pages.length > 0
+            ? pages[0].closest(".rules-viewport")
+            : null;
 
+    if (viewport && pages.length) {
+        let maxRows = 0;
+
+        pages.forEach(function (page) {
+            const rows = page.querySelectorAll(".rule-row").length;
+            maxRows = Math.max(maxRows, rows);
+        });
+
+        // Максимум — 5 строк на странице
+        maxRows = Math.min(maxRows, 5);
+
+        let height;
+
+        if (maxRows >= 5) {
+            height = 200;
+        } else {
+            // 35px строка + 4px промежуток
+            // + небольшой внутренний запас
+            height = (maxRows * 39) + 8;
+        }
+
+        viewport.style.height = height + "px";
+    }
     if (!pages.length) {
         return;
     }
