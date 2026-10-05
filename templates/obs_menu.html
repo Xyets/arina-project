@@ -6,69 +6,121 @@
 
     <title>FlowTip</title>
 
+    <!-- Японский шрифт -->
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
     <style>
+
         * {
             box-sizing: border-box;
         }
+
 
         html,
         body {
             margin: 0;
             padding: 0;
+
             width: 100%;
             min-height: 100%;
+
             background: transparent;
-            font-family: "Inter", "Noto Sans JP", Arial, sans-serif;
+
+            font-family:
+                "Noto Sans JP",
+                "Inter",
+                Arial,
+                sans-serif;
         }
 
+
         body {
-            padding: 10px;
+            padding: 8px;
+
             color: #333;
         }
 
-        /* =========================================
-           MAIN GLASS CARD
-        ========================================= */
+
+        /* ==================================================
+           MAIN CARD
+        ================================================== */
 
         .menu-card {
-            width: 340px;
-            max-width: calc(100vw - 20px);
 
-            padding: 17px;
+            width: 315px;
 
-            border-radius: 24px;
+            max-width: calc(100vw - 16px);
+
+            padding: 14px;
+
+            border-radius: 23px;
+
 
             /*
-             * 元のAUTH画面と同じ雰囲気のグラデーション
+             * РОЗОВЫЙ ГРАДИЕНТ
+             *
+             * Розовый теперь основной.
+             * Бирюзовый только слегка разбавляет фон.
              */
+
             background:
                 linear-gradient(
                     135deg,
-                    rgba(247, 200, 184, 0.72),
-                    rgba(174, 230, 230, 0.68),
-                    rgba(249, 168, 212, 0.72)
+
+                    rgba(249, 168, 212, 0.88),
+
+                    rgba(247, 200, 184, 0.78),
+
+                    rgba(255, 214, 229, 0.82),
+
+                    rgba(174, 230, 230, 0.38),
+
+                    rgba(249, 168, 212, 0.82)
                 );
 
-            background-size: 220% 220%;
+            background-size: 260% 260%;
 
-            animation: bgMove 12s ease infinite;
-
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-
-            border: 1px solid rgba(255, 255, 255, 0.55);
-
-            box-shadow:
-                0 10px 32px rgba(70, 60, 70, 0.18),
-                inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
             animation:
-                bgMove 12s ease infinite,
+                bgMove 14s ease infinite,
                 menuAppear 0.6s ease;
+
+
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.62);
+
+
+            box-shadow:
+
+                0 10px 30px
+                rgba(80, 45, 65, 0.20),
+
+                inset 0 1px 0
+                rgba(255, 255, 255, 0.72);
         }
 
 
         @keyframes bgMove {
+
             0% {
                 background-position: 0% 50%;
             }
@@ -84,139 +136,175 @@
 
 
         @keyframes menuAppear {
+
             from {
                 opacity: 0;
-                transform: translateY(10px) scale(0.98);
+                transform:
+                    translateY(10px)
+                    scale(0.98);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0) scale(1);
+                transform:
+                    translateY(0)
+                    scale(1);
             }
         }
 
 
-        /* =========================================
+        /* ==================================================
            HEADER
-        ========================================= */
+        ================================================== */
 
         .menu-header {
+
             text-align: center;
-            margin-bottom: 14px;
+
+            margin-bottom: 12px;
         }
 
 
         .menu-title {
-            font-size: 21px;
+
+            font-size: 20px;
+
             line-height: 1.1;
 
             font-weight: 800;
 
-            color: #333;
+            color: #353035;
 
             letter-spacing: 1px;
 
             text-shadow:
-                0 1px 2px rgba(255, 255, 255, 0.8);
+                0 1px 2px
+                rgba(255, 255, 255, 0.8);
         }
 
 
         .menu-subtitle {
-            margin-top: 5px;
+
+            margin-top: 4px;
 
             font-size: 11px;
-            font-weight: 700;
 
-            color: rgba(55, 55, 55, 0.72);
+            font-weight: 600;
 
-            letter-spacing: 0.7px;
+            color:
+                rgba(65, 45, 55, 0.72);
+
+            letter-spacing: 0.6px;
         }
 
 
-        /* =========================================
+        /* ==================================================
            SECTION
-        ========================================= */
+        ================================================== */
 
         .section {
-            margin-top: 12px;
+
+            margin-top: 10px;
         }
 
 
         .section:first-of-type {
+
             margin-top: 0;
         }
 
 
         .section-title {
+
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
 
-            margin-bottom: 7px;
+            margin-bottom: 5px;
 
             padding: 0 3px;
         }
 
 
         .section-title-left {
+
             display: flex;
+
             align-items: center;
 
-            gap: 6px;
+            gap: 5px;
 
-            font-size: 13px;
+            font-size: 12px;
+
             font-weight: 800;
 
-            color: #343434;
+            color: #40353b;
 
-            letter-spacing: 0.4px;
+            letter-spacing: 0.25px;
 
             text-shadow:
-                0 1px 1px rgba(255, 255, 255, 0.65);
+                0 1px 1px
+                rgba(255, 255, 255, 0.75);
         }
 
 
         .page-counter {
-            min-width: 28px;
+
+            min-width: 26px;
 
             text-align: right;
 
-            font-size: 10px;
+            font-size: 9px;
+
             font-weight: 800;
 
-            color: rgba(55, 55, 55, 0.65);
+            color:
+                rgba(65, 45, 55, 0.65);
         }
 
 
-        /* =========================================
+        /* ==================================================
            RULE VIEWPORT
-        ========================================= */
+        ================================================== */
 
         .rules-viewport {
+
             position: relative;
 
-            height: 210px;
+            height: 200px;
 
             overflow: hidden;
 
-            border-radius: 17px;
+            border-radius: 16px;
+
 
             background:
                 linear-gradient(
                     135deg,
-                    rgba(255, 255, 255, 0.36),
-                    rgba(255, 255, 255, 0.18)
+                    rgba(255, 255, 255, 0.40),
+                    rgba(255, 255, 255, 0.23)
                 );
 
-            border: 1px solid rgba(255, 255, 255, 0.46);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.48);
+
 
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.45),
-                0 3px 12px rgba(70, 60, 70, 0.06);
+
+                inset 0 1px 0
+                rgba(255, 255, 255, 0.60),
+
+                0 3px 10px
+                rgba(70, 45, 60, 0.07);
         }
 
 
         .rules-page {
+
             position: absolute;
 
             top: 0;
@@ -225,13 +313,17 @@
             width: 100%;
             height: 100%;
 
-            padding: 7px;
+            padding: 6px;
+
 
             opacity: 0;
 
-            transform: translateX(20px);
+            transform:
+                translateX(18px);
+
 
             pointer-events: none;
+
 
             transition:
                 opacity 0.45s ease,
@@ -240,146 +332,202 @@
 
 
         .rules-page.active {
+
             opacity: 1;
 
-            transform: translateX(0);
+            transform:
+                translateX(0);
 
             pointer-events: auto;
         }
 
 
-        /* =========================================
+        /* ==================================================
            RULE ROW
-        ========================================= */
+        ================================================== */
 
         .rule-row {
+
             height: 37px;
 
-            display: flex;
+            display: grid;
+
+            grid-template-columns:
+                minmax(70px, auto)
+                1fr;
+
+
             align-items: center;
-            justify-content: space-between;
+
 
             margin-bottom: 5px;
 
-            padding: 0 10px;
+            padding:
+                0 9px;
 
-            border-radius: 12px;
+
+            border-radius: 11px;
+
 
             background:
                 linear-gradient(
                     135deg,
-                    rgba(255, 255, 255, 0.58),
+
+                    rgba(255, 255, 255, 0.60),
+
                     rgba(255, 255, 255, 0.40)
                 );
 
-            border: 1px solid rgba(255, 255, 255, 0.55);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.56);
+
 
             box-shadow:
-                0 3px 9px rgba(60, 50, 60, 0.07),
-                inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
-            transition:
-                transform 0.2s ease,
-                background 0.2s ease;
+                0 2px 7px
+                rgba(65, 45, 60, 0.06),
+
+                inset 0 1px 0
+                rgba(255, 255, 255, 0.68);
         }
 
 
         .rule-row:last-child {
+
             margin-bottom: 0;
         }
 
 
-        .rule-row:hover {
-            transform: translateY(-1px);
-
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255, 255, 255, 0.72),
-                    rgba(255, 255, 255, 0.52)
-                );
-        }
-
-
-        /* =========================================
+        /* ==================================================
            PRICE
-        ========================================= */
+        ================================================== */
 
         .rule-price {
+
             display: flex;
+
             align-items: center;
 
-            gap: 6px;
+            gap: 5px;
+
 
             font-size: 14px;
+
             font-weight: 800;
 
-            color: #333;
+            color: #393238;
 
             white-space: nowrap;
         }
 
 
         .rule-price-icon {
-            font-size: 14px;
 
-            color: #555;
+            font-size: 13px;
+
+            color: #6a5c64;
         }
 
 
-        /* =========================================
-           EFFECT / ACTION TEXT
-        ========================================= */
+        /* ==================================================
+           EFFECT / TIME
+        ================================================== */
 
         .rule-effect {
-            max-width: 165px;
+
+            min-width: 0;
 
             overflow: hidden;
 
             text-overflow: ellipsis;
+
             white-space: nowrap;
 
-            font-size: 12px;
 
-            /*
-             * Было слишком бледно.
-             * Теперь текст намного контрастнее.
-             */
+            font-size: 11px;
+
             font-weight: 800;
 
-            color: #555;
+            color: #50454b;
+
 
             text-align: right;
 
+
             text-shadow:
-                0 1px 1px rgba(255, 255, 255, 0.75);
+                0 1px 1px
+                rgba(255, 255, 255, 0.85);
         }
 
 
-        /* =========================================
+        /* ==================================================
+           LIGHTNING
+        ================================================== */
+
+        .strength {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 2px;
+
+            margin-right: 5px;
+
+            color: #f28b5b;
+
+            letter-spacing: -1px;
+
+            font-size: 11px;
+
+
+            text-shadow:
+                0 1px 1px
+                rgba(255, 255, 255, 0.8);
+        }
+
+
+        .duration {
+
+            color: #50454b;
+
+            font-weight: 800;
+        }
+
+
+        /* ==================================================
            PAGINATION DOTS
-        ========================================= */
+        ================================================== */
 
         .pagination {
+
             display: flex;
+
             justify-content: center;
+
             align-items: center;
 
             gap: 5px;
 
-            height: 13px;
+            height: 11px;
 
-            margin-top: 5px;
+            margin-top: 4px;
         }
 
 
         .dot {
+
             width: 5px;
+
             height: 5px;
 
             border-radius: 50%;
 
-            background: rgba(70, 70, 70, 0.24);
+            background:
+                rgba(75, 55, 65, 0.25);
+
 
             transition:
                 transform 0.25s ease,
@@ -388,162 +536,208 @@
 
 
         .dot.active {
-            transform: scale(1.45);
 
-            background: rgba(70, 70, 70, 0.62);
+            transform:
+                scale(1.45);
+
+
+            background:
+                rgba(75, 55, 65, 0.65);
         }
 
 
-        /* =========================================
+        /* ==================================================
            WHEEL
-        ========================================= */
+        ================================================== */
 
         .wheel-card {
-            padding: 11px;
 
-            border-radius: 17px;
+            padding: 9px;
+
+
+            border-radius: 16px;
+
 
             background:
                 linear-gradient(
                     135deg,
-                    rgba(255, 255, 255, 0.58),
-                    rgba(255, 255, 255, 0.38)
+
+                    rgba(255, 255, 255, 0.61),
+
+                    rgba(255, 255, 255, 0.40)
                 );
 
-            border: 1px solid rgba(255, 255, 255, 0.58);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.60);
+
 
             box-shadow:
-                0 4px 14px rgba(60, 50, 60, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+                0 4px 12px
+                rgba(65, 45, 60, 0.07),
+
+                inset 0 1px 0
+                rgba(255, 255, 255, 0.70);
         }
 
 
         .wheel-main {
+
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
 
-            gap: 10px;
+            gap: 7px;
         }
 
 
         .wheel-title {
+
             display: flex;
+
             align-items: center;
 
-            gap: 7px;
+            gap: 6px;
 
-            font-size: 14px;
+
+            font-size: 13px;
+
             font-weight: 800;
 
-            color: #333;
+            color: #393238;
         }
 
 
         .wheel-icon {
-            font-size: 21px;
+
+            font-size: 18px;
         }
 
 
         .wheel-price {
-            padding: 5px 9px;
 
-            border-radius: 10px;
+            padding:
+                4px 8px;
+
+
+            border-radius: 9px;
+
 
             background:
                 linear-gradient(
                     135deg,
-                    rgba(249, 168, 212, 0.42),
-                    rgba(174, 230, 230, 0.42)
+
+                    rgba(249, 168, 212, 0.48),
+
+                    rgba(247, 200, 184, 0.42)
                 );
 
-            border: 1px solid rgba(255, 255, 255, 0.50);
 
-            font-size: 12px;
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.58);
+
+
+            font-size: 11px;
+
             font-weight: 900;
 
-            color: #3f3f3f;
+            color: #443b40;
 
             white-space: nowrap;
         }
 
 
-        /* =========================================
+        /* ==================================================
            WHEEL PRIZES
-        ========================================= */
+        ================================================== */
 
         .wheel-prizes {
+
             display: flex;
+
             flex-wrap: wrap;
 
-            gap: 5px;
+            gap: 4px;
 
-            margin-top: 8px;
+            margin-top: 7px;
         }
 
 
         .wheel-prize {
-            padding: 4px 7px;
 
-            border-radius: 8px;
+            padding:
+                3px 6px;
+
+
+            border-radius: 7px;
+
 
             background:
                 linear-gradient(
                     135deg,
-                    rgba(249, 168, 212, 0.28),
-                    rgba(174, 230, 230, 0.28)
+
+                    rgba(249, 168, 212, 0.30),
+
+                    rgba(255, 255, 255, 0.38)
                 );
 
-            border: 1px solid rgba(255, 255, 255, 0.45);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.52);
+
 
             font-size: 10px;
+
             font-weight: 700;
 
-            color: #555;
-
-            box-shadow:
-                0 2px 5px rgba(60, 50, 60, 0.04);
+            color: #55494f;
         }
 
 
-        /* =========================================
+        /* ==================================================
            EMPTY
-        ========================================= */
+        ================================================== */
 
         .empty-rule {
-            height: 100%;
 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            padding: 15px;
+            padding: 18px;
 
             text-align: center;
 
-            font-size: 12px;
+            font-size: 11px;
+
             font-weight: 700;
 
-            color: rgba(55, 55, 55, 0.65);
+            color:
+                rgba(65, 45, 55, 0.65);
         }
 
 
-        /* =========================================
+        /* ==================================================
            SMALL SCREEN
-        ========================================= */
+        ================================================== */
 
-        @media (max-width: 380px) {
+        @media (max-width: 330px) {
 
             body {
-                padding: 8px;
+                padding: 5px;
             }
 
 
             .menu-card {
-                width: 330px;
-                max-width: calc(100vw - 16px);
 
-                padding: 15px;
+                width: 305px;
+
+                max-width:
+                    calc(100vw - 10px);
+
+                padding: 12px;
             }
 
 
@@ -558,11 +752,10 @@
 
 
             .rule-effect {
-                font-size: 11px;
-
-                max-width: 145px;
+                font-size: 10px;
             }
         }
+
     </style>
 </head>
 
@@ -608,7 +801,8 @@
 
             {% set _ = wheel_rules.append(rule) %}
 
-        {% elif rule.get("type") == "custom" or rule.get("type") == "action" %}
+        {% elif rule.get("type") == "custom"
+              or rule.get("type") == "action" %}
 
             {% set _ = action_rules.append(rule) %}
 
@@ -658,17 +852,25 @@
 
                     <div class="rule-row">
 
+
                         <div class="rule-price">
 
                             <span class="rule-price-icon">
                                 ♡
                             </span>
 
+
                             <span>
 
-                                {{ rule.get("min", rule.get("price", 0)) }}
+                                {{ rule.get(
+                                    "min",
+                                    rule.get("price", 0)
+                                ) }}
 
-                                {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+
+                                {% if rule.get("max")
+                                   and rule.get("max")
+                                   != rule.get("min") %}
 
                                     – {{ rule.get("max") }}
 
@@ -681,17 +883,48 @@
 
                         <div class="rule-effect">
 
+                            {% if rule.get("strength") %}
+
+                                {% set strength =
+                                    rule.get("strength")|int
+                                %}
+
+
+                                {% if strength <= 5 %}
+
+                                    <span class="strength">
+                                        ⚡
+                                    </span>
+
+                                {% elif strength <= 11 %}
+
+                                    <span class="strength">
+                                        ⚡ ⚡
+                                    </span>
+
+                                {% elif strength <= 17 %}
+
+                                    <span class="strength">
+                                        ⚡ ⚡ ⚡
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="strength">
+                                        ⚡ ⚡ ⚡ ⚡
+                                    </span>
+
+                                {% endif %}
+
+
+                            {% endif %}
+
+
                             {% if rule.get("duration") %}
 
-                                ⚡ {{ rule.get("duration") }} 秒
-
-                            {% elif rule.get("strength") %}
-
-                                ⚡ 強度 {{ rule.get("strength") }}
-
-                            {% else %}
-
-                                ⚡ バイブレーション
+                                <span class="duration">
+                                    {{ rule.get("duration") }}秒
+                                </span>
 
                             {% endif %}
 
@@ -700,7 +933,8 @@
                     </div>
 
 
-                {% if loop.last or loop.index0 % 5 == 4 %}
+                {% if loop.last
+                   or loop.index0 % 5 == 4 %}
 
                 </div>
 
@@ -718,7 +952,9 @@
             id="vibrationPagination"
         >
 
-            {% for i in range((vibration_rules|length + 4) // 5) %}
+            {% for i in range(
+                (vibration_rules|length + 4) // 5
+            ) %}
 
                 <span
                     class="dot {% if i == 0 %}active{% endif %}"
@@ -777,17 +1013,25 @@
 
                     <div class="rule-row">
 
+
                         <div class="rule-price">
 
                             <span class="rule-price-icon">
                                 ♡
                             </span>
 
+
                             <span>
 
-                                {{ rule.get("min", rule.get("price", 0)) }}
+                                {{ rule.get(
+                                    "min",
+                                    rule.get("price", 0)
+                                ) }}
 
-                                {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+
+                                {% if rule.get("max")
+                                   and rule.get("max")
+                                   != rule.get("min") %}
 
                                     – {{ rule.get("max") }}
 
@@ -827,7 +1071,8 @@
                     </div>
 
 
-                {% if loop.last or loop.index0 % 5 == 4 %}
+                {% if loop.last
+                   or loop.index0 % 5 == 4 %}
 
                 </div>
 
@@ -845,7 +1090,9 @@
             id="actionPagination"
         >
 
-            {% for i in range((action_rules|length + 4) // 5) %}
+            {% for i in range(
+                (action_rules|length + 4) // 5
+            ) %}
 
                 <span
                     class="dot {% if i == 0 %}active{% endif %}"
@@ -884,7 +1131,9 @@
 
             <div class="wheel-card">
 
+
                 <div class="wheel-main">
+
 
                     <div class="wheel-title">
 
@@ -901,15 +1150,22 @@
 
                     <div class="wheel-price">
 
-                        {{ rule.get("min", rule.get("price", 0)) }}
+                        {{ rule.get(
+                            "min",
+                            rule.get("price", 0)
+                        ) }}
 
-                        {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+
+                        {% if rule.get("max")
+                           and rule.get("max")
+                           != rule.get("min") %}
 
                             – {{ rule.get("max") }}
 
                         {% endif %}
 
                     </div>
+
 
                 </div>
 
@@ -918,9 +1174,14 @@
 
                 <div class="wheel-prizes">
 
-                    {% for segment in rule.get("segments", []) %}
+                    {% for segment in rule.get(
+                        "segments",
+                        []
+                    ) %}
+
 
                         <div class="wheel-prize">
+
 
                             {% if segment.get("label") %}
 
@@ -936,7 +1197,8 @@
 
                             {% elif segment.get("strength") %}
 
-                                🎯 強度 {{ segment.get("strength") }}
+                                🎯 強度
+                                {{ segment.get("strength") }}
 
                             {% else %}
 
@@ -944,13 +1206,16 @@
 
                             {% endif %}
 
+
                         </div>
+
 
                     {% endfor %}
 
                 </div>
 
                 {% endif %}
+
 
             </div>
 
@@ -965,7 +1230,9 @@
          NO RULES
     ========================================= -->
 
-    {% if not vibration_rules and not action_rules and not wheel_rules %}
+    {% if not vibration_rules
+       and not action_rules
+       and not wheel_rules %}
 
         <div class="empty-rule">
             現在、利用できるルールはありません
@@ -973,34 +1240,47 @@
 
     {% endif %}
 
+
 </div>
 
 
 <script>
 
     /*
-     * =============================================
+     * =====================================================
      * PAGINATION
-     * =============================================
-     *
-     * 最大5件を表示。
-     *
-     * 6〜10件 → 次の5件
-     * 11〜15件 → さらに次の5件
-     *
-     * 4.5秒ごとに自動切り替え。
+     * =====================================================
      */
+
+    let paginationTimers = [];
+
+
+    function clearPaginationTimers() {
+
+        paginationTimers.forEach(function(timer) {
+
+            clearInterval(timer);
+
+        });
+
+        paginationTimers = [];
+    }
 
 
     function setupPagination(options) {
 
+
         const pages = Array.from(
-            document.querySelectorAll(options.pageSelector)
+            document.querySelectorAll(
+                options.pageSelector
+            )
         );
 
 
         const dots = Array.from(
-            document.querySelectorAll(options.dotSelector)
+            document.querySelectorAll(
+                options.dotSelector
+            )
         );
 
 
@@ -1019,11 +1299,13 @@
 
         function showPage(index) {
 
+
             currentPage =
-                (index + pages.length) % pages.length;
+                (index + pages.length)
+                % pages.length;
 
 
-            pages.forEach((page, i) => {
+            pages.forEach(function(page, i) {
 
                 page.classList.toggle(
                     "active",
@@ -1033,7 +1315,7 @@
             });
 
 
-            dots.forEach((dot, i) => {
+            dots.forEach(function(dot, i) {
 
                 dot.classList.toggle(
                     "active",
@@ -1045,12 +1327,13 @@
 
             if (counter) {
 
+
                 if (pages.length > 1) {
 
                     counter.textContent =
-                        (currentPage + 1) +
-                        " / " +
-                        pages.length;
+                        (currentPage + 1)
+                        + " / "
+                        + pages.length;
 
                 } else {
 
@@ -1071,18 +1354,26 @@
         }
 
 
-        setInterval(function () {
+        const timer = setInterval(
+            function() {
 
-            showPage(currentPage + 1);
+                showPage(
+                    currentPage + 1
+                );
 
-        }, 4500);
+            },
+            4500
+        );
 
 
-        dots.forEach((dot, index) => {
+        paginationTimers.push(timer);
+
+
+        dots.forEach(function(dot, index) {
 
             dot.addEventListener(
                 "click",
-                function () {
+                function() {
 
                     showPage(index);
 
@@ -1094,38 +1385,189 @@
     }
 
 
+    function initializePagination() {
+
+
+        clearPaginationTimers();
+
+
+        setupPagination({
+
+            pageSelector:
+                ".vibration-page",
+
+            dotSelector:
+                "#vibrationPagination .dot",
+
+            counterSelector:
+                "#vibrationCounter"
+
+        });
+
+
+        setupPagination({
+
+            pageSelector:
+                ".action-page",
+
+            dotSelector:
+                "#actionPagination .dot",
+
+            counterSelector:
+                "#actionCounter"
+
+        });
+
+    }
+
+
     /*
-     * バイブレーション
+     * =====================================================
+     * INITIALIZE
+     * =====================================================
      */
 
-    setupPagination({
-
-        pageSelector: ".vibration-page",
-
-        dotSelector:
-            "#vibrationPagination .dot",
-
-        counterSelector:
-            "#vibrationCounter"
-
-    });
+    initializePagination();
 
 
     /*
-     * アクション
+     * =====================================================
+     * AUTOMATIC RULE UPDATE
+     * =====================================================
+     *
+     * Каждые 10 секунд получаем свежую
+     * версию страницы с сервера.
+     *
+     * Поэтому если в FlowTip:
+     *
+     * - добавили правило
+     * - удалили правило
+     * - изменили цену
+     * - изменили вибрацию
+     * - добавили действие
+     * - изменили колесо
+     *
+     * OBS меню обновится автоматически.
      */
 
-    setupPagination({
 
-        pageSelector: ".action-page",
+    async function refreshRules() {
 
-        dotSelector:
-            "#actionPagination .dot",
 
-        counterSelector:
-            "#actionCounter"
+        try {
 
-    });
+
+            const response = await fetch(
+                window.location.href
+                + (
+                    window.location.href.includes("?")
+                    ? "&"
+                    : "?"
+                )
+                + "_flowtip_refresh="
+                + Date.now(),
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+            if (!response.ok) {
+                return;
+            }
+
+
+            const html =
+                await response.text();
+
+
+            const parser =
+                new DOMParser();
+
+
+            const newDocument =
+                parser.parseFromString(
+                    html,
+                    "text/html"
+                );
+
+
+            const newCard =
+                newDocument.querySelector(
+                    ".menu-card"
+                );
+
+
+            const currentCard =
+                document.querySelector(
+                    ".menu-card"
+                );
+
+
+            if (!newCard || !currentCard) {
+                return;
+            }
+
+
+            /*
+             * Сравниваем содержимое.
+             *
+             * Если правила не изменились —
+             * ничего не перерисовываем.
+             */
+
+            if (
+                newCard.innerHTML.trim()
+                === currentCard.innerHTML.trim()
+            ) {
+
+                return;
+            }
+
+
+            /*
+             * Правила изменились.
+             */
+
+            currentCard.replaceWith(
+                newCard
+            );
+
+
+            /*
+             * Заново запускаем
+             * автоматическое перелистывание.
+             */
+
+            initializePagination();
+
+
+        } catch (error) {
+
+            /*
+             * Если интернет/сервер временно
+             * недоступен — меню продолжает
+             * работать с последними данными.
+             */
+
+            console.log(
+                "FlowTip menu refresh:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * Проверяем изменения каждые 10 секунд.
+     */
+
+    setInterval(
+        refreshRules,
+        10000
+    );
 
 </script>
 
