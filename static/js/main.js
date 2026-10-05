@@ -93,7 +93,7 @@ function initPageAfterContent() {
 
     if (document.querySelector(".rules-page")) {
         initRulesPage(socket, showToast);
-        initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+        initRuleForms(CURRENT_PROFILE, socket, showToast);
         initRuleModals();
         updateNewRuleFields();
         loadLogs();
@@ -237,7 +237,7 @@ function initModeSwitch() {
 
                 if (document.querySelector(".rules-page")) {
                     initRulesPage(socket, showToast);
-                    initRuleForms(CURRENT_PROFILE, socket, reloadInnerContent, showToast);
+                    initRuleForms(CURRENT_PROFILE, socket, showToast);
                     initRuleModals();
                     updateNewRuleFields();
                 }
