@@ -1,81 +1,133 @@
-
 {% extends "base.html" %}
 {% block content %}
 
 <div class="rules-page">
 
+    <!-- =========================================================
+         ➕ ДОБАВЛЕНИЕ НОВОГО ПРАВИЛА
+    ========================================================== -->
+
     <div class="add-rule-card">
+
         <h3>➕ Добавить новое правило</h3>
 
-        <!-- Тип по центру — ВНЕ формы -->
+        <!-- ТИП -->
         <div class="form-type">
             <label>Тип:</label>
 
             <div class="custom-select" id="typeSelect">
-                <div class="select-display" id="typeDisplay">Выберите тип</div>
+
+                <div class="select-display" id="typeDisplay">
+                    Выберите тип
+                </div>
 
                 <div class="select-options" id="typeOptions">
-                    <div class="option" data-value="vibration">💗 Вибрация</div>
-                    <div class="option" data-value="custom">🎬 Действие</div>
-                    <div class="option" data-value="wheel">🎡 Колесо фортуны</div>
+
+                    <div class="option" data-value="vibration">
+                        💗 Вибрация
+                    </div>
+
+                    <div class="option" data-value="custom">
+                        🎬 Действие
+                    </div>
+
+                    <div class="option" data-value="wheel">
+                        🎡 Колесо фортуны
+                    </div>
+
                 </div>
+
             </div>
 
             <input type="hidden" id="new_action_type">
+
         </div>
 
-        <!-- Форма — отдельно -->
+
+        <!-- ФОРМА ДОБАВЛЕНИЯ -->
         <form id="addRuleForm" class="add-rule-form">
 
             <div class="form-grid">
+
+                <!-- МИН -->
                 <div class="form-cell" id="cell_min">
                     <label>Мин:</label>
-                    <input type="number" id="new_min" required>
+                    <input type="number" id="new_min">
                 </div>
 
+
+                <!-- МАКС -->
                 <div class="form-cell" id="cell_max">
                     <label>Макс:</label>
-                    <input type="number" id="new_max" required>
+                    <input type="number" id="new_max">
                 </div>
 
+
+                <!-- СИЛА -->
                 <div class="form-cell" id="cell_strength">
                     <label>Сила:</label>
                     <input type="number" id="new_strength">
                 </div>
 
+
+                <!-- ВРЕМЯ -->
                 <div class="form-cell" id="cell_duration">
                     <label>Время:</label>
                     <input type="number" id="new_duration">
                 </div>
 
-                <div class="form-cell" id="cell_action">
+
+                <!-- НАЗВАНИЕ -->
+                <div class="form-cell" id="cell_name">
                     <label>Название:</label>
-                    <input type="text" id="new_name">
+                    <input
+                        type="text"
+                        id="new_name"
+                        placeholder="Например: Показать попку 🍑"
+                    >
                 </div>
 
-                <div class="form-cell" id="cell_log_action">
+
+                <!-- ДЕЙСТВИЕ -->
+                <div class="form-cell" id="cell_action">
                     <label>Действие:</label>
-                    <input type="text" id="new_action">
+                    <input
+                        type="text"
+                        id="new_action"
+                        placeholder="Например: Показала попку"
+                    >
                 </div>
+
             </div>
 
-            <button type="submit" class="btn-primary">Добавить</button>
+
+            <button type="submit" class="btn-primary">
+                Добавить
+            </button>
+
         </form>
+
     </div>
 
 
 
-    <!-- Список правил -->
+    <!-- =========================================================
+         📋 СПИСОК ПРАВИЛ
+    ========================================================== -->
+
     <div class="rules-list-card">
+
         <div class="rules-list-header">
             <h2>Правила</h2>
         </div>
 
-        <!-- КОМПАКТНАЯ СЕТКА -->
+
         <div class="rules-grid">
 
             {% for rule in rules %}
-            <div class="rule-card"
+
+            <div
+                class="rule-card"
                 data-rule-id="{{ rule.id }}"
                 data-min="{{ rule.min }}"
                 data-max="{{ rule.max }}"
@@ -84,228 +136,534 @@
                 data-type="{{ rule.type }}"
                 data-name="{{ rule.name or rule.action or '' }}"
                 data-action="{{ rule.action or '' }}"
+            >
 
-                <!-- Верхняя часть карточки -->
+                <!-- ВЕРХ КАРТОЧКИ -->
                 <div class="rule-range">
                     Диапазон: {{ rule.min }} – {{ rule.max }}
                 </div>
 
-                {% if rule.type != "wheel" %}
-                <div class="rule-info">
-                    Сила: {{ rule.strength }} | Время: {{ rule.duration }}s
-                </div>
-                {% endif %}
 
-                <div class="rule-action">
-                    {% if rule.type == "wheel" %}
-                        🎡 Колесо фортуны
+                <!-- ИНФОРМАЦИЯ -->
+                {% if rule.type != "wheel" %}
+
+                <div class="rule-info">
+
+                    {% if rule.type == "vibration" %}
+                        Сила: {{ rule.strength }} |
+                        Время: {{ rule.duration }}s
                     {% elif rule.type == "custom" %}
-                        🎬 {{ rule.name or rule.action }}
-                    {% else %}
-                        🔊 Вибрация
+                        Действие
                     {% endif %}
 
                 </div>
 
-                <!-- Сегменты колеса -->
+                {% endif %}
+
+
+                <!-- НАЗВАНИЕ / ДЕЙСТВИЕ -->
+                <div class="rule-action">
+
+                    {% if rule.type == "wheel" %}
+
+                        🎡 Колесо фортуны
+
+                    {% elif rule.type == "custom" %}
+
+                        🎬
+                        {{ rule.name or rule.action }}
+
+                    {% else %}
+
+                        🔊 Вибрация
+
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- =================================================
+                     🎡 СЕГМЕНТЫ КОЛЕСА
+                ================================================== -->
+
                 {% if rule.type == "wheel" %}
-                <div class="wheel-segments hidden" id="wheel-{{ rule.id }}">
+
+                <div
+                    class="wheel-segments hidden"
+                    id="wheel-{{ rule.id }}"
+                >
+
                     <h4>🎡 Сегменты колеса</h4>
 
+
                     {% for seg in rule.segments %}
+
                     <div class="segment-card">
+
                         <div>
-                            <div class="segment-title">🎯 {{ seg.name }}</div>
+
+                            <div class="segment-title">
+                                🎯 {{ seg.name }}
+                            </div>
+
 
                             {% if seg.type == "vibration" %}
-                                <div class="segment-action">
-                                    💗 сила {{ seg.strength }}, {{ seg.duration }}s
-                                </div>
+
+                            <div class="segment-action">
+                                💗 сила {{ seg.strength }},
+                                {{ seg.duration }}s
+                            </div>
+
+
                             {% elif seg.type == "action" %}
-                                <div class="segment-action">🎬 {{ seg.action }}</div>
+
+                            <div class="segment-action">
+                                🎬 {{ seg.action }}
+                            </div>
+
+
                             {% elif seg.type == "retry" %}
-                                <div class="segment-action">🔁 Повтор</div>
+
+                            <div class="segment-action">
+                                🔁 Повтор
+                            </div>
+
                             {% endif %}
 
-                            <div class="segment-chance-text">Шанс: {{ seg.chance }}%</div>
+
+                            <div class="segment-chance-text">
+                                Шанс: {{ seg.chance }}%
+                            </div>
+
                         </div>
 
-                        <button class="segment-delete-btn"
-                                onclick="deleteSegment('{{ rule.id }}', '{{ loop.index0 }}')">❌</button>
+
+                        <button
+                            type="button"
+                            class="segment-delete-btn"
+                            onclick="deleteSegment('{{ rule.id }}', {{ loop.index0 }})"
+                        >
+                            ❌
+                        </button>
+
                     </div>
 
                     {% endfor %}
 
-                    <button class="btn-small" onclick="openSegmentModal('{{ rule.id }}')">
+
+                    <button
+                        type="button"
+                        class="btn-small"
+                        onclick="openSegmentModal('{{ rule.id }}')"
+                    >
                         ➕ Добавить сегмент
                     </button>
+
                 </div>
+
                 {% endif %}
 
-                <!-- Кнопки действий — теперь ВНИЗУ -->
+
+
+                <!-- =================================================
+                     🔘 КНОПКИ ПРАВИЛА
+                ================================================== -->
+
                 <div class="rule-actions-bottom">
-                    <button class="btn-icon testRuleBtn" data-index="{{ loop.index0 }}">🔊</button>
-                    <button class="btn-icon" onclick="openRuleModal('{{ rule.id }}')">✏️</button>
+
+                    <button
+                        type="button"
+                        class="btn-icon testRuleBtn"
+                        data-index="{{ loop.index0 }}"
+                    >
+                        🔊
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="btn-icon"
+                        onclick="openRuleModal('{{ rule.id }}')"
+                    >
+                        ✏️
+                    </button>
+
 
                     {% if rule.type == "wheel" %}
-                        <button class="btn-icon" onclick="openSegmentModal('{{ rule.id }}')">➕</button>
-                        <button class="btn-icon" onclick="toggleWheel('{{ rule.id }}')">📂</button>
+
+                    <button
+                        type="button"
+                        class="btn-icon"
+                        onclick="openSegmentModal('{{ rule.id }}')"
+                    >
+                        ➕
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="btn-icon"
+                        onclick="toggleWheel('{{ rule.id }}')"
+                    >
+                        📂
+                    </button>
+
                     {% endif %}
 
-                    <button class="btn-icon btn-delete" onclick="deleteRule('{{ rule.id }}')">❌</button>
+
+                    <button
+                        type="button"
+                        class="btn-icon btn-delete"
+                        onclick="deleteRule('{{ rule.id }}')"
+                    >
+                        ❌
+                    </button>
+
                 </div>
-
-
 
             </div>
 
             {% endfor %}
 
-        </div> <!-- /rules-grid -->
-    </div> <!-- /rules-list-card -->
+        </div>
+
+    </div>
+
+</div>
 
 
-</div> <!-- конец rules-page -->
 
-<!-- 🔥 Модальное окно редактирования правила -->
+<!-- =============================================================
+     ✏️ МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ПРАВИЛА
+============================================================== -->
+
 <div class="modal" id="ruleModal">
+
     <div class="modal-content edit-modal">
 
         <form id="ruleEditForm">
 
             <div class="modal-header">
-                <h3>✏️ Редактировать правило</h3>
-                <button type="button" class="close-btn" onclick="closeRuleModal()">✖</button>
+
+                <h3>
+                    ✏️ Редактировать правило
+                </h3>
+
+                <button
+                    type="button"
+                    class="close-btn"
+                    onclick="closeRuleModal()"
+                >
+                    ✖
+                </button>
+
             </div>
 
-            <input type="hidden" id="edit_rule_id">
+
+            <input
+                type="hidden"
+                id="edit_rule_id"
+            >
+
 
             <div class="modal-grid">
 
-                <!-- Тип (скрыт по умолчанию) -->
+                <!-- ТИП -->
                 <div class="modal-cell hidden">
+
                     <label>Тип:</label>
-                    <div class="readonly-type" id="edit_type_display"></div>
-                    <input type="hidden" id="edit_type">
+
+                    <div
+                        class="readonly-type"
+                        id="edit_type_display"
+                    ></div>
+
+                    <input
+                        type="hidden"
+                        id="edit_type"
+                    >
+
                 </div>
 
+
+                <!-- МИН -->
                 <div class="modal-cell">
+
                     <label>Мин:</label>
-                    <input type="number" id="edit_min">
+
+                    <input
+                        type="number"
+                        id="edit_min"
+                    >
+
                 </div>
 
+
+                <!-- МАКС -->
                 <div class="modal-cell">
+
                     <label>Макс:</label>
-                    <input type="number" id="edit_max">
+
+                    <input
+                        type="number"
+                        id="edit_max"
+                    >
+
                 </div>
 
-                <!-- Сила (скрыта по умолчанию) -->
-                <div class="modal-cell hidden" id="edit_strength_block">
+
+                <!-- СИЛА -->
+                <div
+                    class="modal-cell hidden"
+                    id="edit_strength_block"
+                >
+
                     <label>Сила:</label>
-                    <input type="number" id="edit_strength">
+
+                    <input
+                        type="number"
+                        id="edit_strength"
+                    >
+
                 </div>
 
-                <!-- Время (скрыто по умолчанию) -->
-                <div class="modal-cell hidden" id="edit_duration_block">
+
+                <!-- ВРЕМЯ -->
+                <div
+                    class="modal-cell hidden"
+                    id="edit_duration_block"
+                >
+
                     <label>Время:</label>
-                    <input type="number" id="edit_duration">
+
+                    <input
+                        type="number"
+                        id="edit_duration"
+                    >
+
                 </div>
 
-                <!-- Действие (скрыто по умолчанию) -->
-                <div class="modal-cell hidden" id="edit_name_block">
+
+                <!-- НАЗВАНИЕ -->
+                <div
+                    class="modal-cell hidden"
+                    id="edit_name_block"
+                >
+
                     <label>Название:</label>
-                    <input type="text" id="edit_name">
+
+                    <input
+                        type="text"
+                        id="edit_name"
+                    >
+
                 </div>
 
-                <div class="modal-cell hidden" id="edit_action_block">
+
+                <!-- ДЕЙСТВИЕ -->
+                <div
+                    class="modal-cell hidden"
+                    id="edit_action_block"
+                >
+
                     <label>Действие:</label>
-                    <input type="text" id="edit_action">
+
+                    <input
+                        type="text"
+                        id="edit_action"
+                    >
+
                 </div>
 
             </div>
 
 
-            <button class="btn-primary modal-save-btn" type="submit">
+            <button
+                class="btn-primary modal-save-btn"
+                type="submit"
+            >
                 💾 Сохранить
             </button>
 
         </form>
 
     </div>
+
 </div>
 
-<!-- 🔥 Модальное окно добавления сегмента -->
+
+
+<!-- =============================================================
+     🎡 МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ СЕГМЕНТА
+============================================================== -->
+
 <div class="modal" id="segmentModal">
+
     <div class="modal-content edit-modal">
 
-        <form id="segmentAddForm" novalidate>
+        <form
+            id="segmentAddForm"
+            novalidate
+        >
 
             <div class="modal-header">
-                <h3>➕ Добавить сегмент</h3>
-                <button type="button" class="close-btn" onclick="closeSegmentModal()">✖</button>
+
+                <h3>
+                    ➕ Добавить сегмент
+                </h3>
+
+                <button
+                    type="button"
+                    class="close-btn"
+                    onclick="closeSegmentModal()"
+                >
+                    ✖
+                </button>
+
             </div>
 
-            <input type="hidden" id="segment_rule_id" name="rule_id">
+
+            <input
+                type="hidden"
+                id="segment_rule_id"
+                name="rule_id"
+            >
+
 
             <div class="modal-grid">
 
-                <!-- Название -->
+                <!-- НАЗВАНИЕ -->
                 <div class="modal-cell">
+
                     <label>Название:</label>
-                    <input type="text" id="seg_name" name="seg_name" required>
+
+                    <input
+                        type="text"
+                        id="seg_name"
+                        name="seg_name"
+                        required
+                    >
+
                 </div>
 
-                <!-- Шанс -->
+
+                <!-- ШАНС -->
                 <div class="modal-cell">
+
                     <label>Шанс (%):</label>
-                    <input type="number" id="seg_chance" name="seg_chance" required>
+
+                    <input
+                        type="number"
+                        id="seg_chance"
+                        name="seg_chance"
+                        required
+                    >
+
                 </div>
 
-                <!-- Тип -->
+
+                <!-- ТИП -->
                 <div class="modal-cell">
+
                     <label>Тип сегмента:</label>
-                    <select id="seg_type" name="seg_type" onchange="updateSegmentFields(this)">
-                        <option value="vibration">💗 Вибрация</option>
-                        <option value="action">🎬 Действие</option>
-                        <option value="retry">🔁 Повтор</option>
+
+                    <select
+                        id="seg_type"
+                        name="seg_type"
+                        onchange="updateSegmentFields(this)"
+                    >
+
+                        <option value="vibration">
+                            💗 Вибрация
+                        </option>
+
+                        <option value="action">
+                            🎬 Действие
+                        </option>
+
+                        <option value="retry">
+                            🔁 Повтор
+                        </option>
+
                     </select>
+
                 </div>
+
 
                 <!-- ВИБРАЦИЯ -->
                 <div class="seg-vibration-fields">
-                    <div class="modal-cell">
-                        <label>Сила:</label>
-                        <input type="number" id="seg_strength" name="seg_strength">
-                    </div>
 
                     <div class="modal-cell">
-                        <label>Время (сек):</label>
-                        <input type="number" id="seg_duration" name="seg_duration">
+
+                        <label>Сила:</label>
+
+                        <input
+                            type="number"
+                            id="seg_strength"
+                            name="seg_strength"
+                        >
+
                     </div>
+
+
+                    <div class="modal-cell">
+
+                        <label>Время (сек):</label>
+
+                        <input
+                            type="number"
+                            id="seg_duration"
+                            name="seg_duration"
+                        >
+
+                    </div>
+
                 </div>
+
 
                 <!-- ДЕЙСТВИЕ -->
                 <div class="seg-action-fields hidden">
+
                     <div class="modal-cell">
+
                         <label>Действие:</label>
-                        <input type="text" id="seg_action" name="seg_action">
+
+                        <input
+                            type="text"
+                            id="seg_action"
+                            name="seg_action"
+                        >
+
                     </div>
+
                 </div>
+
 
                 <!-- ПОВТОР -->
                 <div class="seg-retry-fields hidden">
-                    <p style="color:#777;">Этот сегмент просто повторяет колесо.</p>
+
+                    <p style="color:#777;">
+                        Этот сегмент просто повторяет колесо.
+                    </p>
+
                 </div>
 
             </div>
 
-            <button class="btn-primary modal-save-btn" type="submit">
+
+            <button
+                class="btn-primary modal-save-btn"
+                type="submit"
+            >
                 💾 Добавить сегмент
             </button>
 
         </form>
 
     </div>
+
 </div>
+
 
 {% endblock %}
