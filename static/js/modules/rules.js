@@ -123,6 +123,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                 strength: Number(document.getElementById("new_strength").value || 0),
                 duration: Number(document.getElementById("new_duration").value || 0),
                 action_type: document.getElementById("new_action_type").value,
+                name: document.getElementById("new_name")?.value || "",
                 action: document.getElementById("new_action").value || ""
             };
 
@@ -148,6 +149,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                 strength: Number(document.getElementById("edit_strength").value || 0),
                 duration: Number(document.getElementById("edit_duration").value || 0),
                 action_type: document.getElementById("edit_type").value,
+                name: document.getElementById("edit_name")?.value || "",
                 action: document.getElementById("edit_action").value || ""
             };
 
@@ -201,6 +203,7 @@ export function initRuleModals() {
             max: card.dataset.max,
             strength: card.dataset.strength,
             duration: card.dataset.duration,
+            name: card.dataset.name || card.dataset.action || "",
             action: card.dataset.action || "",
             type: card.dataset.type
         };
@@ -210,8 +213,18 @@ export function initRuleModals() {
         document.getElementById("edit_max").value = card.dataset.max;
         document.getElementById("edit_strength").value = card.dataset.strength;
         document.getElementById("edit_duration").value = card.dataset.duration;
+        const editName = document.getElementById("edit_name");
+
+        if (editName) {
+            editName.value =
+                card.dataset.type === "custom"
+                    ? (card.dataset.name || card.dataset.action || "")
+                    : "";
+        }
+
         document.getElementById("edit_action").value =
             card.dataset.type === "custom" ? (card.dataset.action || "") : "";
+
         document.getElementById("edit_type").value = card.dataset.type;
 
         updateRuleEditFields();
@@ -225,9 +238,20 @@ export function initRuleModals() {
             document.getElementById("edit_min").value = window._originalRuleData.min;
             document.getElementById("edit_max").value = window._originalRuleData.max;
             document.getElementById("edit_strength").value = window._originalRuleData.strength;
-            document.getElementById("edit_duration").value = window._originalRuleData.duration;
-            document.getElementById("edit_action").value = window._originalRuleData.action;
-            document.getElementById("edit_type").value = window._originalRuleData.type;
+            document.getElementById("edit_duration").value =
+                window._originalRuleData.duration;
+
+            const editName = document.getElementById("edit_name");
+
+            if (editName) {
+                editName.value = window._originalRuleData.name || "";
+            }
+
+            document.getElementById("edit_action").value =
+                window._originalRuleData.action;
+
+            document.getElementById("edit_type").value =
+                window._originalRuleData.type;
 
             updateRuleEditFields();
         }
@@ -266,11 +290,17 @@ export function updateRuleEditFields() {
 
     const strength = document.getElementById("edit_strength_block");
     const duration = document.getElementById("edit_duration_block");
+    const name = document.getElementById("edit_name_block");
     const action = document.getElementById("edit_action_block");
     const typeBlock = document.getElementById("edit_type_display").parentElement;
 
     strength.classList.add("hidden");
     duration.classList.add("hidden");
+
+    if (name) {
+        name.classList.add("hidden");
+    }
+
     action.classList.add("hidden");
     typeBlock.classList.add("hidden");
 
@@ -280,6 +310,10 @@ export function updateRuleEditFields() {
     }
 
     if (type === "custom") {
+        if (name) {
+            name.classList.remove("hidden");
+        }
+
         action.classList.remove("hidden");
     }
 }
@@ -295,12 +329,18 @@ export function updateNewRuleFields() {
     const cellMax = document.getElementById("cell_max");
     const cellStrength = document.getElementById("cell_strength");
     const cellDuration = document.getElementById("cell_duration");
+    const cellName = document.getElementById("cell_name");
     const cellAction = document.getElementById("cell_action");
 
     cellMin.style.display = "none";
     cellMax.style.display = "none";
     cellStrength.style.display = "none";
     cellDuration.style.display = "none";
+
+    if (cellName) {
+        cellName.style.display = "none";
+    }
+
     cellAction.style.display = "none";
 
     if (!type) return;
@@ -315,6 +355,11 @@ export function updateNewRuleFields() {
     if (type === "custom") {
         cellMin.style.display = "flex";
         cellMax.style.display = "flex";
+
+        if (cellName) {
+            cellName.style.display = "flex";
+        }
+
         cellAction.style.display = "flex";
     }
 

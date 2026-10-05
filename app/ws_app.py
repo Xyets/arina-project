@@ -640,6 +640,7 @@ async def ws_handler(websocket):
                     "strength": int(data.get("strength", 0)),
                     "duration": int(data.get("duration", 0)),
                     "type": data.get("action_type"),
+                    "name": data.get("name") or data.get("action") or None,
                     "action": data.get("action") or None,
                     "segments": []
                 }
@@ -684,7 +685,17 @@ async def ws_handler(websocket):
                         r["strength"] = int(data.get("strength", 0))
                         r["duration"] = int(data.get("duration", 0))
                         r["type"] = data.get("action_type")
-                        r["action"] = data.get("action") or None
+
+                        if r["type"] == "custom":
+                            r["name"] = data.get("name") or data.get("action") or None
+                            r["action"] = data.get("action") or None
+
+                        elif r["type"] == "wheel":
+                            r["action"] = "wheel"
+
+                        elif r["type"] == "vibration":
+                            r["name"] = None
+                            r["action"] = None
 
                 save_rules(profile_key, rules)
 
