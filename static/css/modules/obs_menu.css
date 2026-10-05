@@ -745,3 +745,71 @@ body {
         font-size: 10px;
     }
 }
+/* ============================================================
+   PAGINATION FIX
+   5 строк всегда полностью помещаются
+============================================================ */
+
+.rule-viewport {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+/* Страница занимает всю область viewport */
+.vibration-page,
+.action-page {
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    padding: 3px 0;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(10px);
+
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease,
+        visibility 0s linear 0.35s;
+
+    pointer-events: none;
+}
+
+/* Активная страница */
+.vibration-page.active,
+.action-page.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease,
+        visibility 0s;
+
+    pointer-events: auto;
+}
+
+/* ============================================================
+   ROW SIZE
+   5 строк + промежутки должны помещаться полностью
+============================================================ */
+
+.rule-row {
+    flex: 0 0 34px;
+    min-height: 34px;
+    height: 34px;
+
+    box-sizing: border-box;
+}
+
+/* Не даём последней строке вылезать */
+.vibration-page > .rule-row,
+.action-page > .rule-row {
+    max-height: 34px;
+}

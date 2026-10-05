@@ -66,20 +66,42 @@ function setupPagination(options) {
 
     function showPage(index) {
 
-        currentPage =
+        const nextPage =
             (index + pages.length)
             % pages.length;
 
 
+        if (nextPage === currentPage && pages[nextPage].classList.contains("active")) {
+            return;
+        }
+
+
+        currentPage = nextPage;
+
+
+        /* =========================================
+        ПЕРЕКЛЮЧАЕМ ТОЛЬКО СТРАНИЦЫ
+        Само меню НЕ трогаем
+        ========================================= */
+
         pages.forEach(function(page, i) {
 
-            page.classList.toggle(
-                "active",
-                i === currentPage
-            );
+            if (i === currentPage) {
+
+                page.classList.add("active");
+
+            } else {
+
+                page.classList.remove("active");
+
+            }
 
         });
 
+
+        /* =========================================
+        ТОЧКИ
+        ========================================= */
 
         dots.forEach(function(dot, i) {
 
@@ -90,6 +112,10 @@ function setupPagination(options) {
 
         });
 
+
+        /* =========================================
+        СЧЁТЧИК
+        ========================================= */
 
         if (counter) {
 
