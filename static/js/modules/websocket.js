@@ -49,9 +49,17 @@ export function initWebSocket(CURRENT_USER, CURRENT_MODE, CURRENT_PROFILE, reloa
         };
 
         // Глобальные функции удаления правил/сегментов
-        window.deleteRule = createDeleteRule(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
-        window.deleteSegment = createDeleteSegment(socket, window.CURRENT_PROFILE, reloadInnerContent, showToast);
+        window.deleteRule = createDeleteRule(
+            socket,
+            window.CURRENT_PROFILE,
+            showToast
+        );
 
+        window.deleteSegment = createDeleteSegment(
+            socket,
+            window.CURRENT_PROFILE,
+            showToast
+        );
         socket.onclose = () => {
             if (socket._pingInterval) clearInterval(socket._pingInterval);
 
