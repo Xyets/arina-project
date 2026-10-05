@@ -94,95 +94,175 @@ export function initRulesPage(socket, showToast) {
 export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
     if (!document.querySelector(".rules-page")) return;
 
-    // Удаляем старые обработчики
-    const addForm = document.getElementById("addRuleForm");
-    const editForm = document.getElementById("ruleEditForm");
-    const segForm = document.getElementById("segmentAddForm");
+    /*
+     * Не привязываем submit непосредственно к form.
+     *
+     * После rules_update HTML формы заменяется.
+     * Поэтому обычный addEventListener на старой форме терялся.
+     *
+     * Здесь используется один делегированный обработчик на document.
+     * Он продолжает работать даже после полной замены формы.
+     */
 
-    if (addForm) addForm.replaceWith(addForm.cloneNode(true));
-    if (editForm) editForm.replaceWith(editForm.cloneNode(true));
-    if (segForm) segForm.replaceWith(segForm.cloneNode(true));
+    if (window._flowtipRulesSubmitHandler) {
+        document.removeEventListener(
+            "submit",
+            window._flowtipRulesSubmitHandler
+        );
+    }
 
-    // Ищем формы снова
-    const addFormNew = document.getElementById("addRuleForm");
-    const editFormNew = document.getElementById("ruleEditForm");
-    const segFormNew = document.getElementById("segmentAddForm");
+    window._flowtipRulesSubmitHandler = function (e) {
 
-    /* ============================================================
-       ➕ Добавление правила
-    ============================================================ */
-    if (addFormNew) {
-        addFormNew.addEventListener("submit", (e) => {
+        /* ========================================================
+           ➕ Добавление правила
+        ======================================================== */
+
+        if (e.target && e.target.id === "addRuleForm") {
             e.preventDefault();
+            e.stopPropagation();
+
+            const form = e.target;
 
             const payload = {
                 type: "add_rule",
                 profile_key: CURRENT_PROFILE,
-                min: Number(document.getElementById("new_min").value),
-                max: Number(document.getElementById("new_max").value),
-                strength: Number(document.getElementById("new_strength").value || 0),
-                duration: Number(document.getElementById("new_duration").value || 0),
-                action_type: document.getElementById("new_action_type").value,
-                name: document.getElementById("new_name")?.value || "",
-                action: document.getElementById("new_action").value || ""
+
+                min: Number(
+                    form.querySelector("#new_min")?.value || 0
+                ),
+
+                max: Number(
+                    form.querySelector("#new_max")?.value || 0
+                ),
+
+                strength: Number(
+                    form.querySelector("#new_strength")?.value || 0
+                ),
+
+                duration: Number(
+                    form.querySelector("#new_duration")?.value || 0
+                ),
+
+                action_type:
+                    form.querySelector("#new_action_type")?.value || "",
+
+                name:
+                    form.querySelector("#new_name")?.value || "",
+
+                action:
+                    form.querySelector("#new_action")?.value || ""
             };
 
             sendRuleCommand(socket, payload);
-            showToast("Правило добавлено");
-            // SPA сама обновит страницу через WebSocket rules_update
-        });
-    }
 
-    /* ============================================================
-       ✏️ Редактирование правила
-    ============================================================ */
-    if (editFormNew) {
-        editFormNew.addEventListener("submit", (e) => {
+            showToast("Правило добавлено");
+
+            return;
+        }
+
+
+        /* ========================================================
+           ✏️ Редактирование правила
+        ======================================================== */
+
+        if (e.target && e.target.id === "ruleEditForm") {
             e.preventDefault();
+            e.stopPropagation();
+
+            const form = e.target;
 
             const payload = {
                 type: "edit_rule",
                 profile_key: CURRENT_PROFILE,
-                id: document.getElementById("edit_rule_id").value,
-                min: Number(document.getElementById("edit_min").value),
-                max: Number(document.getElementById("edit_max").value),
-                strength: Number(document.getElementById("edit_strength").value || 0),
-                duration: Number(document.getElementById("edit_duration").value || 0),
-                action_type: document.getElementById("edit_type").value,
-                name: document.getElementById("edit_name")?.value || "",
-                action: document.getElementById("edit_action").value || ""
+
+                id:
+                    form.querySelector("#edit_rule_id")?.value || "",
+
+                min: Number(
+                    form.querySelector("#edit_min")?.value || 0
+                ),
+
+                max: Number(
+                    form.querySelector("#edit_max")?.value || 0
+                ),
+
+                strength: Number(
+                    form.querySelector("#edit_strength")?.value || 0
+                ),
+
+                duration: Number(
+                    form.querySelector("#edit_duration")?.value || 0
+                ),
+
+                action_type:
+                    form.querySelector("#edit_type")?.value || "",
+
+                name:
+                    form.querySelector("#edit_name")?.value || "",
+
+                action:
+                    form.querySelector("#edit_action")?.value || ""
             };
 
             sendRuleCommand(socket, payload);
-            showToast("Правило обновлено");
-            // SPA сама обновит страницу через WebSocket rules_update
-        });
-    }
 
-    /* ============================================================
-       🎡 Добавление сегмента
-    ============================================================ */
-    if (segFormNew) {
-        segFormNew.addEventListener("submit", (e) => {
+            showToast("Правило обновлено");
+
+            return;
+        }
+
+
+        /* ========================================================
+           🎡 Добавление сегмента
+        ======================================================== */
+
+        if (e.target && e.target.id === "segmentAddForm") {
             e.preventDefault();
+            e.stopPropagation();
+
+            const form = e.target;
 
             const payload = {
                 type: "add_segment",
                 profile_key: CURRENT_PROFILE,
-                rule_id: document.getElementById("segment_rule_id").value,
-                name: document.getElementById("seg_name").value,
-                chance: Number(document.getElementById("seg_chance").value),
-                seg_type: document.getElementById("seg_type").value,
-                strength: Number(document.getElementById("seg_strength").value || 0),
-                duration: Number(document.getElementById("seg_duration").value || 0),
-                action: document.getElementById("seg_action").value || ""
+
+                rule_id:
+                    form.querySelector("#segment_rule_id")?.value || "",
+
+                name:
+                    form.querySelector("#seg_name")?.value || "",
+
+                chance: Number(
+                    form.querySelector("#seg_chance")?.value || 0
+                ),
+
+                seg_type:
+                    form.querySelector("#seg_type")?.value || "",
+
+                strength: Number(
+                    form.querySelector("#seg_strength")?.value || 0
+                ),
+
+                duration: Number(
+                    form.querySelector("#seg_duration")?.value || 0
+                ),
+
+                action:
+                    form.querySelector("#seg_action")?.value || ""
             };
 
             sendRuleCommand(socket, payload);
+
             showToast("Сегмент добавлен");
-            // SPA сама обновит страницу через WebSocket rules_update
-        });
-    }
+
+            return;
+        }
+    };
+
+    document.addEventListener(
+        "submit",
+        window._flowtipRulesSubmitHandler
+    );
 }
 
 /* ============================================================

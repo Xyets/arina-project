@@ -270,27 +270,47 @@ function reloadInnerContent(callback) {
         .then(html => {
             const doc = new DOMParser().parseFromString(html, "text/html");
             const inner = doc.querySelector(".content-inner");
-            if (!inner) return;
 
+            if (!inner) {
+                console.error("reloadInnerContent: .content-inner NOT FOUND");
+                container.style.opacity = "1";
+                return;
+            }
+
+            /* Заменяем содержимое */
             container.innerHTML = inner.innerHTML;
 
+            /* Обновляем профиль */
             const app = document.getElementById("app");
+
             if (app) {
-                CURRENT_PROFILE = app.dataset.profile;
+                CURRENT_PROFILE = app.dataset.profile || CURRENT_PROFILE;
                 window.CURRENT_PROFILE = CURRENT_PROFILE;
             }
 
             setTimeout(() => {
-                container.style.opacity = "1";
 
-                if (callback) callback();
+                /*
+                 * Полностью переинициализируем текущую страницу.
+                 *
+                 * Это особенно важно для rules:
+                 * после замены HTML формы являются НОВЫМИ
+                 * DOM-элементами и им снова нужны обработчики.
+                 */
+                initPageAfterContent();
 
-                // ⭐ ДОБАВИТЬ ЭТО:
-                if (document.querySelector(".reactions-page")) {
-                    initReactionsPage(showToast);
+                /* Дополнительный callback, если он нужен */
+                if (callback) {
+                    callback();
                 }
 
+                container.style.opacity = "1";
+
             }, 50);
+        })
+        .catch(err => {
+            console.error("reloadInnerContent ERROR:", err);
+            container.style.opacity = "1";
         });
 }
 
