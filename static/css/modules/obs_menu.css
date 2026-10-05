@@ -204,7 +204,7 @@ body {
 
     justify-content: space-between;
 
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 
     padding: 0 3px;
 }
@@ -332,7 +332,7 @@ body {
 
 .rule-row {
 
-    height: 37px;
+    height: 35px;
 
     display: grid;
 
@@ -349,7 +349,7 @@ body {
     align-items: center;
 
 
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 
     padding:
         0 9px;
@@ -745,71 +745,32 @@ body {
         font-size: 10px;
     }
 }
+
+
 /* ============================================================
    PAGINATION FIX
-   5 строк всегда полностью помещаются
+   5 строк полностью помещаются в окно
 ============================================================ */
 
-.rule-viewport {
-    position: relative;
+.rules-viewport {
     height: 200px;
     overflow: hidden;
-}
-
-/* Страница занимает всю область viewport */
-.vibration-page,
-.action-page {
-    position: absolute;
-    inset: 0;
-
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    padding: 3px 0;
-
-    opacity: 0;
-    visibility: hidden;
-    transform: translateX(10px);
-
-    transition:
-        opacity 0.35s ease,
-        transform 0.35s ease,
-        visibility 0s linear 0.35s;
-
-    pointer-events: none;
-}
-
-/* Активная страница */
-.vibration-page.active,
-.action-page.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(0);
-
-    transition:
-        opacity 0.35s ease,
-        transform 0.35s ease,
-        visibility 0s;
-
-    pointer-events: auto;
-}
-
-/* ============================================================
-   ROW SIZE
-   5 строк + промежутки должны помещаться полностью
-============================================================ */
-
-.rule-row {
-    flex: 0 0 34px;
-    min-height: 34px;
-    height: 34px;
-
     box-sizing: border-box;
 }
 
-/* Не даём последней строке вылезать */
-.vibration-page > .rule-row,
-.action-page > .rule-row {
-    max-height: 34px;
+.rules-page {
+    box-sizing: border-box;
+}
+
+.rules-page .rule-row {
+    flex: 0 0 35px;
+    height: 35px;
+    min-height: 35px;
+    max-height: 35px;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+}
+
+.rules-page .rule-row:last-child {
+    margin-bottom: 0;
 }
