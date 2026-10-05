@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, abort
 from services.database import get_profile_by_key
+from services.rules_service import load_rules
+
 
 obs_bp = Blueprint(
     "obs",
@@ -7,6 +9,7 @@ obs_bp = Blueprint(
     static_folder="static_obs",
     static_url_path="/obs_static"
 )
+
 
 # -------------------- OBS ALERT --------------------
 
@@ -21,7 +24,10 @@ def obs_alert(user, mode):
     if not profile:
         return abort(404)
 
-    return render_template("obs_alert.html", profile_key=profile_key)
+    return render_template(
+        "obs_alert.html",
+        profile_key=profile_key
+    )
 
 
 # -------------------- OBS REACTIONS --------------------
@@ -37,7 +43,10 @@ def obs_reactions(user, mode):
     if not profile:
         return abort(404)
 
-    return render_template("obs_reactions.html", profile_key=profile_key)
+    return render_template(
+        "obs_reactions.html",
+        profile_key=profile_key
+    )
 
 
 # -------------------- OBS GOAL --------------------
@@ -53,13 +62,19 @@ def obs_goal(user, mode):
     if not profile:
         return abort(404)
 
-    # Автоматический выбор шаблона по имени модели
     username = user.lower()
 
     if username == "arina":
-        return render_template("obs_goal_arina.html", profile_key=profile_key)
+        return render_template(
+            "obs_goal_arina.html",
+            profile_key=profile_key
+        )
+
     else:
-        return render_template("obs_goal_irina.html", profile_key=profile_key)
+        return render_template(
+            "obs_goal_irina.html",
+            profile_key=profile_key
+        )
 
 
 # -------------------- OBS WHEEL --------------------
@@ -75,4 +90,30 @@ def obs_wheel(user, mode):
     if not profile:
         return abort(404)
 
-    return render_template("obs_wheel.html", profile_key=profile_key)
+    return render_template(
+        "obs_wheel.html",
+        profile_key=profile_key
+    )
+
+
+# -------------------- OBS MENU --------------------
+
+@obs_bp.route("/obs_menu/<user>/<mode>")
+def obs_menu(user, mode):
+    if mode not in ("private", "public"):
+        return abort(404)
+
+    profile_key = f"{user}_{mode}"
+    profile = get_profile_by_key(profile_key)
+
+    if not profile:
+        return abort(404)
+
+    rules_data = load_rules(profile_key)
+    rules = rules_data.get("rules", [])
+
+    return render_template(
+        "obs_menu.html",
+        profile_key=profile_key,
+        rules=rules
+    )

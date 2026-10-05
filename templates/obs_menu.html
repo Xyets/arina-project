@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>FlowTip</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+        }
+
+        body {
+            background: transparent;
+            font-family: "Inter", Arial, sans-serif;
+            color: #4b4350;
+            overflow: hidden;
+        }
+
+        /* =====================================================
+           FLOWTIP GLASS
+        ===================================================== */
+
+        .flowtip-menu {
+            width: 330px;
+            margin: 12px;
+
+            padding: 18px;
+
+            border-radius: 24px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,0.48),
+                    rgba(255,255,255,0.22)
+                );
+
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+
+            border: 1px solid rgba(255,255,255,0.55);
+
+            box-shadow:
+                0 12px 35px rgba(80, 50, 70, 0.16),
+                inset 0 1px 0 rgba(255,255,255,0.65);
+
+            animation: menuAppear 0.65s ease;
+        }
+
+
+        @keyframes menuAppear {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        .flowtip-header {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        .flowtip-logo {
+            font-size: 21px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #e98db8,
+                    #78caca
+                );
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .flowtip-subtitle {
+            margin-top: 3px;
+
+            font-size: 11px;
+            letter-spacing: 0.7px;
+
+            color: rgba(75,67,80,0.62);
+        }
+
+
+        /* =====================================================
+           SECTION
+        ===================================================== */
+
+        .section {
+            margin-top: 12px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            margin-bottom: 7px;
+
+            font-size: 11px;
+            font-weight: 800;
+
+            text-transform: uppercase;
+            letter-spacing: 1px;
+
+            color: rgba(75,67,80,0.72);
+        }
+
+
+        /* =====================================================
+           RULE LIST
+        ===================================================== */
+
+        .rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+
+        .rule-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            min-height: 34px;
+
+            padding: 6px 10px;
+
+            border-radius: 12px;
+
+            background: rgba(255,255,255,0.30);
+
+            border: 1px solid rgba(255,255,255,0.36);
+
+            transition:
+                transform 0.2s ease,
+                background 0.2s ease;
+        }
+
+
+        .rule-row:hover {
+            transform: translateX(2px);
+
+            background: rgba(255,255,255,0.48);
+        }
+
+
+        .rule-price {
+            font-size: 13px;
+            font-weight: 800;
+
+            color: #665365;
+        }
+
+
+        .rule-price::before {
+            content: "♡ ";
+            color: #e99abd;
+        }
+
+
+        .rule-effect {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+
+            font-size: 11px;
+            font-weight: 600;
+
+            color: rgba(75,67,80,0.70);
+        }
+
+
+        .effect-icon {
+            font-size: 13px;
+        }
+
+
+        /* =====================================================
+           WHEEL
+        ===================================================== */
+
+        .wheel-card {
+            position: relative;
+
+            padding: 11px 12px;
+
+            border-radius: 16px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,175,204,0.30),
+                    rgba(174,230,230,0.25)
+                );
+
+            border: 1px solid rgba(255,255,255,0.48);
+
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.45);
+        }
+
+
+        .wheel-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+
+        .wheel-name {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            font-size: 13px;
+            font-weight: 800;
+
+            color: #665365;
+        }
+
+
+        .wheel-price {
+            padding: 4px 8px;
+
+            border-radius: 9px;
+
+            background: rgba(255,255,255,0.38);
+
+            font-size: 11px;
+            font-weight: 800;
+
+            color: #76596b;
+        }
+
+
+        .wheel-description {
+            margin-top: 6px;
+
+            font-size: 10px;
+
+            color: rgba(75,67,80,0.65);
+        }
+
+
+        .wheel-prizes {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+
+            gap: 4px;
+
+            margin-top: 8px;
+        }
+
+
+        .prize {
+            padding: 3px 6px;
+
+            border-radius: 8px;
+
+            background: rgba(255,255,255,0.34);
+
+            font-size: 10px;
+            font-weight: 700;
+
+            color: #76596b;
+        }
+
+
+        /* =====================================================
+           EMPTY STATE
+        ===================================================== */
+
+        .empty {
+            padding: 12px;
+
+            text-align: center;
+
+            border-radius: 12px;
+
+            background: rgba(255,255,255,0.25);
+
+            font-size: 11px;
+
+            color: rgba(75,67,80,0.58);
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .flowtip-footer {
+            margin-top: 12px;
+
+            text-align: center;
+
+            font-size: 9px;
+            letter-spacing: 0.5px;
+
+            color: rgba(75,67,80,0.42);
+        }
+
+
+        /* =====================================================
+           SMALL SCREENS
+        ===================================================== */
+
+        @media (max-width: 360px) {
+            .flowtip-menu {
+                width: calc(100vw - 20px);
+                margin: 10px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="flowtip-menu">
+
+    <!-- HEADER -->
+    <div class="flowtip-header">
+
+        <div class="flowtip-logo">
+            ✦ FLOWTIP ✦
+        </div>
+
+        <div class="flowtip-subtitle">
+            tips • vibes • surprises
+        </div>
+
+    </div>
+
+
+    <!-- VIBRATION -->
+    <div class="section">
+
+        <div class="section-title">
+            ⚡ VIBRATION
+        </div>
+
+        <div class="rules-list">
+
+            {% for rule in rules %}
+
+                {% if rule.get("type") == "vibration" %}
+
+                    <div class="rule-row">
+
+                        <div class="rule-price">
+
+                            {% if rule.get("min") == rule.get("max") %}
+                                {{ rule.get("min") }}
+                            {% else %}
+                                {{ rule.get("min") }}–{{ rule.get("max") }}
+                            {% endif %}
+
+                        </div>
+
+                        <div class="rule-effect">
+
+                            <span class="effect-icon">
+                                ⚡
+                            </span>
+
+                            {{ rule.get("duration", 0) }} sec
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <!-- WHEEL -->
+    {% for rule in rules %}
+
+        {% if rule.get("type") == "wheel" %}
+
+            <div class="section">
+
+                <div class="section-title">
+                    🎡 WHEEL
+                </div>
+
+                <div class="wheel-card">
+
+                    <div class="wheel-top">
+
+                        <div class="wheel-name">
+                            🎡
+                            Wheel of Fortune
+                        </div>
+
+                        <div class="wheel-price">
+
+                            {% if rule.get("min") == rule.get("max") %}
+                                {{ rule.get("min") }}
+                            {% else %}
+                                {{ rule.get("min") }}–{{ rule.get("max") }}
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="wheel-description">
+                        Choose your luck ♡
+                    </div>
+
+
+                    {% if rule.get("segments") %}
+
+                        <div class="wheel-prizes">
+
+                            {% for segment in rule.get("segments", []) %}
+
+                                <div class="prize">
+
+                                    {% if segment.get("label") %}
+                                        {{ segment.get("label") }}
+                                    {% elif segment.get("name") %}
+                                        {{ segment.get("name") }}
+                                    {% else %}
+                                        🎯
+                                    {% endif %}
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    {% endfor %}
+
+
+    <!-- EMPTY -->
+    {% if not rules %}
+
+        <div class="empty">
+            No tips available yet ♡
+        </div>
+
+    {% endif %}
+
+
+    <div class="flowtip-footer">
+        every tip creates a little magic ✦
+    </div>
+
+</div>
+
+</body>
+</html>
