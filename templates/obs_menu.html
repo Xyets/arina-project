@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,39 +18,70 @@
             width: 100%;
             min-height: 100%;
             background: transparent;
-            font-family: "Inter", Arial, sans-serif;
+            font-family: "Inter", "Noto Sans JP", Arial, sans-serif;
         }
 
         body {
-            padding: 12px;
+            padding: 10px;
             color: #333;
         }
 
-        /* =========================
-           MAIN CARD
-        ========================= */
+        /* =========================================
+           MAIN GLASS CARD
+        ========================================= */
 
         .menu-card {
             width: 340px;
-            max-width: calc(100vw - 24px);
+            max-width: calc(100vw - 20px);
 
-            padding: 18px;
+            padding: 17px;
 
             border-radius: 24px;
 
-            background: rgba(255, 255, 255, 0.18);
+            /*
+             * 元のAUTH画面と同じ雰囲気のグラデーション
+             */
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(247, 200, 184, 0.72),
+                    rgba(174, 230, 230, 0.68),
+                    rgba(249, 168, 212, 0.72)
+                );
+
+            background-size: 220% 220%;
+
+            animation: bgMove 12s ease infinite;
 
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
 
-            border: 1px solid rgba(255, 255, 255, 0.38);
+            border: 1px solid rgba(255, 255, 255, 0.55);
 
             box-shadow:
-                0 8px 30px rgba(0, 0, 0, 0.16),
-                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                0 10px 32px rgba(70, 60, 70, 0.18),
+                inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
-            animation: menuAppear 0.6s ease;
+            animation:
+                bgMove 12s ease infinite,
+                menuAppear 0.6s ease;
         }
+
+
+        @keyframes bgMove {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
 
         @keyframes menuAppear {
             from {
@@ -64,18 +95,21 @@
             }
         }
 
-        /* =========================
+
+        /* =========================================
            HEADER
-        ========================= */
+        ========================================= */
 
         .menu-header {
             text-align: center;
             margin-bottom: 14px;
         }
 
+
         .menu-title {
             font-size: 21px;
             line-height: 1.1;
+
             font-weight: 800;
 
             color: #333;
@@ -83,29 +117,35 @@
             letter-spacing: 1px;
 
             text-shadow:
-                0 1px 2px rgba(255, 255, 255, 0.5);
+                0 1px 2px rgba(255, 255, 255, 0.8);
         }
+
 
         .menu-subtitle {
             margin-top: 5px;
 
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
 
-            color: rgba(50, 50, 50, 0.68);
+            color: rgba(55, 55, 55, 0.72);
+
+            letter-spacing: 0.7px;
         }
 
-        /* =========================
+
+        /* =========================================
            SECTION
-        ========================= */
+        ========================================= */
 
         .section {
             margin-top: 12px;
         }
 
+
         .section:first-of-type {
             margin-top: 0;
         }
+
 
         .section-title {
             display: flex;
@@ -113,37 +153,44 @@
             justify-content: space-between;
 
             margin-bottom: 7px;
+
             padding: 0 3px;
         }
+
 
         .section-title-left {
             display: flex;
             align-items: center;
+
             gap: 6px;
 
             font-size: 13px;
             font-weight: 800;
 
-            color: #3b3b3b;
+            color: #343434;
 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
+
+            text-shadow:
+                0 1px 1px rgba(255, 255, 255, 0.65);
         }
 
+
         .page-counter {
-            min-width: 25px;
+            min-width: 28px;
 
             text-align: right;
 
             font-size: 10px;
-            font-weight: 700;
+            font-weight: 800;
 
-            color: rgba(60, 60, 60, 0.55);
+            color: rgba(55, 55, 55, 0.65);
         }
 
-        /* =========================
-           PAGINATED AREA
-        ========================= */
+
+        /* =========================================
+           RULE VIEWPORT
+        ========================================= */
 
         .rules-viewport {
             position: relative;
@@ -154,10 +201,20 @@
 
             border-radius: 17px;
 
-            background: rgba(255, 255, 255, 0.14);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.36),
+                    rgba(255, 255, 255, 0.18)
+                );
 
-            border: 1px solid rgba(255, 255, 255, 0.20);
+            border: 1px solid rgba(255, 255, 255, 0.46);
+
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 3px 12px rgba(70, 60, 70, 0.06);
         }
+
 
         .rules-page {
             position: absolute;
@@ -181,6 +238,7 @@
                 transform 0.45s ease;
         }
 
+
         .rules-page.active {
             opacity: 1;
 
@@ -189,9 +247,10 @@
             pointer-events: auto;
         }
 
-        /* =========================
+
+        /* =========================================
            RULE ROW
-        ========================= */
+        ========================================= */
 
         .rule-row {
             height: 37px;
@@ -201,35 +260,55 @@
             justify-content: space-between;
 
             margin-bottom: 5px;
+
             padding: 0 10px;
 
             border-radius: 12px;
 
-            background: rgba(255, 255, 255, 0.28);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.58),
+                    rgba(255, 255, 255, 0.40)
+                );
 
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.55);
 
             box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.05);
+                0 3px 9px rgba(60, 50, 60, 0.07),
+                inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
             transition:
                 transform 0.2s ease,
                 background 0.2s ease;
         }
 
+
         .rule-row:last-child {
             margin-bottom: 0;
         }
 
+
         .rule-row:hover {
             transform: translateY(-1px);
 
-            background: rgba(255, 255, 255, 0.40);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.72),
+                    rgba(255, 255, 255, 0.52)
+                );
         }
+
+
+        /* =========================================
+           PRICE
+        ========================================= */
 
         .rule-price {
             display: flex;
             align-items: center;
+
             gap: 6px;
 
             font-size: 14px;
@@ -240,12 +319,20 @@
             white-space: nowrap;
         }
 
+
         .rule-price-icon {
-            font-size: 15px;
+            font-size: 14px;
+
+            color: #555;
         }
 
+
+        /* =========================================
+           EFFECT / ACTION TEXT
+        ========================================= */
+
         .rule-effect {
-            max-width: 150px;
+            max-width: 165px;
 
             overflow: hidden;
 
@@ -253,16 +340,25 @@
             white-space: nowrap;
 
             font-size: 12px;
-            font-weight: 700;
 
-            color: rgba(50, 50, 50, 0.70);
+            /*
+             * Было слишком бледно.
+             * Теперь текст намного контрастнее.
+             */
+            font-weight: 800;
+
+            color: #555;
 
             text-align: right;
+
+            text-shadow:
+                0 1px 1px rgba(255, 255, 255, 0.75);
         }
 
-        /* =========================
+
+        /* =========================================
            PAGINATION DOTS
-        ========================= */
+        ========================================= */
 
         .pagination {
             display: flex;
@@ -276,41 +372,51 @@
             margin-top: 5px;
         }
 
+
         .dot {
             width: 5px;
             height: 5px;
 
             border-radius: 50%;
 
-            background: rgba(80, 80, 80, 0.25);
+            background: rgba(70, 70, 70, 0.24);
 
             transition:
                 transform 0.25s ease,
                 background 0.25s ease;
         }
 
-        .dot.active {
-            transform: scale(1.35);
 
-            background: rgba(80, 80, 80, 0.60);
+        .dot.active {
+            transform: scale(1.45);
+
+            background: rgba(70, 70, 70, 0.62);
         }
 
-        /* =========================
+
+        /* =========================================
            WHEEL
-        ========================= */
+        ========================================= */
 
         .wheel-card {
             padding: 11px;
 
             border-radius: 17px;
 
-            background: rgba(255, 255, 255, 0.20);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.58),
+                    rgba(255, 255, 255, 0.38)
+                );
 
-            border: 1px solid rgba(255, 255, 255, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.58);
 
             box-shadow:
-                0 3px 12px rgba(0, 0, 0, 0.06);
+                0 4px 14px rgba(60, 50, 60, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.65);
         }
+
 
         .wheel-main {
             display: flex;
@@ -320,9 +426,11 @@
             gap: 10px;
         }
 
+
         .wheel-title {
             display: flex;
             align-items: center;
+
             gap: 7px;
 
             font-size: 14px;
@@ -331,24 +439,38 @@
             color: #333;
         }
 
+
         .wheel-icon {
             font-size: 21px;
         }
+
 
         .wheel-price {
             padding: 5px 9px;
 
             border-radius: 10px;
 
-            background: rgba(255, 255, 255, 0.30);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(249, 168, 212, 0.42),
+                    rgba(174, 230, 230, 0.42)
+                );
+
+            border: 1px solid rgba(255, 255, 255, 0.50);
 
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 900;
 
-            color: #444;
+            color: #3f3f3f;
 
             white-space: nowrap;
         }
+
+
+        /* =========================================
+           WHEEL PRIZES
+        ========================================= */
 
         .wheel-prizes {
             display: flex;
@@ -359,22 +481,34 @@
             margin-top: 8px;
         }
 
+
         .wheel-prize {
             padding: 4px 7px;
 
             border-radius: 8px;
 
-            background: rgba(255, 255, 255, 0.28);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(249, 168, 212, 0.28),
+                    rgba(174, 230, 230, 0.28)
+                );
 
-            font-size: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+
+            font-size: 10px;
             font-weight: 700;
 
-            color: rgba(50, 50, 50, 0.72);
+            color: #555;
+
+            box-shadow:
+                0 2px 5px rgba(60, 50, 60, 0.04);
         }
 
-        /* =========================
-           EMPTY / UNKNOWN
-        ========================= */
+
+        /* =========================================
+           EMPTY
+        ========================================= */
 
         .empty-rule {
             height: 100%;
@@ -388,19 +522,22 @@
             text-align: center;
 
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
 
-            color: rgba(50, 50, 50, 0.55);
+            color: rgba(55, 55, 55, 0.65);
         }
 
-        /* =========================
+
+        /* =========================================
            SMALL SCREEN
-        ========================= */
+        ========================================= */
 
         @media (max-width: 380px) {
+
             body {
                 padding: 8px;
             }
+
 
             .menu-card {
                 width: 330px;
@@ -409,58 +546,70 @@
                 padding: 15px;
             }
 
+
             .menu-title {
                 font-size: 19px;
             }
+
 
             .rule-price {
                 font-size: 13px;
             }
 
+
             .rule-effect {
                 font-size: 11px;
-                max-width: 135px;
+
+                max-width: 145px;
             }
         }
     </style>
 </head>
 
+
 <body>
 
 <div class="menu-card">
 
-    <!-- =========================
+
+    <!-- =========================================
          HEADER
-    ========================= -->
+    ========================================= -->
 
     <div class="menu-header">
+
         <div class="menu-title">
             ✦ FLOWTIP ✦
         </div>
 
         <div class="menu-subtitle">
-            TIP MENU
+            チップメニュー
         </div>
+
     </div>
 
 
-    <!-- =====================================================
-         PREPARE RULES FROM BACKEND
-    ===================================================== -->
+    <!-- =========================================
+         PREPARE RULES
+    ========================================= -->
 
     {% set vibration_rules = [] %}
     {% set action_rules = [] %}
     {% set wheel_rules = [] %}
 
+
     {% for rule in rules %}
 
         {% if rule.get("type") == "vibration" %}
+
             {% set _ = vibration_rules.append(rule) %}
 
         {% elif rule.get("type") == "wheel" %}
+
             {% set _ = wheel_rules.append(rule) %}
 
         {% elif rule.get("type") == "custom" or rule.get("type") == "action" %}
+
             {% set _ = action_rules.append(rule) %}
 
         {% endif %}
@@ -468,9 +617,9 @@
     {% endfor %}
 
 
-    <!-- =====================================================
-         VIBRATIONS
-    ===================================================== -->
+    <!-- =========================================
+         VIBRATION
+    ========================================= -->
 
     {% if vibration_rules %}
 
@@ -479,15 +628,21 @@
         <div class="section-title">
 
             <div class="section-title-left">
-                ⚡ VIBRATION
+                ⚡ バイブレーション
             </div>
 
-            <div class="page-counter" id="vibrationCounter"></div>
+            <div
+                class="page-counter"
+                id="vibrationCounter">
+            </div>
 
         </div>
 
 
-        <div class="rules-viewport" id="vibrationViewport">
+        <div
+            class="rules-viewport"
+            id="vibrationViewport"
+        >
 
             {% for rule in vibration_rules %}
 
@@ -510,11 +665,15 @@
                             </span>
 
                             <span>
+
                                 {{ rule.get("min", rule.get("price", 0)) }}
 
                                 {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+
                                     – {{ rule.get("max") }}
+
                                 {% endif %}
+
                             </span>
 
                         </div>
@@ -523,13 +682,17 @@
                         <div class="rule-effect">
 
                             {% if rule.get("duration") %}
-                                ⚡ {{ rule.get("duration") }} sec
+
+                                ⚡ {{ rule.get("duration") }} 秒
 
                             {% elif rule.get("strength") %}
-                                ⚡ {{ rule.get("strength") }}
+
+                                ⚡ 強度 {{ rule.get("strength") }}
 
                             {% else %}
-                                ⚡ VIBRATION
+
+                                ⚡ バイブレーション
+
                             {% endif %}
 
                         </div>
@@ -550,7 +713,10 @@
 
         {% if vibration_rules|length > 5 %}
 
-        <div class="pagination" id="vibrationPagination">
+        <div
+            class="pagination"
+            id="vibrationPagination"
+        >
 
             {% for i in range((vibration_rules|length + 4) // 5) %}
 
@@ -570,9 +736,9 @@
     {% endif %}
 
 
-    <!-- =====================================================
+    <!-- =========================================
          ACTIONS
-    ===================================================== -->
+    ========================================= -->
 
     {% if action_rules %}
 
@@ -581,15 +747,21 @@
         <div class="section-title">
 
             <div class="section-title-left">
-                ✨ ACTIONS
+                ✨ アクション
             </div>
 
-            <div class="page-counter" id="actionCounter"></div>
+            <div
+                class="page-counter"
+                id="actionCounter">
+            </div>
 
         </div>
 
 
-        <div class="rules-viewport" id="actionViewport">
+        <div
+            class="rules-viewport"
+            id="actionViewport"
+        >
 
             {% for rule in action_rules %}
 
@@ -612,11 +784,15 @@
                             </span>
 
                             <span>
+
                                 {{ rule.get("min", rule.get("price", 0)) }}
 
                                 {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+
                                     – {{ rule.get("max") }}
+
                                 {% endif %}
+
                             </span>
 
                         </div>
@@ -625,19 +801,25 @@
                         <div class="rule-effect">
 
                             {% if rule.get("action") %}
+
                                 {{ rule.get("action") }}
 
                             {% elif rule.get("name") %}
+
                                 {{ rule.get("name") }}
 
                             {% elif rule.get("label") %}
+
                                 {{ rule.get("label") }}
 
                             {% elif rule.get("description") %}
+
                                 {{ rule.get("description") }}
 
-                            else
-                                ✨ ACTION
+                            {% else %}
+
+                                アクション
+
                             {% endif %}
 
                         </div>
@@ -658,7 +840,10 @@
 
         {% if action_rules|length > 5 %}
 
-        <div class="pagination" id="actionPagination">
+        <div
+            class="pagination"
+            id="actionPagination"
+        >
 
             {% for i in range((action_rules|length + 4) // 5) %}
 
@@ -678,9 +863,9 @@
     {% endif %}
 
 
-    <!-- =====================================================
+    <!-- =========================================
          WHEEL
-    ===================================================== -->
+    ========================================= -->
 
     {% if wheel_rules %}
 
@@ -691,7 +876,7 @@
             <div class="section-title">
 
                 <div class="section-title-left">
-                    🎡 WHEEL
+                    🎡 ルーレット
                 </div>
 
             </div>
@@ -708,7 +893,7 @@
                         </span>
 
                         <span>
-                            Колесо фортуны
+                            ルーレット
                         </span>
 
                     </div>
@@ -719,7 +904,9 @@
                         {{ rule.get("min", rule.get("price", 0)) }}
 
                         {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+
                             – {{ rule.get("max") }}
+
                         {% endif %}
 
                     </div>
@@ -736,19 +923,25 @@
                         <div class="wheel-prize">
 
                             {% if segment.get("label") %}
+
                                 {{ segment.get("label") }}
 
                             {% elif segment.get("name") %}
+
                                 {{ segment.get("name") }}
 
                             {% elif segment.get("action") %}
+
                                 {{ segment.get("action") }}
 
                             {% elif segment.get("strength") %}
-                                🎯 {{ segment.get("strength") }}
+
+                                🎯 強度 {{ segment.get("strength") }}
 
                             {% else %}
+
                                 🎯
+
                             {% endif %}
 
                         </div>
@@ -768,14 +961,14 @@
     {% endif %}
 
 
-    <!-- =====================================================
+    <!-- =========================================
          NO RULES
-    ===================================================== -->
+    ========================================= -->
 
     {% if not vibration_rules and not action_rules and not wheel_rules %}
 
         <div class="empty-rule">
-            Сейчас нет доступных правил
+            現在、利用できるルールはありません
         </div>
 
     {% endif %}
@@ -784,22 +977,18 @@
 
 
 <script>
+
     /*
-     * =====================================================
-     * FLOWTIP MENU PAGINATION
-     * =====================================================
+     * =============================================
+     * PAGINATION
+     * =============================================
      *
-     * Показываем максимум 5 правил.
+     * 最大5件を表示。
      *
-     * Если правил:
+     * 6〜10件 → 次の5件
+     * 11〜15件 → さらに次の5件
      *
-     * 1–5   → одна страница
-     * 6–10  → две страницы
-     * 11–15 → три страницы
-     * и т.д.
-     *
-     * Каждая страница автоматически меняется
-     * примерно раз в 4.5 секунды.
+     * 4.5秒ごとに自動切り替え。
      */
 
 
@@ -809,9 +998,11 @@
             document.querySelectorAll(options.pageSelector)
         );
 
+
         const dots = Array.from(
             document.querySelectorAll(options.dotSelector)
         );
+
 
         const counter = document.querySelector(
             options.counterSelector
@@ -827,11 +1018,6 @@
 
 
         function showPage(index) {
-
-            if (!pages.length) {
-                return;
-            }
-
 
             currentPage =
                 (index + pages.length) % pages.length;
@@ -880,19 +1066,10 @@
         showPage(0);
 
 
-        /*
-         * Если страница всего одна —
-         * ничего автоматически не переключаем.
-         */
-
         if (pages.length <= 1) {
             return;
         }
 
-
-        /*
-         * Переключение каждые 4.5 секунды.
-         */
 
         setInterval(function () {
 
@@ -900,12 +1077,6 @@
 
         }, 4500);
 
-
-        /*
-         * Если пользователь нажал
-         * на точку — сразу показываем
-         * соответствующую страницу.
-         */
 
         dots.forEach((dot, index) => {
 
@@ -924,33 +1095,38 @@
 
 
     /*
-     * VIBRATION PAGINATION
+     * バイブレーション
      */
 
     setupPagination({
 
         pageSelector: ".vibration-page",
 
-        dotSelector: "#vibrationPagination .dot",
+        dotSelector:
+            "#vibrationPagination .dot",
 
-        counterSelector: "#vibrationCounter"
+        counterSelector:
+            "#vibrationCounter"
 
     });
 
 
     /*
-     * ACTION PAGINATION
+     * アクション
      */
 
     setupPagination({
 
         pageSelector: ".action-page",
 
-        dotSelector: "#actionPagination .dot",
+        dotSelector:
+            "#actionPagination .dot",
 
-        counterSelector: "#actionCounter"
+        counterSelector:
+            "#actionCounter"
 
     });
+
 </script>
 
 </body>
