@@ -157,15 +157,9 @@ function handleWSMessage(data, reloadInnerContent, showToast) {
         return;
     }
 
-    // ⚙️ Обновление правил — мягко, через reloadInnerContent
+    // ⚙️ Обновление правил
     if (data.rules_update) {
-        reloadInnerContent(() => {
-            if (document.querySelector(".rules-page")) {
-                window.initRuleForms?.(window.CURRENT_PROFILE, socket, reloadInnerContent, showToast);
-                window.initRuleModals?.();
-                window.updateNewRuleFields?.();
-            }
-        });
+        reloadInnerContent();
         return;
     }
 
