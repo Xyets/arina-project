@@ -122,7 +122,10 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
             e.stopPropagation();
 
             const form = e.target;
-
+            console.log(
+                "FLOWTIP DEBUG — выбранный тип:",
+                form.querySelector("#new_action_type")?.value
+            );
             const payload = {
                 type: "add_rule",
                 profile_key: CURRENT_PROFILE,

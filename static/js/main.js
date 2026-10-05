@@ -40,7 +40,8 @@ window.showMemberCard = showMemberCard;
 /* ============================================================
    📌 Глобальные переменные
 ============================================================ */
-let CURRENT_PAGE_URL = "/beta";
+let CURRENT_PAGE_URL =
+    window.location.pathname + window.location.search;
 
 const app = document.getElementById("app");
 const CURRENT_USER = app?.dataset.user || "";
@@ -48,7 +49,6 @@ let CURRENT_MODE = app?.dataset.mode || "public";
 let CURRENT_PROFILE = app?.dataset.profile || "";
 
 window.CURRENT_PROFILE = CURRENT_PROFILE;
-
 /* ============================================================
    🔧 Инициализация глобальных обработчиков
 ============================================================ */
