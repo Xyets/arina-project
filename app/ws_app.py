@@ -647,7 +647,24 @@ async def ws_handler(websocket):
                 rules["rules"].append(new_rule)
                 save_rules(profile_key, rules)
 
-                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="panel",
+                    profile_key=profile_key
+                )
+
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="obs",
+                    profile_key=profile_key
+                )
+
                 continue
 
 
@@ -670,7 +687,25 @@ async def ws_handler(websocket):
                         r["action"] = data.get("action") or None
 
                 save_rules(profile_key, rules)
-                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="panel",
+                    profile_key=profile_key
+                )
+
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="obs",
+                    profile_key=profile_key
+                )
+
                 continue
 
 
@@ -685,7 +720,24 @@ async def ws_handler(websocket):
                 rules["rules"] = [r for r in rules["rules"] if r["id"] != rule_id]
                 save_rules(profile_key, rules)
 
-                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="panel",
+                    profile_key=profile_key
+                )
+
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="obs",
+                    profile_key=profile_key
+                )
+
                 continue
 
 
@@ -711,7 +763,23 @@ async def ws_handler(websocket):
                         r.setdefault("segments", []).append(seg)
 
                 save_rules(profile_key, rules)
-                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="panel",
+                    profile_key=profile_key
+                )
+
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="obs",
+                    profile_key=profile_key
+                )                
                 continue
 
 
@@ -731,7 +799,23 @@ async def ws_handler(websocket):
                             r["segments"].pop(seg_index)
 
                 save_rules(profile_key, rules)
-                ws_send({"rules_update": True}, role="panel", profile_key=profile_key)
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="panel",
+                    profile_key=profile_key
+                )
+
+                ws_send(
+                    {
+                        "rules_update": True,
+                        "profile_key": profile_key
+                    },
+                    role="obs",
+                    profile_key=profile_key
+                )                
                 continue
 
 
