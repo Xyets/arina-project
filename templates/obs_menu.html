@@ -2,10 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>FlowTip</title>
 
@@ -20,51 +17,45 @@
             padding: 0;
             width: 100%;
             min-height: 100%;
+            background: transparent;
+            font-family: "Inter", Arial, sans-serif;
         }
 
         body {
-            background: transparent;
-            font-family: "Inter", Arial, sans-serif;
-            color: #4b4350;
-            overflow: hidden;
+            padding: 12px;
+            color: #333;
         }
 
-        /* =====================================================
-           FLOWTIP GLASS
-        ===================================================== */
+        /* =========================
+           MAIN CARD
+        ========================= */
 
-        .flowtip-menu {
-            width: 330px;
-            margin: 12px;
+        .menu-card {
+            width: 340px;
+            max-width: calc(100vw - 24px);
 
             padding: 18px;
 
             border-radius: 24px;
 
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,0.48),
-                    rgba(255,255,255,0.22)
-                );
+            background: rgba(255, 255, 255, 0.18);
 
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
 
-            border: 1px solid rgba(255,255,255,0.55);
+            border: 1px solid rgba(255, 255, 255, 0.38);
 
             box-shadow:
-                0 12px 35px rgba(80, 50, 70, 0.16),
-                inset 0 1px 0 rgba(255,255,255,0.65);
+                0 8px 30px rgba(0, 0, 0, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25);
 
-            animation: menuAppear 0.65s ease;
+            animation: menuAppear 0.6s ease;
         }
-
 
         @keyframes menuAppear {
             from {
                 opacity: 0;
-                transform: translateY(12px) scale(0.97);
+                transform: translateY(10px) scale(0.98);
             }
 
             to {
@@ -73,273 +64,362 @@
             }
         }
 
-
-        /* =====================================================
+        /* =========================
            HEADER
-        ===================================================== */
+        ========================= */
 
-        .flowtip-header {
+        .menu-header {
             text-align: center;
             margin-bottom: 14px;
         }
 
-        .flowtip-logo {
+        .menu-title {
             font-size: 21px;
+            line-height: 1.1;
             font-weight: 800;
-            letter-spacing: 1.5px;
 
-            background:
-                linear-gradient(
-                    135deg,
-                    #e98db8,
-                    #78caca
-                );
+            color: #333;
 
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+
+            text-shadow:
+                0 1px 2px rgba(255, 255, 255, 0.5);
         }
 
-        .flowtip-subtitle {
-            margin-top: 3px;
+        .menu-subtitle {
+            margin-top: 5px;
 
-            font-size: 11px;
-            letter-spacing: 0.7px;
+            font-size: 12px;
+            font-weight: 600;
 
-            color: rgba(75,67,80,0.62);
+            color: rgba(50, 50, 50, 0.68);
         }
 
-
-        /* =====================================================
+        /* =========================
            SECTION
-        ===================================================== */
+        ========================= */
 
         .section {
             margin-top: 12px;
         }
 
+        .section:first-of-type {
+            margin-top: 0;
+        }
+
         .section-title {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-
-            margin-bottom: 7px;
-
-            font-size: 11px;
-            font-weight: 800;
-
-            text-transform: uppercase;
-            letter-spacing: 1px;
-
-            color: rgba(75,67,80,0.72);
-        }
-
-
-        /* =====================================================
-           RULE LIST
-        ===================================================== */
-
-        .rules-list {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-
-        .rule-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
 
-            min-height: 34px;
+            margin-bottom: 7px;
+            padding: 0 3px;
+        }
 
-            padding: 6px 10px;
+        .section-title-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            font-size: 13px;
+            font-weight: 800;
+
+            color: #3b3b3b;
+
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .page-counter {
+            min-width: 25px;
+
+            text-align: right;
+
+            font-size: 10px;
+            font-weight: 700;
+
+            color: rgba(60, 60, 60, 0.55);
+        }
+
+        /* =========================
+           PAGINATED AREA
+        ========================= */
+
+        .rules-viewport {
+            position: relative;
+
+            height: 210px;
+
+            overflow: hidden;
+
+            border-radius: 17px;
+
+            background: rgba(255, 255, 255, 0.14);
+
+            border: 1px solid rgba(255, 255, 255, 0.20);
+        }
+
+        .rules-page {
+            position: absolute;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            padding: 7px;
+
+            opacity: 0;
+
+            transform: translateX(20px);
+
+            pointer-events: none;
+
+            transition:
+                opacity 0.45s ease,
+                transform 0.45s ease;
+        }
+
+        .rules-page.active {
+            opacity: 1;
+
+            transform: translateX(0);
+
+            pointer-events: auto;
+        }
+
+        /* =========================
+           RULE ROW
+        ========================= */
+
+        .rule-row {
+            height: 37px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            margin-bottom: 5px;
+            padding: 0 10px;
 
             border-radius: 12px;
 
-            background: rgba(255,255,255,0.30);
+            background: rgba(255, 255, 255, 0.28);
 
-            border: 1px solid rgba(255,255,255,0.36);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.05);
 
             transition:
                 transform 0.2s ease,
                 background 0.2s ease;
         }
 
+        .rule-row:last-child {
+            margin-bottom: 0;
+        }
 
         .rule-row:hover {
-            transform: translateX(2px);
+            transform: translateY(-1px);
 
-            background: rgba(255,255,255,0.48);
+            background: rgba(255, 255, 255, 0.40);
         }
-
 
         .rule-price {
-            font-size: 13px;
-            font-weight: 800;
-
-            color: #665365;
-        }
-
-
-        .rule-price::before {
-            content: "♡ ";
-            color: #e99abd;
-        }
-
-
-        .rule-effect {
             display: flex;
             align-items: center;
+            gap: 6px;
+
+            font-size: 14px;
+            font-weight: 800;
+
+            color: #333;
+
+            white-space: nowrap;
+        }
+
+        .rule-price-icon {
+            font-size: 15px;
+        }
+
+        .rule-effect {
+            max-width: 150px;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            color: rgba(50, 50, 50, 0.70);
+
+            text-align: right;
+        }
+
+        /* =========================
+           PAGINATION DOTS
+        ========================= */
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
             gap: 5px;
 
-            font-size: 11px;
-            font-weight: 600;
+            height: 13px;
 
-            color: rgba(75,67,80,0.70);
+            margin-top: 5px;
         }
 
+        .dot {
+            width: 5px;
+            height: 5px;
 
-        .effect-icon {
-            font-size: 13px;
+            border-radius: 50%;
+
+            background: rgba(80, 80, 80, 0.25);
+
+            transition:
+                transform 0.25s ease,
+                background 0.25s ease;
         }
 
+        .dot.active {
+            transform: scale(1.35);
 
-        /* =====================================================
+            background: rgba(80, 80, 80, 0.60);
+        }
+
+        /* =========================
            WHEEL
-        ===================================================== */
+        ========================= */
 
         .wheel-card {
-            position: relative;
+            padding: 11px;
 
-            padding: 11px 12px;
+            border-radius: 17px;
 
-            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.20);
 
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(255,175,204,0.30),
-                    rgba(174,230,230,0.25)
-                );
-
-            border: 1px solid rgba(255,255,255,0.48);
+            border: 1px solid rgba(255, 255, 255, 0.28);
 
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.45);
+                0 3px 12px rgba(0, 0, 0, 0.06);
         }
 
-
-        .wheel-top {
+        .wheel-main {
             display: flex;
             align-items: center;
             justify-content: space-between;
+
+            gap: 10px;
         }
 
-
-        .wheel-name {
+        .wheel-title {
             display: flex;
             align-items: center;
             gap: 7px;
 
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 800;
 
-            color: #665365;
+            color: #333;
         }
 
+        .wheel-icon {
+            font-size: 21px;
+        }
 
         .wheel-price {
-            padding: 4px 8px;
+            padding: 5px 9px;
 
-            border-radius: 9px;
+            border-radius: 10px;
 
-            background: rgba(255,255,255,0.38);
+            background: rgba(255, 255, 255, 0.30);
 
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 800;
 
-            color: #76596b;
+            color: #444;
+
+            white-space: nowrap;
         }
-
-
-        .wheel-description {
-            margin-top: 6px;
-
-            font-size: 10px;
-
-            color: rgba(75,67,80,0.65);
-        }
-
 
         .wheel-prizes {
             display: flex;
-            align-items: center;
             flex-wrap: wrap;
 
-            gap: 4px;
+            gap: 5px;
 
             margin-top: 8px;
         }
 
-
-        .prize {
-            padding: 3px 6px;
+        .wheel-prize {
+            padding: 4px 7px;
 
             border-radius: 8px;
 
-            background: rgba(255,255,255,0.34);
-
-            font-size: 10px;
-            font-weight: 700;
-
-            color: #76596b;
-        }
-
-
-        /* =====================================================
-           EMPTY STATE
-        ===================================================== */
-
-        .empty {
-            padding: 12px;
-
-            text-align: center;
-
-            border-radius: 12px;
-
-            background: rgba(255,255,255,0.25);
+            background: rgba(255, 255, 255, 0.28);
 
             font-size: 11px;
+            font-weight: 700;
 
-            color: rgba(75,67,80,0.58);
+            color: rgba(50, 50, 50, 0.72);
         }
 
+        /* =========================
+           EMPTY / UNKNOWN
+        ========================= */
 
-        /* =====================================================
-           FOOTER
-        ===================================================== */
+        .empty-rule {
+            height: 100%;
 
-        .flowtip-footer {
-            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 15px;
 
             text-align: center;
 
-            font-size: 9px;
-            letter-spacing: 0.5px;
+            font-size: 12px;
+            font-weight: 600;
 
-            color: rgba(75,67,80,0.42);
+            color: rgba(50, 50, 50, 0.55);
         }
 
+        /* =========================
+           SMALL SCREEN
+        ========================= */
 
-        /* =====================================================
-           SMALL SCREENS
-        ===================================================== */
+        @media (max-width: 380px) {
+            body {
+                padding: 8px;
+            }
 
-        @media (max-width: 360px) {
-            .flowtip-menu {
-                width: calc(100vw - 20px);
-                margin: 10px;
+            .menu-card {
+                width: 330px;
+                max-width: calc(100vw - 16px);
+
                 padding: 15px;
+            }
+
+            .menu-title {
+                font-size: 19px;
+            }
+
+            .rule-price {
+                font-size: 13px;
+            }
+
+            .rule-effect {
+                font-size: 11px;
+                max-width: 135px;
             }
         }
     </style>
@@ -347,58 +427,119 @@
 
 <body>
 
-<div class="flowtip-menu">
+<div class="menu-card">
 
-    <!-- HEADER -->
-    <div class="flowtip-header">
+    <!-- =========================
+         HEADER
+    ========================= -->
 
-        <div class="flowtip-logo">
+    <div class="menu-header">
+        <div class="menu-title">
             ✦ FLOWTIP ✦
         </div>
 
-        <div class="flowtip-subtitle">
-            tips • vibes • surprises
+        <div class="menu-subtitle">
+            TIP MENU
         </div>
-
     </div>
 
 
-    <!-- VIBRATION -->
+    <!-- =====================================================
+         PREPARE RULES FROM BACKEND
+    ===================================================== -->
+
+    {% set vibration_rules = [] %}
+    {% set action_rules = [] %}
+    {% set wheel_rules = [] %}
+
+    {% for rule in rules %}
+
+        {% if rule.get("type") == "vibration" %}
+            {% set _ = vibration_rules.append(rule) %}
+
+        {% elif rule.get("type") == "wheel" %}
+            {% set _ = wheel_rules.append(rule) %}
+
+        {% elif rule.get("type") == "custom" or rule.get("type") == "action" %}
+            {% set _ = action_rules.append(rule) %}
+
+        {% endif %}
+
+    {% endfor %}
+
+
+    <!-- =====================================================
+         VIBRATIONS
+    ===================================================== -->
+
+    {% if vibration_rules %}
+
     <div class="section">
 
         <div class="section-title">
-            ⚡ VIBRATION
+
+            <div class="section-title-left">
+                ⚡ VIBRATION
+            </div>
+
+            <div class="page-counter" id="vibrationCounter"></div>
+
         </div>
 
-        <div class="rules-list">
 
-            {% for rule in rules %}
+        <div class="rules-viewport" id="vibrationViewport">
 
-                {% if rule.get("type") == "vibration" %}
+            {% for rule in vibration_rules %}
+
+                {% if loop.index0 % 5 == 0 %}
+
+                <div
+                    class="rules-page vibration-page {% if loop.first %}active{% endif %}"
+                    data-page="{{ loop.index0 // 5 }}"
+                >
+
+                {% endif %}
+
 
                     <div class="rule-row">
 
                         <div class="rule-price">
 
-                            {% if rule.get("min") == rule.get("max") %}
-                                {{ rule.get("min") }}
+                            <span class="rule-price-icon">
+                                ♡
+                            </span>
+
+                            <span>
+                                {{ rule.get("min", rule.get("price", 0)) }}
+
+                                {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+                                    – {{ rule.get("max") }}
+                                {% endif %}
+                            </span>
+
+                        </div>
+
+
+                        <div class="rule-effect">
+
+                            {% if rule.get("duration") %}
+                                ⚡ {{ rule.get("duration") }} sec
+
+                            {% elif rule.get("strength") %}
+                                ⚡ {{ rule.get("strength") }}
+
                             {% else %}
-                                {{ rule.get("min") }}–{{ rule.get("max") }}
+                                ⚡ VIBRATION
                             {% endif %}
 
                         </div>
 
-                        <div class="rule-effect">
-
-                            <span class="effect-icon">
-                                ⚡
-                            </span>
-
-                            {{ rule.get("duration", 0) }} sec
-
-                        </div>
-
                     </div>
+
+
+                {% if loop.last or loop.index0 % 5 == 4 %}
+
+                </div>
 
                 {% endif %}
 
@@ -406,35 +547,97 @@
 
         </div>
 
+
+        {% if vibration_rules|length > 5 %}
+
+        <div class="pagination" id="vibrationPagination">
+
+            {% for i in range((vibration_rules|length + 4) // 5) %}
+
+                <span
+                    class="dot {% if i == 0 %}active{% endif %}"
+                    data-page="{{ i }}"
+                ></span>
+
+            {% endfor %}
+
+        </div>
+
+        {% endif %}
+
     </div>
 
+    {% endif %}
 
-    <!-- WHEEL -->
-    {% for rule in rules %}
 
-        {% if rule.get("type") == "wheel" %}
+    <!-- =====================================================
+         ACTIONS
+    ===================================================== -->
 
-            <div class="section">
+    {% if action_rules %}
 
-                <div class="section-title">
-                    🎡 WHEEL
-                </div>
+    <div class="section">
 
-                <div class="wheel-card">
+        <div class="section-title">
 
-                    <div class="wheel-top">
+            <div class="section-title-left">
+                ✨ ACTIONS
+            </div>
 
-                        <div class="wheel-name">
-                            🎡
-                            Wheel of Fortune
+            <div class="page-counter" id="actionCounter"></div>
+
+        </div>
+
+
+        <div class="rules-viewport" id="actionViewport">
+
+            {% for rule in action_rules %}
+
+                {% if loop.index0 % 5 == 0 %}
+
+                <div
+                    class="rules-page action-page {% if loop.first %}active{% endif %}"
+                    data-page="{{ loop.index0 // 5 }}"
+                >
+
+                {% endif %}
+
+
+                    <div class="rule-row">
+
+                        <div class="rule-price">
+
+                            <span class="rule-price-icon">
+                                ♡
+                            </span>
+
+                            <span>
+                                {{ rule.get("min", rule.get("price", 0)) }}
+
+                                {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+                                    – {{ rule.get("max") }}
+                                {% endif %}
+                            </span>
+
                         </div>
 
-                        <div class="wheel-price">
 
-                            {% if rule.get("min") == rule.get("max") %}
-                                {{ rule.get("min") }}
-                            {% else %}
-                                {{ rule.get("min") }}–{{ rule.get("max") }}
+                        <div class="rule-effect">
+
+                            {% if rule.get("action") %}
+                                {{ rule.get("action") }}
+
+                            {% elif rule.get("name") %}
+                                {{ rule.get("name") }}
+
+                            {% elif rule.get("label") %}
+                                {{ rule.get("label") }}
+
+                            {% elif rule.get("description") %}
+                                {{ rule.get("description") }}
+
+                            else
+                                ✨ ACTION
                             {% endif %}
 
                         </div>
@@ -442,59 +645,313 @@
                     </div>
 
 
-                    <div class="wheel-description">
-                        Choose your luck ♡
-                    </div>
-
-
-                    {% if rule.get("segments") %}
-
-                        <div class="wheel-prizes">
-
-                            {% for segment in rule.get("segments", []) %}
-
-                                <div class="prize">
-
-                                    {% if segment.get("label") %}
-                                        {{ segment.get("label") }}
-                                    {% elif segment.get("name") %}
-                                        {{ segment.get("name") }}
-                                    {% else %}
-                                        🎯
-                                    {% endif %}
-
-                                </div>
-
-                            {% endfor %}
-
-                        </div>
-
-                    {% endif %}
+                {% if loop.last or loop.index0 % 5 == 4 %}
 
                 </div>
 
-            </div>
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+
+        {% if action_rules|length > 5 %}
+
+        <div class="pagination" id="actionPagination">
+
+            {% for i in range((action_rules|length + 4) // 5) %}
+
+                <span
+                    class="dot {% if i == 0 %}active{% endif %}"
+                    data-page="{{ i }}"
+                ></span>
+
+            {% endfor %}
+
+        </div>
 
         {% endif %}
 
-    {% endfor %}
-
-
-    <!-- EMPTY -->
-    {% if not rules %}
-
-        <div class="empty">
-            No tips available yet ♡
-        </div>
+    </div>
 
     {% endif %}
 
 
-    <div class="flowtip-footer">
-        every tip creates a little magic ✦
-    </div>
+    <!-- =====================================================
+         WHEEL
+    ===================================================== -->
+
+    {% if wheel_rules %}
+
+        {% for rule in wheel_rules %}
+
+        <div class="section">
+
+            <div class="section-title">
+
+                <div class="section-title-left">
+                    🎡 WHEEL
+                </div>
+
+            </div>
+
+
+            <div class="wheel-card">
+
+                <div class="wheel-main">
+
+                    <div class="wheel-title">
+
+                        <span class="wheel-icon">
+                            🎡
+                        </span>
+
+                        <span>
+                            Колесо фортуны
+                        </span>
+
+                    </div>
+
+
+                    <div class="wheel-price">
+
+                        {{ rule.get("min", rule.get("price", 0)) }}
+
+                        {% if rule.get("max") and rule.get("max") != rule.get("min") %}
+                            – {{ rule.get("max") }}
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                {% if rule.get("segments") %}
+
+                <div class="wheel-prizes">
+
+                    {% for segment in rule.get("segments", []) %}
+
+                        <div class="wheel-prize">
+
+                            {% if segment.get("label") %}
+                                {{ segment.get("label") }}
+
+                            {% elif segment.get("name") %}
+                                {{ segment.get("name") }}
+
+                            {% elif segment.get("action") %}
+                                {{ segment.get("action") }}
+
+                            {% elif segment.get("strength") %}
+                                🎯 {{ segment.get("strength") }}
+
+                            {% else %}
+                                🎯
+                            {% endif %}
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+
+    <!-- =====================================================
+         NO RULES
+    ===================================================== -->
+
+    {% if not vibration_rules and not action_rules and not wheel_rules %}
+
+        <div class="empty-rule">
+            Сейчас нет доступных правил
+        </div>
+
+    {% endif %}
 
 </div>
+
+
+<script>
+    /*
+     * =====================================================
+     * FLOWTIP MENU PAGINATION
+     * =====================================================
+     *
+     * Показываем максимум 5 правил.
+     *
+     * Если правил:
+     *
+     * 1–5   → одна страница
+     * 6–10  → две страницы
+     * 11–15 → три страницы
+     * и т.д.
+     *
+     * Каждая страница автоматически меняется
+     * примерно раз в 4.5 секунды.
+     */
+
+
+    function setupPagination(options) {
+
+        const pages = Array.from(
+            document.querySelectorAll(options.pageSelector)
+        );
+
+        const dots = Array.from(
+            document.querySelectorAll(options.dotSelector)
+        );
+
+        const counter = document.querySelector(
+            options.counterSelector
+        );
+
+
+        if (!pages.length) {
+            return;
+        }
+
+
+        let currentPage = 0;
+
+
+        function showPage(index) {
+
+            if (!pages.length) {
+                return;
+            }
+
+
+            currentPage =
+                (index + pages.length) % pages.length;
+
+
+            pages.forEach((page, i) => {
+
+                page.classList.toggle(
+                    "active",
+                    i === currentPage
+                );
+
+            });
+
+
+            dots.forEach((dot, i) => {
+
+                dot.classList.toggle(
+                    "active",
+                    i === currentPage
+                );
+
+            });
+
+
+            if (counter) {
+
+                if (pages.length > 1) {
+
+                    counter.textContent =
+                        (currentPage + 1) +
+                        " / " +
+                        pages.length;
+
+                } else {
+
+                    counter.textContent = "";
+
+                }
+
+            }
+
+        }
+
+
+        showPage(0);
+
+
+        /*
+         * Если страница всего одна —
+         * ничего автоматически не переключаем.
+         */
+
+        if (pages.length <= 1) {
+            return;
+        }
+
+
+        /*
+         * Переключение каждые 4.5 секунды.
+         */
+
+        setInterval(function () {
+
+            showPage(currentPage + 1);
+
+        }, 4500);
+
+
+        /*
+         * Если пользователь нажал
+         * на точку — сразу показываем
+         * соответствующую страницу.
+         */
+
+        dots.forEach((dot, index) => {
+
+            dot.addEventListener(
+                "click",
+                function () {
+
+                    showPage(index);
+
+                }
+            );
+
+        });
+
+    }
+
+
+    /*
+     * VIBRATION PAGINATION
+     */
+
+    setupPagination({
+
+        pageSelector: ".vibration-page",
+
+        dotSelector: "#vibrationPagination .dot",
+
+        counterSelector: "#vibrationCounter"
+
+    });
+
+
+    /*
+     * ACTION PAGINATION
+     */
+
+    setupPagination({
+
+        pageSelector: ".action-page",
+
+        dotSelector: "#actionPagination .dot",
+
+        counterSelector: "#actionCounter"
+
+    });
+</script>
 
 </body>
 </html>
