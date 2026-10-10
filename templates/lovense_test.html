@@ -1,0 +1,295 @@
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowTip — тест Lovense</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 28px 16px;
+      min-height: 100vh;
+      color: #49364d;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f8d4e7, #d8f3f1, #fce8ce);
+      background-size: 200% 200%;
+    }
+
+    main { max-width: 920px; margin: auto; }
+
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .intro { margin: 0 0 24px; color: #765f79; line-height: 1.5; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 18px;
+    }
+
+    .device {
+      padding: 20px;
+      border: 1px solid rgba(255,255,255,.85);
+      border-radius: 22px;
+      background: rgba(255,255,255,.62);
+      box-shadow: 0 12px 35px rgba(107, 72, 111, .12);
+      backdrop-filter: blur(14px);
+    }
+
+    .device h2 { margin: 0 0 8px; font-size: 21px; }
+    .uid { color: #806a82; font-size: 12px; overflow-wrap: anywhere; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 14px 0;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #f3e9f4;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #b8a9bd;
+    }
+
+    .status.online { color: #176b54; background: #dff7ec; }
+    .status.online::before { background: #27a878; }
+
+    .qr {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      margin: 10px 0 14px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.8);
+    }
+
+    .qr img { display: block; width: 100%; max-width: 230px; height: auto; }
+    .qr-placeholder { color: #8d7a90; text-align: center; font-size: 14px; }
+
+    .toys { min-height: 24px; margin: 10px 0; font-size: 13px; color: #6d5772; }
+
+    button {
+      width: 100%;
+      padding: 12px 14px;
+      margin-top: 8px;
+      border: 0;
+      border-radius: 12px;
+      color: #54374f;
+      background: #f4d2e5;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary { color: white; background: #c65d9a; }
+    button.stop { color: #8c3448; background: #ffe0e4; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .message {
+      min-height: 36px;
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .notice {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.55);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 500px) {
+      body { padding: 20px 12px; }
+      h1 { font-size: 24px; }
+      .device { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>🌸 FlowTip — тест Lovense</h1>
+  <p class="intro">
+    Изолированная проверка одного Developer Token с двумя временными UID.
+    Рабочие профили FlowTip эта страница не изменяет.
+  </p>
+
+  <div class="grid">
+    <section class="device" data-slot="a">
+      <h2>Устройство A</h2>
+      <div class="uid">UID: flowtip_test_arina_a</div>
+      <div class="status" data-status>Ожидание подключения</div>
+
+      <div class="qr" data-qr>
+        <div class="qr-placeholder">Нажми «Создать QR-код»</div>
+      </div>
+
+      <button class="primary" data-generate>Создать QR-код</button>
+      <div class="toys" data-toys>Устройство ещё не подключено.</div>
+      <button data-vibrate disabled>Тестовая вибрация · 2 сек</button>
+      <button class="stop" data-stop disabled>Остановить</button>
+      <div class="message" data-message aria-live="polite"></div>
+    </section>
+
+    <section class="device" data-slot="b">
+      <h2>Устройство B</h2>
+      <div class="uid">UID: flowtip_test_arina_b</div>
+      <div class="status" data-status>Ожидание подключения</div>
+
+      <div class="qr" data-qr>
+        <div class="qr-placeholder">Нажми «Создать QR-код»</div>
+      </div>
+
+      <button class="primary" data-generate>Создать QR-код</button>
+      <div class="toys" data-toys>Устройство ещё не подключено.</div>
+      <button data-vibrate disabled>Тестовая вибрация · 2 сек</button>
+      <button class="stop" data-stop disabled>Остановить</button>
+      <div class="message" data-message aria-live="polite"></div>
+    </section>
+  </div>
+
+  <div class="notice">
+    <strong>Перед тестом:</strong>
+    подключай каждый телефон/пульт к своему QR-коду по очереди.
+    Вибрация запускается на минимальной силе 3/20 и длится 2 секунды.
+    Кнопка «Остановить» отправляет отдельную команду Stop.
+    Если устройство не подключено, команды не отправляются.
+  </div>
+</main>
+
+<script>
+  async function postJson(url, body = {}) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      credentials: "same-origin"
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || data.status !== "ok") {
+      throw new Error(data.message || `HTTP ${response.status}`);
+    }
+
+    return data;
+  }
+
+  function setMessage(card, text) {
+    card.querySelector("[data-message]").textContent = text || "";
+  }
+
+  function renderDevice(card, info) {
+    const status = card.querySelector("[data-status]");
+    const vibrate = card.querySelector("[data-vibrate]");
+    const stop = card.querySelector("[data-stop]");
+    const toys = card.querySelector("[data-toys]");
+
+    status.textContent = info.connected
+      ? "Подключено"
+      : "Ожидание подключения";
+
+    status.classList.toggle("online", !!info.connected);
+    vibrate.disabled = !info.connected;
+    stop.disabled = !info.connected;
+
+    if (info.connected && info.toys && info.toys.length) {
+      toys.textContent = "Игрушки: " + info.toys.map(t => {
+        return `${t.name} (статус ${t.status || "?"})`;
+      }).join(", ");
+    } else {
+      toys.textContent = "Устройство ещё не подключено.";
+    }
+  }
+
+  async function refreshStatus() {
+    try {
+      const response = await fetch("/lovense-test/api/status", {
+        credentials: "same-origin"
+      });
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (data.status !== "ok") return;
+
+      document.querySelectorAll("[data-slot]").forEach(card => {
+        const slot = card.dataset.slot;
+        if (data.devices && data.devices[slot]) {
+          renderDevice(card, data.devices[slot]);
+        }
+      });
+    } catch (_) {
+      // Следующая проверка повторится автоматически.
+    }
+  }
+
+  document.querySelectorAll("[data-slot]").forEach(card => {
+    const slot = card.dataset.slot;
+
+    card.querySelector("[data-generate]").addEventListener("click", async () => {
+      const button = card.querySelector("[data-generate]");
+      const qrBox = card.querySelector("[data-qr]");
+
+      button.disabled = true;
+      setMessage(card, "Запрашиваю QR-код у Lovense…");
+
+      try {
+        const data = await postJson(`/lovense-test/api/qr/${slot}`);
+        const image = document.createElement("img");
+        image.src = data.qr;
+        image.alt = `QR-код тестового устройства ${slot.toUpperCase()}`;
+
+        qrBox.replaceChildren(image);
+        setMessage(card, "QR-код готов. Отсканируй его через Lovense Remote.");
+      } catch (error) {
+        setMessage(card, "Ошибка: " + error.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    card.querySelector("[data-vibrate]").addEventListener("click", async () => {
+      setMessage(card, "Отправляю короткую вибрацию…");
+      try {
+        const data = await postJson(`/lovense-test/api/command/${slot}`, {
+          action: "vibrate"
+        });
+        setMessage(card, data.message);
+      } catch (error) {
+        setMessage(card, "Ошибка: " + error.message);
+      }
+    });
+
+    card.querySelector("[data-stop]").addEventListener("click", async () => {
+      setMessage(card, "Отправляю команду остановки…");
+      try {
+        const data = await postJson(`/lovense-test/api/command/${slot}`, {
+          action: "stop"
+        });
+        setMessage(card, data.message);
+      } catch (error) {
+        setMessage(card, "Ошибка: " + error.message);
+      }
+    });
+  });
+
+  refreshStatus();
+  setInterval(refreshStatus, 3000);
+</script>
+</body>
+</html>

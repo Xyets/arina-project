@@ -14,7 +14,7 @@ from services.maintenance_service import periodic_backup_cleanup
 
 from config import CONFIG
 from services.database import init_db
-
+from app.lovense_test_app import lovense_test_bp
 
 
 def create_app():
@@ -35,6 +35,7 @@ def create_app():
     app.register_blueprint(reactions_bp)
     app.register_blueprint(obs_bp)
     app.register_blueprint(lovense_bp)
+    app.register_blueprint(lovense_test_bp)
 
     # 🔧 Запускаем фоновую очистку
     threading.Thread(
