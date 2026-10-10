@@ -106,11 +106,52 @@ def get_qr_code(profile_key):
 # -------------------- CALLBACK ОТ LOVENSE CLOUD --------------------
 
 @lovense_bp.route("/callback", methods=["POST"])
-def lovense_callback():
-    data = request.json or request.form or {}
-    print("📩 Callback от Lovense:", data)
 
-    uid = data.get("uid")
+@lovense_bp.route("/callback", methods=["POST"])
+def lovense_callback():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        data = request.form.to_dict()
+
+    uid = str(data.get("uid") or "")
+    supplied_utoken = str(data.get("utoken") or "")
+
+    # Тестовые UID обрабатываем отдельно от рабочих профилей.
+    test_profiles = {
+        "flowtip_test_arina_a": "a",
+        "flowtip_test_arina_b": "b",
+    }
+
+    if uid in test_profiles:
+        from app.lovense_test_app import _load_state, _save_state
+        import hmac
+
+        slot = test_profiles[uid]
+        state = _load_state()
+        expected_utoken = str(state[slot].get("utoken") or "")
+
+        if (
+            not expected_utoken
+            or not supplied_utoken
+            or not hmac.compare_digest(expected_utoken, supplied_utoken)
+        ):
+            return "Invalid test user token", 403
+
+        toys = data.get("toys", {})
+        if not isinstance(toys, dict):
+            toys = {}
+
+        state[slot]["toys"] = toys
+        state[slot]["connected"] = any(
+            isinstance(toy, dict)
+            and str(toy.get("status", "")) == "1"
+            for toy in toys.values()
+        )
+        _save_state(state)
+
+        return "OK", 200
+
+    # Обычные UID обрабатываются прежним способом.
     if not uid:
         return "❌ Нет uid", 400
 
@@ -118,7 +159,6 @@ def lovense_callback():
     if not model:
         return "❌ Модель не найдена", 404
 
-    # всегда считаем, что игрушка привязана к public‑профилю модели
     profile_key = f"{model['username']}_public"
 
     payload = {
@@ -129,10 +169,9 @@ def lovense_callback():
     redis_client.hset(
         "connected_users",
         profile_key,
-        json.dumps(payload, ensure_ascii=False)
+        json.dumps(payload, ensure_ascii=False),
     )
 
-    print("🔐 CONNECTED_USERS обновлён:", profile_key)
     return "✅ Callback принят", 200
 
 
