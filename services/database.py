@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import re
 
 DB_PATH = "data/models.db"
 
@@ -75,7 +76,25 @@ class RegistrationError(Exception):
     """Ошибка регистрации модели по персональному коду."""
 
 
-def create_model(username, password_hash, display_name, lovense_token, uid):
+def make_model_uid(username):
+    """
+    Формирует один UID на модель, общий для private и public:
+    Kira -> kira_001.
+    """
+    base = (username or "").strip().lower()
+    base = re.sub(r"[^a-z0-9_-]+", "_", base)
+    base = re.sub(r"_+", "_", base).strip("_-")
+
+    if not base:
+        base = "model"
+
+    return f"{base}_001"
+
+
+def create_model(username, password_hash, display_name, lovense_token, uid=None):
+    username = (username or "").strip()
+    uid = (uid or "").strip() or make_model_uid(username)
+
     conn = get_connection()
     cur = conn.cursor()
 
@@ -291,6 +310,7 @@ def register_model_with_code(
 
     username = (username or "").strip()
     registration_code = (registration_code or "").strip().upper()
+    uid = (uid or "").strip() or make_model_uid(username)
 
     if not username:
         raise RegistrationError("Введите логин")
