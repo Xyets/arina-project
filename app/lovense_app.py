@@ -1,9 +1,9 @@
+
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from functools import wraps
 import json
 import requests
 from flask import send_file
-import requests
 from io import BytesIO
 
 from services.database import (
@@ -38,7 +38,7 @@ def qrcode_default():
 
     qr_url = get_qr_code(profile_key)
     if not qr_url:
-        return "❌ Не удалось получить QR‑код", 500
+        return "❌ Не удалось получить QR-код", 500
 
     return render_template("qrcode.html", user=user, qr_url=qr_url)
 
@@ -58,9 +58,13 @@ def qrcode_page(profile_key):
 
     qr_url = get_qr_code(profile_key)
     if not qr_url:
-        return "❌ Не удалось получить QR‑код", 500
+        return "❌ Не удалось получить QR-код", 500
 
-    return render_template("qrcode.html", user=model["display_name"], qr_url=qr_url)
+    return render_template(
+        "qrcode.html",
+        user=model["display_name"],
+        qr_url=qr_url,
+    )
 
 
 # -------------------- ФУНКЦИЯ ПОЛУЧЕНИЯ QR-КОДА --------------------
@@ -72,6 +76,10 @@ def get_qr_code(profile_key):
 
     model = get_model_by_id(profile["model_id"])
     if not model:
+        return None
+
+    if not model["uid"] or not model["lovense_token"]:
+        print(f"❌ [{profile_key}] В SQL отсутствует UID или Lovense token")
         return None
 
     url = "https://api.lovense.com/api/lan/getQrCode"
@@ -86,20 +94,26 @@ def get_qr_code(profile_key):
     }
 
     try:
-        r = requests.post(url, json=payload, timeout=10)
-        data = r.json()
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+        data = response.json()
         print("Ответ от Lovense API:", data)
     except Exception as e:
         print("Ошибка запроса QR:", e)
         return None
 
-    if data.get("code") == 0 and "data" in data and "qr" in data["data"]:
+    if (
+        data.get("code") == 0
+        and isinstance(data.get("data"), dict)
+        and data["data"].get("qr")
+    ):
         return data["data"]["qr"]
 
-    msg = data.get("message")
-    if isinstance(msg, str) and msg.startswith("http"):
-        return msg
+    message = data.get("message")
+    if isinstance(message, str) and message.startswith("http"):
+        return message
 
+    print("❌ Lovense не вернул QR-код")
     return None
 
 
@@ -109,13 +123,15 @@ def get_qr_code(profile_key):
 @lovense_bp.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
     data = request.get_json(silent=True)
+
     if not isinstance(data, dict):
         data = request.form.to_dict()
 
-    uid = str(data.get("uid") or "")
-    supplied_utoken = str(data.get("utoken") or "")
+    uid = str(data.get("uid") or "").strip()
+    supplied_utoken = str(data.get("utoken") or "").strip()
 
-    # Тестовые UID обрабатываем отдельно от рабочих профилей.
+    # -------------------- ТЕСТОВЫЕ ПОДКЛЮЧЕНИЯ --------------------
+
     test_profiles = {
         "flowtip_test_arina_a": "a",
         "flowtip_test_arina_b": "b",
@@ -136,35 +152,65 @@ def lovense_callback():
         ):
             return "Invalid test user token", 403
 
-        toys = data.get("toys", {})
-        if not isinstance(toys, dict):
-            toys = {}
+        if isinstance(data.get("toys"), dict):
+            state[slot]["toys"] = data["toys"]
 
-        state[slot]["toys"] = toys
+        toys = state[slot].get("toys") or {}
         state[slot]["connected"] = any(
             isinstance(toy, dict)
             and str(toy.get("status", "")) == "1"
             for toy in toys.values()
         )
-        _save_state(state)
 
+        _save_state(state)
         return "OK", 200
 
-    # Обычные UID обрабатываются прежним способом.
+    # -------------------- РАБОЧИЕ МОДЕЛИ --------------------
+
     if not uid:
-        return "❌ Нет uid", 400
+        return "Missing uid", 400
 
     model = get_model_by_uid(uid)
     if not model:
-        return "❌ Модель не найдена", 404
+        return "Model not found", 404
 
-    profile_key = f"{model['username']}_public"
+    # Подключение каждой модели хранится по её собственному UID.
+    # Читаем предыдущее состояние, чтобы не затереть utoken,
+    # если очередное уведомление пришло без этого поля.
+    raw_previous = redis_client.hget("connected_users", uid)
+    previous = {}
+
+    if raw_previous:
+        try:
+            if isinstance(raw_previous, bytes):
+                raw_previous = raw_previous.decode("utf-8")
+            parsed = json.loads(raw_previous)
+            if isinstance(parsed, dict):
+                previous = parsed
+        except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+            print(
+                f"⚠️ [{model['username']}] "
+                "Не удалось прочитать прежнее состояние Lovense"
+            )
+
+    # Обновляем utoken только если новое уведомление содержит
+    # непустое значение. Пустое поле не должно затирать старый токен.
+    utoken = supplied_utoken or str(previous.get("utoken") or "")
+
+    # Если toys присутствует и имеет правильный тип, обновляем его.
+    # Если поле отсутствует или некорректно, сохраняем предыдущие данные.
+    incoming_toys = data.get("toys")
+    if isinstance(incoming_toys, dict):
+        toys = incoming_toys
+    else:
+        toys = previous.get("toys", {})
+        if not isinstance(toys, dict):
+            toys = {}
 
     payload = {
-        "utoken": data.get("utoken"),
-        "toys": data.get("toys", {}),
+        "utoken": utoken,
+        "toys": toys,
     }
-
 
     redis_client.hset(
         "connected_users",
@@ -172,9 +218,22 @@ def lovense_callback():
         json.dumps(payload, ensure_ascii=False),
     )
 
+    connected = any(
+        isinstance(toy, dict)
+        and str(toy.get("status", "")) == "1"
+        for toy in toys.values()
+    )
 
-    return "✅ Callback принят", 200
+    print(
+        f"Lovense callback: model={model['username']}, "
+        f"utoken_present={bool(utoken)}, "
+        f"toys_count={len(toys)}, connected={connected}"
+    )
 
+    return "OK", 200
+
+
+# -------------------- ИЗОБРАЖЕНИЕ QR-КОДА --------------------
 
 @lovense_bp.route("/qrcode_image/<profile_key>")
 @login_required
@@ -183,15 +242,18 @@ def qrcode_image(profile_key):
     if not qr_url:
         return "QR not found", 404
 
-    # скачиваем изображение QR-кода
     try:
-        r = requests.get(qr_url, timeout=10)
-        img_bytes = BytesIO(r.content)
+        response = requests.get(qr_url, timeout=10)
+        response.raise_for_status()
+
+        img_bytes = BytesIO(response.content)
         return send_file(img_bytes, mimetype="image/png")
     except Exception as e:
         print("Ошибка загрузки QR:", e)
         return "QR load error", 500
-# -------------------- API для стабильного QR-кода --------------------
+
+
+# -------------------- API ДЛЯ QR-КОДА --------------------
 
 @lovense_bp.route("/qr_generate")
 @login_required
@@ -200,10 +262,6 @@ def qr_generate():
     mode = session.get("mode", "public")
     profile_key = f"{user}_{mode}"
 
-    # если запросили обновление — просто получаем новый QR
-    refresh = request.args.get("refresh")
-
-    # получаем QR-код
     qr_url = get_qr_code(profile_key)
     if not qr_url:
         return {"status": "error", "qr": None}, 500
