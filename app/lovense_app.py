@@ -106,8 +106,7 @@ def get_qr_code(profile_key):
 # -------------------- CALLBACK ОТ LOVENSE CLOUD --------------------
 
 @lovense_bp.route("/callback", methods=["POST"])
-
-@lovense_bp.route("/callback", methods=["POST"])
+@lovense_bp.route("/lovense/callback", methods=["POST"])
 def lovense_callback():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
