@@ -69,6 +69,22 @@ def qrcode_page(profile_key):
 
 # -------------------- ФУНКЦИЯ ПОЛУЧЕНИЯ QR-КОДА --------------------
 
+def _load_connection_state(uid):
+    """Читает сохранённый токен и состояние игрушек для UID."""
+    raw = redis_client.hget("connected_users", uid)
+    if not raw:
+        return {}
+
+    try:
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        print("⚠️ Не удалось прочитать состояние Lovense из Redis")
+        return {}
+
+
 def get_qr_code(profile_key):
     profile = get_profile_by_key(profile_key)
     if not profile:
@@ -78,17 +94,34 @@ def get_qr_code(profile_key):
     if not model:
         return None
 
-    if not model["uid"] or not model["lovense_token"]:
+    uid = str(model["uid"] or "").strip()
+    developer_token = str(model["lovense_token"] or "").strip()
+
+    if not uid or not developer_token:
         print(f"❌ [{profile_key}] В SQL отсутствует UID или Lovense token")
         return None
 
-    url = "https://api.lovense.com/api/lan/getQrCode"
+    # Один постоянный utoken на модель. Не создаём новый при каждом QR.
+    state = _load_connection_state(uid)
+    utoken = str(state.get("utoken") or "").strip()
+    if not utoken:
+        import secrets
+        utoken = secrets.token_urlsafe(32)
+        state["utoken"] = utoken
+        if not isinstance(state.get("toys"), dict):
+            state["toys"] = {}
+        redis_client.hset(
+            "connected_users",
+            uid,
+            json.dumps(state, ensure_ascii=False),
+        )
 
+    url = "https://api.lovense-api.com/api/lan/getQrCode"
     payload = {
-        "token": model["lovense_token"],
-        "uid": model["uid"],
+        "token": developer_token,
+        "uid": uid,
         "uname": model["display_name"],
-        "utoken": "",
+        "utoken": utoken,
         "callbackUrl": "https://arinairina.duckdns.org/lovense/callback",
         "v": 2,
     }
@@ -97,9 +130,14 @@ def get_qr_code(profile_key):
         response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
         data = response.json()
-        print("Ответ от Lovense API:", data)
+        # Не печатаем QR-адреса и токены в журнал.
+        print(
+            f"Lovense QR: model={model['username']}, "
+            f"http_status={response.status_code}, "
+            f"code={data.get('code')}, message={data.get('message', '')}"
+        )
     except Exception as e:
-        print("Ошибка запроса QR:", e)
+        print(f"Ошибка запроса QR: {type(e).__name__}")
         return None
 
     if (
@@ -113,7 +151,7 @@ def get_qr_code(profile_key):
     if isinstance(message, str) and message.startswith("http"):
         return message
 
-    print("❌ Lovense не вернул QR-код")
+    print(f"❌ Lovense не вернул QR-код (code={data.get('code')})")
     return None
 
 
@@ -174,31 +212,13 @@ def lovense_callback():
     if not model:
         return "Model not found", 404
 
-    # Подключение каждой модели хранится по её собственному UID.
-    # Читаем предыдущее состояние, чтобы не затереть utoken,
-    # если очередное уведомление пришло без этого поля.
-    raw_previous = redis_client.hget("connected_users", uid)
-    previous = {}
+    # Подключение каждой модели хранится по UID, отдельно для каждой модели.
+    previous = _load_connection_state(uid)
 
-    if raw_previous:
-        try:
-            if isinstance(raw_previous, bytes):
-                raw_previous = raw_previous.decode("utf-8")
-            parsed = json.loads(raw_previous)
-            if isinstance(parsed, dict):
-                previous = parsed
-        except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
-            print(
-                f"⚠️ [{model['username']}] "
-                "Не удалось прочитать прежнее состояние Lovense"
-            )
-
-    # Обновляем utoken только если новое уведомление содержит
-    # непустое значение. Пустое поле не должно затирать старый токен.
+    # Если callback передал utoken, сохраняем его. Иначе сохраняем токен,
+    # который был создан и записан при формировании QR-кода.
     utoken = supplied_utoken or str(previous.get("utoken") or "")
 
-    # Если toys присутствует и имеет правильный тип, обновляем его.
-    # Если поле отсутствует или некорректно, сохраняем предыдущие данные.
     incoming_toys = data.get("toys")
     if isinstance(incoming_toys, dict):
         toys = incoming_toys

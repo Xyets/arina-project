@@ -61,7 +61,7 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
         print(f"❌ [{profile_key}] utoken отсутствует")
         return
 
-    url = "https://api.lovense.com/api/lan/v2/command"
+    url = "https://api.lovense-api.com/api/lan/v2/command"
 
     payload = {
         "token": token,
@@ -69,13 +69,24 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
         "utoken": utoken,
         "command": "Function",
         "action": f"Vibrate:{strength}",
-        "timeSec": 0,   # LAN API игнорирует duration
+        "timeSec": 0,   # Worker управляет временем остановки.
+        "apiVer": 1,
     }
 
     try:
-        await session.post(url, json=payload, timeout=1)
+        async with session.post(url, json=payload, timeout=5) as response:
+            try:
+                result = await response.json(content_type=None)
+            except Exception:
+                result = {}
+            print(
+                f"Lovense command: profile={profile_key}, "
+                f"http_status={response.status}, "
+                f"code={result.get('code')}, "
+                f"message={result.get('message', '')}"
+            )
     except Exception as e:
-        print("Ошибка Cloud API:", e)
+        print(f"Ошибка Lovense API: {type(e).__name__}")
 
 
 async def stop_vibration_cloud_async(profile_key: str):
@@ -100,7 +111,7 @@ async def stop_vibration_cloud_async(profile_key: str):
         print(f"❌ [{profile_key}] utoken отсутствует")
         return
 
-    url = "https://api.lovense.com/api/lan/v2/command"
+    url = "https://api.lovense-api.com/api/lan/v2/command"
 
     payload = {
         "token": token,
@@ -109,12 +120,23 @@ async def stop_vibration_cloud_async(profile_key: str):
         "command": "Function",
         "action": "Vibrate:0",
         "timeSec": 0,
+        "apiVer": 1,
     }
 
     try:
-        await session.post(url, json=payload, timeout=1)
+        async with session.post(url, json=payload, timeout=5) as response:
+            try:
+                result = await response.json(content_type=None)
+            except Exception:
+                result = {}
+            print(
+                f"Lovense command: profile={profile_key}, "
+                f"http_status={response.status}, "
+                f"code={result.get('code')}, "
+                f"message={result.get('message', '')}"
+            )
     except Exception as e:
-        print("Ошибка Cloud API:", e)
+        print(f"Ошибка Lovense API: {type(e).__name__}")
 
 
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):
