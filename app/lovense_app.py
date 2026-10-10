@@ -165,11 +165,13 @@ def lovense_callback():
         "toys": data.get("toys", {}),
     }
 
+
     redis_client.hset(
         "connected_users",
-        profile_key,
+        uid,
         json.dumps(payload, ensure_ascii=False),
     )
+
 
     return "✅ Callback принят", 200
 

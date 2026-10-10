@@ -4,8 +4,9 @@ systemctl restart arina.service arina-ws.service
 systemctl status arina.service
 systemctl status arina-ws.service
 systemctl restart nginx
+git pull
 /root/sync_static.sh
-
+systemctl restart arina.service arina-ws.service
 
 journalctl -u arina.service -f
 journalctl -u arina-ws.service -f
