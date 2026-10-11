@@ -473,3 +473,67 @@
         padding: 11px 5px;
     }
 }
+
+/* Улучшенная навигация FlowTip */
+.sidebar-menu {
+    gap: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.sidebar-item {
+    min-height: 54px;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 16px;
+}
+
+.sidebar-item .icon {
+    width: 28px;
+    min-width: 28px;
+    font-size: 23px;
+}
+
+/* Активный пункт */
+.sidebar-item.active,
+.sidebar-item[aria-current="page"] {
+    justify-content: center;
+    background: linear-gradient(
+        105deg,
+        rgba(226, 215, 255, 0.96),
+        rgba(248, 232, 249, 0.96)
+    );
+}
+
+/* Выход */
+.sidebar-item.logout {
+    min-height: 48px;
+    justify-content: center;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* В свёрнутом меню иконки остаются по центру */
+.sidebar.collapsed .sidebar-item {
+    justify-content: center;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.sidebar.collapsed .sidebar-item .icon {
+    width: 28px;
+    min-width: 28px;
+    font-size: 23px;
+}
+
+/* Не уменьшаем кнопки на небольших экранах по высоте */
+@media (max-height: 700px) {
+    .sidebar-item {
+        min-height: 48px;
+        font-size: 14px;
+    }
+}
