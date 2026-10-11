@@ -8,6 +8,9 @@ git pull
 /root/sync_static.sh
 systemctl restart arina.service arina-ws.service
 
+создание кода 
+python create_invite.py
+
 journalctl -u arina.service -f
 journalctl -u arina-ws.service -f
 

@@ -13,7 +13,7 @@ from services.vip_service import update_vip
 from services.logs_service import add_log
 from services.lovense_service import send_vibration_cloud_async
 from services.database import get_profile_by_key
-from services.vibration_manager import vibration_queues, stop_events
+from services.vibration_manager import vibration_queues, stop_events, ensure_profile
 from services.redis_client import redis_client
 from services.vibration_manager import init_vibration_queues
 
@@ -26,13 +26,39 @@ WS_EVENT_LOOP = None
 
 MAX_QUEUE_SIZE = 50  # максимум вибраций в очереди на профиль
 
+# Задачи worker хранятся по profile_key, чтобы не запускать дубликаты.
+WORKER_TASKS = {}
+
+
+def ensure_profile_worker(profile_key):
+    """Создаёт очередь и запускает worker для существующего профиля при необходимости."""
+    if not profile_key or not get_profile_by_key(profile_key):
+        return False
+
+    ensure_profile(profile_key)
+
+    task = WORKER_TASKS.get(profile_key)
+    if task is None or task.done():
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            print(f"⚠ Нет активного event loop для worker {profile_key}")
+            return False
+
+        WORKER_TASKS[profile_key] = loop.create_task(
+            vibration_worker(profile_key)
+        )
+        print(f"🚀 DYNAMIC WORKER STARTING FOR {profile_key}")
+
+    return True
+
 
 def safe_enqueue_vibration(profile_key, strength, duration):
     """
     Добавляет вибрацию в очередь с ограничением размера.
     Если очередь переполнена — удаляем самый старый элемент.
     """
-    if profile_key not in vibration_queues:
+    if not ensure_profile_worker(profile_key):
         print(f"⚠ safe_enqueue_vibration: unknown profile_key {profile_key}")
         return
 
@@ -869,7 +895,7 @@ async def ws_server():
 
     for key in profile_keys:
         print("🚀 STARTING WORKER FOR", key)
-        asyncio.create_task(vibration_worker(key))
+        WORKER_TASKS[key] = asyncio.create_task(vibration_worker(key))
 
     server = await websockets.serve(ws_handler, "127.0.0.1", 8765)
     await server.wait_closed()
