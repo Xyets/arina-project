@@ -56,6 +56,10 @@ def qrcode_page(profile_key):
     if not model:
         return "Модель не найдена", 404
 
+    # Не позволяем одной модели запрашивать QR другой модели.
+    if str(model["username"]).casefold() != str(session["username"]).casefold():
+        return "Доступ запрещён", 403
+
     qr_url = get_qr_code(profile_key)
     if not qr_url:
         return "❌ Не удалось получить QR-код", 500
@@ -258,6 +262,18 @@ def lovense_callback():
 @lovense_bp.route("/qrcode_image/<profile_key>")
 @login_required
 def qrcode_image(profile_key):
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return "Профиль не найден", 404
+
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        return "Модель не найдена", 404
+
+    # Не позволяем одной модели загружать QR другой модели.
+    if str(model["username"]).casefold() != str(session["username"]).casefold():
+        return "Доступ запрещён", 403
+
     qr_url = get_qr_code(profile_key)
     if not qr_url:
         return "QR not found", 404
@@ -282,8 +298,17 @@ def qr_generate():
     mode = session.get("mode", "public")
     profile_key = f"{user}_{mode}"
 
+    profile = get_profile_by_key(profile_key)
+    if not profile:
+        return {"status": "error", "qr": None, "uid": None}, 404
+
+    model = get_model_by_id(profile["model_id"])
+    if not model:
+        return {"status": "error", "qr": None, "uid": None}, 404
+
     qr_url = get_qr_code(profile_key)
     if not qr_url:
-        return {"status": "error", "qr": None}, 500
+        return {"status": "error", "qr": None, "uid": model["uid"]}, 500
 
-    return {"status": "ok", "qr": qr_url}
+    # UID одинаков для private/public одной модели, но уникален между моделями.
+    return {"status": "ok", "qr": qr_url, "uid": model["uid"]}
