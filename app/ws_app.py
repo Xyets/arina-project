@@ -689,11 +689,69 @@ async def ws_handler(websocket):
                 await handle_wheel_result(websocket, data)
                 continue
 
+
             if msg_type == "wheel_spin":
+                # ТЕСТОВОЕ ВРАЩЕНИЕ: тот же выбор победителя, что и при донате
                 profile_key = data.get("profile")
-                # просто пробрасываем колесо в OBS
-                ws_send(data, role="obs", profile_key=profile_key)
+                segments = data.get("segments") or []
+
+                if not profile_key or not get_profile_by_key(profile_key):
+                    ws_send({
+                        "type": "wheel_error",
+                        "profile": profile_key,
+                        "message": "Профиль не найден."
+                    }, role="obs", profile_key=profile_key)
+                    continue
+
+                eligible = []
+                weights = []
+
+                for index, segment in enumerate(segments):
+                    try:
+                        chance = int(segment.get("chance", 0))
+                    except (TypeError, ValueError):
+                        chance = 0
+
+                    if chance < 0 or chance > 100:
+                        weights = []
+                        eligible = []
+                        break
+
+                    if chance > 0:
+                        eligible.append(index)
+                        weights.append(chance)
+
+                if not eligible or sum(weights) != 100:
+                    ws_send({
+                        "type": "wheel_error",
+                        "profile": profile_key,
+                        "message": "Сумма вероятностей сегментов должна быть ровно 100%."
+                    }, role="obs", profile_key=profile_key)
+                    continue
+
+                winner_index = random.choices(
+                    eligible,
+                    weights=weights,
+                    k=1
+                )[0]
+
+                spin_id = uuid.uuid4().hex
+
+                PENDING_WHEEL_RESULTS[spin_id] = {
+                    "profile": profile_key,
+                    "winner_index": winner_index
+                }
+
+                ws_send({
+                    "type": "wheel_spin",
+                    "profile": profile_key,
+                    "segments": segments,
+                    "winner_index": winner_index,
+                    "spin_id": spin_id
+                }, role="obs", profile_key=profile_key)
+
                 continue
+
 
             # ---------- RULES: ADD RULE ----------
             if msg_type == "add_rule":
