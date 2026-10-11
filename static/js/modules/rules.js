@@ -281,7 +281,37 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
             e.stopPropagation();
 
             const form = e.target;
+            const selectedType = form.querySelector("#seg_type")?.value || "";
+            const segmentName = form.querySelector("#seg_name")?.value.trim() || "";
 
+            if (!selectedType) {
+                showToast("Сначала выбери тип сегмента");
+                return;
+            }
+
+            if (selectedType !== "retry" && !segmentName) {
+                showToast("Введи название сегмента");
+                return;
+            }
+
+            if (
+                selectedType === "vibration" &&
+                (
+                    !form.querySelector("#seg_strength")?.value ||
+                    !form.querySelector("#seg_duration")?.value
+                )
+            ) {
+                showToast("Укажи силу и время вибрации");
+                return;
+            }
+
+            if (
+                selectedType === "action" &&
+                !form.querySelector("#seg_action")?.value.trim()
+            ) {
+                showToast("Опиши действие");
+                return;
+            }
             const payload = {
                 type: "add_segment",
                 profile_key: CURRENT_PROFILE,
