@@ -112,6 +112,35 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
     }
 
     window._flowtipRulesSubmitHandler = function (e) {
+        if (e.target && e.target.classList.contains("wheelChancesForm")) {
+            e.preventDefault();
+            e.stopPropagation();
+            const form = e.target;
+            const chances = Array.from(form.querySelectorAll('input[type="range"][name^="chance_"]'))
+                .map(input => Number(input.value || 0));
+            const total = chances.reduce((sum, value) => sum + value, 0);
+            if (!chances.length) {
+                showToast("В колесе пока нет сегментов");
+                return;
+            }
+            if (total <= 0) {
+                showToast("Укажи шанс хотя бы для одного сегмента");
+                return;
+            }
+            const normalized = chances.map(value => Math.round(value * 10000 / total) / 100);
+            const roundedTotal = normalized.reduce((sum, value) => sum + value, 0);
+            normalized[normalized.length - 1] = Math.max(0, normalized[normalized.length - 1] + Math.round((100 - roundedTotal) * 100) / 100);
+            sendRuleCommand(socket, {
+                type: "set_wheel_chances",
+                profile_key: CURRENT_PROFILE,
+                rule_id: form.querySelector('[name="rule_id"]')?.value || "",
+                chances: normalized
+            });
+            showToast("Вероятности сохранены");
+            const modal = form.closest(".modal");
+            if (modal) modal.classList.remove("show");
+            return;
+        }
 
         /* ========================================================
            ➕ Добавление правила
@@ -475,6 +504,15 @@ export function initRuleModals() {
             preview.textContent = input.value || "✨";
         });
     });
+
+    window.openWheelChancesModal = (ruleId) => {
+        const modal = document.getElementById(`wheelChancesModal-${ruleId}`);
+        if (modal) modal.classList.add("show");
+    };
+    window.closeWheelChancesModal = (ruleId) => {
+        const modal = document.getElementById(`wheelChancesModal-${ruleId}`);
+        if (modal) modal.classList.remove("show");
+    };
 
     window.toggleWheel = (ruleId) => {
         const block = document.getElementById(`wheel-${ruleId}`);

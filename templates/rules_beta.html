@@ -314,8 +314,42 @@
                     id="wheel-{{ rule.id }}"
                 >
 
-                    <h4>🎡 Сегменты колеса</h4>
+                    <div class="wheel-segments-heading">
+                        <h4>🎡 Сегменты колеса</h4>
+                        <button type="button" class="btn-small wheel-chances-open"
+                                onclick="openWheelChancesModal('{{ rule.id }}')">🎯 Шансы</button>
+                    </div>
 
+                    <div class="modal wheel-chances-modal" id="wheelChancesModal-{{ rule.id }}">
+                        <div class="modal-content edit-modal wheel-chances-content">
+                            <form class="wheelChancesForm" data-rule-id="{{ rule.id }}">
+                                <div class="modal-header segment-modal-header">
+                                    <h3>🎯 Вероятности колеса</h3>
+                                    <button type="button" class="close-btn" onclick="closeWheelChancesModal('{{ rule.id }}')" aria-label="Закрыть">✕</button>
+                                </div>
+                                <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                                <div class="wheel-chances-list">
+                                    {% for chance_seg in rule.segments %}
+                                    <div class="wheel-chance-row">
+                                        <div class="wheel-chance-label">
+                                            <span>{{ '🔁' if chance_seg.type == 'retry' else (chance_seg.emoji|default('✨', true)) }}</span>
+                                            <span>{{ 'もう一回' if chance_seg.type == 'retry' else (chance_seg.name or 'Без названия') }}</span>
+                                        </div>
+                                        <label class="wheel-chance-control">
+                                            <input type="range" min="0" max="100" step="1"
+                                                   name="chance_{{ loop.index0 }}"
+                                                   value="{{ chance_seg.chance|default(0, true) }}"
+                                                   oninput="this.parentElement.querySelector('.wheel-chance-value').textContent=this.value+'%'">
+                                            <output class="wheel-chance-value">{{ chance_seg.chance|default(0, true) }}%</output>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <p class="wheel-chances-note">Шансы используются как веса. При сохранении они будут нормализованы до 100%. Если все значения равны нулю, колесо выберет сектор случайно.</p>
+                                <button type="submit" class="btn-primary modal-save-btn">💾 Сохранить вероятности</button>
+                            </form>
+                        </div>
+                    </div>
 
                     {% for seg in rule.segments %}
 
