@@ -364,6 +364,30 @@ def register_model_with_code(
                 "Такой логин уже существует"
             )
 
+        # Берём общий Lovense Developer Token из записи Arina.
+        # Все новые модели используют тот же токен.
+        cur.execute("""
+            SELECT lovense_token
+            FROM models
+            WHERE lower(username) = 'arina'
+            LIMIT 1
+        """)
+
+        arina_row = cur.fetchone()
+
+        shared_lovense_token = (
+            str(arina_row["lovense_token"] or "").strip()
+            if arina_row else ""
+        )
+
+        if not shared_lovense_token:
+            raise RegistrationError(
+                "Не найден Lovense Developer Token в аккаунте Arina"
+            )
+
+        # Используем общий токен независимо от переданного значения.
+        lovense_token = shared_lovense_token
+
         # Создаём модель.
         cur.execute("""
             INSERT INTO models (
