@@ -7,11 +7,13 @@
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --ft-pink: #f5a9cf;
+      --ft-pink: #f9a8d4;
+      --ft-blush: #f7c8b8;
       --ft-lilac: #c9b9f5;
-      --ft-mint: #a9e8db;
+      --ft-mint: #aee6e6;
       --ft-pearl: #fff9fd;
-      --ft-ink: #80516f;
+      --ft-ink: #50454b;
+      --ft-border: rgba(255, 255, 255, .62);
     }
 
     html, body {
@@ -32,8 +34,8 @@
       display: none;
       overflow: visible;
       filter:
-        drop-shadow(0 0 7px rgba(255, 180, 220, .32))
-        drop-shadow(0 0 17px rgba(183, 165, 237, .20));
+        drop-shadow(0 0 7px rgba(249, 168, 212, .30))
+        drop-shadow(0 0 16px rgba(174, 230, 230, .20));
     }
 
     #heartPointer {
@@ -44,7 +46,7 @@
     #segments text {
       font-family: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
       font-weight: 700;
-      fill: #80516f;
+      fill: #50454b;
       stroke: rgba(255, 255, 255, .96);
       stroke-width: 2.8px;
       stroke-linejoin: round;
@@ -67,17 +69,17 @@
     <g id="staticLayer" transform="translate(24.57, 22.73)">
         <defs>
             <linearGradient id="ftGlassRim" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#fffaff"/>
-                <stop offset="18%" stop-color="#f5d8e9"/>
-                <stop offset="42%" stop-color="#ffffff"/>
-                <stop offset="67%" stop-color="#d7c5ee"/>
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="18%" stop-color="#f9a8d4"/>
+                <stop offset="42%" stop-color="#fff9fd"/>
+                <stop offset="67%" stop-color="#aee6e6"/>
                 <stop offset="86%" stop-color="#fff7fc"/>
-                <stop offset="100%" stop-color="#e6bdd8"/>
+                <stop offset="100%" stop-color="#f7c8b8"/>
             </linearGradient>
             <linearGradient id="ftGlassPink" x1="0" y1="0" x2="0.9" y2="1">
-                <stop offset="0%" stop-color="#fff8fc" stop-opacity=".98"/>
-                <stop offset="45%" stop-color="#f7cce2" stop-opacity=".94"/>
-                <stop offset="100%" stop-color="#f2a9cf" stop-opacity=".96"/>
+                <stop offset="0%" stop-color="#fffafc" stop-opacity=".98"/>
+                <stop offset="45%" stop-color="#ffd6e5" stop-opacity=".95"/>
+                <stop offset="100%" stop-color="#f9a8d4" stop-opacity=".96"/>
             </linearGradient>
             <linearGradient id="ftGlassLilac" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stop-color="#fbf8ff" stop-opacity=".98"/>
@@ -85,14 +87,14 @@
                 <stop offset="100%" stop-color="#c2b1f0" stop-opacity=".96"/>
             </linearGradient>
             <linearGradient id="ftGlassMint" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#f3fffc" stop-opacity=".98"/>
-                <stop offset="50%" stop-color="#c8f3e9" stop-opacity=".95"/>
-                <stop offset="100%" stop-color="#9bded0" stop-opacity=".97"/>
+                <stop offset="0%" stop-color="#f4ffff" stop-opacity=".98"/>
+                <stop offset="50%" stop-color="#d8f4f1" stop-opacity=".95"/>
+                <stop offset="100%" stop-color="#aee6e6" stop-opacity=".97"/>
             </linearGradient>
             <linearGradient id="ftGlassPeach" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stop-color="#fffafc" stop-opacity=".98"/>
-                <stop offset="52%" stop-color="#fbe0e9" stop-opacity=".96"/>
-                <stop offset="100%" stop-color="#f3bfd7" stop-opacity=".97"/>
+                <stop offset="52%" stop-color="#fbe7e5" stop-opacity=".96"/>
+                <stop offset="100%" stop-color="#f7c8b8" stop-opacity=".97"/>
             </linearGradient>
             <linearGradient id="ftHeartGlass" x1="0" y1="0" x2="0.7" y2="1">
                 <stop offset="0%" stop-color="#ffffff"/>
@@ -265,7 +267,7 @@
         <!-- ПРАВИЛЬНЫЙ ВНУТРЕННИЙ КРУГ -->
         <circle cx="152.79" cy="192.55" r="108"
                 fill="url(#ftGlassPink)"
-                stroke="#fffaff"
+                stroke="rgba(255,255,255,.92)"
                 stroke-width="0.95" />
 
         <!-- СЕКТОРА (JS вставляет сюда) -->
@@ -281,7 +283,7 @@
                 C104.32,37.27 100.99,29.76 99.4,23.49 
                 C96.74,6.63 124.92,-1.14 129.31,24.72 Z"
             fill="url(#ftHeartGlass)"
-            stroke="#fffaff"
+            stroke="rgba(255,255,255,.92)"
             stroke-width="0.95" />
     </g>
 
@@ -447,7 +449,13 @@ function drawWheel(segments) {
         const text = document.createElementNS(ns, "text");
         text.setAttribute("x", tx);
         text.setAttribute("y", ty);
-        text.setAttribute("font-size", label.length >= 10 ? "10.5" : (label.length >= 7 ? "12" : "14"));
+        const hasJapanese = /[\\u3040-\\u30ff\\u3400-\\u9fff]/.test(label);
+        const compactLabel = label.length >= 10;
+        text.setAttribute(
+            "font-size",
+            compactLabel ? (hasJapanese ? "10.5" : "11") :
+            label.length >= 7 ? "12" : "14"
+        );
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("transform", `rotate(${textAngle} ${tx} ${ty})`);
