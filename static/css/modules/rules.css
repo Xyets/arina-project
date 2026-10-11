@@ -530,3 +530,142 @@
 
 .wheel-initial-chance-note { grid-column: 1 / -1; }
 .wheel-initial-chance-note p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+
+
+/* ============================================================
+   🎡 Модалка добавления сегмента — ровная центральная компоновка
+============================================================ */
+#segmentModal .modal-content {
+    width: min(480px, calc(100vw - 32px));
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+#segmentModal #segmentAddForm {
+    width: 100%;
+}
+
+#segmentModal .modal-header {
+    justify-content: center;
+    position: relative;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#segmentModal .modal-header h3 {
+    width: 100%;
+    margin: 0;
+    text-align: center;
+}
+
+#segmentModal .modal-header .close-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#segmentModal .modal-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    width: 100%;
+}
+
+#segmentModal .segment-name-cell,
+#segmentModal .segment-type-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+}
+
+#segmentModal .segment-name-cell input {
+    width: min(280px, 100%);
+    box-sizing: border-box;
+    text-align: center;
+}
+
+#segmentModal .segment-type-cell select {
+    width: min(280px, 100%);
+    box-sizing: border-box;
+    text-align: center;
+}
+
+#segmentModal .wheel-initial-chance-note {
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+#segmentModal .wheel-initial-chance-note p {
+    max-width: 360px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#segmentModal .seg-vibration-fields,
+#segmentModal .seg-action-fields {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+#segmentModal .seg-action-fields {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+#segmentModal .seg-vibration-fields .modal-cell,
+#segmentModal .seg-action-fields .modal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+}
+
+#segmentModal .seg-vibration-fields input,
+#segmentModal .seg-action-fields input,
+#segmentModal .seg-action-fields textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+#segmentModal .seg-action-fields textarea {
+    min-height: 84px;
+    resize: vertical;
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 12px;
+    background: rgba(255,255,255,.72);
+}
+
+#segmentModal .seg-retry-fields {
+    display: none;
+}
+
+#segmentModal .seg-vibration-fields.hidden,
+#segmentModal .seg-action-fields.hidden,
+#segmentModal .seg-retry-fields.hidden {
+    display: none !important;
+}
+
+#segmentModal #segmentAddForm > .modal-save-btn {
+    display: block;
+    width: 100%;
+    margin: 22px auto 0;
+}
+
+@media (max-width: 480px) {
+    #segmentModal .seg-vibration-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

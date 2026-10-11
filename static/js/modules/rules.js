@@ -122,6 +122,37 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
             e.stopPropagation();
 
             const form = e.target;
+            const selectedType = form.querySelector("#seg_type")?.value || "";
+            const segmentName = form.querySelector("#seg_name")?.value.trim() || "";
+
+            if (!selectedType) {
+                showToast("Сначала выбери тип сегмента");
+                return;
+            }
+
+            if (selectedType !== "retry" && !segmentName) {
+                showToast("Введи название сегмента");
+                return;
+            }
+
+            if (
+                selectedType === "vibration" &&
+                (
+                    !form.querySelector("#seg_strength")?.value ||
+                    !form.querySelector("#seg_duration")?.value
+                )
+            ) {
+                showToast("Укажи силу и время вибрации");
+                return;
+            }
+
+            if (
+                selectedType === "action" &&
+                !form.querySelector("#seg_action")?.value.trim()
+            ) {
+                showToast("Опиши действие");
+                return;
+            }
             console.log(
                 "FLOWTIP DEBUG — выбранный тип:",
                 form.querySelector("#new_action_type")?.value
@@ -384,10 +415,24 @@ export function initRuleModals() {
 
     window.openSegmentModal = (ruleId) => {
         const modal = document.getElementById("segmentModal");
-        modal.classList.add("show");
+        const form = document.getElementById("segmentAddForm");
+
+        if (form) form.reset();
+
         document.getElementById("segment_rule_id").value = ruleId;
+
+        const typeSelect = document.getElementById("seg_type");
+        if (typeSelect) {
+            typeSelect.value = "";
+        }
+
         const chanceInput = document.getElementById("seg_chance");
-        if (chanceInput) chanceInput.value = "0";
+        if (chanceInput) {
+            chanceInput.value = "0";
+        }
+
+        updateSegmentFields(typeSelect);
+        modal.classList.add("show");
     };
 
     window.closeSegmentModal = () => {
@@ -560,17 +605,26 @@ export function updateNewRuleFields() {
 ============================================================ */
 
 export function updateSegmentFields(selectEl) {
+    if (!selectEl) return;
+
     const modal = selectEl.closest(".modal-content");
+    if (!modal) return;
 
     const vib = modal.querySelector(".seg-vibration-fields");
     const act = modal.querySelector(".seg-action-fields");
     const retry = modal.querySelector(".seg-retry-fields");
 
-    vib.classList.add("hidden");
-    act.classList.add("hidden");
-    retry.classList.add("hidden");
+    if (vib) vib.classList.add("hidden");
+    if (act) act.classList.add("hidden");
+    if (retry) retry.classList.add("hidden");
 
-    if (selectEl.value === "vibration") vib.classList.remove("hidden");
-    if (selectEl.value === "action") act.classList.remove("hidden");
-    if (selectEl.value === "retry") retry.classList.remove("hidden");
+    if (selectEl.value === "vibration" && vib) {
+        vib.classList.remove("hidden");
+    }
+
+    if (selectEl.value === "action" && act) {
+        act.classList.remove("hidden");
+    }
+
+    // Для retry все дополнительные поля остаются скрытыми.
 }

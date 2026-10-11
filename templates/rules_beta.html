@@ -714,9 +714,9 @@
                      НАЗВАНИЕ СЕГМЕНТА
                 ================================================== -->
 
-                <div class="modal-cell">
+                <div class="modal-cell segment-name-cell">
 
-                    <label>Название:</label>
+                    <label>Название сегмента:</label>
 
                     <input
                         type="text"
@@ -741,7 +741,7 @@
                      ТИП СЕГМЕНТА
                 ================================================== -->
 
-                <div class="modal-cell">
+                <div class="modal-cell segment-type-cell">
 
                     <label>Тип сегмента:</label>
 
@@ -751,6 +751,7 @@
                         onchange="updateSegmentFields(this)"
                     >
 
+                        <option value="" selected disabled>Выберите тип сегмента</option>
                         <option value="vibration">
                             💗 Вибрация
                         </option>
@@ -772,7 +773,7 @@
                      ПОЛЯ ВИБРАЦИИ
                 ================================================== -->
 
-                <div class="seg-vibration-fields">
+                <div class="seg-vibration-fields hidden">
 
                     <div class="modal-cell">
 
@@ -812,11 +813,12 @@
 
                         <label>Действие:</label>
 
-                        <input
-                            type="text"
+                        <textarea
                             id="seg_action"
                             name="seg_action"
-                        >
+                            rows="3"
+                            placeholder="Опишите, что нужно сделать"
+                        ></textarea>
 
                     </div>
 
@@ -827,13 +829,7 @@
                      ПОВТОР
                 ================================================== -->
 
-                <div class="seg-retry-fields hidden">
-
-                    <p style="color:#777;">
-                        Этот сегмент просто повторяет колесо.
-                    </p>
-
-                </div>
+                <div class="seg-retry-fields hidden"></div>
 
             </div>
 
