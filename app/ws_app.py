@@ -941,10 +941,13 @@ async def ws_handler(websocket):
 
                 for r in rules["rules"]:
                     if r["id"] == rule_id:
+                        segment_type = data.get("seg_type")
+                        emoji = "🔁" if segment_type == "retry" else str(data.get("emoji") or "🎯").strip()[:16]
                         seg = {
-                            "name": data.get("name"),
+                            "name": "もう一回" if segment_type == "retry" else data.get("name"),
+                            "emoji": emoji or "🎯",
                             "chance": 0,
-                            "type": data.get("seg_type"),
+                            "type": segment_type,
                             "strength": int(data.get("strength", 0)),
                             "duration": int(data.get("duration", 0)),
                             "action": data.get("action") or ""
@@ -1007,6 +1010,14 @@ async def ws_handler(websocket):
                     name = data.get("name")
                     if isinstance(name, str) and name.strip():
                         segment["name"] = name.strip()[:120]
+
+                    if segment_type == "retry":
+                        segment["name"] = "もう一回"
+                        segment["emoji"] = "🔁"
+                    else:
+                        emoji = data.get("emoji")
+                        if isinstance(emoji, str):
+                            segment["emoji"] = emoji.strip()[:16] or "🎯"
 
                     if segment_type == "vibration":
                         try:

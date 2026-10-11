@@ -322,6 +322,9 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                 name:
                     form.querySelector("#seg_name")?.value || "",
 
+                emoji:
+                    form.querySelector("#seg_emoji")?.value.trim() || "🎯",
+
                 chance: Number(
                     form.querySelector("#seg_chance")?.value || 0
                 ),
@@ -357,6 +360,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
 
             const form = e.target;
             const name = form.querySelector("#edit_seg_name")?.value.trim() || "";
+            const emoji = form.querySelector("#edit_seg_emoji")?.value.trim() || "🎯";
             const type = form.dataset.segmentType || "";
             const strengthValue = form.querySelector("#edit_seg_strength")?.value;
             const durationValue = form.querySelector("#edit_seg_duration")?.value;
@@ -382,7 +386,8 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                 profile_key: CURRENT_PROFILE,
                 rule_id: form.querySelector("#edit_segment_rule_id")?.value || "",
                 seg_index: Number(form.querySelector("#edit_segment_index")?.value),
-                name
+                name,
+                emoji: type === "retry" ? "🔁" : emoji
             };
 
             // Отправляем только поля, соответствующие уже существующему типу.
@@ -500,6 +505,11 @@ export function initRuleModals() {
         const form = document.getElementById("segmentAddForm");
 
         if (form) form.reset();
+        const addEmoji = document.getElementById("seg_emoji");
+        if (addEmoji) {
+            addEmoji.value = "🎯";
+            addEmoji.disabled = false;
+        }
 
         document.getElementById("segment_rule_id").value = ruleId;
 
@@ -614,6 +624,13 @@ export function initRuleModals() {
         document.getElementById("edit_segment_rule_id").value = ruleId;
         document.getElementById("edit_segment_index").value = String(segIndex);
         document.getElementById("edit_seg_name").value = card.dataset.segName || "";
+        const editEmoji = document.getElementById("edit_seg_emoji");
+        if (editEmoji) {
+            editEmoji.value = form.dataset.segmentType === "retry"
+                ? "🔁"
+                : (card.dataset.segEmoji || "🎯");
+            editEmoji.disabled = form.dataset.segmentType === "retry";
+        }
         document.getElementById("edit_seg_type_display").textContent = ({
             vibration: "💗 Вибрация",
             action: "🎬 Действие",
@@ -843,6 +860,18 @@ export function updateSegmentFields(selectEl) {
         act.classList.remove("hidden");
     } else if (selectEl.value === "retry" && retry) {
         retry.classList.remove("hidden");
+    }
+
+    const form = selectEl.closest("form");
+    const emojiInput = form?.querySelector("#seg_emoji");
+    if (emojiInput) {
+        if (selectEl.value === "retry") {
+            emojiInput.value = "🔁";
+            emojiInput.disabled = true;
+        } else {
+            emojiInput.disabled = false;
+            if (!emojiInput.value || emojiInput.value === "🔁") emojiInput.value = "🎯";
+        }
     }
 }
 

@@ -324,6 +324,7 @@
                         class="segment-card segment-card-editable"
                         data-seg-index="{{ loop.index0 }}"
                         data-seg-name="{{ seg.name | default('', true) | e }}"
+                        data-seg-emoji="{{ seg.emoji | default('🎯', true) | e }}"
                         data-seg-type="{{ seg.type | default('', true) | e }}"
                         data-seg-strength="{{ seg.strength | default('', true) }}"
                         data-seg-duration="{{ seg.duration | default('', true) }}"
@@ -335,7 +336,8 @@
 
                             <div class="segment-title">
 
-                                🎯 {{ seg.name }}
+                                <span class="segment-emoji">{{ seg.emoji | default('🎯', true) }}</span>
+                                <span>{{ seg.name }}</span>
 
                             </div>
 
@@ -736,6 +738,20 @@
 
                 </div>
 
+                <div class="modal-cell segment-emoji-cell">
+                    <label for="seg_emoji">Эмодзи на колесе:</label>
+                    <input
+                        type="text"
+                        id="seg_emoji"
+                        name="seg_emoji"
+                        maxlength="16"
+                        placeholder="Например: 🍑"
+                        value="🎯"
+                        autocomplete="off"
+                    >
+                    <small>Это будет отображаться на колесе. Название показывается отдельно при выигрыше.</small>
+                </div>
+
 
                 <!-- =================================================
                      ШАНС
@@ -900,6 +916,12 @@
                 <div class="modal-cell segment-edit-name-cell">
                     <label for="edit_seg_name">Название сегмента:</label>
                     <input type="text" id="edit_seg_name" name="seg_name" required maxlength="120">
+                </div>
+
+                <div class="modal-cell segment-edit-emoji-cell">
+                    <label for="edit_seg_emoji">Эмодзи на колесе:</label>
+                    <input type="text" id="edit_seg_emoji" name="seg_emoji" maxlength="16" placeholder="Например: 🍑" autocomplete="off">
+                    <small>Эмодзи на колесе; название сегмента остаётся отдельным.</small>
                 </div>
 
                 <div class="modal-cell segment-edit-type-cell">
