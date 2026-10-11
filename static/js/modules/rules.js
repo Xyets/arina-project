@@ -112,35 +112,6 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
     }
 
     window._flowtipRulesSubmitHandler = function (e) {
-        if (e.target && e.target.classList.contains("wheelChancesForm")) {
-            e.preventDefault();
-            e.stopPropagation();
-            const form = e.target;
-            const chances = Array.from(form.querySelectorAll('input[type="range"][name^="chance_"]'))
-                .map(input => Number(input.value || 0));
-            const total = chances.reduce((sum, value) => sum + value, 0);
-            if (!chances.length) {
-                showToast("В колесе пока нет сегментов");
-                return;
-            }
-            if (total <= 0) {
-                showToast("Укажи шанс хотя бы для одного сегмента");
-                return;
-            }
-            const normalized = chances.map(value => Math.round(value * 10000 / total) / 100);
-            const roundedTotal = normalized.reduce((sum, value) => sum + value, 0);
-            normalized[normalized.length - 1] = Math.max(0, normalized[normalized.length - 1] + Math.round((100 - roundedTotal) * 100) / 100);
-            sendRuleCommand(socket, {
-                type: "set_wheel_chances",
-                profile_key: CURRENT_PROFILE,
-                rule_id: form.querySelector('[name="rule_id"]')?.value || "",
-                chances: normalized
-            });
-            showToast("Вероятности сохранены");
-            const modal = form.closest(".modal");
-            if (modal) modal.classList.remove("show");
-            return;
-        }
 
         /* ========================================================
            ➕ Добавление правила
@@ -236,10 +207,36 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                     form.querySelector("#edit_action")?.value || ""
             };
 
-            sendRuleCommand(socket, payload);
+            if (payload.action_type === "wheel") {
+                const editor = document.getElementById("wheelChanceList");
+                const segments = editor
+                    ? Array.from(editor.querySelectorAll(".wheel-chance-row")).map(row => ({
+                        index: Number(row.dataset.index),
+                        chance: Number(row.querySelector("input[type=range]")?.value || 0)
+                    }))
+                    : [];
+                const total = segments.reduce((sum, seg) => sum + seg.chance, 0);
+                if (!segments.length) {
+                    showToast("Сначала добавь хотя бы один сегмент");
+                    return;
+                }
+                if (total !== 100) {
+                    showToast(`Сумма вероятностей должна быть 100%. Сейчас: ${total}%`);
+                    return;
+                }
+                sendRuleCommand(socket, {
+                    type: "edit_wheel_settings",
+                    profile_key: CURRENT_PROFILE,
+                    id: payload.id,
+                    min: payload.min,
+                    max: payload.max,
+                    segments
+                });
+            } else {
+                sendRuleCommand(socket, payload);
+            }
 
-            showToast("Правило обновлено");
-
+            showToast("Настройки сохранены");
             return;
         }
 
@@ -253,27 +250,6 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
             e.stopPropagation();
 
             const form = e.target;
-            const selectedType = form.querySelector("#seg_type")?.value || "";
-            const segmentName = form.querySelector("#seg_name")?.value.trim() || "";
-            if (!selectedType) {
-                showToast("Сначала выбери тип сегмента");
-                return;
-            }
-            if (selectedType !== "retry" && !segmentName) {
-                showToast("Введи название приза");
-                return;
-            }
-            if (selectedType === "vibration" &&
-                (!Number(form.querySelector("#seg_strength")?.value) ||
-                 !Number(form.querySelector("#seg_duration")?.value))) {
-                showToast("Укажи силу и время вибрации");
-                return;
-            }
-            if (selectedType === "action" &&
-                !(form.querySelector("#seg_action")?.value || "").trim()) {
-                showToast("Добавь описание действия для лога");
-                return;
-            }
 
             const payload = {
                 type: "add_segment",
@@ -283,12 +259,11 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                     form.querySelector("#segment_rule_id")?.value || "",
 
                 name:
-                    form.querySelector("#seg_name")?.value.trim() || "",
+                    form.querySelector("#seg_name")?.value || "",
 
-                emoji:
-                    form.querySelector("#seg_emoji")?.value.trim() || "✨",
-
-                chance: 0,
+                chance: Number(
+                    form.querySelector("#seg_chance")?.value || 0
+                ),
 
                 seg_type:
                     form.querySelector("#seg_type")?.value || "",
@@ -308,54 +283,7 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
             sendRuleCommand(socket, payload);
 
             showToast("Сегмент добавлен");
-            closeSegmentModal();
-            return;
-        }
 
-        /* ========================================================
-           ✏️ Редактирование сегмента
-        ======================================================== */
-        if (e.target && e.target.id === "segmentEditForm") {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const form = e.target;
-            const type = form.querySelector("#edit_seg_type")?.value || "";
-            if (!(form.querySelector("#edit_seg_name")?.value || "").trim()) {
-                showToast("Введи название приза");
-                return;
-            }
-            if (!(form.querySelector("#edit_seg_emoji")?.value || "").trim()) {
-                showToast("Введи эмодзи");
-                return;
-            }
-            if (type === "vibration" &&
-                (!Number(form.querySelector("#edit_seg_strength")?.value) ||
-                 !Number(form.querySelector("#edit_seg_duration")?.value))) {
-                showToast("Укажи силу и время вибрации");
-                return;
-            }
-            if (type === "action" &&
-                !(form.querySelector("#edit_seg_action")?.value || "").trim()) {
-                showToast("Добавь описание действия для лога");
-                return;
-            }
-            const payload = {
-                type: "edit_segment",
-                profile_key: CURRENT_PROFILE,
-                rule_id: form.querySelector("#edit_segment_rule_id")?.value || "",
-                seg_index: Number(form.querySelector("#edit_segment_index")?.value || -1),
-                name: form.querySelector("#edit_seg_name")?.value.trim() || "",
-                emoji: form.querySelector("#edit_seg_emoji")?.value.trim() || "✨",
-                seg_type: type,
-                strength: type === "vibration" ? Number(form.querySelector("#edit_seg_strength")?.value || 0) : 0,
-                duration: type === "vibration" ? Number(form.querySelector("#edit_seg_duration")?.value || 0) : 0,
-                action: type === "action" ? (form.querySelector("#edit_seg_action")?.value.trim() || "") : ""
-            };
-
-            sendRuleCommand(socket, payload);
-            closeSegmentEditModal();
-            showToast("Сегмент обновлён");
             return;
         }
     };
@@ -409,6 +337,22 @@ export function initRuleModals() {
         document.getElementById("edit_type").value = card.dataset.type;
 
         updateRuleEditFields();
+        const wheelBlock = document.getElementById("wheelSettingsBlock");
+        const wheelList = document.getElementById("wheelChanceList");
+        const saveButton = document.querySelector("#ruleEditForm .modal-save-btn");
+        if (wheelBlock) {
+            const isWheel = card.dataset.type === "wheel";
+            wheelBlock.classList.toggle("hidden", !isWheel);
+            if (isWheel) {
+                let segments = [];
+                try { segments = JSON.parse(card.dataset.segments || "[]"); } catch (e) { segments = []; }
+                renderWheelChanceEditor(segments);
+                if (saveButton) saveButton.textContent = "💾 Сохранить настройки колеса";
+            } else if (saveButton) {
+                saveButton.textContent = "💾 Сохранить";
+                saveButton.disabled = false;
+            }
+        }
     };
 
     window.closeRuleModal = () => {
@@ -440,78 +384,14 @@ export function initRuleModals() {
 
     window.openSegmentModal = (ruleId) => {
         const modal = document.getElementById("segmentModal");
-        const form = document.getElementById("segmentAddForm");
-        form.reset();
-        document.getElementById("seg_name").disabled = false;
-        document.getElementById("seg_emoji").disabled = false;
-        document.getElementById("segment_rule_id").value = ruleId;
-        document.getElementById("seg_type").value = "";
-        document.getElementById("seg_emoji").value = "";
-        document.getElementById("segEmojiPreview").textContent = "✨";
-        updateSegmentFields(document.getElementById("seg_type"));
         modal.classList.add("show");
+        document.getElementById("segment_rule_id").value = ruleId;
+        const chanceInput = document.getElementById("seg_chance");
+        if (chanceInput) chanceInput.value = "0";
     };
 
     window.closeSegmentModal = () => {
         document.getElementById("segmentModal").classList.remove("show");
-    };
-
-    window.openSegmentEditModal = (ruleId, segIndex) => {
-        const card = document.querySelector(
-            `#wheel-${CSS.escape(ruleId)} .segment-card:nth-of-type(${Number(segIndex) + 2})`
-        );
-        // Cards may be nested alongside headings/buttons; fall back to indexed card list.
-        const cards = Array.from(document.querySelectorAll(`#wheel-${CSS.escape(ruleId)} .segment-card`));
-        const segmentCard = cards[Number(segIndex)];
-        if (!segmentCard || segmentCard.classList.contains("segment-card-fixed")) return;
-
-        const form = document.getElementById("segmentEditForm");
-        form.reset();
-        document.getElementById("edit_segment_rule_id").value = ruleId;
-        document.getElementById("edit_segment_index").value = segIndex;
-        document.getElementById("edit_seg_name").value = segmentCard.dataset.segName || "";
-        document.getElementById("edit_seg_emoji").value = segmentCard.dataset.segEmoji || "✨";
-        document.getElementById("editSegEmojiPreview").textContent = segmentCard.dataset.segEmoji || "✨";
-        document.getElementById("edit_seg_type").value = segmentCard.dataset.segType || "vibration";
-        document.getElementById("edit_seg_strength").value = segmentCard.dataset.segStrength || "";
-        document.getElementById("edit_seg_duration").value = segmentCard.dataset.segDuration || "";
-        document.getElementById("edit_seg_action").value = segmentCard.dataset.segAction || "";
-        updateSegmentFields(document.getElementById("edit_seg_type"));
-        document.getElementById("segmentEditModal").classList.add("show");
-    };
-
-    window.closeSegmentEditModal = () => {
-        document.getElementById("segmentEditModal").classList.remove("show");
-    };
-
-    // Custom emoji input and quick-pick buttons.
-    document.querySelectorAll(".emoji-quick-picks").forEach(group => {
-        group.addEventListener("click", event => {
-            const button = event.target.closest("button[data-emoji]");
-            if (!button) return;
-            const modal = button.closest(".modal");
-            const input = modal?.querySelector('input[name="seg_emoji"]');
-            const preview = modal?.querySelector(".emoji-live-preview");
-            if (input) input.value = button.dataset.emoji;
-            if (preview) preview.textContent = button.dataset.emoji;
-        });
-    });
-
-    [["seg_emoji", "segEmojiPreview"], ["edit_seg_emoji", "editSegEmojiPreview"]].forEach(([inputId, previewId]) => {
-        const input = document.getElementById(inputId);
-        const preview = document.getElementById(previewId);
-        if (input && preview) input.addEventListener("input", () => {
-            preview.textContent = input.value || "✨";
-        });
-    });
-
-    window.openWheelChancesModal = (ruleId) => {
-        const modal = document.getElementById(`wheelChancesModal-${ruleId}`);
-        if (modal) modal.classList.add("show");
-    };
-    window.closeWheelChancesModal = (ruleId) => {
-        const modal = document.getElementById(`wheelChancesModal-${ruleId}`);
-        if (modal) modal.classList.remove("show");
     };
 
     window.toggleWheel = (ruleId) => {
@@ -526,6 +406,65 @@ export function initRuleModals() {
             block.classList.add("hidden");
         }
     };
+}
+
+/* ============================================================
+   RULES — Wheel chance editor
+============================================================ */
+function renderWheelChanceEditor(segments) {
+    const list = document.getElementById("wheelChanceList");
+    if (!list) return;
+    list.innerHTML = "";
+
+    segments.forEach((segment, index) => {
+        const row = document.createElement("div");
+        row.className = "wheel-chance-row";
+        row.dataset.index = String(index);
+
+        const label = document.createElement("label");
+        label.className = "wheel-chance-label";
+        label.textContent = segment.name || segment.action || `Сегмент ${index + 1}`;
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = "0";
+        slider.max = "100";
+        slider.step = "1";
+        slider.value = String(Math.max(0, Math.min(100, Number(segment.chance) || 0)));
+        slider.setAttribute("aria-label", `Шанс сегмента ${label.textContent}`);
+
+        const value = document.createElement("output");
+        value.className = "wheel-chance-value";
+        value.textContent = `${slider.value}%`;
+
+        slider.addEventListener("input", () => {
+            value.textContent = `${slider.value}%`;
+            updateWheelChanceTotal();
+        });
+
+        row.append(label, slider, value);
+        list.appendChild(row);
+    });
+    updateWheelChanceTotal();
+}
+
+function updateWheelChanceTotal() {
+    const list = document.getElementById("wheelChanceList");
+    if (!list) return;
+    const sliders = Array.from(list.querySelectorAll('input[type="range"]'));
+    const total = sliders.reduce((sum, slider) => sum + Number(slider.value || 0), 0);
+    const totalEl = document.getElementById("wheelChanceTotal");
+    const errorEl = document.getElementById("wheelChanceError");
+    const saveButton = document.querySelector("#ruleEditForm .modal-save-btn");
+    if (totalEl) totalEl.textContent = `${total}%`;
+    if (totalEl) totalEl.classList.toggle("is-valid", total === 100);
+    if (totalEl) totalEl.classList.toggle("is-invalid", total !== 100);
+    if (errorEl) errorEl.textContent = sliders.length && total !== 100
+        ? `До сохранения осталось ${100 - total > 0 ? `добавить ${100 - total}%` : `уменьшить на ${total - 100}%`}.`
+        : (sliders.length ? "Вероятности распределены на 100%." : "Добавь сегменты, чтобы настроить колесо.");
+    if (saveButton && document.getElementById("edit_type")?.value === "wheel") {
+        saveButton.disabled = sliders.length === 0 || total !== 100;
+    }
 }
 
 /* ============================================================
@@ -621,33 +560,17 @@ export function updateNewRuleFields() {
 ============================================================ */
 
 export function updateSegmentFields(selectEl) {
-    if (!selectEl) return;
-    const form = selectEl.closest("form");
-    if (!form) return;
+    const modal = selectEl.closest(".modal-content");
 
-    const vib = form.querySelector(".seg-vibration-fields");
-    const act = form.querySelector(".seg-action-fields");
-    const retry = form.querySelector(".seg-retry-fields");
+    const vib = modal.querySelector(".seg-vibration-fields");
+    const act = modal.querySelector(".seg-action-fields");
+    const retry = modal.querySelector(".seg-retry-fields");
 
-    [vib, act, retry].forEach(block => block?.classList.add("hidden"));
+    vib.classList.add("hidden");
+    act.classList.add("hidden");
+    retry.classList.add("hidden");
 
-    if (selectEl.value === "vibration") vib?.classList.remove("hidden");
-    if (selectEl.value === "action") act?.classList.remove("hidden");
-    if (selectEl.value === "retry") {
-        retry?.classList.remove("hidden");
-        const name = form.querySelector("#seg_name");
-        const emoji = form.querySelector("#seg_emoji");
-        if (name) { name.value = "もう一回"; name.disabled = true; }
-        if (emoji) { emoji.value = "🔁"; emoji.disabled = true; }
-        const preview = form.querySelector(".emoji-live-preview");
-        if (preview) preview.textContent = "🔁";
-    } else {
-        const name = form.querySelector("#seg_name");
-        const emoji = form.querySelector("#seg_emoji");
-        if (name) name.disabled = false;
-        if (emoji) emoji.disabled = false;
-    }
+    if (selectEl.value === "vibration") vib.classList.remove("hidden");
+    if (selectEl.value === "action") act.classList.remove("hidden");
+    if (selectEl.value === "retry") retry.classList.remove("hidden");
 }
-
-// Used by the existing inline onchange handlers in the template.
-window.updateSegmentFields = updateSegmentFields;

@@ -941,25 +941,14 @@ async def ws_handler(websocket):
 
                 for r in rules["rules"]:
                     if r["id"] == rule_id:
-                        seg_type = data.get("seg_type")
-                        if seg_type not in ("vibration", "action", "retry"):
-                            continue
-
                         seg = {
-                            "name": "もう一回" if seg_type == "retry" else str(data.get("name") or "").strip(),
-                            "emoji": "🔁" if seg_type == "retry" else str(data.get("emoji") or "✨").strip(),
+                            "name": data.get("name"),
                             "chance": 0,
-                            "type": seg_type
+                            "type": data.get("seg_type"),
+                            "strength": int(data.get("strength", 0)),
+                            "duration": int(data.get("duration", 0)),
+                            "action": data.get("action") or ""
                         }
-
-                        if seg_type == "vibration":
-                            seg["strength"] = max(1, min(20, int(data.get("strength", 1))))
-                            seg["duration"] = max(1, min(3600, int(data.get("duration", 1))))
-                        elif seg_type == "action":
-                            seg["action"] = str(data.get("action") or "").strip()
-                        else:
-                            seg["action"] = ""
-
                         r.setdefault("segments", []).append(seg)
 
                 save_rules(profile_key, rules)
@@ -982,82 +971,6 @@ async def ws_handler(websocket):
                 )                
                 continue
 
-
-            # ---------- RULES: EDIT SEGMENT ----------
-            if msg_type == "edit_segment":
-                from services.rules_service import load_rules, save_rules
-
-                profile_key = data.get("profile_key")
-                rule_id = data.get("rule_id")
-                seg_index = int(data.get("seg_index", -1))
-                seg_type = data.get("seg_type")
-
-                if seg_type not in ("vibration", "action"):
-                    continue
-
-                rules = load_rules(profile_key)
-                for r in rules.get("rules", []):
-                    if r.get("id") != rule_id or r.get("type") != "wheel":
-                        continue
-                    segments = r.setdefault("segments", [])
-                    if not (0 <= seg_index < len(segments)):
-                        break
-
-                    seg = segments[seg_index]
-                    if seg.get("type") == "retry":
-                        break
-
-                    seg["type"] = seg_type
-                    seg["name"] = str(data.get("name") or "").strip()
-                    seg["emoji"] = str(data.get("emoji") or "✨").strip()
-
-                    # Remove fields that do not belong to the selected type.
-                    seg.pop("strength", None)
-                    seg.pop("duration", None)
-                    seg.pop("action", None)
-
-                    if seg_type == "vibration":
-                        seg["strength"] = max(1, min(20, int(data.get("strength", 1))))
-                        seg["duration"] = max(1, min(3600, int(data.get("duration", 1))))
-                    else:
-                        seg["action"] = str(data.get("action") or "").strip()
-                    break
-
-                save_rules(profile_key, rules)
-                ws_send({"rules_update": True, "profile_key": profile_key}, role="panel", profile_key=profile_key)
-                ws_send({"rules_update": True, "profile_key": profile_key}, role="obs", profile_key=profile_key)
-                continue
-
-
-            # ---------- RULES: SET WHEEL CHANCES ----------
-            if msg_type == "set_wheel_chances":
-                from services.rules_service import load_rules, save_rules
-                profile_key = data.get("profile_key")
-                rule_id = data.get("rule_id")
-                chances = data.get("chances", [])
-                if not profile_key or not isinstance(chances, list):
-                    continue
-                rules = load_rules(profile_key)
-                for rule in rules.get("rules", []):
-                    if rule.get("id") != rule_id or rule.get("type") != "wheel":
-                        continue
-                    segments = rule.get("segments", [])
-                    if len(chances) != len(segments):
-                        break
-                    weights = [max(0.0, min(100.0, float(v))) for v in chances]
-                    total = sum(weights)
-                    if total <= 0:
-                        break
-                    normalized = [round(v * 100 / total, 2) for v in weights]
-                    if normalized:
-                        normalized[-1] = round(normalized[-1] + (100.0 - sum(normalized)), 2)
-                    for seg, chance in zip(segments, normalized):
-                        seg["chance"] = chance
-                    save_rules(profile_key, rules)
-                    ws_send({"rules_update": True, "profile_key": profile_key}, role="panel", profile_key=profile_key)
-                    ws_send({"rules_update": True, "profile_key": profile_key}, role="obs", profile_key=profile_key)
-                    break
-                continue
 
             # ---------- RULES: DELETE SEGMENT ----------
             if msg_type == "delete_segment":
@@ -1146,4 +1059,3 @@ def run_websocket_server():
 
 if __name__ == "__main__":
     run_websocket_server()
-

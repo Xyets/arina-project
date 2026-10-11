@@ -495,243 +495,38 @@
 
 
 /* ============================================================
-   FLOWTIP GLASS — WHEEL SEGMENT EDITOR
+   🎡 Настройки вероятностей колеса FlowTip
 ============================================================ */
-.segment-card-editable {
-    cursor: pointer;
-    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+.wheel-settings-block {
+    margin: 0 0 18px;
+    padding: 16px;
+    border: 1px solid rgba(232, 166, 203, .38);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 238, 248, .82), rgba(241, 238, 255, .78));
 }
-.segment-card-editable:hover {
-    transform: translateY(-1px);
-    background: rgba(255,255,255,.48);
-    border-color: rgba(255,255,255,.72);
-}
-.segment-card-editable::after {
-    content: "✎";
-    color: #d878a8;
-    font-size: 14px;
-    align-self: center;
-    margin-left: 6px;
-}
-.segment-card-fixed { cursor: default; }
-.segment-title {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.segment-emoji {
-    font-size: 18px;
-    line-height: 1;
-}
-.segment-add-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    padding-top: 6px;
-}
-.segment-add-button {
-    min-width: 190px;
-    text-align: center;
-}
-.segment-edit-hint {
-    color: rgba(80,69,75,.62);
-    font-size: 11px;
-    text-align: center;
-}
-.segment-modal-glass {
-    width: min(480px, calc(100vw - 28px));
-    max-height: min(88vh, 760px);
-    overflow-y: auto;
-    padding: 22px;
-    border-radius: 24px;
-    background:
-        linear-gradient(135deg,
-            rgba(249,168,212,.30),
-            rgba(247,200,184,.25),
-            rgba(174,230,230,.24),
-            rgba(201,185,245,.30)),
-        rgba(255,255,255,.82);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255,255,255,.76);
-    box-shadow: 0 18px 48px rgba(73,52,69,.20), inset 0 1px 0 rgba(255,255,255,.88);
-}
-.segment-modal-header {
-    position: relative;
-    justify-content: center !important;
-    text-align: center;
-    min-height: 38px;
-    margin-bottom: 18px;
-}
-.segment-modal-header h3 {
-    width: 100%;
-    margin: 0;
-    text-align: center;
-    font-size: 19px;
-    font-weight: 800;
-    color: #40353b;
-}
-.segment-modal-header .close-btn {
-    position: absolute;
-    right: 0;
-    top: 0;
-}
-.segment-modal-body {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-.segment-field {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    min-width: 0;
-}
-.segment-field label {
-    color: #50454b;
-    font-size: 13px;
-    font-weight: 700;
-}
-.segment-field input,
-.segment-field select,
-.segment-field textarea {
-    width: 100%;
-    min-width: 0;
-    border: 1px solid rgba(255,255,255,.88);
-    border-radius: 12px;
-    padding: 11px 12px;
-    background: rgba(255,255,255,.78);
-    color: #40353b;
-    font: inherit;
-    outline: none;
-    box-shadow: inset 0 1px 2px rgba(75,45,65,.04);
-}
-.segment-field input:focus,
-.segment-field select:focus,
-.segment-field textarea:focus {
-    border-color: rgba(224,126,177,.8);
-    box-shadow: 0 0 0 3px rgba(249,168,212,.20);
-}
-.segment-name-field {
-    text-align: center;
-}
-.segment-name-field input {
-    text-align: center;
-    font-size: 16px;
-}
-.segment-field small,
-.segment-modal-note {
-    font-size: 11px;
-    line-height: 1.45;
-    color: rgba(80,69,75,.68);
-}
-.emoji-entry-row {
+.wheel-settings-heading { font-size: 17px; font-weight: 750; margin-bottom: 5px; }
+.wheel-settings-hint { margin: 0 0 14px; font-size: 13px; color: var(--text-secondary); }
+.wheel-chance-list { display: flex; flex-direction: column; gap: 12px; }
+.wheel-chance-row {
     display: grid;
-    grid-template-columns: 1fr 52px;
-    gap: 8px;
-    align-items: center;
-}
-.emoji-live-preview {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 46px;
-    border-radius: 13px;
-    background: rgba(255,255,255,.70);
-    border: 1px solid rgba(255,255,255,.85);
-    font-size: 26px;
-}
-.emoji-quick-picks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-.emoji-quick-picks button {
-    width: 34px;
-    height: 34px;
-    border: 1px solid rgba(255,255,255,.8);
-    border-radius: 10px;
-    background: rgba(255,255,255,.52);
-    font-size: 18px;
-    cursor: pointer;
-    transition: transform .15s ease, background .15s ease;
-}
-.emoji-quick-picks button:hover {
-    transform: translateY(-2px);
-    background: rgba(255,255,255,.9);
-}
-.segment-fields-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0,1fr));
+    grid-template-columns: minmax(90px, 1fr) minmax(100px, 1.5fr) 48px;
     gap: 12px;
-}
-.segment-retry-note {
-    padding: 12px;
-    border-radius: 14px;
-    background: rgba(255,255,255,.48);
-}
-.retry-fixed-preview {
-    text-align: center;
-    font-size: 19px;
-    font-weight: 800;
-    color: #80516f;
-}
-.segment-modal-note {
+    align-items: center;
     padding: 10px 12px;
     border-radius: 12px;
-    background: rgba(255,255,255,.40);
+    background: rgba(255,255,255,.68);
 }
-.segment-submit-button {
-    display: block;
-    width: 100%;
-    margin-top: 20px;
-    text-align: center;
-}
-@media (max-width: 480px) {
-    .segment-modal-glass { padding: 17px; }
-    .segment-modal-header h3 { font-size: 17px; }
-    .segment-fields-grid { grid-template-columns: 1fr; }
+.wheel-chance-label { overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }
+.wheel-chance-row input[type="range"] { width: 100%; accent-color: #df75ad; cursor: pointer; }
+.wheel-chance-value { text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+.wheel-chance-total { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(200,150,185,.25); font-weight: 650; }
+#wheelChanceTotal.is-valid { color: #16845b; }
+#wheelChanceTotal.is-invalid { color: #d13d65; }
+.wheel-chance-error { min-height: 18px; margin: 5px 0 0; font-size: 12px; color: var(--text-secondary); }
+#ruleEditForm .modal-save-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+@media (max-width: 520px) {
+    .wheel-chance-row { grid-template-columns: minmax(70px, 1fr) minmax(75px, 1.2fr) 42px; gap: 8px; padding: 9px; }
 }
 
-
-/* FLOWTIP modal cleanup + wheel probability editor */
-.segment-modal-glass {
-    box-sizing: border-box;
-    width: min(440px, calc(100vw - 32px));
-    max-height: calc(100dvh - 32px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding: 24px;
-}
-.segment-modal-body { gap: 19px; }
-.segment-field { gap: 8px; }
-.emoji-entry-row { grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; }
-.emoji-entry-row input { width: 100%; min-width: 0; }
-.emoji-live-preview { width: 48px; height: 44px; }
-.emoji-quick-picks { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
-.emoji-quick-picks button { width: 100%; min-width: 0; height: 34px; padding: 0; }
-.segment-fields-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.segment-fields-grid .segment-field input { box-sizing: border-box; width: 100%; }
-.segment-modal-note { margin-top: 2px; padding: 12px 14px; }
-.segment-submit-button { margin-top: 22px; }
-.wheel-segments-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
-.wheel-segments-heading h4 { margin:0; }
-.wheel-chances-open { flex:0 0 auto; }
-.wheel-chances-content {
-    box-sizing:border-box; width:min(460px, calc(100vw - 32px));
-    max-height:calc(100dvh - 32px); overflow-y:auto; overflow-x:hidden; padding:24px;
-}
-.wheel-chances-list { display:flex; flex-direction:column; gap:13px; }
-.wheel-chance-row { padding:12px 13px; border:1px solid rgba(255,255,255,.72); border-radius:14px; background:rgba(255,255,255,.42); display:flex; flex-direction:column; gap:10px; }
-.wheel-chance-label { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:700; overflow-wrap:anywhere; }
-.wheel-chance-control { display:grid; grid-template-columns:minmax(0,1fr) 48px; align-items:center; gap:12px; }
-.wheel-chance-control input[type="range"] { width:100%; min-width:0; accent-color:#dc8ab8; }
-.wheel-chance-value { font-size:13px; font-weight:800; text-align:right; color:#8f5277; }
-.wheel-chances-note { margin:14px 0 4px; font-size:12px; line-height:1.5; color:rgba(80,69,75,.75); }
-.wheel-chances-content .modal-save-btn { width:100%; margin-top:18px; }
-@media (max-width:520px) {
-    .segment-modal-glass, .wheel-chances-content { padding:18px; }
-    .emoji-quick-picks { grid-template-columns:repeat(5, minmax(0,1fr)); }
-    .segment-fields-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
+.wheel-initial-chance-note { grid-column: 1 / -1; }
+.wheel-initial-chance-note p { margin: 0; font-size: 13px; color: var(--text-secondary); }
