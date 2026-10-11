@@ -634,6 +634,7 @@ export function updateNewRuleFields() {
    RULES — Segment fields
 ============================================================ */
 
+
 export function updateSegmentFields(selectEl) {
     if (!selectEl) return;
 
@@ -650,11 +651,12 @@ export function updateSegmentFields(selectEl) {
 
     if (selectEl.value === "vibration" && vib) {
         vib.classList.remove("hidden");
-    }
-
-    if (selectEl.value === "action" && act) {
+    } else if (selectEl.value === "action" && act) {
         act.classList.remove("hidden");
+    } else if (selectEl.value === "retry" && retry) {
+        retry.classList.remove("hidden");
     }
-
-    // Для retry все дополнительные поля остаются скрытыми.
 }
+
+// Делаем функцию доступной для onchange в HTML.
+window.updateSegmentFields = updateSegmentFields;
