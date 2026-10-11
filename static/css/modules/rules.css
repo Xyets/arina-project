@@ -492,3 +492,41 @@
     background: rgba(255,255,255,0.85);
     transform: translateY(-2px);
 }
+
+
+/* ============================================================
+   🎡 Настройки вероятностей колеса FlowTip
+============================================================ */
+.wheel-settings-block {
+    margin: 0 0 18px;
+    padding: 16px;
+    border: 1px solid rgba(232, 166, 203, .38);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 238, 248, .82), rgba(241, 238, 255, .78));
+}
+.wheel-settings-heading { font-size: 17px; font-weight: 750; margin-bottom: 5px; }
+.wheel-settings-hint { margin: 0 0 14px; font-size: 13px; color: var(--text-secondary); }
+.wheel-chance-list { display: flex; flex-direction: column; gap: 12px; }
+.wheel-chance-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 1fr) minmax(100px, 1.5fr) 48px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.68);
+}
+.wheel-chance-label { overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }
+.wheel-chance-row input[type="range"] { width: 100%; accent-color: #df75ad; cursor: pointer; }
+.wheel-chance-value { text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+.wheel-chance-total { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(200,150,185,.25); font-weight: 650; }
+#wheelChanceTotal.is-valid { color: #16845b; }
+#wheelChanceTotal.is-invalid { color: #d13d65; }
+.wheel-chance-error { min-height: 18px; margin: 5px 0 0; font-size: 12px; color: var(--text-secondary); }
+#ruleEditForm .modal-save-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+@media (max-width: 520px) {
+    .wheel-chance-row { grid-template-columns: minmax(70px, 1fr) minmax(75px, 1.2fr) 42px; gap: 8px; padding: 9px; }
+}
+
+.wheel-initial-chance-note { grid-column: 1 / -1; }
+.wheel-initial-chance-note p { margin: 0; font-size: 13px; color: var(--text-secondary); }

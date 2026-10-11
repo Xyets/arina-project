@@ -207,10 +207,36 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
                     form.querySelector("#edit_action")?.value || ""
             };
 
-            sendRuleCommand(socket, payload);
+            if (payload.action_type === "wheel") {
+                const editor = document.getElementById("wheelChanceList");
+                const segments = editor
+                    ? Array.from(editor.querySelectorAll(".wheel-chance-row")).map(row => ({
+                        index: Number(row.dataset.index),
+                        chance: Number(row.querySelector("input[type=range]")?.value || 0)
+                    }))
+                    : [];
+                const total = segments.reduce((sum, seg) => sum + seg.chance, 0);
+                if (!segments.length) {
+                    showToast("Сначала добавь хотя бы один сегмент");
+                    return;
+                }
+                if (total !== 100) {
+                    showToast(`Сумма вероятностей должна быть 100%. Сейчас: ${total}%`);
+                    return;
+                }
+                sendRuleCommand(socket, {
+                    type: "edit_wheel_settings",
+                    profile_key: CURRENT_PROFILE,
+                    id: payload.id,
+                    min: payload.min,
+                    max: payload.max,
+                    segments
+                });
+            } else {
+                sendRuleCommand(socket, payload);
+            }
 
-            showToast("Правило обновлено");
-
+            showToast("Настройки сохранены");
             return;
         }
 
@@ -311,6 +337,22 @@ export function initRuleModals() {
         document.getElementById("edit_type").value = card.dataset.type;
 
         updateRuleEditFields();
+        const wheelBlock = document.getElementById("wheelSettingsBlock");
+        const wheelList = document.getElementById("wheelChanceList");
+        const saveButton = document.querySelector("#ruleEditForm .modal-save-btn");
+        if (wheelBlock) {
+            const isWheel = card.dataset.type === "wheel";
+            wheelBlock.classList.toggle("hidden", !isWheel);
+            if (isWheel) {
+                let segments = [];
+                try { segments = JSON.parse(card.dataset.segments || "[]"); } catch (e) { segments = []; }
+                renderWheelChanceEditor(segments);
+                if (saveButton) saveButton.textContent = "💾 Сохранить настройки колеса";
+            } else if (saveButton) {
+                saveButton.textContent = "💾 Сохранить";
+                saveButton.disabled = false;
+            }
+        }
     };
 
     window.closeRuleModal = () => {
@@ -344,6 +386,8 @@ export function initRuleModals() {
         const modal = document.getElementById("segmentModal");
         modal.classList.add("show");
         document.getElementById("segment_rule_id").value = ruleId;
+        const chanceInput = document.getElementById("seg_chance");
+        if (chanceInput) chanceInput.value = "0";
     };
 
     window.closeSegmentModal = () => {
@@ -362,6 +406,65 @@ export function initRuleModals() {
             block.classList.add("hidden");
         }
     };
+}
+
+/* ============================================================
+   RULES — Wheel chance editor
+============================================================ */
+function renderWheelChanceEditor(segments) {
+    const list = document.getElementById("wheelChanceList");
+    if (!list) return;
+    list.innerHTML = "";
+
+    segments.forEach((segment, index) => {
+        const row = document.createElement("div");
+        row.className = "wheel-chance-row";
+        row.dataset.index = String(index);
+
+        const label = document.createElement("label");
+        label.className = "wheel-chance-label";
+        label.textContent = segment.name || segment.action || `Сегмент ${index + 1}`;
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = "0";
+        slider.max = "100";
+        slider.step = "1";
+        slider.value = String(Math.max(0, Math.min(100, Number(segment.chance) || 0)));
+        slider.setAttribute("aria-label", `Шанс сегмента ${label.textContent}`);
+
+        const value = document.createElement("output");
+        value.className = "wheel-chance-value";
+        value.textContent = `${slider.value}%`;
+
+        slider.addEventListener("input", () => {
+            value.textContent = `${slider.value}%`;
+            updateWheelChanceTotal();
+        });
+
+        row.append(label, slider, value);
+        list.appendChild(row);
+    });
+    updateWheelChanceTotal();
+}
+
+function updateWheelChanceTotal() {
+    const list = document.getElementById("wheelChanceList");
+    if (!list) return;
+    const sliders = Array.from(list.querySelectorAll('input[type="range"]'));
+    const total = sliders.reduce((sum, slider) => sum + Number(slider.value || 0), 0);
+    const totalEl = document.getElementById("wheelChanceTotal");
+    const errorEl = document.getElementById("wheelChanceError");
+    const saveButton = document.querySelector("#ruleEditForm .modal-save-btn");
+    if (totalEl) totalEl.textContent = `${total}%`;
+    if (totalEl) totalEl.classList.toggle("is-valid", total === 100);
+    if (totalEl) totalEl.classList.toggle("is-invalid", total !== 100);
+    if (errorEl) errorEl.textContent = sliders.length && total !== 100
+        ? `До сохранения осталось ${100 - total > 0 ? `добавить ${100 - total}%` : `уменьшить на ${total - 100}%`}.`
+        : (sliders.length ? "Вероятности распределены на 100%." : "Добавь сегменты, чтобы настроить колесо.");
+    if (saveButton && document.getElementById("edit_type")?.value === "wheel") {
+        saveButton.disabled = sliders.length === 0 || total !== 100;
+    }
 }
 
 /* ============================================================

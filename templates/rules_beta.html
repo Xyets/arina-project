@@ -242,6 +242,7 @@
                 data-type="{{ rule.type }}"
                 data-name="{{ rule.name or rule.action or '' }}"
                 data-action="{{ rule.action or '' }}"
+                data-segments='{{ (rule.segments or []) | tojson | forceescape }}'
             >
 
                 <!-- =================================================
@@ -505,6 +506,14 @@
             >
 
 
+            <div id="wheelSettingsBlock" class="wheel-settings-block hidden">
+                <div class="wheel-settings-heading">🎡 Настройки колеса</div>
+                <p class="wheel-settings-hint">Укажи шанс каждого сегмента. Общая сумма должна быть ровно 100%.</p>
+                <div id="wheelChanceList" class="wheel-chance-list"></div>
+                <div class="wheel-chance-total" aria-live="polite">Сумма: <strong id="wheelChanceTotal">0%</strong></div>
+                <p id="wheelChanceError" class="wheel-chance-error" role="status"></p>
+            </div>
+
             <div class="modal-grid">
 
                 <!-- =================================================
@@ -722,18 +731,9 @@
                 <!-- =================================================
                      ШАНС
                 ================================================== -->
-
-                <div class="modal-cell">
-
-                    <label>Шанс (%):</label>
-
-                    <input
-                        type="number"
-                        id="seg_chance"
-                        name="seg_chance"
-                        required
-                    >
-
+                <div class="modal-cell wheel-initial-chance-note">
+                    <p>Шанс нового сегмента будет 0%. Настроить вероятности всех сегментов можно кнопкой ✏️ на карточке колеса.</p>
+                    <input type="hidden" id="seg_chance" name="seg_chance" value="0">
                 </div>
 
 
