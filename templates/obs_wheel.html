@@ -361,6 +361,10 @@ ws.onopen = () => {
   }));
 };
 
+// Очередь вращений: одновременно крутится только одно колесо.
+const wheelSpinQueue = [];
+let wheelIsSpinning = false;
+
 ws.onmessage = (event) => {
   let data;
   try { data = JSON.parse(event.data); } catch { return; }
@@ -368,16 +372,42 @@ ws.onmessage = (event) => {
   if (data.type === "wheel_spin" && data.profile === profileKey) {
       const winnerIndex = Number(data.winner_index);
       if (!Array.isArray(data.segments) || !data.segments.length ||
-          !Number.isInteger(winnerIndex) || winnerIndex < 0 || winnerIndex >= data.segments.length) {
+          !Number.isInteger(winnerIndex) || winnerIndex < 0 || winnerIndex >= data.segments.length ||
+          !data.spin_id) {
           console.error("FlowTip wheel: invalid server-selected winner", data);
           return;
       }
-      spinWheel(data.segments, winnerIndex, data.spin_id);
+
+      wheelSpinQueue.push({
+          segments: data.segments,
+          winnerIndex,
+          spinId: data.spin_id
+      });
+      startNextWheelSpin();
+      return;
   }
+
   if (data.type === "wheel_error" && data.profile === profileKey) {
       console.error("FlowTip wheel:", data.message || "Ошибка настроек колеса");
   }
 };
+
+function startNextWheelSpin() {
+    if (wheelIsSpinning || wheelSpinQueue.length === 0) return;
+
+    wheelIsSpinning = true;
+    const nextSpin = wheelSpinQueue.shift();
+
+    spinWheel(
+        nextSpin.segments,
+        nextSpin.winnerIndex,
+        nextSpin.spinId,
+        () => {
+            wheelIsSpinning = false;
+            startNextWheelSpin();
+        }
+    );
+}
 
 function drawWheel(segments) {
     const g = document.getElementById("segments");
@@ -454,12 +484,14 @@ function sendResult(winnerIndex, spinId) {
 }
 
 
-function spinWheel(segments, winnerIndex, spinId) {
+function spinWheel(segments, winnerIndex, spinId, onComplete) {
     drawWheel(segments);
 
     const svg = document.getElementById("wheelSvg");
     const wheelInner = document.getElementById("wheelInner");
 
+    // Сбрасываем прошлый угол, пока колесо скрыто, чтобы не было скачка.
+    wheelInner.setAttribute("transform", "rotate(0 152.79 192.55)");
     svg.style.display = "block";
 
     const count = segments.length;
@@ -497,6 +529,8 @@ function spinWheel(segments, winnerIndex, spinId) {
 
             setTimeout(() => {
                 svg.style.display = "none";
+                // Следующее вращение запускается только после завершения текущего.
+                if (typeof onComplete === "function") onComplete();
             }, 3000);
 
             return;
