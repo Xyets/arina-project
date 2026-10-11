@@ -454,6 +454,16 @@ export function initRuleModals() {
         const typeSelect = document.getElementById("seg_type");
         if (typeSelect) {
             typeSelect.value = "";
+            const customDisplay = document.getElementById("segmentTypeDisplay");
+            const customOptions = document.getElementById("segmentTypeOptions");
+
+            if (customDisplay) {
+                customDisplay.textContent = "Выберите тип сегмента";
+            }
+
+            if (customOptions) {
+                customOptions.style.display = "none";
+            }
         }
 
         const chanceInput = document.getElementById("seg_chance");
@@ -464,6 +474,70 @@ export function initRuleModals() {
         updateSegmentFields(typeSelect);
         modal.classList.add("show");
     };
+
+    const segmentTypeSelect = document.getElementById("segmentTypeSelect");
+    const segmentTypeDisplay = document.getElementById("segmentTypeDisplay");
+    const segmentTypeOptions = document.getElementById("segmentTypeOptions");
+    const segmentTypeInput = document.getElementById("seg_type");
+
+    if (
+        segmentTypeSelect &&
+        segmentTypeDisplay &&
+        segmentTypeOptions &&
+        segmentTypeInput &&
+        !segmentTypeSelect.dataset.initialized
+    ) {
+        segmentTypeSelect.dataset.initialized = "true";
+
+        const closeSegmentTypeOptions = () => {
+            segmentTypeOptions.style.display = "none";
+            segmentTypeDisplay.setAttribute("aria-expanded", "false");
+        };
+
+        segmentTypeDisplay.addEventListener("click", (event) => {
+            event.stopPropagation();
+
+            const isOpen = segmentTypeOptions.style.display === "flex";
+
+            segmentTypeOptions.style.display = isOpen ? "none" : "flex";
+            segmentTypeDisplay.setAttribute("aria-expanded", String(!isOpen));
+        });
+
+        segmentTypeDisplay.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                segmentTypeDisplay.click();
+            }
+
+            if (event.key === "Escape") {
+                closeSegmentTypeOptions();
+            }
+        });
+
+        segmentTypeOptions.querySelectorAll(".option").forEach((option) => {
+            option.addEventListener("click", (event) => {
+                event.stopPropagation();
+
+                const value = option.dataset.value;
+                segmentTypeInput.value = value;
+                segmentTypeDisplay.textContent = option.textContent.trim();
+
+                closeSegmentTypeOptions();
+
+                // Показываем поля, соответствующие выбранному типу.
+                updateSegmentFields(segmentTypeInput);
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!segmentTypeSelect.contains(event.target)) {
+                closeSegmentTypeOptions();
+            }
+        });
+
+        // Начальное состояние
+        segmentTypeOptions.style.display = "none";
+    }
 
     window.closeSegmentModal = () => {
         document.getElementById("segmentModal").classList.remove("show");
