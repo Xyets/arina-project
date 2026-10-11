@@ -972,6 +972,97 @@ async def ws_handler(websocket):
                 continue
 
 
+            # ---------- RULES: EDIT SEGMENT ----------
+            if msg_type == "edit_segment":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rule_id = data.get("rule_id")
+
+                try:
+                    seg_index = int(data.get("seg_index", -1))
+                except (TypeError, ValueError):
+                    seg_index = -1
+
+                if not profile_key or not get_profile_by_key(profile_key):
+                    print("⚠ edit_segment: unknown profile")
+                    continue
+
+                rules_data = load_rules(profile_key)
+                updated = False
+
+                for rule in rules_data.get("rules", []):
+                    if rule.get("id") != rule_id or rule.get("type") != "wheel":
+                        continue
+
+                    segments = rule.get("segments") or []
+                    if seg_index < 0 or seg_index >= len(segments):
+                        break
+
+                    segment = segments[seg_index]
+                    segment_type = segment.get("type")
+
+                    # Разрешаем изменять только название и поля текущего типа.
+                    # chance и type сохраняются из существующего объекта без изменений.
+                    name = data.get("name")
+                    if isinstance(name, str) and name.strip():
+                        segment["name"] = name.strip()[:120]
+
+                    if segment_type == "vibration":
+                        try:
+                            strength = int(data.get("strength", segment.get("strength", 0)))
+                            duration = int(data.get("duration", segment.get("duration", 0)))
+                        except (TypeError, ValueError):
+                            print("⚠ edit_segment: invalid vibration values")
+                            break
+
+                        if not (1 <= strength <= 20 and 1 <= duration <= 3600):
+                            print("⚠ edit_segment: vibration values out of range")
+                            break
+
+                        segment["strength"] = strength
+                        segment["duration"] = duration
+
+                    elif segment_type == "action":
+                        action = data.get("action")
+                        if isinstance(action, str) and action.strip():
+                            segment["action"] = action.strip()[:240]
+                        else:
+                            print("⚠ edit_segment: action description is empty")
+                            break
+
+                    elif segment_type == "retry":
+                        # У сегмента «Повтор» можно менять только название.
+                        pass
+
+                    else:
+                        print(f"⚠ edit_segment: unsupported segment type {segment_type!r}")
+                        break
+
+                    updated = True
+                    break
+
+                if not updated:
+                    ws_send({
+                        "type": "rules_error",
+                        "message": "Не удалось сохранить сегмент. Проверь заполнение полей."
+                    }, role="panel", profile_key=profile_key)
+                    continue
+
+                save_rules(profile_key, rules_data)
+
+                ws_send({
+                    "rules_update": True,
+                    "profile_key": profile_key
+                }, role="panel", profile_key=profile_key)
+
+                ws_send({
+                    "rules_update": True,
+                    "profile_key": profile_key
+                }, role="obs", profile_key=profile_key)
+                continue
+
+
             # ---------- RULES: DELETE SEGMENT ----------
             if msg_type == "delete_segment":
                 from services.rules_service import load_rules, save_rules

@@ -320,7 +320,16 @@
 
                     {% for seg in rule.segments %}
 
-                    <div class="segment-card">
+                    <div
+                        class="segment-card segment-card-editable"
+                        data-seg-index="{{ loop.index0 }}"
+                        data-seg-name="{{ seg.name | default('', true) | e }}"
+                        data-seg-type="{{ seg.type | default('', true) | e }}"
+                        data-seg-strength="{{ seg.strength | default('', true) }}"
+                        data-seg-duration="{{ seg.duration | default('', true) }}"
+                        data-seg-action="{{ seg.action | default('', true) | e }}"
+                        title="Двойной клик — редактировать сегмент"
+                    >
 
                         <div>
 
@@ -716,7 +725,7 @@
 
                 <div class="modal-cell segment-name-cell">
 
-                    <label>Название сегмента:</label>
+                    <label>Название:</label>
 
                     <input
                         type="text"
@@ -784,7 +793,7 @@
                         tabindex="-1"
                         aria-hidden="true"
                     >
-                        <option value="" selected>Выберите тип сегмента</option>
+                        <option value="" selected>Тип сегмента</option>
                         <option value="vibration">💗 Вибрация</option>
                         <option value="action">🎬 Действие</option>
                         <option value="retry">🔁 Повтор</option>
@@ -869,6 +878,63 @@
 
     </div>
 
+</div>
+
+
+
+<!-- =============================================================
+     ✏️ МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ СЕГМЕНТА
+============================================================== -->
+<div class="modal" id="segmentEditModal">
+    <div class="modal-content edit-modal segment-edit-modal-content">
+        <form id="segmentEditForm" novalidate>
+            <div class="modal-header">
+                <h3>✏️ Редактировать сегмент</h3>
+                <button type="button" class="close-btn" onclick="closeSegmentEditModal()">✖</button>
+            </div>
+
+            <input type="hidden" id="edit_segment_rule_id" name="rule_id">
+            <input type="hidden" id="edit_segment_index" name="seg_index">
+
+            <div class="modal-grid segment-edit-grid">
+                <div class="modal-cell segment-edit-name-cell">
+                    <label for="edit_seg_name">Название сегмента:</label>
+                    <input type="text" id="edit_seg_name" name="seg_name" required maxlength="120">
+                </div>
+
+                <div class="modal-cell segment-edit-type-cell">
+                    <label>Тип сегмента (изменить нельзя):</label>
+                    <div id="edit_seg_type_display" class="segment-readonly-type"></div>
+                </div>
+
+                <div class="seg-edit-vibration-fields hidden" id="editSegVibrationFields">
+                    <div class="modal-cell">
+                        <label for="edit_seg_strength">Сила:</label>
+                        <input type="number" id="edit_seg_strength" name="seg_strength" min="1" max="20">
+                    </div>
+                    <div class="modal-cell">
+                        <label for="edit_seg_duration">Время (сек):</label>
+                        <input type="number" id="edit_seg_duration" name="seg_duration" min="1" max="3600">
+                    </div>
+                </div>
+
+                <div class="seg-edit-action-fields hidden" id="editSegActionFields">
+                    <div class="modal-cell">
+                        <label for="edit_seg_action">Описание действия:</label>
+                        <textarea id="edit_seg_action" name="seg_action" rows="3" maxlength="240"
+                            placeholder="Опишите, что нужно сделать"></textarea>
+                        <small>Описание используется в логе модели.</small>
+                    </div>
+                </div>
+
+                <div class="seg-edit-retry-note hidden" id="editSegRetryNote">
+                    <p>🔁 Для сегмента «Повтор» дополнительных параметров нет.</p>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary modal-save-btn">💾 Сохранить изменения</button>
+        </form>
+    </div>
 </div>
 
 

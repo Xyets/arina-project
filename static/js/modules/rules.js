@@ -347,6 +347,58 @@ export function initRuleForms(CURRENT_PROFILE, socket, showToast) {
 
             return;
         }
+
+        /* ========================================================
+           ✏️ Сохранение редактирования сегмента
+        ======================================================== */
+        if (e.target && e.target.id === "segmentEditForm") {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const form = e.target;
+            const name = form.querySelector("#edit_seg_name")?.value.trim() || "";
+            const type = form.dataset.segmentType || "";
+            const strengthValue = form.querySelector("#edit_seg_strength")?.value;
+            const durationValue = form.querySelector("#edit_seg_duration")?.value;
+            const action = form.querySelector("#edit_seg_action")?.value.trim() || "";
+
+            if (!name) {
+                showToast("Введи название сегмента");
+                return;
+            }
+
+            if (type === "vibration" && (!strengthValue || !durationValue)) {
+                showToast("Укажи силу и время вибрации");
+                return;
+            }
+
+            if (type === "action" && !action) {
+                showToast("Опиши действие");
+                return;
+            }
+
+            const payload = {
+                type: "edit_segment",
+                profile_key: CURRENT_PROFILE,
+                rule_id: form.querySelector("#edit_segment_rule_id")?.value || "",
+                seg_index: Number(form.querySelector("#edit_segment_index")?.value),
+                name
+            };
+
+            // Отправляем только поля, соответствующие уже существующему типу.
+            // Тип и шанс в запросе отсутствуют и не могут быть изменены формой.
+            if (type === "vibration") {
+                payload.strength = Number(strengthValue);
+                payload.duration = Number(durationValue);
+            } else if (type === "action") {
+                payload.action = action;
+            }
+
+            sendRuleCommand(socket, payload);
+            window.closeSegmentEditModal();
+            showToast("Изменения сегмента сохранены");
+            return;
+        }
     };
 
     document.addEventListener(
@@ -542,6 +594,68 @@ export function initRuleModals() {
     window.closeSegmentModal = () => {
         document.getElementById("segmentModal").classList.remove("show");
     };
+
+    // Открытие редактирования сегмента по двойному клику на карточке.
+    window.openSegmentEditModal = (ruleId, segIndex) => {
+        const wheel = document.getElementById(`wheel-${ruleId}`);
+        if (!wheel) return;
+
+        const cards = Array.from(wheel.querySelectorAll(".segment-card"));
+        const card = cards[Number(segIndex)];
+        if (!card || card.classList.contains("segment-card-fixed")) return;
+
+        const form = document.getElementById("segmentEditForm");
+        const modal = document.getElementById("segmentEditModal");
+        if (!form || !modal) return;
+
+        form.reset();
+        form.dataset.segmentType = card.dataset.segType || "";
+
+        document.getElementById("edit_segment_rule_id").value = ruleId;
+        document.getElementById("edit_segment_index").value = String(segIndex);
+        document.getElementById("edit_seg_name").value = card.dataset.segName || "";
+        document.getElementById("edit_seg_type_display").textContent = ({
+            vibration: "💗 Вибрация",
+            action: "🎬 Действие",
+            retry: "🔁 Повтор"
+        })[form.dataset.segmentType] || "Неизвестный тип";
+
+        const vibFields = document.getElementById("editSegVibrationFields");
+        const actionFields = document.getElementById("editSegActionFields");
+        const retryNote = document.getElementById("editSegRetryNote");
+
+        vibFields?.classList.toggle("hidden", form.dataset.segmentType !== "vibration");
+        actionFields?.classList.toggle("hidden", form.dataset.segmentType !== "action");
+        retryNote?.classList.toggle("hidden", form.dataset.segmentType !== "retry");
+
+        document.getElementById("edit_seg_strength").value = card.dataset.segStrength || "";
+        document.getElementById("edit_seg_duration").value = card.dataset.segDuration || "";
+        document.getElementById("edit_seg_action").value = card.dataset.segAction || "";
+
+        modal.classList.add("show");
+    };
+
+    window.closeSegmentEditModal = () => {
+        document.getElementById("segmentEditModal")?.classList.remove("show");
+    };
+
+    if (!window._flowtipSegmentDoubleClickBound) {
+        window._flowtipSegmentDoubleClickBound = true;
+        document.addEventListener("dblclick", (event) => {
+            const card = event.target.closest(".segment-card-editable");
+            if (!card || event.target.closest("button, a, input, textarea, select")) return;
+
+            const wheel = card.closest(".wheel-segments");
+            if (!wheel || !wheel.id.startsWith("wheel-")) return;
+
+            const ruleId = wheel.id.slice("wheel-".length);
+            const cards = Array.from(wheel.querySelectorAll(".segment-card"));
+            const index = cards.indexOf(card);
+            if (index < 0) return;
+
+            window.openSegmentEditModal(ruleId, index);
+        });
+    }
 
     window.toggleWheel = (ruleId) => {
         const block = document.getElementById(`wheel-${ruleId}`);

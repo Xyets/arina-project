@@ -669,3 +669,118 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+
+/* ============================================================
+   ✏️ Редактирование сегмента по двойному клику
+============================================================ */
+.segment-card-editable {
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.segment-card-editable:hover {
+    transform: translateY(-2px);
+    border-color: rgba(190, 165, 255, 0.72);
+    box-shadow: 0 8px 20px rgba(118, 88, 170, 0.14), inset 0 0 14px rgba(255,255,255,0.55);
+}
+
+.segment-card-editable::after {
+    content: "✏️ двойной клик для изменения";
+    display: block;
+    grid-column: 1 / -1;
+    margin-top: 5px;
+    font-size: 11px;
+    opacity: 0.55;
+}
+
+#segmentEditModal .segment-edit-modal-content {
+    width: min(520px, calc(100vw - 28px));
+    max-height: min(86vh, 760px);
+    overflow-y: auto;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.78), rgba(240,240,255,0.66));
+    backdrop-filter: blur(22px);
+    border: 1px solid rgba(255,255,255,0.68);
+    box-shadow: 0 18px 48px rgba(60, 45, 80, 0.22), inset 0 0 20px rgba(255,255,255,0.4);
+}
+
+#segmentEditModal .segment-edit-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+}
+
+#segmentEditModal .segment-edit-grid > .modal-cell,
+#segmentEditModal .seg-edit-vibration-fields .modal-cell,
+#segmentEditModal .seg-edit-action-fields .modal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    width: 100%;
+}
+
+#segmentEditModal .segment-edit-grid label {
+    text-align: center;
+    font-weight: 600;
+}
+
+#segmentEditModal input,
+#segmentEditModal textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 12px;
+    padding: 11px 13px;
+    background: rgba(255,255,255,0.72);
+    color: var(--text-main, #393442);
+    font: inherit;
+    outline: none;
+}
+
+#segmentEditModal input:focus,
+#segmentEditModal textarea:focus {
+    border-color: rgba(184, 155, 255, 0.8);
+    box-shadow: 0 0 0 3px rgba(184, 155, 255, 0.2);
+}
+
+#segmentEditModal .seg-edit-vibration-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+#segmentEditModal .seg-edit-vibration-fields.hidden,
+#segmentEditModal .seg-edit-action-fields.hidden,
+#segmentEditModal .seg-edit-retry-note.hidden {
+    display: none !important;
+}
+
+#segmentEditModal .segment-readonly-type {
+    padding: 10px 14px;
+    border-radius: 13px;
+    text-align: center;
+    background: rgba(230, 223, 250, 0.52);
+    border: 1px solid rgba(255,255,255,0.72);
+    font-weight: 650;
+}
+
+#segmentEditModal .seg-edit-retry-note {
+    text-align: center;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.38);
+}
+
+#segmentEditModal .modal-save-btn {
+    width: 100%;
+    margin-top: 18px;
+}
+
+@media (max-width: 480px) {
+    #segmentEditModal .seg-edit-vibration-fields {
+        grid-template-columns: 1fr;
+    }
+}
