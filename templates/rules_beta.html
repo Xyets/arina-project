@@ -242,7 +242,6 @@
                 data-type="{{ rule.type }}"
                 data-name="{{ rule.name or rule.action or '' }}"
                 data-action="{{ rule.action or '' }}"
-                data-segments='{{ (rule.segments or []) | tojson | forceescape }}'
             >
 
                 <!-- =================================================
@@ -320,13 +319,26 @@
 
                     {% for seg in rule.segments %}
 
-                    <div class="segment-card">
+                    <div
+                        class="segment-card {% if seg.type == 'retry' %}segment-card-fixed{% else %}segment-card-editable{% endif %}"
+                        {% if seg.type != "retry" %}
+                        ondblclick="openSegmentEditModal('{{ rule.id }}', {{ loop.index0 }})"
+                        title="ダブルクリックして編集"
+                        {% endif %}
+                        data-seg-name="{{ seg.name|default('', true)|e }}"
+                        data-seg-emoji="{{ seg.emoji|default('', true)|e }}"
+                        data-seg-type="{{ seg.type|default('vibration', true)|e }}"
+                        data-seg-strength="{{ seg.strength|default(0, true) }}"
+                        data-seg-duration="{{ seg.duration|default(0, true) }}"
+                        data-seg-action="{{ seg.action|default('', true)|e }}"
+                    >
 
                         <div>
 
                             <div class="segment-title">
 
-                                🎯 {{ seg.name }}
+                                <span class="segment-emoji">{{ seg.emoji|default('⚡', true) }}</span>
+                                <span>{{ seg.name }}</span>
 
                             </div>
 
@@ -354,7 +366,7 @@
 
                             <div class="segment-action">
 
-                                🔁 Повтор
+                                🔁 もう一回
 
                             </div>
 
@@ -383,13 +395,16 @@
                     {% endfor %}
 
 
-                    <button
-                        type="button"
-                        class="btn-small"
-                        onclick="openSegmentModal('{{ rule.id }}')"
-                    >
-                        ➕ Добавить сегмент
-                    </button>
+                    <div class="segment-add-wrap">
+                        <button
+                            type="button"
+                            class="btn-small segment-add-button"
+                            onclick="openSegmentModal('{{ rule.id }}')"
+                        >
+                            ➕ Добавить сегмент
+                        </button>
+                        <div class="segment-edit-hint">カードをダブルクリックすると編集できます</div>
+                    </div>
 
                 </div>
 
@@ -505,14 +520,6 @@
                 id="edit_rule_id"
             >
 
-
-            <div id="wheelSettingsBlock" class="wheel-settings-block hidden">
-                <div class="wheel-settings-heading">🎡 Настройки колеса</div>
-                <p class="wheel-settings-hint">Укажи шанс каждого сегмента. Общая сумма должна быть ровно 100%.</p>
-                <div id="wheelChanceList" class="wheel-chance-list"></div>
-                <div class="wheel-chance-total" aria-live="polite">Сумма: <strong id="wheelChanceTotal">0%</strong></div>
-                <p id="wheelChanceError" class="wheel-chance-error" role="status"></p>
-            </div>
 
             <div class="modal-grid">
 
@@ -667,189 +674,163 @@
 
 
 <!-- =============================================================
-     🎡 МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ СЕГМЕНТА
+     FLOWTIP GLASS — ADD SEGMENT MODAL
 ============================================================== -->
-
-<div
-    class="modal"
-    id="segmentModal"
->
-
-    <div class="modal-content edit-modal">
-
-        <form
-            id="segmentAddForm"
-            novalidate
-        >
-
-            <div class="modal-header">
-
-                <h3>
-                    ➕ Добавить сегмент
-                </h3>
-
-                <button
-                    type="button"
-                    class="close-btn"
-                    onclick="closeSegmentModal()"
-                >
-                    ✖
-                </button>
-
+<div class="modal" id="segmentModal">
+    <div class="modal-content edit-modal segment-modal-glass">
+        <form id="segmentAddForm" novalidate>
+            <div class="modal-header segment-modal-header">
+                <h3>➕ Добавить сегмент</h3>
+                <button type="button" class="close-btn" onclick="closeSegmentModal()" aria-label="閉じる">✕</button>
             </div>
 
+            <input type="hidden" id="segment_rule_id" name="rule_id">
 
-            <!-- ID ПРАВИЛА -->
-
-            <input
-                type="hidden"
-                id="segment_rule_id"
-                name="rule_id"
-            >
-
-
-            <div class="modal-grid">
-
-                <!-- =================================================
-                     НАЗВАНИЕ СЕГМЕНТА
-                ================================================== -->
-
-                <div class="modal-cell">
-
-                    <label>Название:</label>
-
-                    <input
-                        type="text"
-                        id="seg_name"
-                        name="seg_name"
-                        required
-                    >
-
+            <div class="segment-modal-body">
+                <div class="segment-field segment-name-field">
+                    <label for="seg_name">Название приза:</label>
+                    <input type="text" id="seg_name" name="seg_name" placeholder="例：弱いバイブ" maxlength="80" required>
+                    <small>この名前は当選結果のカードに表示されます</small>
                 </div>
 
-
-                <!-- =================================================
-                     ШАНС
-                ================================================== -->
-                <div class="modal-cell wheel-initial-chance-note">
-                    <p>Шанс нового сегмента будет 0%. Настроить вероятности всех сегментов можно кнопкой ✏️ на карточке колеса.</p>
-                    <input type="hidden" id="seg_chance" name="seg_chance" value="0">
+                <div class="segment-field">
+                    <label for="seg_emoji">Эмодзи на колесе:</label>
+                    <div class="emoji-entry-row">
+                        <input type="text" id="seg_emoji" name="seg_emoji" value="" placeholder="例：⚡" maxlength="16" autocomplete="off">
+                        <span class="emoji-live-preview" id="segEmojiPreview">✨</span>
+                    </div>
+                    <div class="emoji-quick-picks" aria-label="Популярные эмодзи">
+                        <button type="button" data-emoji="⚡">⚡</button>
+                        <button type="button" data-emoji="💗">💗</button>
+                        <button type="button" data-emoji="💋">💋</button>
+                        <button type="button" data-emoji="🎁">🎁</button>
+                        <button type="button" data-emoji="👑">👑</button>
+                        <button type="button" data-emoji="🎲">🎲</button>
+                        <button type="button" data-emoji="🌸">🌸</button>
+                        <button type="button" data-emoji="✨">✨</button>
+                        <button type="button" data-emoji="🍓">🍓</button>
+                        <button type="button" data-emoji="🎀">🎀</button>
+                    </div>
                 </div>
 
-
-                <!-- =================================================
-                     ТИП СЕГМЕНТА
-                ================================================== -->
-
-                <div class="modal-cell">
-
-                    <label>Тип сегмента:</label>
-
-                    <select
-                        id="seg_type"
-                        name="seg_type"
-                        onchange="updateSegmentFields(this)"
-                    >
-
-                        <option value="vibration">
-                            💗 Вибрация
-                        </option>
-
-                        <option value="action">
-                            🎬 Действие
-                        </option>
-
-                        <option value="retry">
-                            🔁 Повтор
-                        </option>
-
+                <div class="segment-field">
+                    <label for="seg_type">Тип сегмента:</label>
+                    <select id="seg_type" name="seg_type" onchange="updateSegmentFields(this)" required>
+                        <option value="" selected disabled>Выберите тип сегмента</option>
+                        <option value="vibration">⚡ Вибрация</option>
+                        <option value="action">🎬 Действие</option>
+                        <option value="retry">🔁 Повтор</option>
                     </select>
-
                 </div>
 
-
-                <!-- =================================================
-                     ПОЛЯ ВИБРАЦИИ
-                ================================================== -->
-
-                <div class="seg-vibration-fields">
-
-                    <div class="modal-cell">
-
-                        <label>Сила:</label>
-
-                        <input
-                            type="number"
-                            id="seg_strength"
-                            name="seg_strength"
-                        >
-
+                <div class="seg-vibration-fields hidden">
+                    <div class="segment-fields-grid">
+                        <div class="segment-field">
+                            <label for="seg_strength">Сила вибрации:</label>
+                            <input type="number" id="seg_strength" name="seg_strength" min="1" max="20" placeholder="1–20">
+                        </div>
+                        <div class="segment-field">
+                            <label for="seg_duration">Время (сек):</label>
+                            <input type="number" id="seg_duration" name="seg_duration" min="1" max="3600" placeholder="Секунды">
+                        </div>
                     </div>
-
-
-                    <div class="modal-cell">
-
-                        <label>Время (сек):</label>
-
-                        <input
-                            type="number"
-                            id="seg_duration"
-                            name="seg_duration"
-                        >
-
-                    </div>
-
                 </div>
-
-
-                <!-- =================================================
-                     ПОЛЕ ДЕЙСТВИЯ
-                ================================================== -->
 
                 <div class="seg-action-fields hidden">
-
-                    <div class="modal-cell">
-
-                        <label>Действие:</label>
-
-                        <input
-                            type="text"
-                            id="seg_action"
-                            name="seg_action"
-                        >
-
+                    <div class="segment-field">
+                        <label for="seg_action">Описание действия (только в логе модели):</label>
+                        <textarea id="seg_action" name="seg_action" rows="3" maxlength="240" placeholder="Опиши действие для себя"></textarea>
+                        <small>Это описание не отправляется в чат мемберов.</small>
                     </div>
-
                 </div>
 
-
-                <!-- =================================================
-                     ПОВТОР
-                ================================================== -->
-
-                <div class="seg-retry-fields hidden">
-
-                    <p style="color:#777;">
-                        Этот сегмент просто повторяет колесо.
-                    </p>
-
+                <div class="seg-retry-fields hidden segment-retry-note">
+                    <div class="retry-fixed-preview">🔁 もう一回</div>
+                    <small>Повтор использует стандартное японское название и эмодзи. Этот сегмент нельзя редактировать.</small>
                 </div>
 
+                <div class="segment-modal-note">Шанс нового сегмента автоматически равен 0%. Вероятности настраиваются в окне редактирования колеса.</div>
             </div>
 
-
-            <button
-                class="btn-primary modal-save-btn"
-                type="submit"
-            >
-                💾 Добавить сегмент
-            </button>
-
+            <button type="submit" class="btn-primary modal-save-btn segment-submit-button">➕ Добавить сегмент</button>
         </form>
-
     </div>
-
 </div>
 
+<!-- =============================================================
+     FLOWTIP GLASS — EDIT SEGMENT MODAL
+============================================================== -->
+<div class="modal" id="segmentEditModal">
+    <div class="modal-content edit-modal segment-modal-glass">
+        <form id="segmentEditForm" novalidate>
+            <div class="modal-header segment-modal-header">
+                <h3>✏️ Редактировать сегмент</h3>
+                <button type="button" class="close-btn" onclick="closeSegmentEditModal()" aria-label="閉じる">✕</button>
+            </div>
+
+            <input type="hidden" id="edit_segment_rule_id" name="rule_id">
+            <input type="hidden" id="edit_segment_index" name="seg_index">
+
+            <div class="segment-modal-body">
+                <div class="segment-field segment-name-field">
+                    <label for="edit_seg_name">Название приза:</label>
+                    <input type="text" id="edit_seg_name" name="seg_name" maxlength="80" required>
+                    <small>Это название появится в карточке после выигрыша.</small>
+                </div>
+
+                <div class="segment-field">
+                    <label for="edit_seg_emoji">Эмодзи на колесе:</label>
+                    <div class="emoji-entry-row">
+                        <input type="text" id="edit_seg_emoji" name="seg_emoji" maxlength="16" required>
+                        <span class="emoji-live-preview" id="editSegEmojiPreview">✨</span>
+                    </div>
+                    <div class="emoji-quick-picks" aria-label="Популярные эмодзи">
+                        <button type="button" data-emoji="⚡">⚡</button>
+                        <button type="button" data-emoji="💗">💗</button>
+                        <button type="button" data-emoji="💋">💋</button>
+                        <button type="button" data-emoji="🎁">🎁</button>
+                        <button type="button" data-emoji="👑">👑</button>
+                        <button type="button" data-emoji="🎲">🎲</button>
+                        <button type="button" data-emoji="🌸">🌸</button>
+                        <button type="button" data-emoji="✨">✨</button>
+                        <button type="button" data-emoji="🍓">🍓</button>
+                        <button type="button" data-emoji="🎀">🎀</button>
+                    </div>
+                </div>
+
+                <div class="segment-field">
+                    <label for="edit_seg_type">Тип сегмента:</label>
+                    <select id="edit_seg_type" name="seg_type" onchange="updateSegmentFields(this)">
+                        <option value="vibration">⚡ Вибрация</option>
+                        <option value="action">🎬 Действие</option>
+                    </select>
+                </div>
+
+                <div class="seg-vibration-fields hidden">
+                    <div class="segment-fields-grid">
+                        <div class="segment-field">
+                            <label for="edit_seg_strength">Сила вибрации:</label>
+                            <input type="number" id="edit_seg_strength" name="seg_strength" min="1" max="20">
+                        </div>
+                        <div class="segment-field">
+                            <label for="edit_seg_duration">Время (сек):</label>
+                            <input type="number" id="edit_seg_duration" name="seg_duration" min="1" max="3600">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="seg-action-fields hidden">
+                    <div class="segment-field">
+                        <label for="edit_seg_action">Описание действия (только в логе модели):</label>
+                        <textarea id="edit_seg_action" name="seg_action" rows="3" maxlength="240"></textarea>
+                        <small>Это описание не отправляется в чат мемберов.</small>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary modal-save-btn segment-submit-button">💾 Сохранить сегмент</button>
+        </form>
+    </div>
+</div>
 
 {% endblock %}

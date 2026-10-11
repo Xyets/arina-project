@@ -5,7 +5,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import logging
 logging.basicConfig(level=logging.INFO)
 import uuid
-import random
 import asyncio
 import json
 import websockets
@@ -29,8 +28,6 @@ MAX_QUEUE_SIZE = 50  # максимум вибраций в очереди на 
 
 # Задачи worker хранятся по profile_key, чтобы не запускать дубликаты.
 WORKER_TASKS = {}
-# Результаты вращений, заранее выбранные сервером и ожидающие ответа OBS.
-PENDING_WHEEL_RESULTS = {}
 
 
 def ensure_profile_worker(profile_key):
@@ -236,44 +233,10 @@ async def redis_listener():
                 profile_key = data.get("profile")
                 # ---------- WHEEL SPIN ----------
                 if data.get("wheel_spin"):
-                    segments = data.get("segments") or []
-                    eligible = []
-                    weights = []
-                    for index, segment in enumerate(segments):
-                        try:
-                            chance = int(segment.get("chance", 0))
-                        except (TypeError, ValueError):
-                            chance = 0
-                        if chance > 0:
-                            eligible.append(index)
-                            weights.append(chance)
-
-                    if not eligible or sum(weights) != 100:
-                        print(f"⚠ Wheel not started for {data.get('profile')}: chance total must be 100")
-                        ws_send({
-                            "type": "wheel_error",
-                            "profile": data.get("profile"),
-                            "message": "Сумма вероятностей сегментов должна быть ровно 100%."
-                        }, role="obs", profile_key=data.get("profile"))
-                        ws_send({
-                            "type": "wheel_error",
-                            "profile": data.get("profile"),
-                            "message": "Сумма вероятностей сегментов должна быть ровно 100%."
-                        }, role="panel", profile_key=data.get("profile"))
-                        continue
-
-                    winner_index = random.choices(eligible, weights=weights, k=1)[0]
-                    spin_id = uuid.uuid4().hex
-                    PENDING_WHEEL_RESULTS[spin_id] = {
-                        "profile": data["profile"],
-                        "winner_index": winner_index
-                    }
                     ws_send({
                         "type": "wheel_spin",
                         "profile": data["profile"],
-                        "segments": segments,
-                        "winner_index": winner_index,
-                        "spin_id": spin_id
+                        "segments": data["segments"]
                     }, role="obs", profile_key=data["profile"])
                     continue
                 # ---------- OTHER OBS + WEB REACTIONS ----------
@@ -518,12 +481,6 @@ async def handle_get_queue(websocket, data):
 async def handle_wheel_result(websocket, data):
     profile_key = data.get("profile")
     winner_index = data.get("winner_index")
-    spin_id = data.get("spin_id")
-
-    pending = PENDING_WHEEL_RESULTS.pop(spin_id, None) if spin_id else None
-    if not pending or pending.get("profile") != profile_key or pending.get("winner_index") != winner_index:
-        print("⚠ wheel_result rejected: spin id/result does not match server selection")
-        return
 
     profile = get_profile_by_key(profile_key)
     if not profile:
@@ -576,23 +533,6 @@ async def handle_wheel_result(websocket, data):
         action_text = seg.get("action", "")
 
         add_log(profile_key, f"🎬 Действие (колесо): {action_text}")
-
-        ws_send({
-            "reaction": {
-                "image": action_text,
-                "duration": 5
-            },
-            "profile": profile_key
-        }, role="obs", profile_key=profile_key)
-
-        ws_send({
-            "reaction": {
-                "image": action_text,
-                "duration": 5
-            },
-            "profile": profile_key
-        }, role="web", profile_key=profile_key)
-
 
         ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
         return
@@ -689,69 +629,11 @@ async def ws_handler(websocket):
                 await handle_wheel_result(websocket, data)
                 continue
 
-
             if msg_type == "wheel_spin":
-                # ТЕСТОВОЕ ВРАЩЕНИЕ: тот же выбор победителя, что и при донате
                 profile_key = data.get("profile")
-                segments = data.get("segments") or []
-
-                if not profile_key or not get_profile_by_key(profile_key):
-                    ws_send({
-                        "type": "wheel_error",
-                        "profile": profile_key,
-                        "message": "Профиль не найден."
-                    }, role="obs", profile_key=profile_key)
-                    continue
-
-                eligible = []
-                weights = []
-
-                for index, segment in enumerate(segments):
-                    try:
-                        chance = int(segment.get("chance", 0))
-                    except (TypeError, ValueError):
-                        chance = 0
-
-                    if chance < 0 or chance > 100:
-                        weights = []
-                        eligible = []
-                        break
-
-                    if chance > 0:
-                        eligible.append(index)
-                        weights.append(chance)
-
-                if not eligible or sum(weights) != 100:
-                    ws_send({
-                        "type": "wheel_error",
-                        "profile": profile_key,
-                        "message": "Сумма вероятностей сегментов должна быть ровно 100%."
-                    }, role="obs", profile_key=profile_key)
-                    continue
-
-                winner_index = random.choices(
-                    eligible,
-                    weights=weights,
-                    k=1
-                )[0]
-
-                spin_id = uuid.uuid4().hex
-
-                PENDING_WHEEL_RESULTS[spin_id] = {
-                    "profile": profile_key,
-                    "winner_index": winner_index
-                }
-
-                ws_send({
-                    "type": "wheel_spin",
-                    "profile": profile_key,
-                    "segments": segments,
-                    "winner_index": winner_index,
-                    "spin_id": spin_id
-                }, role="obs", profile_key=profile_key)
-
+                # просто пробрасываем колесо в OBS
+                ws_send(data, role="obs", profile_key=profile_key)
                 continue
-
 
             # ---------- RULES: ADD RULE ----------
             if msg_type == "add_rule":
@@ -847,57 +729,6 @@ async def ws_handler(websocket):
                 continue
 
 
-            # ---------- RULES: EDIT WHEEL SETTINGS ----------
-            if msg_type == "edit_wheel_settings":
-                from services.rules_service import load_rules, save_rules
-
-                profile_key = data.get("profile_key")
-                rule_id = data.get("id")
-                if not profile_key or not get_profile_by_key(profile_key):
-                    await websocket.send(json.dumps({"type": "wheel_settings_error", "message": "Профиль не найден"}))
-                    continue
-
-                try:
-                    minimum = int(data.get("min", 0))
-                    maximum = int(data.get("max", 0))
-                    incoming = data.get("segments") or []
-                    chances = {int(item["index"]): int(item["chance"]) for item in incoming}
-                except (TypeError, ValueError, KeyError):
-                    await websocket.send(json.dumps({"type": "wheel_settings_error", "message": "Некорректные настройки колеса"}))
-                    continue
-
-                if minimum < 0 or maximum < minimum:
-                    await websocket.send(json.dumps({"type": "wheel_settings_error", "message": "Проверь диапазон доната: максимум должен быть не меньше минимума"}))
-                    continue
-                if not chances or any(chance < 0 or chance > 100 for chance in chances.values()) or sum(chances.values()) != 100:
-                    await websocket.send(json.dumps({"type": "wheel_settings_error", "message": "Сумма вероятностей должна быть ровно 100%"}))
-                    continue
-
-                rules = load_rules(profile_key)
-                found = False
-                for rule in rules.get("rules", []):
-                    if rule.get("id") != rule_id or rule.get("type") != "wheel":
-                        continue
-                    segments = rule.get("segments", [])
-                    if len(chances) != len(segments) or set(chances) != set(range(len(segments))):
-                        break
-                    rule["min"] = minimum
-                    rule["max"] = maximum
-                    for index, segment in enumerate(segments):
-                        segment["chance"] = chances[index]
-                    found = True
-                    break
-
-                if not found:
-                    await websocket.send(json.dumps({"type": "wheel_settings_error", "message": "Колесо не найдено или список сегментов изменился. Открой настройки заново."}))
-                    continue
-
-                save_rules(profile_key, rules)
-                ws_send({"rules_update": True, "profile_key": profile_key}, role="panel", profile_key=profile_key)
-                ws_send({"rules_update": True, "profile_key": profile_key}, role="obs", profile_key=profile_key)
-                await websocket.send(json.dumps({"type": "wheel_settings_saved", "message": "Настройки колеса сохранены"}))
-                continue
-
             # ---------- RULES: DELETE RULE ----------
             if msg_type == "delete_rule":
                 from services.rules_service import load_rules, save_rules
@@ -941,14 +772,25 @@ async def ws_handler(websocket):
 
                 for r in rules["rules"]:
                     if r["id"] == rule_id:
+                        seg_type = data.get("seg_type")
+                        if seg_type not in ("vibration", "action", "retry"):
+                            continue
+
                         seg = {
-                            "name": data.get("name"),
+                            "name": "もう一回" if seg_type == "retry" else str(data.get("name") or "").strip(),
+                            "emoji": "🔁" if seg_type == "retry" else str(data.get("emoji") or "✨").strip(),
                             "chance": 0,
-                            "type": data.get("seg_type"),
-                            "strength": int(data.get("strength", 0)),
-                            "duration": int(data.get("duration", 0)),
-                            "action": data.get("action") or ""
+                            "type": seg_type
                         }
+
+                        if seg_type == "vibration":
+                            seg["strength"] = max(1, min(20, int(data.get("strength", 1))))
+                            seg["duration"] = max(1, min(3600, int(data.get("duration", 1))))
+                        elif seg_type == "action":
+                            seg["action"] = str(data.get("action") or "").strip()
+                        else:
+                            seg["action"] = ""
+
                         r.setdefault("segments", []).append(seg)
 
                 save_rules(profile_key, rules)
@@ -969,6 +811,52 @@ async def ws_handler(websocket):
                     role="obs",
                     profile_key=profile_key
                 )                
+                continue
+
+
+            # ---------- RULES: EDIT SEGMENT ----------
+            if msg_type == "edit_segment":
+                from services.rules_service import load_rules, save_rules
+
+                profile_key = data.get("profile_key")
+                rule_id = data.get("rule_id")
+                seg_index = int(data.get("seg_index", -1))
+                seg_type = data.get("seg_type")
+
+                if seg_type not in ("vibration", "action"):
+                    continue
+
+                rules = load_rules(profile_key)
+                for r in rules.get("rules", []):
+                    if r.get("id") != rule_id or r.get("type") != "wheel":
+                        continue
+                    segments = r.setdefault("segments", [])
+                    if not (0 <= seg_index < len(segments)):
+                        break
+
+                    seg = segments[seg_index]
+                    if seg.get("type") == "retry":
+                        break
+
+                    seg["type"] = seg_type
+                    seg["name"] = str(data.get("name") or "").strip()
+                    seg["emoji"] = str(data.get("emoji") or "✨").strip()
+
+                    # Remove fields that do not belong to the selected type.
+                    seg.pop("strength", None)
+                    seg.pop("duration", None)
+                    seg.pop("action", None)
+
+                    if seg_type == "vibration":
+                        seg["strength"] = max(1, min(20, int(data.get("strength", 1))))
+                        seg["duration"] = max(1, min(3600, int(data.get("duration", 1))))
+                    else:
+                        seg["action"] = str(data.get("action") or "").strip()
+                    break
+
+                save_rules(profile_key, rules)
+                ws_send({"rules_update": True, "profile_key": profile_key}, role="panel", profile_key=profile_key)
+                ws_send({"rules_update": True, "profile_key": profile_key}, role="obs", profile_key=profile_key)
                 continue
 
 

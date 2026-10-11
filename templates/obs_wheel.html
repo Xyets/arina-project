@@ -43,6 +43,37 @@
       filter: drop-shadow(0 2px 4px rgba(139, 76, 119, .22));
     }
 
+    #wheelSvg { transition: opacity .35s ease, transform .35s ease; }
+    #winnerCard {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%) scale(.94);
+      width: min(390px, calc(100vw - 36px)); min-height: 150px;
+      padding: 24px 22px 20px; display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; text-align: center; color: #50454b;
+      border: 1px solid rgba(255,255,255,.82); border-radius: 26px;
+      background: linear-gradient(135deg, rgba(249,168,212,.48), rgba(247,200,184,.30), rgba(174,230,230,.36), rgba(201,185,245,.42)), rgba(255,255,255,.68);
+      -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+      box-shadow: 0 14px 42px rgba(80,45,65,.18), inset 0 1px 0 rgba(255,255,255,.9);
+      opacity: 0; z-index: 30;
+    }
+    #winnerCard.visible { display: flex; animation: winnerCardIn .42s cubic-bezier(.2,.8,.2,1) forwards; }
+    #winnerCard .winner-kicker { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #b96593; }
+    #winnerCard .winner-emoji { font-size: 44px; line-height: 1.1; filter: drop-shadow(0 3px 5px rgba(201,116,169,.2)); }
+    #winnerCard .winner-title {
+      max-width: 100%; overflow-wrap: anywhere;
+      font-family: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+      font-size: clamp(19px, 4vw, 27px); line-height: 1.35;
+      font-weight: 800; color: #594451; text-shadow: 0 1px 0 rgba(255,255,255,.95);
+    }
+    #winnerCard .winner-subtitle { font-size: 12px; font-weight: 600; color: rgba(80,69,75,.72); }
+    #winnerCard .winner-confetti { font-size: 15px; letter-spacing: 7px; color: #d878a8; animation: confettiFloat .8s ease-in-out infinite alternate; }
+    @keyframes winnerCardIn {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(.90) translateY(8px); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1) translateY(0); }
+    }
+    @keyframes confettiFloat { from { transform: translateY(0); opacity: .65; } to { transform: translateY(-3px); opacity: 1; } }
+
     #segments text {
       font-family: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
       font-weight: 700;
@@ -342,6 +373,14 @@
 
 </svg>
 
+<div id="winnerCard" role="status" aria-live="polite">
+  <div class="winner-kicker">✧ WINNER ✧</div>
+  <div class="winner-emoji" id="winnerEmoji">✨</div>
+  <div class="winner-title" id="winnerTitle">おめでとう！</div>
+  <div class="winner-subtitle" id="winnerSubtitle"></div>
+  <div class="winner-confetti" aria-hidden="true">✦ ♡ ✧ ♡ ✦</div>
+</div>
+
 <script>
 const profileKey = "{{ profile_key }}";
 const ws = new WebSocket("wss://arinairina.duckdns.org/ws/");
@@ -438,29 +477,18 @@ function drawWheel(segments) {
         g.appendChild(path);
 
         const segment = segments[i] || {};
-        const rawLabel = [segment.name, segment.label, segment.action, segment.description]
-            .find(value => typeof value === "string" && value.trim() !== "");
-        const label = rawLabel || "";
-        if (!label) continue;
-
+        const emoji = segment.type === "retry" ? "🔁" : (segment.emoji || "✨");
         const textAngle = (i * angle) + angle / 2 + offset;
         const tx = centerX + Math.cos(textAngle * Math.PI / 180) * textRadius;
         const ty = centerY + Math.sin(textAngle * Math.PI / 180) * textRadius;
         const text = document.createElementNS(ns, "text");
         text.setAttribute("x", tx);
         text.setAttribute("y", ty);
-        const hasJapanese = /[\\u3040-\\u30ff\\u3400-\\u9fff]/.test(label);
-        const compactLabel = label.length >= 10;
-        text.setAttribute(
-            "font-size",
-            compactLabel ? (hasJapanese ? "10.5" : "11") :
-            label.length >= 7 ? "12" : "14"
-        );
+        text.setAttribute("font-size", count > 10 ? "15" : (count > 7 ? "17" : "21"));
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("dominant-baseline", "middle");
-        text.setAttribute("transform", `rotate(${textAngle} ${tx} ${ty})`);
-        text.setAttribute("lang", "ja");
-        text.textContent = label;
+        text.setAttribute("font-family", '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif');
+        text.textContent = emoji;
         g.appendChild(text);
     }
 }
@@ -471,6 +499,25 @@ function sendResult(winnerIndex, spinId) {
         winner_index: winnerIndex,
         spin_id: spinId
     }));
+}
+
+function showWinnerCard(segment) {
+    const card = document.getElementById("winnerCard");
+    const emoji = document.getElementById("winnerEmoji");
+    const title = document.getElementById("winnerTitle");
+    const subtitle = document.getElementById("winnerSubtitle");
+    const isRetry = segment && segment.type === "retry";
+
+    emoji.textContent = isRetry ? "🔁" : ((segment && segment.emoji) || "✨");
+    title.textContent = isRetry ? "もう一回" : ((segment && (segment.name || segment.label)) || "おめでとう！");
+    subtitle.textContent = segment && segment.type === "vibration" && Number(segment.duration) > 0
+        ? `${Number(segment.duration)}秒`
+        : "";
+
+    card.classList.remove("visible");
+    card.style.display = "flex";
+    void card.offsetWidth;
+    card.classList.add("visible");
 }
 
 
@@ -517,11 +564,23 @@ function spinWheel(segments, winnerIndex, spinId, onComplete) {
 
             sendResult(winnerIndex, spinId);
 
+            const winner = segments[winnerIndex] || {};
             setTimeout(() => {
-                svg.style.display = "none";
-                // Следующее вращение запускается только после завершения текущего.
-                if (typeof onComplete === "function") onComplete();
-            }, 3000);
+                svg.style.opacity = "0";
+                svg.style.transform = "translate(-50%, -50%) scale(.96)";
+                setTimeout(() => {
+                    svg.style.display = "none";
+                    svg.style.opacity = "1";
+                    svg.style.transform = "translate(-50%, -50%)";
+                    showWinnerCard(winner);
+                    setTimeout(() => {
+                        const card = document.getElementById("winnerCard");
+                        card.classList.remove("visible");
+                        card.style.display = "none";
+                        if (typeof onComplete === "function") onComplete();
+                    }, 2600);
+                }, 350);
+            }, 450);
 
             return;
         }
