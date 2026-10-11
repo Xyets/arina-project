@@ -1,26 +1,32 @@
 /* ============================================================
-   📐 Основной layout
+   FlowTip — основной layout
 ============================================================ */
+
 .layout {
     display: flex;
+    align-items: flex-start;
+    gap: 24px;
     min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/* ============================================================
-   📄 Контент справа
-============================================================ */
+/* Контент занимает всё место справа от меню */
 .content {
-    margin-left: 50px;
-    width: calc(100% - 50px);
-    padding: 40px 0;
-
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    margin-left: 0;
+    padding: 32px 24px 40px 0;
     display: flex;
     justify-content: center;
     background: var(--bg);
+    box-sizing: border-box;
 }
 
 .content-wrapper {
     width: 100%;
+    min-width: 0;
     display: flex;
     justify-content: center;
 }
@@ -28,18 +34,19 @@
 .content-inner {
     width: 100%;
     max-width: 1000px;
-    padding: 0 30px;
+    min-width: 0;
+    padding: 0 18px;
+    box-sizing: border-box;
 }
 
-/* ============================================================
-   📐 Сетки
-============================================================ */
+/* Сетки */
 .row {
     display: flex;
     gap: 20px;
     margin-bottom: 20px;
     width: 100%;
     max-width: 1000px;
+    min-width: 0;
 }
 
 .row-events {
@@ -52,4 +59,34 @@
     align-items: flex-start;
     width: 100%;
     max-width: 1000px;
+    min-width: 0;
+}
+
+@media (max-width: 1050px) {
+    .layout {
+        gap: 16px;
+    }
+
+    .content {
+        padding-right: 16px;
+    }
+
+    .content-inner {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+@media (max-width: 700px) {
+    .layout {
+        gap: 10px;
+    }
+
+    .content {
+        padding: 18px 10px 24px 0;
+    }
+
+    .content-inner {
+        padding: 0 4px;
+    }
 }
