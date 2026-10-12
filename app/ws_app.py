@@ -583,9 +583,47 @@ async def handle_wheel_result(websocket, data):
 
     # --- ПОВТОР ---
     if seg_type == "retry":
+        # Повтор выбирается сервером заново по тем же весам и снимку сегментов.
+        # OBS поставит новый wheel_spin в свою очередь после завершения текущего попапа.
+        eligible = []
+        weights = []
+        for index, segment in enumerate(segments):
+            try:
+                chance = int(segment.get("chance", 0))
+            except (TypeError, ValueError):
+                chance = 0
+
+            if chance < 0 or chance > 100:
+                print(f"⚠ Wheel retry skipped for {profile_key}: invalid chance")
+                return
+
+            if chance > 0:
+                eligible.append(index)
+                weights.append(chance)
+
+        if not eligible or sum(weights) != 100:
+            print(f"⚠ Wheel retry skipped for {profile_key}: chance total must be 100")
+            ws_send({
+                "type": "wheel_error",
+                "profile": profile_key,
+                "message": "Сумма вероятностей сегментов должна быть ровно 100%."
+            }, role="obs", profile_key=profile_key)
+            return
+
+        next_winner_index = random.choices(eligible, weights=weights, k=1)[0]
+        next_spin_id = uuid.uuid4().hex
+        PENDING_WHEEL_RESULTS[next_spin_id] = {
+            "profile": profile_key,
+            "winner_index": next_winner_index,
+            "segments": segments
+        }
+
         ws_send({
-            "type": "wheel_spin_retry",
-            "profile": profile_key
+            "type": "wheel_spin",
+            "profile": profile_key,
+            "segments": segments,
+            "winner_index": next_winner_index,
+            "spin_id": next_spin_id
         }, role="obs", profile_key=profile_key)
 
         add_log(profile_key, "🔁 Колесо: повтор")
