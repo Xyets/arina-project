@@ -559,63 +559,47 @@ function spinWheel(segments, winnerIndex, spinId, onComplete) {
     const svg = document.getElementById("wheelSvg");
     const wheelInner = document.getElementById("wheelInner");
 
-    // Сбрасываем прошлый угол, пока колесо скрыто, чтобы не было скачка.
+    // Каждый спин начинается с нулевого угла.
     wheelInner.setAttribute("transform", "rotate(0 152.79 192.55)");
     svg.style.display = "block";
 
     const count = segments.length;
     const angle = 360 / count;
 
-    const finalAngle = (360 * 8) - (winnerIndex * angle) - angle / 2 + 90;
+    // Сектора рисуются от 90° (снизу), указатель расположен сверху (270°).
+    // Поэтому центр winnerIndex совмещаем с верхним указателем.
+    const targetAngle = (360 * 8) + 180 - (winnerIndex * angle) - angle / 2;
+    const durationMs = 6000;
+    const startedAt = performance.now();
 
-    let rotation = 0;
-    let speed = 5;
-    let maxSpeed = 25;
-    let minSpeed = 0.2;
-    let decelStart = finalAngle - 1440;
+    function animate(now) {
+        const progress = Math.min(1, (now - startedAt) / durationMs);
+        // Плавное замедление, при этом конечный угол всегда точный.
+        const eased = 1 - Math.pow(1 - progress, 4);
+        const rotation = targetAngle * eased;
+        wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
 
-    let stopped = false;
-
-    function animate() {
-        if (stopped) return;
-
-        if (speed < maxSpeed && rotation < 360) {
-            speed += 0.3;
-        }
-
-        rotation += speed;
-
-        if (rotation >= decelStart) {
-            speed *= 0.965;
-        }
-
-        if (speed < minSpeed) {
-            stopped = true;
-
-            wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
-
-            sendResult(winnerIndex, spinId);
-
-            // Скрываем колесо и показываем карточку с названием выигрыша.
-            setTimeout(() => {
-                svg.style.display = "none";
-                showWinnerPopup(segments[winnerIndex] || {});
-                setTimeout(() => {
-                    hideWinnerPopup();
-                    // Следующее вращение запускается после показа результата.
-                    if (typeof onComplete === "function") onComplete();
-                }, 3500);
-            }, 700);
-
+        if (progress < 1) {
+            requestAnimationFrame(animate);
             return;
         }
 
-        wheelInner.setAttribute("transform", `rotate(${rotation} 152.79 192.55)`);
+        // Фиксируем точный конечный угол, чтобы не зависеть от частоты кадров.
+        wheelInner.setAttribute("transform", `rotate(${targetAngle} 152.79 192.55)`);
+        sendResult(winnerIndex, spinId);
 
-        requestAnimationFrame(animate);
+        // Скрываем колесо и показываем карточку того же сегмента по тому же индексу.
+        setTimeout(() => {
+            svg.style.display = "none";
+            showWinnerPopup(segments[winnerIndex] || {});
+            setTimeout(() => {
+                hideWinnerPopup();
+                if (typeof onComplete === "function") onComplete();
+            }, 3500);
+        }, 700);
     }
 
-    animate();
+    requestAnimationFrame(animate);
 }
 </script>
 

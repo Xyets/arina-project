@@ -266,7 +266,8 @@ async def redis_listener():
                     spin_id = uuid.uuid4().hex
                     PENDING_WHEEL_RESULTS[spin_id] = {
                         "profile": data["profile"],
-                        "winner_index": winner_index
+                        "winner_index": winner_index,
+                        "segments": segments
                     }
                     ws_send({
                         "type": "wheel_spin",
@@ -530,28 +531,11 @@ async def handle_wheel_result(websocket, data):
         print("❌ wheel_result: unknown profile_key")
         return
 
-    # Читаем правила по profile_key
-    from services.rules_service import load_rules
-    rules = load_rules(profile_key).get("rules", [])
-
-    # Находим правило типа wheel
-    wheel_rule = None
-    for r in rules:
-        if r.get("type") == "wheel":
-            wheel_rule = r
-            break
-
-    if not wheel_rule:
-        print("❌ wheel_result: wheel rule not found")
-        return
-
-    segments = wheel_rule.get("segments", [])
-    if not segments:
-        print("❌ wheel_result: no segments")
-        return
-
-    if winner_index < 0 or winner_index >= len(segments):
-        print("❌ wheel_result: invalid winner_index")
+    # Используем снимок сегментов, с которым запустили именно этот спин.
+    # Если настройки изменились во время вращения, приз всё равно совпадёт с OBS.
+    segments = pending.get("segments") or []
+    if not isinstance(winner_index, int) or winner_index < 0 or winner_index >= len(segments):
+        print("❌ wheel_result: invalid winner_index or missing segment snapshot")
         return
 
     seg = segments[winner_index]
@@ -739,7 +723,8 @@ async def ws_handler(websocket):
 
                 PENDING_WHEEL_RESULTS[spin_id] = {
                     "profile": profile_key,
-                    "winner_index": winner_index
+                    "winner_index": winner_index,
+                    "segments": segments
                 }
 
                 ws_send({
