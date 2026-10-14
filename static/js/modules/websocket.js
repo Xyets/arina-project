@@ -1,5 +1,6 @@
 // websocket.js — модуль WebSocket для FlowTip
 import { showMemberCard, hideMemberCard } from "./member_card.js";
+import { updateGoalCircle } from "./goal.js";
 import {
     createDeleteRule,
     createDeleteSegment
@@ -161,7 +162,7 @@ function handleWSMessage(data, reloadInnerContent, showToast) {
 
     // 🎯 Обновление цели
     if (data.goal_update) {
-        window.updateGoalCircle?.(data.goal);
+        updateGoalCircle(data.goal, window.CURRENT_MODE);
         return;
     }
 
