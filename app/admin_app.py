@@ -14,10 +14,10 @@ import secrets
 import threading
 import time
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
-from services.database import get_connection
+from services.database import get_connection, create_registration_code as db_create_registration_code
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -163,6 +163,31 @@ def logout():
     return redirect(url_for("admin.login"))
 
 
+@admin_bp.route("/registration-codes/create", methods=["POST"])
+@admin_required
+def create_registration_code_route():
+    """Create one high-entropy registration code without exposing model credentials."""
+    if not _valid_csrf():
+        abort(400, description="Недействительный CSRF-токен")
+
+    # The DB helper normalizes codes to uppercase. Hex keeps the code easy to copy
+    # and avoids ambiguous characters such as O/0 and I/1.
+    for _ in range(5):
+        code = secrets.token_hex(5).upper()
+        try:
+            db_create_registration_code(code)
+            flash(f"Создан регистрационный ключ: {code}", "success")
+            break
+        except ValueError:
+            # Extremely unlikely collision; retry with a new random value.
+            continue
+    else:
+        current_app.logger.exception("Could not create a registration code after retries")
+        flash("Не удалось создать ключ. Проверь журнал приложения.", "error")
+
+    return redirect(url_for("admin.dashboard") + "#registration-codes")
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
@@ -186,6 +211,13 @@ def dashboard():
             GROUP BY m.id, m.username, m.display_name, m.created_at
             ORDER BY m.created_at DESC, m.id DESC
         """).fetchall()
+        codes = conn.execute("""
+            SELECT rc.id, rc.code, rc.used, rc.created_at, rc.used_at,
+                   m.username AS used_by_username
+            FROM registration_codes AS rc
+            LEFT JOIN models AS m ON m.id = rc.used_by
+            ORDER BY rc.created_at DESC, rc.id DESC
+        """).fetchall()
     except Exception:
         current_app.logger.exception("Could not load FlowTip Admin overview")
         abort(500)
@@ -199,5 +231,7 @@ def dashboard():
         profile_count=profile_count,
         unused_codes=unused_codes,
         models=models,
+        codes=codes,
         csrf_token=_csrf_token(),
+        flashes=[],
     )
