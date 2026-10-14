@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>FlowTip Admin</title>
+  <style>
+    :root{color-scheme:dark;--pink:#f4a7d3;--mint:#aee6e6;--ink:#f9f6fc;--muted:#bcb4c8;--panel:rgba(29,22,42,.78);--line:rgba(255,255,255,.12)}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0,rgba(244,167,211,.17),transparent 32%),radial-gradient(ellipse at 95% 90%,rgba(174,230,230,.13),transparent 32%),#100d18;color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:30px}.brand{display:flex;align-items:center;gap:12px}.mark{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,var(--pink),var(--mint));color:#25182a;font-weight:900;font-size:21px}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);font-weight:700}h1{margin:0;font-size:26px}h2{font-size:17px;margin:0}.sub{color:var(--muted);margin-top:3px}.logout{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font:inherit;cursor:pointer}.logout:hover{border-color:var(--pink)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 24px}.card{border:1px solid var(--line);border-radius:19px;background:var(--panel);padding:20px;box-shadow:0 18px 50px #0002;backdrop-filter:blur(16px)}.label{color:var(--muted);font-size:13px}.value{font-size:31px;font-weight:750;letter-spacing:-.04em;margin-top:6px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:17px}.pill{font-size:11px;border:1px solid #aee6e655;color:var(--mint);border-radius:999px;padding:4px 9px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:13px 12px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px;font-weight:600}tbody tr:last-child td{border-bottom:0}.name{font-weight:650}.muted{color:var(--muted)}.empty{color:var(--muted);padding:18px 0}.next{margin-top:20px}.next p{color:var(--muted);margin:8px 0 0}.todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}.todo:last-child{border:0}.dot{width:8px;height:8px;border-radius:50%;background:var(--pink);margin-top:7px;flex:none}@media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:20px 14px 40px}.card{padding:16px}h1{font-size:23px}}
+  </style>
+</head>
+<body><main class="wrap">
+  <header class="top"><div class="brand"><div class="mark">F</div><div><div class="eyebrow">Owner console</div><h1>FlowTip Admin</h1><div class="sub">Вход выполнен: {{ admin_username }}</div></div></div>
+    <form method="post" action="{{ url_for('admin.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="logout" type="submit">Выйти <span aria-hidden="true">↗</span></button></form>
+  </header>
+  <section class="grid" aria-label="Обзор">
+    <article class="card"><div class="label">Всего моделей</div><div class="value">{{ model_count }}</div></article>
+    <article class="card"><div class="label">Профилей</div><div class="value">{{ profile_count }}</div></article>
+    <article class="card"><div class="label">Неиспользованные коды</div><div class="value">{{ unused_codes if unused_codes is not none else '—' }}</div></article>
+  </section>
+  <section class="card"><div class="section-head"><h2>Модели FlowTip</h2><span class="pill">Только просмотр</span></div>
+    {% if models %}<div class="table-wrap"><table><thead><tr><th>ID</th><th>Логин</th><th>Отображаемое имя</th><th>Профили</th><th>Создана</th></tr></thead><tbody>
+    {% for model in models %}<tr><td class="muted">{{ model['id'] }}</td><td class="name">{{ model['username'] }}</td><td>{{ model['display_name'] }}</td><td>{{ model['profile_count'] }}</td><td class="muted">{{ model['created_at'] or '—' }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty">В базе пока нет моделей.</div>{% endif %}
+  </section>
+  <section class="card next"><div class="section-head"><h2>Следующие модули</h2><span class="pill">Каркас</span></div>
+    <div class="todo"><span class="dot"></span><div><strong>Журнал донатов</strong><p>Поиск по модели, дате, отправителю и сумме; просмотр исходного события аудита.</p></div></div>
+    <div class="todo"><span class="dot"></span><div><strong>Статистика и корректировки</strong><p>Исключение ошибочных записей с пересчётом агрегатов без повторного запуска действий OBS.</p></div></div>
+    <div class="todo"><span class="dot"></span><div><strong>Состояние системы и ошибки</strong><p>Сводка по журналам, подключениям и сбоям.</p></div></div>
+  </section>
+</main></body></html>
