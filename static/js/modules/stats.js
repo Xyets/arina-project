@@ -62,6 +62,7 @@ function initChart() {
     const vibrations = labels.map(d => safeNum(stats[d].vibrations));
     const actions    = labels.map(d => safeNum(stats[d].actions));
     const other      = labels.map(d => safeNum(stats[d].other));
+    const wheel      = labels.map(d => safeNum(stats[d].wheel));
     const total      = labels.map(d => safeNum(stats[d].total));
 
     const canvas = document.getElementById("statsChart");
@@ -102,6 +103,15 @@ function initChart() {
                     data: other,
                     borderColor: "rgba(255,183,77,1)",
                     backgroundColor: "rgba(255,183,77,0.25)",
+                    tension: 0.35,
+                    borderWidth: 3,
+                    pointRadius: 3
+                },
+                {
+                    label: "Колесо фортуны",
+                    data: wheel,
+                    borderColor: "rgba(177,156,217,1)",
+                    backgroundColor: "rgba(177,156,217,0.25)",
                     tension: 0.35,
                     borderWidth: 3,
                     pointRadius: 3

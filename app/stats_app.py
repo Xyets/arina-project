@@ -130,11 +130,23 @@ def close_period():
     total_vibr = sum(float(d.get("vibrations", 0)) for d in selected_days.values())
     total_act = sum(float(d.get("actions", 0)) for d in selected_days.values())
     total_other = sum(float(d.get("other", 0)) for d in selected_days.values())
-    total_points = sum(float(d.get("total", 0)) for d in selected_days.values())
+    total_wheel = sum(float(d.get("wheel", 0)) for d in selected_days.values())
+    total_points = sum(
+        float(d.get("total", (
+            float(d.get("vibrations", 0))
+            + float(d.get("actions", 0))
+            + float(d.get("other", 0))
+            + float(d.get("wheel", 0))
+        )))
+        for d in selected_days.values()
+    )
 
-    # ARCHI только для Irina
+    # Комиссия включает колесо фортуны так же, как вибрации.
     if user.lower() == "irina":
-        total_archi = sum(float(d.get("vibrations", 0)) * 0.7 * 0.1 for d in selected_days.values())
+        total_archi = sum(
+            (float(d.get("vibrations", 0)) + float(d.get("wheel", 0))) * 0.7 * 0.1
+            for d in selected_days.values()
+        )
     else:
         total_archi = 0
 
@@ -148,6 +160,7 @@ def close_period():
         "vibrations": total_vibr,
         "actions": total_act,
         "other": total_other,
+        "wheel": total_wheel,
         "total_points": total_points,
         "archi_fee": total_archi,
         "total_income": total_income,
@@ -176,49 +189,29 @@ def close_period():
 @login_required
 def stats_beta_page():
     user = session["username"]
-
-    # режим должен браться ТОЛЬКО из session
     mode = session.get("mode", "private")
 
-    # список моделей
-    models = ["Irina", "Arina"]
-
-    # выбранная модель
-    model = request.args.get("model", user)
-
-    # ключ профиля выбранной модели
-    profile_key = f"{model}_{mode}"
-
-    print("DEBUG /stats_beta")
-    print("  user =", user)
-    print("  model =", model)
-    print("  mode =", mode)
-    print("  profile_key =", profile_key)
-
+    # Модель всегда видит только собственный профиль.
+    # Параметр ?model= больше не позволяет читать статистику другой модели.
+    profile_key = f"{user}_{mode}"
     profile = get_profile_by_key(profile_key)
     if not profile:
-        # ВАЖНО: вернуть HTML, а не текст → иначе SPA ломается
         return render_template(
             "error.html",
             message=f"Профиль {profile_key} не найден"
         ), 500
 
-    # загружаем статистику выбранной модели
     stats_data = load_stats(profile_key)
-
-    # считаем статистику выбранной модели
-    results, summary = calculate_stats(stats_data, user=model)
-
-    can_close_period = (user == model)
+    results, summary = calculate_stats(stats_data, user=user)
 
     return render_template(
         "stats_beta.html",
         user=user,
-        model=model,
-        models=models,
+        model=user,
+        models=[],
         results=results,
         summary=summary,
         profile_key=profile_key,
         mode=mode,
-        can_close_period=can_close_period
+        can_close_period=True
     )

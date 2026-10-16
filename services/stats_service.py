@@ -57,7 +57,7 @@ def save_stats(profile_key: str, stats: Dict[str, Dict]) -> None:
 
 def update_stats(profile_key: str, category: str, amount: float = 0.0) -> None:
     """
-    Обновляет статистику по категории (vibrations/actions/other).
+    Обновляет статистику по категории (vibrations/actions/other/wheel).
     amount = количество донатов (обычно 1).
     """
     stats = load_stats(profile_key)
@@ -68,6 +68,7 @@ def update_stats(profile_key: str, category: str, amount: float = 0.0) -> None:
             "vibrations": 0.0,
             "actions": 0.0,
             "other": 0.0,
+            "wheel": 0.0,
             "total": 0.0,
             "donations_sum": 0.0,
         }
@@ -75,9 +76,10 @@ def update_stats(profile_key: str, category: str, amount: float = 0.0) -> None:
     stats[today][category] += float(amount)
 
     stats[today]["total"] = (
-        stats[today]["vibrations"]
-        + stats[today]["actions"]
-        + stats[today]["other"]
+        stats[today].get("vibrations", 0.0)
+        + stats[today].get("actions", 0.0)
+        + stats[today].get("other", 0.0)
+        + stats[today].get("wheel", 0.0)
     )
 
     save_stats(profile_key, stats)
@@ -97,6 +99,7 @@ def update_donations_sum(profile_key: str, amount: float = 0.0) -> None:
             "vibrations": 0.0,
             "actions": 0.0,
             "other": 0.0,
+            "wheel": 0.0,
             "total": 0.0,
             "donations_sum": 0.0,
         }
@@ -113,8 +116,9 @@ def calculate_stats(stats: Dict[str, Dict], user: str):
 
     sum_vibr = sum(d["vibrations"] for d in stats.values())
     sum_act = sum(d["actions"] for d in stats.values())
-    sum_other = sum(d["other"] for d in stats.values())
-    sum_total = sum(d["total"] for d in stats.values())
+    sum_other = sum(d.get("other", 0.0) for d in stats.values())
+    sum_wheel = sum(d.get("wheel", 0.0) for d in stats.values())
+    sum_total = sum(d.get("total", 0.0) for d in stats.values())
     sum_donations = sum(d.get("donations_sum", 0.0) for d in stats.values())
 
     sum_admin_fee = 0.0
@@ -122,13 +126,14 @@ def calculate_stats(stats: Dict[str, Dict], user: str):
     sum_admin_income = 0.0
 
     for day, data in stats.items():
-        vibr = float(data["vibrations"])
-        act = float(data["actions"])
-        other = float(data["other"])
-        total = float(data["total"])
+        vibr = float(data.get("vibrations", 0.0))
+        act = float(data.get("actions", 0.0))
+        other = float(data.get("other", 0.0))
+        wheel = float(data.get("wheel", 0.0))
+        total = float(data.get("total", vibr + act + other + wheel))
 
-        # процент админу (только от вибраций)
-        admin_fee = vibr * 0.7 * 0.1
+        # Комиссия считается с вибраций и колеса; колесо — отдельная категория.
+        admin_fee = (vibr + wheel) * 0.7 * 0.1
 
         # чистый доход модели
         model_net = total * 0.7 - admin_fee
@@ -140,6 +145,7 @@ def calculate_stats(stats: Dict[str, Dict], user: str):
             # админ смотрит статистику модели
             results[day] = {
                 **data,
+                "wheel": wheel,
                 "admin_fee": admin_fee,      # сколько админ получил
                 "model_net": model_net,      # сколько модель получила
                 "net_income": model_net,     # показываем доход модели
@@ -154,6 +160,7 @@ def calculate_stats(stats: Dict[str, Dict], user: str):
             # модель смотрит свою статистику
             results[day] = {
                 **data,
+                "wheel": wheel,
                 "admin_fee": admin_fee,
                 "model_net": model_net,
                 "net_income": model_net
@@ -166,6 +173,7 @@ def calculate_stats(stats: Dict[str, Dict], user: str):
         "sum_vibr": sum_vibr,
         "sum_act": sum_act,
         "sum_other": sum_other,
+        "sum_wheel": sum_wheel,
         "sum_total": sum_total,
         "sum_donations": sum_donations,
 

@@ -64,6 +64,12 @@
             <div class="stat-label">Иное</div>
         </div>
 
+        <div class="glass-card stat-card">
+            <div class="stat-icon">🎡</div>
+            <div class="stat-value">{{ summary.sum_wheel|int }}</div>
+            <div class="stat-label">Колесо фортуны</div>
+        </div>
+
         {% if user != "Arina" %}
         <div class="glass-card stat-card">
             <div class="stat-icon">💗</div>
@@ -92,6 +98,7 @@
                         <th>Вибрации</th>
                         <th>Действия</th>
                         <th>Иное</th>
+                        <th>Колесо фортуны</th>
                         <th>Всего</th>
 
                         {% if user != "Arina" %}
@@ -109,6 +116,7 @@
                         <td>{{ data.vibrations|int }}</td>
                         <td>{{ data.actions|int }}</td>
                         <td>{{ data.other|int }}</td>
+                        <td>{{ data.wheel|default(0)|int }}</td>
                         <td>{{ data.total|int }}</td>
 
                         {% if user != "Arina" %}
@@ -126,6 +134,7 @@
                         <td>{{ summary.sum_vibr|int }}</td>
                         <td>{{ summary.sum_act|int }}</td>
                         <td>{{ summary.sum_other|int }}</td>
+                        <td>{{ summary.sum_wheel|int }}</td>
                         <td>{{ summary.sum_donations|int }}</td>
 
                         {% if user != "Arina" %}
@@ -143,7 +152,7 @@
     <div class="stats-actions">
         <a href="{{ url_for('stats.stats_history') }}" class="glass-btn">📜 История</a>
 
-        {% if user == model %}
+        {% if can_close_period %}
         <button class="glass-btn danger" onclick="showConfirm()">📦 Завершить период</button>
         {% endif %}
     </div>

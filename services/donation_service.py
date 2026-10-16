@@ -70,21 +70,10 @@ def handle_donation(profile_key, user_id, name, amount, text):
     rule_result = apply_rule(profile_key, amount, text)
 
     # --- WHEEL ---
+    # Keep wheel donations in the normal donation flow so stats, audit, VIP and goal
+    # are updated exactly once, while the wheel animation is still triggered.
     if rule_result and rule_result["kind"] == "wheel":
-        # Keep wheel-triggering donations in the admin journal too.
-        audit_event(
-            profile_key,
-            mode,
-            {
-                "type": "donation",
-                "amount": amount,
-                "sender": name,
-                "text": text,
-                "rule_kind": "wheel",
-            },
-        )
         segments = rule_result["segments"]
-
         if segments:
             redis_client.publish("obs_reactions", json.dumps({
                 "wheel_spin": True,
@@ -92,10 +81,10 @@ def handle_donation(profile_key, user_id, name, amount, text):
                 "segments": segments
             }))
 
-        return {"goal": None, "rule": rule_result}
-
     # 2. Логируем
-    if rule_result and rule_result["kind"] == "action":
+    if rule_result and rule_result["kind"] == "wheel":
+        add_log(profile_key, f"💸 | {name} → {amount} 🎲 Колесо фортуны")
+    elif rule_result and rule_result["kind"] == "action":
         add_log(profile_key, f"💸 | {name} → {amount} 🎬 Действие: {rule_result['action_text']}")
     elif rule_result and rule_result["kind"] == "vibration":
         add_log(profile_key, f"💸 | {name} → {amount} 🏰 Вибрация: сила={rule_result['strength']}, время={rule_result['duration']}")
@@ -135,7 +124,9 @@ def handle_donation(profile_key, user_id, name, amount, text):
     }))
 
     # 6. Статистика
-    if rule_result and rule_result["kind"] == "action":
+    if rule_result and rule_result["kind"] == "wheel":
+        update_stats(profile_key, "wheel", amount)
+    elif rule_result and rule_result["kind"] == "action":
         update_stats(profile_key, "actions", amount)
     elif rule_result and rule_result["kind"] == "vibration":
         update_stats(profile_key, "vibrations", amount)
