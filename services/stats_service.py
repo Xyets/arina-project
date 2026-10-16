@@ -132,10 +132,11 @@ def calculate_stats(stats: Dict[str, Dict], user: str):
         wheel = float(data.get("wheel", 0.0))
         total = float(data.get("total", vibr + act + other + wheel))
 
-        # Комиссия считается с вибраций и колеса; колесо — отдельная категория.
-        admin_fee = (vibr + wheel) * 0.7 * 0.1
+        # Комиссия считается с вибраций и колеса только для Ирины.
+        # Арина не платит комиссию самой себе.
+        admin_fee = 0.0 if user.lower() == "arina" else (vibr + wheel) * 0.7 * 0.1
 
-        # чистый доход модели
+        # Чистый доход: 70% от поинтов за вычетом комиссии, если она есть.
         model_net = total * 0.7 - admin_fee
 
         # доход админа от модели

@@ -9,34 +9,6 @@
         <div class="header-sub">Период: {{ summary.period_label }}</div>
     </div>
 
-    {% if user == "Arina" %}
-    <!-- SELECT MODEL -->
-    <div class="glass-card model-select-card">
-        <label class="model-label">Выбрать модель:</label>
-
-        <div class="custom-select" id="modelSelect">
-            <div class="select-display">{{ model }}</div>
-
-            <div class="select-options" id="modelOptions">
-                {% for m in models %}
-                    <div class="option"
-                         data-value="{{ m }}"
-                         onclick="navigateSPA('/stats_beta?model={{ m }}')">
-                        👤 {{ m }}
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- ADMIN INCOME -->
-    <div class="glass-card stat-card">
-        <div class="stat-icon">👑</div>
-        <div class="stat-value">{{ summary.admin_fee|int }}</div>
-        <div class="stat-label">Доход от модели</div>
-    </div>
-    {% endif %}
-
     <!-- SUMMARY CARDS -->
     <div class="stats-summary-grid">
 

@@ -100,6 +100,7 @@
             <th>Вибрации</th>
             <th>Действия</th>
             <th>Иное</th>
+            <th>Колесо фортуны</th>
             <th>Всего поинтов</th>
             {% if user == "Irina" %}
               <th>%Арчи</th>
@@ -110,11 +111,12 @@
           {% for day, data in p.days.items() %}
             {% set vibr = data.vibrations %}
             {% set act = data.actions %}
-            {% set other = data.other %}
-            {% set total = data.total %}
+            {% set other = data.other|default(0) %}
+            {% set wheel = data.wheel|default(0) %}
+            {% set total = data.total|default(vibr + act + other + wheel) %}
 
             {% if user == "Irina" %}
-              {% set archi_fee = vibr * 0.7 * 0.1 %}
+              {% set archi_fee = (vibr + wheel) * 0.7 * 0.1 %}
               {% set net_income = total * 0.7 - archi_fee %}
             {% else %}
               {% set archi_fee = 0 %}
@@ -126,6 +128,7 @@
               <td>{{ vibr|int }}</td>
               <td>{{ act|int }}</td>
               <td>{{ other|int }}</td>
+              <td>{{ wheel|int }}</td>
               <td>{{ total|int }}</td>
 
               {% if user == "Irina" %}
