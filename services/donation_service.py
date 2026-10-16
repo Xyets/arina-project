@@ -71,6 +71,18 @@ def handle_donation(profile_key, user_id, name, amount, text):
 
     # --- WHEEL ---
     if rule_result and rule_result["kind"] == "wheel":
+        # Keep wheel-triggering donations in the admin journal too.
+        audit_event(
+            profile_key,
+            mode,
+            {
+                "type": "donation",
+                "amount": amount,
+                "sender": name,
+                "text": text,
+                "rule_kind": "wheel",
+            },
+        )
         segments = rule_result["segments"]
 
         if segments:

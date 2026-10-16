@@ -5,7 +5,6 @@ from services.database import get_model_by_username, get_connection, register_mo
 from services.logs_service import load_logs_from_file, clear_logs_file
 from services.goal_service import load_goal
 from services.audit import audit_event
-from services.redis_client import redis_client
 
 panel_bp = Blueprint("panel", __name__)
 

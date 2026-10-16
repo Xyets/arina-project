@@ -12,14 +12,14 @@ import hmac
 import os
 import secrets
 import threading
-import time
 import json
+from datetime import datetime, date, timedelta
+from pathlib import Path
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from services.database import get_connection, create_registration_code as db_create_registration_code
-from services.redis_client import redis_client
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -259,34 +259,84 @@ def dashboard():
     finally:
         conn.close()
 
-    enriched_models = []
-    for row in models:
-        model = dict(row)
+    conn = get_connection()
+    try:
+        profiles = conn.execute("""
+            SELECT p.profile_key, p.mode, m.username
+            FROM profiles AS p
+            JOIN models AS m ON m.id = p.model_id
+            ORDER BY m.username COLLATE NOCASE, p.mode
+        """).fetchall()
+    finally:
+        conn.close()
 
-        toy_label = "Нет данных"
-        toy_status = "unknown"
-        uid = str(model.get("uid") or "").strip()
-        if uid:
-            try:
-                raw_state = redis_client.hget("connected_users", uid)
-                if isinstance(raw_state, bytes):
-                    raw_state = raw_state.decode("utf-8")
-                state = json.loads(raw_state) if raw_state else {}
-                toys = state.get("toys", {}) if isinstance(state, dict) else {}
-                if isinstance(toys, dict):
-                    is_connected = any(
-                        isinstance(toy, dict) and str(toy.get("status", "")) == "1"
-                        for toy in toys.values()
-                    )
-                    toy_label = "Подключена" if is_connected else "Не подключена"
-                    toy_status = "connected" if is_connected else "disconnected"
-            except (ValueError, TypeError, UnicodeDecodeError):
-                toy_label = "Ошибка данных"
-            except Exception:
-                current_app.logger.exception("Could not read Lovense state for model %s", model.get("username"))
-        model["toy_label"] = toy_label
-        model["toy_status"] = toy_status
-        enriched_models.append(model)
+    selected_profile = (request.args.get("profile") or "").strip()
+    allowed_profiles = {row["profile_key"] for row in profiles}
+    if selected_profile not in allowed_profiles:
+        selected_profile = profiles[0]["profile_key"] if profiles else ""
+
+    today = date.today().isoformat()
+    date_from = (request.args.get("date_from") or today).strip()
+    date_to = (request.args.get("date_to") or today).strip()
+    sender_query = (request.args.get("sender") or "").strip()[:100]
+    amount_query = (request.args.get("amount") or "").strip()[:30]
+    try:
+        from_day = date.fromisoformat(date_from)
+        to_day = date.fromisoformat(date_to)
+        if from_day > to_day:
+            raise ValueError("date_from after date_to")
+    except ValueError:
+        date_from = date_to = today
+        from_day = to_day = date.today()
+
+    try:
+        amount_min = float(amount_query) if amount_query else None
+        if amount_min is not None and amount_min < 0:
+            raise ValueError("negative amount")
+    except ValueError:
+        amount_min = None
+        amount_query = ""
+
+    donations = []
+    if selected_profile:
+        profile_row = next((p for p in profiles if p["profile_key"] == selected_profile), None)
+        if profile_row:
+            audit_root = Path("logs/audit") / selected_profile / str(profile_row["mode"])
+            day = from_day
+            while day <= to_day:
+                event_file = audit_root / day.isoformat() / "events.jsonl"
+                try:
+                    with event_file.open("r", encoding="utf-8") as handle:
+                        for line in handle:
+                            try:
+                                record = json.loads(line)
+                                raw = record.get("raw") or {}
+                                if record.get("type") != "donation" and raw.get("type") != "donation":
+                                    continue
+                                sender = str(raw.get("sender") or raw.get("name") or "Аноним")
+                                amount = float(raw.get("amount") or 0)
+                                if sender_query and sender_query.casefold() not in sender.casefold():
+                                    continue
+                                if amount_min is not None and amount < amount_min:
+                                    continue
+                                donations.append({
+                                    "timestamp": record.get("ts_local") or record.get("ts_utc") or "—",
+                                    "sender": sender,
+                                    "amount": amount,
+                                    "text": str(raw.get("text") or ""),
+                                    "event_id": str(record.get("event_id") or ""),
+                                })
+                            except (ValueError, TypeError, json.JSONDecodeError):
+                                continue
+                except FileNotFoundError:
+                    pass
+                except OSError:
+                    current_app.logger.exception("Could not read donation audit file %s", event_file)
+                day += timedelta(days=1)
+
+    donations.sort(key=lambda item: item["timestamp"], reverse=True)
+    donation_count = len(donations)
+    donations = donations[:500]
 
     return render_template(
         "admin_dashboard.html",
@@ -294,8 +344,16 @@ def dashboard():
         model_count=model_count,
         profile_count=profile_count,
         unused_codes=unused_codes,
-        models=enriched_models,
+        models=models,
         codes=codes,
+        profiles=profiles,
+        selected_profile=selected_profile,
+        date_from=date_from,
+        date_to=date_to,
+        sender_query=sender_query,
+        amount_query=amount_query,
+        donations=donations,
+        donation_count=donation_count,
         csrf_token=_csrf_token(),
         flashes=[],
     )
