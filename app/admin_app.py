@@ -188,6 +188,39 @@ def create_registration_code_route():
     return redirect(url_for("admin.dashboard") + "#registration-codes")
 
 
+@admin_bp.route("/registration-codes/<int:code_id>/delete", methods=["POST"])
+@admin_required
+def delete_registration_code_route(code_id):
+    """Delete only an unused registration code; preserve used-code history."""
+    if not _valid_csrf():
+        abort(400, description="Недействительный CSRF-токен")
+
+    conn = get_connection()
+    try:
+        # Do not delete a key if it was consumed after the page was rendered.
+        cursor = conn.execute(
+            "DELETE FROM registration_codes WHERE id = ? AND used = 0",
+            (code_id,),
+        )
+        conn.commit()
+        if cursor.rowcount == 1:
+            flash("Неиспользованный регистрационный ключ удалён.", "success")
+        else:
+            flash(
+                "Ключ не удалён: он уже использован или не существует. "
+                "Использованные ключи сохраняются в истории.",
+                "error",
+            )
+    except Exception:
+        conn.rollback()
+        current_app.logger.exception("Could not delete registration code id=%s", code_id)
+        flash("Не удалось удалить ключ. Проверь журнал приложения.", "error")
+    finally:
+        conn.close()
+
+    return redirect(url_for("admin.dashboard") + "#registration-codes")
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
