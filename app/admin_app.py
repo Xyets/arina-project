@@ -13,11 +13,14 @@ import os
 import secrets
 import threading
 import time
+import json
+from datetime import datetime
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from services.database import get_connection, create_registration_code as db_create_registration_code
+from services.redis_client import redis_client
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -237,11 +240,11 @@ def dashboard():
             unused_codes = None
 
         models = conn.execute("""
-            SELECT m.id, m.username, m.display_name, m.created_at,
+            SELECT m.id, m.username, m.display_name, m.created_at, m.uid,
                    COUNT(p.id) AS profile_count
             FROM models AS m
             LEFT JOIN profiles AS p ON p.model_id = m.id
-            GROUP BY m.id, m.username, m.display_name, m.created_at
+            GROUP BY m.id, m.username, m.display_name, m.created_at, m.uid
             ORDER BY m.created_at DESC, m.id DESC
         """).fetchall()
         codes = conn.execute("""
@@ -257,13 +260,60 @@ def dashboard():
     finally:
         conn.close()
 
+    # Activity is based on the last authenticated model request, not guaranteed
+    # continuous browser presence. Lovense connection is shown separately.
+    enriched_models = []
+    now_ts = time.time()
+    for row in models:
+        model = dict(row)
+        last_seen_label = "Пока нет данных"
+        last_seen_status = "unknown"
+        try:
+            raw_seen = redis_client.hget("flowtip_model_last_seen", model["username"])
+            if isinstance(raw_seen, bytes):
+                raw_seen = raw_seen.decode("utf-8")
+            last_seen_ts = float(raw_seen) if raw_seen else None
+            if last_seen_ts:
+                age = max(0, int(now_ts - last_seen_ts))
+                last_seen_label = datetime.fromtimestamp(last_seen_ts).strftime("%Y-%m-%d %H:%M:%S")
+                last_seen_status = "recent" if age <= 300 else "old"
+        except Exception:
+            current_app.logger.exception("Could not read last activity for model %s", model.get("username"))
+        model["last_seen_label"] = last_seen_label
+        model["last_seen_status"] = last_seen_status
+
+        toy_label = "Нет данных"
+        toy_status = "unknown"
+        uid = str(model.get("uid") or "").strip()
+        if uid:
+            try:
+                raw_state = redis_client.hget("connected_users", uid)
+                if isinstance(raw_state, bytes):
+                    raw_state = raw_state.decode("utf-8")
+                state = json.loads(raw_state) if raw_state else {}
+                toys = state.get("toys", {}) if isinstance(state, dict) else {}
+                if isinstance(toys, dict):
+                    is_connected = any(
+                        isinstance(toy, dict) and str(toy.get("status", "")) == "1"
+                        for toy in toys.values()
+                    )
+                    toy_label = "Подключена" if is_connected else "Не подключена"
+                    toy_status = "connected" if is_connected else "disconnected"
+            except (ValueError, TypeError, UnicodeDecodeError):
+                toy_label = "Ошибка данных"
+            except Exception:
+                current_app.logger.exception("Could not read Lovense state for model %s", model.get("username"))
+        model["toy_label"] = toy_label
+        model["toy_status"] = toy_status
+        enriched_models.append(model)
+
     return render_template(
         "admin_dashboard.html",
         admin_username=session.get("flowtip_admin_username", "admin"),
         model_count=model_count,
         profile_count=profile_count,
         unused_codes=unused_codes,
-        models=models,
+        models=enriched_models,
         codes=codes,
         csrf_token=_csrf_token(),
         flashes=[],

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from functools import wraps
+import time
 
 from services.database import get_model_by_username, get_connection, register_model_with_code, RegistrationError
 from services.logs_service import load_logs_from_file, clear_logs_file
@@ -8,6 +9,19 @@ from services.audit import audit_event
 from services.redis_client import redis_client
 
 panel_bp = Blueprint("panel", __name__)
+
+
+@panel_bp.before_app_request
+def track_model_activity():
+    """Record latest authenticated model request without blocking app routes."""
+    username = session.get("username")
+    if not username or session.get("flowtip_admin_authenticated") is True:
+        return
+    try:
+        redis_client.hset("flowtip_model_last_seen", username, str(time.time()))
+    except Exception as exc:
+        # Activity tracking is non-critical; do not break existing model routes.
+        print(f"⚠️ Не удалось обновить активность модели: {exc}", flush=True)
 
 
 # -------------------- AUTH --------------------
