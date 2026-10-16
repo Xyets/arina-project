@@ -22,9 +22,9 @@
     <article class="card"><div class="label">Неиспользованные ключи</div><div class="value">{{ unused_codes if unused_codes is not none else '—' }}</div></article>
   </section>
 
-  <section class="card" id="models"><div class="section-head"><h2>Модели FlowTip</h2><span class="pill">Активность и подключения</span></div><p class="hint">«Недавно активна» означает, что модель отправляла авторизованный запрос в последние 5 минут. Состояние Lovense отображается отдельно и не означает, что сама модель находится онлайн.</p>
-    {% if models %}<div class="table-wrap"><table><thead><tr><th>ID</th><th>Логин</th><th>Отображаемое имя</th><th>Профили</th><th>Последняя активность</th><th>Lovense</th><th>Создана</th></tr></thead><tbody>
-    {% for model in models %}<tr><td class="muted">{{ model['id'] }}</td><td class="name">{{ model['username'] }}</td><td>{{ model['display_name'] }}</td><td>{{ model['profile_count'] }}</td><td>{% if model['last_seen_status'] == 'recent' %}<span class="status recent">Недавно активна</span>{% elif model['last_seen_status'] == 'old' %}<span class="status old">Неактивна недавно</span>{% else %}<span class="status unknown">Нет данных</span>{% endif %}<div class="muted" style="font-size:12px;margin-top:4px">{{ model['last_seen_label'] }}</div></td><td><span class="status {{ model['toy_status'] }}">{{ model['toy_label'] }}</span></td><td class="muted">{{ model['created_at'] or '—' }}</td></tr>{% endfor %}
+  <section class="card" id="models"><div class="section-head"><h2>Модели FlowTip</h2><span class="pill">Модели и подключения</span></div><p class="hint">Здесь отображаются модели, их профили и состояние подключения Lovense, если для него доступны данные.</p>
+    {% if models %}<div class="table-wrap"><table><thead><tr><th>ID</th><th>Логин</th><th>Отображаемое имя</th><th>Профили</th><th>Lovense</th><th>Создана</th></tr></thead><tbody>
+    {% for model in models %}<tr><td class="muted">{{ model['id'] }}</td><td class="name">{{ model['username'] }}</td><td>{{ model['display_name'] }}</td><td>{{ model['profile_count'] }}</td><td><span class="status {{ model['toy_status'] }}">{{ model['toy_label'] }}</span></td><td class="muted">{{ model['created_at'] or '—' }}</td></tr>{% endfor %}
     </tbody></table></div>{% else %}<div class="empty">В базе пока нет моделей.</div>{% endif %}
   </section>
 
@@ -50,7 +50,7 @@
   </section>
 
   <section class="card"><div class="section-head"><h2>Следующие модули</h2><span class="pill">В плане</span></div>
-    <div class="todo"><span class="dot"></span><div><strong>Активность моделей</strong><div class="sub">Добавлено: последнее обращение к панели и отдельный статус подключения Lovense.</div></div></div>
+    
     <div class="todo"><span class="dot"></span><div><strong>Журнал донатов</strong><div class="sub">Поиск по модели, профилю, дате, отправителю и сумме.</div></div></div>
     <div class="todo"><span class="dot"></span><div><strong>Статистика и корректировки</strong><div class="sub">Исключение ошибочных записей с пересчётом агрегатов без повторного запуска действий OBS.</div></div></div>
     <div class="todo"><span class="dot"></span><div><strong>Состояние системы и обращения</strong><div class="sub">Ошибки, сообщения моделей и предложения по улучшению.</div></div></div>

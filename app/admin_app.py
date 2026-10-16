@@ -14,7 +14,6 @@ import secrets
 import threading
 import time
 import json
-from datetime import datetime
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
@@ -260,27 +259,9 @@ def dashboard():
     finally:
         conn.close()
 
-    # Activity is based on the last authenticated model request, not guaranteed
-    # continuous browser presence. Lovense connection is shown separately.
     enriched_models = []
-    now_ts = time.time()
     for row in models:
         model = dict(row)
-        last_seen_label = "Пока нет данных"
-        last_seen_status = "unknown"
-        try:
-            raw_seen = redis_client.hget("flowtip_model_last_seen", model["username"])
-            if isinstance(raw_seen, bytes):
-                raw_seen = raw_seen.decode("utf-8")
-            last_seen_ts = float(raw_seen) if raw_seen else None
-            if last_seen_ts:
-                age = max(0, int(now_ts - last_seen_ts))
-                last_seen_label = datetime.fromtimestamp(last_seen_ts).strftime("%Y-%m-%d %H:%M:%S")
-                last_seen_status = "recent" if age <= 300 else "old"
-        except Exception:
-            current_app.logger.exception("Could not read last activity for model %s", model.get("username"))
-        model["last_seen_label"] = last_seen_label
-        model["last_seen_status"] = last_seen_status
 
         toy_label = "Нет данных"
         toy_status = "unknown"
