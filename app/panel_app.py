@@ -46,6 +46,9 @@ def login():
             return render_template("login_beta.html", error="Неверный логин или пароль")
 
 
+        # Постоянная сессия: срок жизни задаётся в main.py (12 часов).
+        # Flask обновляет срок cookie при последующих запросах.
+        session.permanent = True
         session["user_id"] = model["id"]
         session["username"] = model["username"]
         session["mode"] = "private"

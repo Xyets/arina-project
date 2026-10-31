@@ -28,7 +28,8 @@ def create_app():
         SESSION_COOKIE_SECURE=os.environ.get("FLOWTIP_COOKIE_SECURE", "true").lower() in ("1", "true", "yes", "on"),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        PERMANENT_SESSION_LIFETIME=1800,
+        PERMANENT_SESSION_LIFETIME=12 * 60 * 60,
+        SESSION_REFRESH_EACH_REQUEST=True,
     )
     CORS(app)
 
