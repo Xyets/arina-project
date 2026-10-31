@@ -23,7 +23,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from services.database import get_connection, create_registration_code as db_create_registration_code
-from services.logs_service import add_error_log, load_error_logs
+from services.logs_service import install_error_log_handler, load_error_logs
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -96,24 +96,10 @@ def _clear_failures(key):
         _ATTEMPTS.pop(key, None)
 
 
-class _FlowTipErrorHandler(__import__("logging").Handler):
-    """Writes application errors to a separate, bounded diagnostic file."""
-    def emit(self, record):
-        try:
-            message = self.format(record)
-            add_error_log(record.levelname, message)
-        except Exception:
-            self.handleError(record)
-
-
 def _ensure_error_log_handler(app):
-    # Attach once per Flask app instance, not once per request.
-    if not getattr(app, "_flowtip_error_handler_installed", False):
-        import logging
-        handler = _FlowTipErrorHandler(level=logging.ERROR)
-        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
-        app.logger.addHandler(handler)
-        app._flowtip_error_handler_installed = True
+    # Один общий обработчик собирает ERROR+ из Flask и модулей services.
+    install_error_log_handler()
+    app._flowtip_error_handler_installed = True
 
 
 def _check_tcp_service(host, port, timeout=0.6):

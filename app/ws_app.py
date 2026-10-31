@@ -11,12 +11,15 @@ import json
 import websockets
 import aiohttp
 from services.vip_service import update_vip
-from services.logs_service import add_log
+from services.logs_service import add_log, install_error_log_handler
 from services.lovense_service import send_vibration_cloud_async
 from services.database import get_profile_by_key
 from services.vibration_manager import vibration_queues, stop_events, ensure_profile
 from services.redis_client import redis_client
 from services.vibration_manager import init_vibration_queues
+
+# WS runs separately from Flask; install the same diagnostic handler in this process.
+install_error_log_handler()
 
 # ---------------- ГЛОБАЛЬНЫЕ СТРУКТУРЫ ----------------
 

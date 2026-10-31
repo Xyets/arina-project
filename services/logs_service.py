@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import List
+from typing import List, Optional
+import logging
+import threading
 
 LOG_DIR = Path("data/donations")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -75,28 +77,39 @@ def clear_logs_file(profile_key: str) -> None:
 # Отдельный журнал ошибок приложения. Не смешивается с журналом донатов.
 ERROR_LOG_PATH = Path("data/admin_errors.log")
 _ERROR_LOG_LIMIT = 2000
+_ERROR_LOG_LOCK = threading.Lock()
 
-def add_error_log(level: str, message: str) -> None:
-    """Сохраняет сообщение приложения в отдельный журнал диагностики."""
+
+def add_error_log(level: str, message: str, component: str = "application") -> None:
+    """Сохраняет диагностическое событие, не позволяя сбою логирования ломать приложение."""
     try:
         ERROR_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         safe_level = str(level or "ERROR").upper()[:12]
-        # Each event is one line so the admin page can safely read the tail.
-        entry = f"{ts} | {safe_level} | {str(message).replace(chr(10), ' | ').replace(chr(13), ' ')}\n"
-        with ERROR_LOG_PATH.open("a", encoding="utf-8") as handle:
-            handle.write(entry)
-        # Keep the file bounded; this is diagnostic logging, not an archive.
-        try:
-            lines = ERROR_LOG_PATH.read_text(encoding="utf-8").splitlines()
-            if len(lines) > _ERROR_LOG_LIMIT:
-                tmp = ERROR_LOG_PATH.with_suffix(".tmp")
-                tmp.write_text("\n".join(lines[-_ERROR_LOG_LIMIT:]) + "\n", encoding="utf-8")
-                os.replace(tmp, ERROR_LOG_PATH)
-        except OSError:
-            pass
+        safe_component = str(component or "application").replace("\n", " ").replace("\r", " ")[:80]
+        safe_message = str(message).replace("\r", " ").replace("\n", " | ")
+        entry = f"{ts} | {safe_level} | {safe_component} | {safe_message}\n"
+
+        # Защищаем запись от одновременных событий внутри одного процесса.
+        with _ERROR_LOG_LOCK:
+            with ERROR_LOG_PATH.open("a", encoding="utf-8") as handle:
+                handle.write(entry)
+            try:
+                lines = ERROR_LOG_PATH.read_text(encoding="utf-8", errors="replace").splitlines()
+                if len(lines) > _ERROR_LOG_LIMIT:
+                    tmp = ERROR_LOG_PATH.with_suffix(".tmp")
+                    tmp.write_text("\n".join(lines[-_ERROR_LOG_LIMIT:]) + "\n", encoding="utf-8")
+                    os.replace(tmp, ERROR_LOG_PATH)
+            except OSError:
+                # Ошибка ротации не должна прерывать основную работу приложения.
+                pass
     except Exception as exc:
-        print(f"FlowTip error-log write failed: {exc}")
+        # Последний резервный путь; не вызываем logging отсюда, чтобы избежать рекурсии.
+        try:
+            print(f"FlowTip error-log write failed: {type(exc).__name__}")
+        except Exception:
+            pass
+
 
 def load_error_logs(limit: int = 100):
     """Возвращает последние строки журнала ошибок (новые сверху)."""
@@ -107,3 +120,43 @@ def load_error_logs(limit: int = 100):
         return list(reversed(lines[-max(1, min(int(limit), 300)):]))
     except OSError:
         return []
+
+
+class _FlowTipFileLogHandler(logging.Handler):
+    """Перенаправляет ERROR+ из стандартного logging в отдельный журнал FlowTip."""
+    def emit(self, record):
+        try:
+            message = self.format(record)
+            add_error_log(record.levelname, message, component=record.name)
+        except Exception:
+            # Не позволяем ошибке диагностического обработчика сорвать запрос/worker.
+            pass
+
+
+_HANDLER_LOCK = threading.Lock()
+
+
+def install_error_log_handler(logger=None) -> bool:
+    """Устанавливает единый обработчик один раз на указанный logger (по умолчанию root)."""
+    target = logger or logging.getLogger()
+    with _HANDLER_LOCK:
+        for handler in target.handlers:
+            if getattr(handler, "_flowtip_error_log_handler", False):
+                return False
+        handler = _FlowTipFileLogHandler(level=logging.ERROR)
+        handler._flowtip_error_log_handler = True
+        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        target.addHandler(handler)
+        return True
+
+
+def log_exception(component: str, message: str, exc: Optional[BaseException] = None) -> None:
+    """Явная запись исключения, включая traceback, для мест без настроенного logger."""
+    try:
+        if exc is None:
+            import sys
+            exc = sys.exc_info()[1]
+        details = f"{message}: {type(exc).__name__}: {exc}" if exc else message
+        add_error_log("ERROR", details, component=component)
+    except Exception:
+        pass
