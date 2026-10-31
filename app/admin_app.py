@@ -128,7 +128,7 @@ def _monitoring_snapshot(app):
     checks = [{"name": "Flask / админ-панель", "ok": True, "detail": "Текущий запрос успешно обработан"}]
     # Redis ping is read-only; it does not change keys or donation data.
     try:
-        from redis_client import redis_client
+        from services.redis_client import redis_client
         redis_client.ping()
         checks.append({"name": "Redis", "ok": True, "detail": "Ответ получен"})
     except Exception as exc:
