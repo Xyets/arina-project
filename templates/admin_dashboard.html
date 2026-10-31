@@ -4,7 +4,34 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow"><title>FlowTip Admin</title>
   <style>
-    :root{color-scheme:dark;--pink:#f4a7d3;--mint:#aee6e6;--ink:#f9f6fc;--muted:#bcb4c8;--panel:rgba(29,22,42,.78);--line:rgba(255,255,255,.12);--green:#a8e8c1;--red:#ffb7c5}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0,rgba(244,167,211,.17),transparent 32%),radial-gradient(ellipse at 95% 90%,rgba(174,230,230,.13),transparent 32%),#100d18;color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:30px}.brand{display:flex;align-items:center;gap:12px}.mark{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,var(--pink),var(--mint));color:#25182a;font-weight:900;font-size:21px}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);font-weight:700}h1{margin:0;font-size:26px}h2{font-size:17px;margin:0}.sub{color:var(--muted);margin-top:3px}.logout,.btn{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}.logout:hover,.btn:hover{border-color:var(--pink)}.btn.primary{background:linear-gradient(135deg,#f4a7d3,#aee6e6);color:#25182a;border:0;font-weight:750}.btn.small{padding:6px 10px;font-size:12px}.btn.danger{border-color:#ffb7c566;color:var(--red)}.btn.danger:hover{background:#ffb7c51a;border-color:var(--red)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 24px}.card{border:1px solid var(--line);border-radius:19px;background:var(--panel);padding:20px;box-shadow:0 18px 50px #0002;backdrop-filter:blur(16px);margin-bottom:20px}.label{color:var(--muted);font-size:13px}.value{font-size:31px;font-weight:750;letter-spacing:-.04em;margin-top:6px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:17px}.pill{font-size:11px;border:1px solid #aee6e655;color:var(--mint);border-radius:999px;padding:4px 9px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:13px 12px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px;font-weight:600}tbody tr:last-child td{border-bottom:0}.name{font-weight:650}.muted{color:var(--muted)}.empty{color:var(--muted);padding:18px 0}.todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}.todo:last-child{border:0}.dot{width:8px;height:8px;border-radius:50%;background:var(--pink);margin-top:7px;flex:none}.flash{padding:12px 14px;border-radius:12px;margin:0 0 14px;border:1px solid var(--line);overflow-wrap:anywhere}.flash.success{border-color:#a8e8c155;color:var(--green)}.flash.error{border-color:#ffb7c555;color:var(--red)}.create-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.hint{color:var(--muted);font-size:12px;margin:10px 0 0}.status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:12px}.status.used{background:#aee6e61a;color:var(--mint)}.status.unused{background:#a8e8c11a;color:var(--green)}.status.recent{background:#a8e8c11a;color:var(--green)}.status.old{background:#ffffff0d;color:var(--muted)}.status.connected{background:#a8e8c11a;color:var(--green)}.status.disconnected{background:#ffb7c51a;color:var(--red)}.status.unknown{background:#ffffff0d;color:var(--muted)}.code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.04em}.stat{color:var(--muted)}input,select{background:#171222;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;max-width:100%;margin-top:5px}label{color:var(--muted);font-size:12px}@media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:20px 14px 40px}.card{padding:16px}h1{font-size:23px}th,td{padding:10px 8px}}
+    :root{color-scheme:dark;--pink:#f4a7d3;--mint:#aee6e6;--ink:#f9f6fc;--muted:#bcb4c8;--panel:rgba(29,22,42,.78);--line:rgba(255,255,255,.12);--green:#a8e8c1;--red:#ffb7c5}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0,rgba(244,167,211,.17),transparent 32%),radial-gradient(ellipse at 95% 90%,rgba(174,230,230,.13),transparent 32%),#100d18;color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:30px}.brand{display:flex;align-items:center;gap:12px}.mark{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,var(--pink),var(--mint));color:#25182a;font-weight:900;font-size:21px}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);font-weight:700}h1{margin:0;font-size:26px}h2{font-size:17px;margin:0}.sub{color:var(--muted);margin-top:3px}.logout,.btn{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}.logout:hover,.btn:hover{border-color:var(--pink)}.btn.primary{background:linear-gradient(135deg,#f4a7d3,#aee6e6);color:#25182a;border:0;font-weight:750}.btn.small{padding:6px 10px;font-size:12px}.btn.danger{border-color:#ffb7c566;color:var(--red)}.btn.danger:hover{background:#ffb7c51a;border-color:var(--red)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 24px}.card{border:1px solid var(--line);border-radius:19px;background:var(--panel);padding:20px;box-shadow:0 18px 50px #0002;backdrop-filter:blur(16px);margin-bottom:20px}.label{color:var(--muted);font-size:13px}.value{font-size:31px;font-weight:750;letter-spacing:-.04em;margin-top:6px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:17px}.pill{font-size:11px;border:1px solid #aee6e655;color:var(--mint);border-radius:999px;padding:4px 9px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:13px 12px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px;font-weight:600}tbody tr:last-child td{border-bottom:0}.name{font-weight:650}.muted{color:var(--muted)}.empty{color:var(--muted);padding:18px 0}.todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}.todo:last-child{border:0}.dot{width:8px;height:8px;border-radius:50%;background:var(--pink);margin-top:7px;flex:none}.flash{padding:12px 14px;border-radius:12px;margin:0 0 14px;border:1px solid var(--line);overflow-wrap:anywhere}.flash.success{border-color:#a8e8c155;color:var(--green)}.flash.error{border-color:#ffb7c555;color:var(--red)}.create-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.hint{color:var(--muted);font-size:12px;margin:10px 0 0}.status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:12px}.status.used{background:#aee6e61a;color:var(--mint)}.status.unused{background:#a8e8c11a;color:var(--green)}.status.recent{background:#a8e8c11a;color:var(--green)}.status.old{background:#ffffff0d;color:var(--muted)}.status.connected{background:#a8e8c11a;color:var(--green)}.status.disconnected{background:#ffb7c51a;color:var(--red)}.status.unknown{background:#ffffff0d;color:var(--muted)}.code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.04em}.stat{color:var(--muted)}input,select{background:#171222;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;max-width:100%;margin-top:5px}label{color:var(--muted);font-size:12px}
+    /* Donation journal: compact controls that stay inside the table cell. */
+    #donation-journal .journal-table { table-layout: auto; }
+    #donation-journal .journal-table th,
+    #donation-journal .journal-table td { vertical-align: middle; }
+    #donation-journal .journal-actions { min-width: 250px; width: 270px; white-space: normal; }
+    #donation-journal .journal-actions details { width: 100%; }
+    #donation-journal .journal-actions summary { list-style: none; width: fit-content; cursor: pointer; }
+    #donation-journal .journal-actions summary::-webkit-details-marker { display: none; }
+    #donation-journal .journal-edit-form { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; width: 100%; max-width: 260px; padding: 12px 0 4px; }
+    #donation-journal .journal-edit-form label,
+    #donation-journal .journal-exclude-form label { display: block; min-width: 0; }
+    #donation-journal .journal-edit-form input,
+    #donation-journal .journal-edit-form select,
+    #donation-journal .journal-exclude-form select { display: block; width: 100%; min-width: 0; }
+    #donation-journal .journal-edit-form .hint { white-space: normal; overflow-wrap: anywhere; margin: 0; }
+    #donation-journal .journal-edit-form button,
+    #donation-journal .journal-exclude-form button { width: fit-content; max-width: 100%; white-space: normal; }
+    #donation-journal .journal-exclude-form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 8px; max-width: 260px; }
+    #donation-journal .journal-exclude-form select { max-width: 100%; }
+    #donation-journal .journal-table td:nth-child(2) { white-space: normal; min-width: 100px; }
+    #donation-journal .journal-table td:nth-child(4) { white-space: normal; min-width: 120px; }
+    @media(max-width:900px) {
+      #donation-journal .journal-actions { min-width: 230px; width: 230px; }
+      #donation-journal .journal-edit-form, #donation-journal .journal-exclude-form { max-width: 220px; }
+    }
+    
+    @media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:20px 14px 40px}.card{padding:16px}h1{font-size:23px}th,td{padding:10px 8px}}
   </style>
 </head>
 <body><main class="wrap">
@@ -65,7 +92,7 @@
     </form>
     <p class="hint">Журнал показывает тип действия, а не текст сообщения. Исправление суммы или категории обновляет дневную статистику; исключение убирает запись из текущей статистики, сохраняя исходное событие в аудите. Максимум 500 строк на экране.</p>
     {% if donations %}
-      <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Дата и время</th><th>Отправитель</th><th>Сумма</th><th>Действие</th><th>ID события</th><th>Управление</th></tr></thead><tbody>
+      <div class="table-wrap" style="margin-top:14px"><table class="journal-table"><thead><tr><th>Дата и время</th><th>Отправитель</th><th>Сумма</th><th>Действие</th><th>ID события</th><th>Управление</th></tr></thead><tbody>
       {% for donation in donations %}
         <tr>
           <td class="muted">{{ donation['timestamp'] }}</td>
@@ -73,10 +100,10 @@
           <td>{{ '%.2f'|format(donation['amount']) }}</td>
           <td>{{ donation['action_label'] }}</td>
           <td class="code muted" style="font-size:11px">{{ donation['event_id'][:8] or '—' }}</td>
-          <td>
+          <td class="journal-actions">
             <details>
               <summary class="btn small">Исправить</summary>
-              <form method="post" action="{{ url_for('admin.edit_donation_route', profile_key=selected_profile, day_string=donation['day'], event_id=donation['event_id']) }}" style="display:grid;gap:7px;padding:10px;min-width:220px">
+              <form class="journal-edit-form" method="post" action="{{ url_for('admin.edit_donation_route', profile_key=selected_profile, day_string=donation['day'], event_id=donation['event_id']) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 {% if donation['category'] == 'unknown' %}
                 <label>Сейчас учтено как<br><select name="old_category" required>
@@ -94,7 +121,7 @@
                 </select></label>
                 <button class="btn primary small" type="submit">Сохранить</button>
               </form>
-              <form method="post" action="{{ url_for('admin.exclude_donation_route', profile_key=selected_profile, day_string=donation['day'], event_id=donation['event_id']) }}" onsubmit="return confirm('Исключить донат из статистики? Запись аудита останется.');" style="margin-top:6px">
+              <form class="journal-exclude-form" method="post" action="{{ url_for('admin.exclude_donation_route', profile_key=selected_profile, day_string=donation['day'], event_id=donation['event_id']) }}" onsubmit="return confirm('Исключить донат из статистики? Запись аудита останется.');" style="margin-top:6px">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 {% if donation['category'] == 'unknown' %}
                 <label>Сейчас учтено как<br><select name="old_category" required>

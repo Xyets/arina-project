@@ -91,7 +91,21 @@ def handle_donation(profile_key, user_id, name, amount, text):
     else:
         add_log(profile_key, f"💸 | {name} → {amount} 🍀 Без действия")
 
-    # 3. Аудит
+    # 3. Аудит: сохраняем категорию тем же способом, что и статистика.
+    # Благодаря этому админ-журнал сможет показывать тип новых донатов.
+    if rule_result and rule_result["kind"] == "wheel":
+        donation_category = "wheel"
+        donation_action_label = "Колесо фортуны"
+    elif rule_result and rule_result["kind"] == "action":
+        donation_category = "actions"
+        donation_action_label = "Действие"
+    elif rule_result and rule_result["kind"] == "vibration":
+        donation_category = "vibrations"
+        donation_action_label = "Вибрация"
+    else:
+        donation_category = "other"
+        donation_action_label = "Обычный донат"
+
     audit_event(
         profile_key,
         mode,
@@ -100,6 +114,8 @@ def handle_donation(profile_key, user_id, name, amount, text):
             "amount": amount,
             "sender": name,
             "text": text,
+            "category": donation_category,
+            "action_label": donation_action_label,
         },
     )
 
