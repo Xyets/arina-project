@@ -13,9 +13,11 @@ import os
 import secrets
 import threading
 import json
+import time
+import math
 from datetime import datetime, date, timedelta
 from pathlib import Path
-import time
+
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
@@ -223,6 +225,286 @@ def delete_registration_code_route(code_id):
     return redirect(url_for("admin.dashboard") + "#registration-codes")
 
 
+
+_ADMIN_ADJUSTMENTS_ROOT = Path("data/admin_donation_adjustments")
+_ALLOWED_CATEGORIES = {"vibrations", "actions", "wheel", "other"}
+_CATEGORY_LABELS = {
+    "vibrations": "Вибрация",
+    "actions": "Действие",
+    "wheel": "Колесо фортуны",
+    "other": "Обычный донат",
+}
+
+
+def _adjustments_path(profile_key):
+    return _ADMIN_ADJUSTMENTS_ROOT / f"{profile_key}.json"
+
+
+def _load_adjustments(profile_key):
+    path = _adjustments_path(profile_key)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        current_app.logger.exception("Could not read donation adjustments for %s", profile_key)
+        return {}
+
+
+def _save_adjustments(profile_key, adjustments):
+    path = _adjustments_path(profile_key)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    with tmp.open("w", encoding="utf-8") as handle:
+        json.dump(adjustments, handle, ensure_ascii=False, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+
+
+def _append_adjustment_history(profile_key, entry):
+    path = _ADMIN_ADJUSTMENTS_ROOT / f"{profile_key}_history.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _atomic_json_write(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+
+
+def _recalculate_period_summary(period, profile_key):
+    """Rebuild archived totals from its daily rows after an admin correction."""
+    days = period.get("days") or {}
+    for data in days.values():
+        for key in _ALLOWED_CATEGORIES:
+            data[key] = float(data.get(key, 0.0) or 0.0)
+        data["total"] = sum(data[key] for key in _ALLOWED_CATEGORIES)
+
+    total_vibr = sum(float(d.get("vibrations", 0.0)) for d in days.values())
+    total_actions = sum(float(d.get("actions", 0.0)) for d in days.values())
+    total_wheel = sum(float(d.get("wheel", 0.0)) for d in days.values())
+    total_other = sum(float(d.get("other", 0.0)) for d in days.values())
+    total_points = sum(float(d.get("total", 0.0)) for d in days.values())
+    admin_fee = (total_vibr + total_wheel) * 0.7 * 0.1 if profile_key.split("_")[0].lower() == "irina" else 0.0
+
+    period["vibrations"] = total_vibr
+    period["actions"] = total_actions
+    period["wheel"] = total_wheel
+    period["other"] = total_other
+    period["total_points"] = total_points
+    # Keep the legacy field name used by existing archive templates.
+    period["archi_fee"] = admin_fee
+    period["admin_fee"] = admin_fee
+    period["total_income"] = total_points * 0.7 - admin_fee
+    period["days"] = days
+
+
+def _change_stats_or_archive(profile_key, day_string, category, delta):
+    """Apply a category delta to an open day or a day inside a closed archive period."""
+    if category not in _ALLOWED_CATEGORIES or abs(delta) < 1e-9:
+        return
+
+    stats_path = Path("data/stats") / f"stats_{profile_key}.json"
+    if stats_path.exists():
+        try:
+            stats = json.loads(stats_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Не удалось прочитать текущую статистику.") from exc
+        if day_string in stats:
+            day = stats[day_string]
+            for key in (*_ALLOWED_CATEGORIES, "donations_sum"):
+                day.setdefault(key, 0.0)
+            day[category] = max(0.0, float(day.get(category, 0.0)) + delta)
+            day["total"] = sum(float(day.get(key, 0.0)) for key in _ALLOWED_CATEGORIES)
+            _atomic_json_write(stats_path, stats)
+            return
+
+    archive_path = Path("data/stats") / f"stats_archive_{profile_key}.json"
+    if archive_path.exists():
+        try:
+            archive = json.loads(archive_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Не удалось прочитать архив статистики.") from exc
+        matched_periods = []
+        for period in archive.get("periods", []):
+            days = period.get("days") or {}
+            if day_string not in days:
+                continue
+            day = days[day_string]
+            for key in _ALLOWED_CATEGORIES:
+                day.setdefault(key, 0.0)
+            day[category] = max(0.0, float(day.get(category, 0.0)) + delta)
+            day["total"] = sum(float(day.get(key, 0.0)) for key in _ALLOWED_CATEGORIES)
+            _recalculate_period_summary(period, profile_key)
+            matched_periods.append(period)
+        if matched_periods:
+            _atomic_json_write(archive_path, archive)
+            return
+
+    raise RuntimeError("Дата не найдена ни в текущей статистике, ни в архиве. Изменение отменено.")
+
+
+def _find_audit_donation(profile_key, mode, event_id, day_string):
+    path = Path("logs/audit") / profile_key / str(mode) / day_string / "events.jsonl"
+    if not path.exists():
+        return None
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            raw = record.get("raw") or {}
+            if str(record.get("event_id") or "") == event_id and (
+                record.get("type") == "donation" or raw.get("type") == "donation"
+            ):
+                return record
+    return None
+
+
+@admin_bp.route("/donations/<profile_key>/<day_string>/<event_id>/edit", methods=["POST"])
+@admin_required
+def edit_donation_route(profile_key, day_string, event_id):
+    if not _valid_csrf():
+        abort(400, description="Недействительный CSRF-токен")
+    try:
+        date.fromisoformat(day_string)
+        new_amount = float(request.form.get("amount", ""))
+        category = request.form.get("category", "")
+        if not math.isfinite(new_amount) or new_amount < 0 or category not in _ALLOWED_CATEGORIES:
+            raise ValueError
+    except (ValueError, TypeError):
+        flash("Укажи корректную неотрицательную сумму и тип действия.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+    conn = get_connection()
+    try:
+        profile_row = conn.execute("SELECT profile_key, mode FROM profiles WHERE profile_key = ?", (profile_key,)).fetchone()
+    finally:
+        conn.close()
+    if not profile_row:
+        abort(404)
+    record = _find_audit_donation(profile_key, profile_row["mode"], event_id, day_string)
+    if not record:
+        flash("Запись не найдена в аудите за указанную дату.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+    raw = record.get("raw") or {}
+    original_amount = float(raw.get("amount") or 0)
+    adjustments = _load_adjustments(profile_key)
+    old = adjustments.get(event_id, {})
+    old_effective = 0.0 if old.get("excluded") else float(old.get("amount", original_amount))
+    old_category = old.get("category") or raw.get("category") or request.form.get("old_category") or category
+    if old_category not in _ALLOWED_CATEGORIES:
+        flash("Для старого события выбери категорию, в которой сумма сейчас учтена.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+    new_effective = 0.0 if old.get("excluded") else new_amount
+    try:
+        _change_stats_or_archive(profile_key, day_string, old_category, -old_effective)
+        _change_stats_or_archive(profile_key, day_string, category, new_effective)
+    except Exception:
+        current_app.logger.exception("Could not update stats for donation %s", event_id)
+        # Best-effort rollback to previous aggregate state.
+        try:
+            _change_stats_or_archive(profile_key, day_string, old_category, old_effective)
+            _change_stats_or_archive(profile_key, day_string, category, -new_effective)
+        except Exception:
+            current_app.logger.exception("Could not roll back stats for donation %s", event_id)
+        flash("Не удалось изменить статистику. Проверь журнал приложения.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+    adjustments[event_id] = {
+        "amount": new_amount,
+        "category": category,
+        "action_label": (
+            (raw.get("action_label") or _CATEGORY_LABELS[category])
+            if (raw.get("category") == category or old.get("category") == category)
+            else _CATEGORY_LABELS[category]
+        ),
+        "excluded": bool(old.get("excluded", False)),
+        "original_amount": float(old.get("original_amount", original_amount)),
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_by": session.get("flowtip_admin_username", "admin"),
+    }
+    _save_adjustments(profile_key, adjustments)
+    _append_adjustment_history(profile_key, {
+        "event_id": event_id, "day": day_string, "operation": "edit",
+        "before_amount": original_amount, "after_amount": new_amount,
+        "before_category": old_category, "after_category": category,
+        "excluded": bool(old.get("excluded", False)),
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_by": session.get("flowtip_admin_username", "admin"),
+    })
+    flash("Донат исправлен; дневная статистика обновлена.", "success")
+    return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+
+@admin_bp.route("/donations/<profile_key>/<day_string>/<event_id>/exclude", methods=["POST"])
+@admin_required
+def exclude_donation_route(profile_key, day_string, event_id):
+    if not _valid_csrf():
+        abort(400, description="Недействительный CSRF-токен")
+    try:
+        date.fromisoformat(day_string)
+    except ValueError:
+        abort(400)
+    conn = get_connection()
+    try:
+        profile_row = conn.execute("SELECT profile_key, mode FROM profiles WHERE profile_key = ?", (profile_key,)).fetchone()
+    finally:
+        conn.close()
+    if not profile_row:
+        abort(404)
+    record = _find_audit_donation(profile_key, profile_row["mode"], event_id, day_string)
+    if not record:
+        flash("Запись не найдена в аудите за указанную дату.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+    raw = record.get("raw") or {}
+    adjustments = _load_adjustments(profile_key)
+    old = adjustments.get(event_id, {})
+    if old.get("excluded"):
+        flash("Этот донат уже исключён из статистики.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+    amount = float(old.get("amount", raw.get("amount") or 0))
+    category = old.get("category") or raw.get("category") or request.form.get("old_category", "")
+    if category not in _ALLOWED_CATEGORIES:
+        flash("Для старого события укажи, в какую категорию оно сейчас включено в статистике.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+    try:
+        _change_stats_or_archive(profile_key, day_string, category, -amount)
+    except Exception:
+        current_app.logger.exception("Could not exclude donation %s", event_id)
+        flash("Не удалось скорректировать статистику. Проверь журнал приложения.", "error")
+        return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+    adjustments[event_id] = {
+        "amount": float(old.get("amount", raw.get("amount") or 0)),
+        "category": category,
+        "excluded": True,
+        "original_amount": float(old.get("original_amount", raw.get("amount") or 0)),
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_by": session.get("flowtip_admin_username", "admin"),
+    }
+    _save_adjustments(profile_key, adjustments)
+    _append_adjustment_history(profile_key, {
+        "event_id": event_id, "day": day_string, "operation": "exclude",
+        "amount": amount, "category": category,
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_by": session.get("flowtip_admin_username", "admin"),
+    })
+    flash("Донат исключён из дневной статистики; запись сохранена в аудите.", "success")
+    return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
@@ -298,6 +580,7 @@ def dashboard():
         amount_query = ""
 
     donations = []
+    adjustments = _load_adjustments(selected_profile) if selected_profile else {}
     if selected_profile:
         profile_row = next((p for p in profiles if p["profile_key"] == selected_profile), None)
         if profile_row:
@@ -317,14 +600,25 @@ def dashboard():
                                 amount = float(raw.get("amount") or 0)
                                 if sender_query and sender_query.casefold() not in sender.casefold():
                                     continue
+                                event_id = str(record.get("event_id") or "")
+                                adjustment = adjustments.get(event_id, {})
+                                if adjustment.get("excluded"):
+                                    continue
+                                amount = float(adjustment.get("amount", amount))
                                 if amount_min is not None and amount < amount_min:
                                     continue
+                                category = adjustment.get("category") or raw.get("category") or "unknown"
+                                action_label = adjustment.get("action_label") or raw.get("action_label") or ("Тип не записан" if category == "unknown" else _CATEGORY_LABELS.get(category, "Обычный донат"))
+                                timestamp = record.get("ts_local") or record.get("ts_utc") or "—"
                                 donations.append({
-                                    "timestamp": record.get("ts_local") or record.get("ts_utc") or "—",
+                                    "timestamp": timestamp,
+                                    "day": timestamp[:10],
                                     "sender": sender,
                                     "amount": amount,
-                                    "text": str(raw.get("text") or ""),
-                                    "event_id": str(record.get("event_id") or ""),
+                                    "category": category,
+                                    "action_label": action_label,
+                                    "event_id": event_id,
+                                    "excluded": False,
                                 })
                             except (ValueError, TypeError, json.JSONDecodeError):
                                 continue
