@@ -14,6 +14,7 @@ import secrets
 import threading
 import json
 import time
+import socket
 import math
 from datetime import datetime, date, timedelta
 from pathlib import Path
@@ -22,6 +23,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from services.database import get_connection, create_registration_code as db_create_registration_code
+from services.logs_service import add_error_log, load_error_logs
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -92,6 +94,48 @@ def _record_failure(key):
 def _clear_failures(key):
     with _ATTEMPTS_LOCK:
         _ATTEMPTS.pop(key, None)
+
+
+class _FlowTipErrorHandler(__import__("logging").Handler):
+    """Writes application errors to a separate, bounded diagnostic file."""
+    def emit(self, record):
+        try:
+            message = self.format(record)
+            add_error_log(record.levelname, message)
+        except Exception:
+            self.handleError(record)
+
+
+def _ensure_error_log_handler(app):
+    # Attach once per Flask app instance, not once per request.
+    if not getattr(app, "_flowtip_error_handler_installed", False):
+        import logging
+        handler = _FlowTipErrorHandler(level=logging.ERROR)
+        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        app.logger.addHandler(handler)
+        app._flowtip_error_handler_installed = True
+
+
+def _check_tcp_service(host, port, timeout=0.6):
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+def _monitoring_snapshot(app):
+    _ensure_error_log_handler(app)
+    checks = [{"name": "Flask / админ-панель", "ok": True, "detail": "Текущий запрос успешно обработан"}]
+    # Redis ping is read-only; it does not change keys or donation data.
+    try:
+        from redis_client import redis_client
+        redis_client.ping()
+        checks.append({"name": "Redis", "ok": True, "detail": "Ответ получен"})
+    except Exception as exc:
+        checks.append({"name": "Redis", "ok": False, "detail": f"Нет ответа ({type(exc).__name__})"})
+    ws_ok = _check_tcp_service("127.0.0.1", 8765)
+    checks.append({"name": "WebSocket :8765", "ok": ws_ok, "detail": "Порт принимает соединения" if ws_ok else "Нет соединения на 127.0.0.1:8765"})
+    return checks, load_error_logs(100)
 
 
 def admin_required(view):
@@ -508,6 +552,8 @@ def exclude_donation_route(profile_key, day_string, event_id):
 @admin_bp.route("/")
 @admin_required
 def dashboard():
+    _ensure_error_log_handler(current_app)
+    monitoring_checks, recent_errors = _monitoring_snapshot(current_app)
     conn = get_connection()
     try:
         model_count = conn.execute("SELECT COUNT(*) FROM models").fetchone()[0]
@@ -650,4 +696,6 @@ def dashboard():
         donation_count=donation_count,
         csrf_token=_csrf_token(),
         flashes=[],
+        monitoring_checks=monitoring_checks,
+        recent_errors=recent_errors,
     )

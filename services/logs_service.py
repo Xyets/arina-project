@@ -70,3 +70,40 @@ def clear_logs_file(profile_key: str) -> None:
 
     except Exception as e:
         print(f"⚠️ Ошибка очистки лога {path}: {e}")
+
+
+# Отдельный журнал ошибок приложения. Не смешивается с журналом донатов.
+ERROR_LOG_PATH = Path("data/admin_errors.log")
+_ERROR_LOG_LIMIT = 2000
+
+def add_error_log(level: str, message: str) -> None:
+    """Сохраняет сообщение приложения в отдельный журнал диагностики."""
+    try:
+        ERROR_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        safe_level = str(level or "ERROR").upper()[:12]
+        # Each event is one line so the admin page can safely read the tail.
+        entry = f"{ts} | {safe_level} | {str(message).replace(chr(10), ' | ').replace(chr(13), ' ')}\n"
+        with ERROR_LOG_PATH.open("a", encoding="utf-8") as handle:
+            handle.write(entry)
+        # Keep the file bounded; this is diagnostic logging, not an archive.
+        try:
+            lines = ERROR_LOG_PATH.read_text(encoding="utf-8").splitlines()
+            if len(lines) > _ERROR_LOG_LIMIT:
+                tmp = ERROR_LOG_PATH.with_suffix(".tmp")
+                tmp.write_text("\n".join(lines[-_ERROR_LOG_LIMIT:]) + "\n", encoding="utf-8")
+                os.replace(tmp, ERROR_LOG_PATH)
+        except OSError:
+            pass
+    except Exception as exc:
+        print(f"FlowTip error-log write failed: {exc}")
+
+def load_error_logs(limit: int = 100):
+    """Возвращает последние строки журнала ошибок (новые сверху)."""
+    try:
+        if not ERROR_LOG_PATH.exists():
+            return []
+        lines = ERROR_LOG_PATH.read_text(encoding="utf-8", errors="replace").splitlines()
+        return list(reversed(lines[-max(1, min(int(limit), 300)):]))
+    except OSError:
+        return []
