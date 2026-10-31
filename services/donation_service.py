@@ -5,7 +5,7 @@ from services.stats_service import update_stats
 from services.audit import audit_event
 from services.reactions_service import apply_reaction_rule
 from services.vip_service import update_vip
-from services.logs_service import add_log
+from services.logs_service import add_log, add_error_log
 from services.rules_service import load_rules
 from services.goal_service import load_goal
 from app.goal_app import goal_add_points
@@ -63,7 +63,7 @@ def apply_rule(profile_key, amount, text):
 
 # ---------------- DONATION HANDLER ----------------
 
-def handle_donation(profile_key, user_id, name, amount, text):
+def _handle_donation_impl(profile_key, user_id, name, amount, text):
     mode = profile_key.split("_")[1]
 
     # 1. Применяем правила
@@ -163,3 +163,28 @@ def handle_donation(profile_key, user_id, name, amount, text):
         redis_client.publish("obs_reactions", json.dumps(payload))
 
     return {"goal": goal, "rule": rule_result}
+
+
+def handle_donation(profile_key, user_id, name, amount, text):
+    """
+    Диагностическая оболочка: фиксирует исключения в обработке доната,
+    не подавляя их и не повторяя обработку.
+    """
+    try:
+        return _handle_donation_impl(profile_key, user_id, name, amount, text)
+    except Exception as exc:
+        try:
+            import traceback
+            details = traceback.format_exc()
+            # Не записываем имя зрителя или текст доната: достаточно профиля,
+            # суммы и типа исключения для первичной диагностики.
+            add_error_log(
+                "ERROR",
+                "component=donation_service event=handle_donation "
+                f"profile={profile_key!r} amount={amount!r} "
+                f"exception={type(exc).__name__}: {exc}\n{details}"
+            )
+        except Exception:
+            # Диагностика не должна скрывать исходное исключение.
+            pass
+        raise

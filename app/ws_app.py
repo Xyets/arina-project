@@ -11,15 +11,12 @@ import json
 import websockets
 import aiohttp
 from services.vip_service import update_vip
-from services.logs_service import add_log, install_error_log_handler
+from services.logs_service import add_log
 from services.lovense_service import send_vibration_cloud_async
 from services.database import get_profile_by_key
 from services.vibration_manager import vibration_queues, stop_events, ensure_profile
 from services.redis_client import redis_client
 from services.vibration_manager import init_vibration_queues
-
-# WS runs separately from Flask; install the same diagnostic handler in this process.
-install_error_log_handler()
 
 # ---------------- ГЛОБАЛЬНЫЕ СТРУКТУРЫ ----------------
 
@@ -407,7 +404,7 @@ async def handle_viewer_event(websocket, data):
     ws_send({"type": "refresh_logs"}, role="panel", profile_key=profile_key)
 
 
-async def handle_donation_event(websocket, data):
+async def _handle_donation_event_impl(websocket, data):
     from services.donation_service import handle_donation
 
     user = data.get("user")
@@ -1187,3 +1184,25 @@ def run_websocket_server():
 
 if __name__ == "__main__":
     run_websocket_server()
+
+
+async def handle_donation_event(websocket, data):
+    """Логирует ошибки маршрутизации события доната и сохраняет исходное поведение."""
+    try:
+        return await _handle_donation_event_impl(websocket, data)
+    except Exception as exc:
+        try:
+            from services.logs_service import add_error_log
+            import traceback
+            user = data.get("user")
+            amount = data.get("amount")
+            # Не записываем имя зрителя и текст сообщения, чтобы не собирать лишние данные.
+            add_error_log(
+                "ERROR",
+                "component=websocket event=handle_donation_event "
+                f"profile_user={user!r} amount={amount!r} "
+                f"exception={type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+            )
+        except Exception:
+            pass
+        raise
