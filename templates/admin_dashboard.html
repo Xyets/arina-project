@@ -29,13 +29,32 @@
     <div class="table-wrap"><table><thead><tr><th>Компонент</th><th>Статус</th><th>Результат проверки</th></tr></thead><tbody>
       {% for check in monitoring_checks %}<tr><td class="name">{{ check.name }}</td><td><span class="status {{ 'connected' if check.ok else 'disconnected' }}">{{ 'Работает' if check.ok else 'Проблема' }}</span></td><td class="muted">{{ check.detail }}</td></tr>{% endfor %}
     </tbody></table></div>
-    <div class="section-head" style="margin-top:22px;margin-bottom:8px"><h2>Последние ошибки приложения</h2><span class="pill">{{ recent_errors|length }} строк</span></div>
-    {% if recent_errors %}
-      <div style="max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:8px 12px">
-        {% for error_line in recent_errors %}<div style="padding:8px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace">{{ error_line }}</div>{% endfor %}
+    <div class="section-head" style="margin-top:22px;margin-bottom:8px">
+      <h2>Последние ошибки приложения</h2>
+      <div class="create-row">
+        <span class="pill">{{ recent_error_items|length }} строк</span>
+        {% if recent_error_items %}
+        <form method="post" action="{{ url_for('admin.clear_errors') }}" onsubmit="return confirm('Очистить весь журнал ошибок? Это удалит только записи ошибок, но не донаты и не статистику.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn danger small" type="submit">Очистить все ошибки</button>
+        </form>
+        {% endif %}
       </div>
-    {% else %}<div class="empty">Ошибок пока нет в новом журнале. Журнал начинает собирать ошибки после первого открытия этой страницы с установленным обновлением.</div>{% endif %}
-    <p class="hint">Показываются последние 100 записей. Файл журнала ограничивается по размеру. Для просмотра новых статусов обнови страницу.</p>
+    </div>
+    {% if recent_error_items %}
+      <div style="max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:8px 12px">
+        {% for error in recent_error_items %}
+          <div style="display:flex;align-items:flex-start;gap:12px;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)">
+            <div style="min-width:0;flex:1;overflow-wrap:anywhere;white-space:pre-wrap;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace">{{ error.line }}</div>
+            <form method="post" action="{{ url_for('admin.delete_error', error_hash=error.key) }}" onsubmit="return confirm('Удалить только эту запись ошибки?');" style="flex:none">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="btn danger small" type="submit" aria-label="Удалить эту ошибку" title="Удалить эту ошибку">Удалить</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}<div class="empty">Ошибок пока нет. Новые ошибки будут записываться в журнал автоматически.</div>{% endif %}
+    <p class="hint">Можно удалить отдельную запись после проверки или очистить весь журнал. Это не влияет на донаты, статистику, правила или подключения.</p>
   </section>
 
   <section class="card" id="models"><div class="section-head"><h2>Модели FlowTip</h2><span class="pill">Модели и Lovense</span></div>

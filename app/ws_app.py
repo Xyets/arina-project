@@ -1136,6 +1136,16 @@ async def ws_handler(websocket):
             # Если тип неизвестен
             print("⚠ Unknown WS message type:", msg_type)
 
+    except websockets.exceptions.ConnectionClosed as exc:
+        # Клиент мог закрыть приложение/сеть без close frame.
+        # Не превращаем ожидаемый обрыв соединения в traceback от handler.
+        remote = getattr(websocket, "remote_address", None)
+        print(
+            f"ℹ WS client disconnected: remote={remote!r}, "
+            f"code={getattr(exc, 'code', None)}, "
+            f"reason={getattr(exc, 'reason', '')!r}, "
+            f"clean={not isinstance(exc, websockets.exceptions.ConnectionClosedError)}"
+        )
     finally:
         # Удаляем сокет при отключении
         CONNECTED_SOCKETS.discard(websocket)

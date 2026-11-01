@@ -1,7 +1,26 @@
 import json
 import aiohttp
+from services.logs_service import add_error_log
 from services.redis_client import redis_client
 from services.database import get_profile_by_key, get_model_by_id
+
+
+
+def _record_lovense_issue(level: str, profile_key: str, operation: str, detail: str):
+    """Записывает диагностику Lovense без токенов и пользовательских данных."""
+    try:
+        add_error_log(level, f"component=lovense operation={operation} profile={profile_key!r} {detail}")
+    except Exception:
+        # Диагностика не должна ломать управление вибрацией.
+        pass
+
+
+def _is_successful_response(http_status, result):
+    return (
+        int(http_status) == 200
+        and str(result.get("code")) == "200"
+        and result.get("result") is not False
+    )
 
 # ---------------- ГЛОБАЛЬНАЯ СЕССИЯ ----------------
 
@@ -59,6 +78,7 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
 
     if not utoken:
         print(f"❌ [{profile_key}] utoken отсутствует")
+        _record_lovense_issue("WARNING", profile_key, "start_vibration", "reason=utoken_missing")
         return
 
     url = "https://api.lovense-api.com/api/lan/v2/command"
@@ -85,8 +105,18 @@ async def start_vibration_cloud_async(profile_key: str, strength: int):
                 f"code={result.get('code')}, "
                 f"message={result.get('message', '')}"
             )
+            if not _is_successful_response(response.status, result):
+                _record_lovense_issue(
+                    "ERROR", profile_key, "start_vibration",
+                    f"http_status={response.status} code={result.get('code')!r} "
+                    f"message={str(result.get('message', ''))[:200]!r}"
+                )
     except Exception as e:
         print(f"Ошибка Lovense API: {type(e).__name__}")
+        _record_lovense_issue(
+            "ERROR", profile_key, "start_vibration",
+            f"exception={type(e).__name__}: {str(e)[:200]!r}"
+        )
 
 
 async def stop_vibration_cloud_async(profile_key: str):
@@ -109,6 +139,7 @@ async def stop_vibration_cloud_async(profile_key: str):
 
     if not utoken:
         print(f"❌ [{profile_key}] utoken отсутствует")
+        _record_lovense_issue("WARNING", profile_key, "stop_vibration", "reason=utoken_missing")
         return
 
     url = "https://api.lovense-api.com/api/lan/v2/command"
@@ -135,8 +166,18 @@ async def stop_vibration_cloud_async(profile_key: str):
                 f"code={result.get('code')}, "
                 f"message={result.get('message', '')}"
             )
+            if not _is_successful_response(response.status, result):
+                _record_lovense_issue(
+                    "ERROR", profile_key, "stop_vibration",
+                    f"http_status={response.status} code={result.get('code')!r} "
+                    f"message={str(result.get('message', ''))[:200]!r}"
+                )
     except Exception as e:
         print(f"Ошибка Lovense API: {type(e).__name__}")
+        _record_lovense_issue(
+            "ERROR", profile_key, "stop_vibration",
+            f"exception={type(e).__name__}: {str(e)[:200]!r}"
+        )
 
 
 async def send_vibration_cloud_async(profile_key: str, strength: int, duration: int):

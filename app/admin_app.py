@@ -16,6 +16,7 @@ import json
 import time
 import socket
 import math
+import hashlib
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
@@ -23,7 +24,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from werkzeug.security import check_password_hash
 
 from services.database import get_connection, create_registration_code as db_create_registration_code
-from services.logs_service import install_error_log_handler, load_error_logs
+from services.logs_service import add_error_log, load_error_logs
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -96,10 +97,24 @@ def _clear_failures(key):
         _ATTEMPTS.pop(key, None)
 
 
+class _FlowTipErrorHandler(__import__("logging").Handler):
+    """Writes application errors to a separate, bounded diagnostic file."""
+    def emit(self, record):
+        try:
+            message = self.format(record)
+            add_error_log(record.levelname, message)
+        except Exception:
+            self.handleError(record)
+
+
 def _ensure_error_log_handler(app):
-    # Один общий обработчик собирает ERROR+ из Flask и модулей services.
-    install_error_log_handler()
-    app._flowtip_error_handler_installed = True
+    # Attach once per Flask app instance, not once per request.
+    if not getattr(app, "_flowtip_error_handler_installed", False):
+        import logging
+        handler = _FlowTipErrorHandler(level=logging.ERROR)
+        handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        app.logger.addHandler(handler)
+        app._flowtip_error_handler_installed = True
 
 
 def _check_tcp_service(host, port, timeout=0.6):
@@ -535,11 +550,43 @@ def exclude_donation_route(profile_key, day_string, event_id):
     return redirect(url_for("admin.dashboard", profile=profile_key, date_from=day_string, date_to=day_string) + "#donation-journal")
 
 
+@admin_bp.route("/errors/<error_hash>/delete", methods=["POST"])
+@admin_required
+def delete_error(error_hash):
+    if not _valid_csrf():
+        abort(400, description="Недействительный CSRF-токен")
+    if not re.fullmatch(r"[a-f0-9]{64}", error_hash or ""):
+        abort(400, description="Некорректный идентификатор ошибки")
+    from services.logs_service import delete_error_log_by_hash
+    if delete_error_log_by_hash(error_hash):
+        flash("Запись ошибки удалена из журнала.", "success")
+    else:
+        flash("Запись уже удалена или журнал изменился. Обнови страницу.", "error")
+    return redirect(url_for("admin.dashboard") + "#system-monitoring")
+
+
+@admin_bp.route("/errors/clear", methods=["POST"])
+@admin_required
+def clear_errors():
+    if not _valid_csrf():
+        abort(400, description="Недействительный CSRF-токен")
+    from services.logs_service import clear_error_logs
+    if clear_error_logs():
+        flash("Журнал ошибок очищен. Новые ошибки будут записываться как обычно.", "success")
+    else:
+        flash("Не удалось очистить журнал ошибок. Проверь права доступа к файлу.", "error")
+    return redirect(url_for("admin.dashboard") + "#system-monitoring")
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
     _ensure_error_log_handler(current_app)
     monitoring_checks, recent_errors = _monitoring_snapshot(current_app)
+    recent_error_items = [
+        {"line": line, "key": hashlib.sha256(line.encode("utf-8")).hexdigest()}
+        for line in recent_errors
+    ]
     conn = get_connection()
     try:
         model_count = conn.execute("SELECT COUNT(*) FROM models").fetchone()[0]
@@ -684,4 +731,5 @@ def dashboard():
         flashes=[],
         monitoring_checks=monitoring_checks,
         recent_errors=recent_errors,
+        recent_error_items=recent_error_items,
     )
