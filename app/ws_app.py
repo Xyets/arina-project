@@ -1153,6 +1153,28 @@ async def ws_handler(websocket):
         CLIENT_PROFILES.pop(websocket, None)
 
 
+async def handle_donation_event(websocket, data):
+    """Логирует ошибки маршрутизации события доната и сохраняет исходное поведение."""
+    try:
+        return await _handle_donation_event_impl(websocket, data)
+    except Exception as exc:
+        try:
+            from services.logs_service import add_error_log
+            import traceback
+            user = data.get("user")
+            amount = data.get("amount")
+            # Не записываем имя зрителя и текст сообщения, чтобы не собирать лишние данные.
+            add_error_log(
+                "ERROR",
+                "component=websocket event=handle_donation_event "
+                f"profile_user={user!r} amount={amount!r} "
+                f"exception={type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+            )
+        except Exception:
+            pass
+        raise
+
+
 # ---------------- ЗАПУСК WS ----------------
 
 async def ws_server():
@@ -1194,25 +1216,3 @@ def run_websocket_server():
 
 if __name__ == "__main__":
     run_websocket_server()
-
-
-async def handle_donation_event(websocket, data):
-    """Логирует ошибки маршрутизации события доната и сохраняет исходное поведение."""
-    try:
-        return await _handle_donation_event_impl(websocket, data)
-    except Exception as exc:
-        try:
-            from services.logs_service import add_error_log
-            import traceback
-            user = data.get("user")
-            amount = data.get("amount")
-            # Не записываем имя зрителя и текст сообщения, чтобы не собирать лишние данные.
-            add_error_log(
-                "ERROR",
-                "component=websocket event=handle_donation_event "
-                f"profile_user={user!r} amount={amount!r} "
-                f"exception={type(exc).__name__}: {exc}\n{traceback.format_exc()}"
-            )
-        except Exception:
-            pass
-        raise
